@@ -1,4 +1,4 @@
-#if LAB >= 5
+ifdef LAB5
 CLEAN_FILES += \
 	fs/fs \
 	fs/fsformat \
@@ -27,7 +27,7 @@ FSIMGFILES := \
 	$(OBJDIR)/user/num \
 	$(OBJDIR)/user/primes \
 
-#if LAB >= 6
+ifdef LAB6
 FSIMGFILES := \
 	$(OBJDIR)/user/primespipe \
 	$(OBJDIR)/user/sh \
@@ -37,7 +37,7 @@ FSIMGFILES := \
 	$(OBJDIR)/user/testptelibrary \
 	$(OBJDIR)/user/testshell \
 	$(FSIMGFILES)
-#endif
+endif
 
 $(OBJDIR)/fs/fs: $(FSOFILES) $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libuser.a
 	@echo ld $@
@@ -54,7 +54,7 @@ $(OBJDIR)/fs/%.o:	fs/fs.h user/lib.h
 # How to build the file system image
 $(OBJDIR)/fs/fsformat: fs/fsformat.c
 	@mkdir -p $(@D)
-	gcc -I. -o $(OBJDIR)/fs/fsformat fs/fsformat.c
+	gcc -I. $(DEFS) -o $(OBJDIR)/fs/fsformat fs/fsformat.c
 
 $(OBJDIR)/fs/fs.img: $(OBJDIR)/fs/fsformat $(FSIMGFILES)
 	@mkdir -p $(@D)
@@ -65,4 +65,4 @@ all: $(OBJDIR)/fs/fs.img
 
 .PRECIOUS: fs/%
 
-#endif
+endif

@@ -1,4 +1,3 @@
-#if LAB >= 1
 #
 # Makefile fragment for 6.828 kernel.
 # This is NOT a complete makefile;
@@ -44,10 +43,51 @@ KERN_SRCFILES := $(foreach file, $(KERN_SRCFILES), \
 KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, \
 			$(patsubst %.S, $(OBJDIR)/%.o, $(KERN_SRCFILES)))
 
-
+ifdef LAB6
+# Binary program images to embed within the kernel.
+KERN_BINFILES := \
+	user/icode \
+	user/idle \
+	fs/fs
+else
+ifdef LAB5
+# Binary program images to embed within the kernel.
+KERN_BINFILES := \
+	user/idle \
+	fs/fs
+else
+ifdef LAB4
 # Binary program images to embed within the kernel.
 KERN_BINFILES := \
 	user/buggyhello \
+	user/exit \
+	user/fairness \
+	user/fault \
+	user/faultalloc \
+	user/faultallocbad \
+	user/faultbadhandler \
+	user/faultbadstack \
+	user/faultdie \
+	user/faultevilhandler \
+	user/faultevilstack \
+	user/faultgoodstack \
+	user/hello \
+	user/idle \
+	user/pingpong \
+	user/pingpong1 \
+	user/pingpong2 \
+	user/pingpongs \
+	user/primes
+else
+KERN_BINFILES := 
+endif
+endif
+endif
+
+ifdef UNDEF
+KERN_BINFILES := \
+	user/init \
+	user/idle \
 	user/evilhello \
 	user/exit \
 	user/fairness \
@@ -62,12 +102,6 @@ KERN_BINFILES := \
 	user/faultgoodstack \
 	user/hello \
 	user/icode \
-	user/idle \
-	user/init \
-	user/pingpong \
-	user/pingpong1 \
-	user/pingpong2 \
-	user/pingpongs \
 	user/pipereadeof \
 	user/pipewriteeof \
 	user/primes \
@@ -82,6 +116,8 @@ KERN_BINFILES := \
 	user/testshell \
 	user/writemotd \
 	fs/fs \
+	KERN_BINFILES
+endif
 
 KERN_BINFILES := $(foreach file, $(KERN_BINFILES), \
 			$(shell test -f $(file).c && echo $(OBJDIR)/$(file)))
@@ -100,5 +136,3 @@ $(OBJDIR)/kern/bochs.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/boot
 	@mv $(OBJDIR)/kern/bochs.img~ $(OBJDIR)/kern/bochs.img
 
 all: $(OBJDIR)/kern/bochs.img
-
-#endif

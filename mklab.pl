@@ -20,7 +20,9 @@ sub dofile {
 	open(INFILE, "<$filename") or die "Can't open $filename";
 	open(OUTFILE, ">$tmpfilename") or die "Can't open $tmpfilename";
 
-	my $lines = 0;
+	my $outlines = 0;
+	my $inlines = 0;
+	my $lastgood = "NO LAST GOOD";
 	my %stack;
 	my $depth = 0;
 	$stack{$depth}->{'emit'} = 1;
@@ -28,54 +30,63 @@ sub dofile {
 	while(<INFILE>) {
 		my $line = $_;
 		chomp;
+		$inlines++;
 		$emit = $stack{$depth}->{'emit'};
-		if (m:^[#](elif|if)\s+(LAB|SOL)\s*[>][=]\s*(\d+):) {
+		if (m:^(ifdef|ifndef|[#]elif|[#]if)\s+(LAB|SOL)(\s*[>][=]\s*|)(\d+):) {
 			# Parse a new condition
 			if ($2 eq "LAB") {
-				$cond = ($labno >= $3);
+				$cond = ($labno >= $4);
 			} else {
-				$cond = ($solno >= $3);
+				$cond = ($solno >= $4);
 			}
-			if ($1 eq "if") {
+			if ($1 eq "#if" or $1 eq "ifdef" or $1 eq "ifndef") {
 				$stack{++$depth} = { 'anytrue' => 0, 'isours' => 1 };
 			}
 			$stack{$depth}->{'emit'} = ($stack{$depth-1}->{'emit'} && $cond);
-			if ($1 eq "elif") {
+			if ($1 eq "#elif") {
 				$stack{$depth}->{'emit'} &= !$stack{$depth}->{'anytrue'};
 			}
 			$stack{$depth}->{'anytrue'} |= $cond;
 			$emit = 0;
-		} elsif (m:^[#]if:) {
+			$lastgood = $line;
+		} elsif (m:^([#]if|ifdef|ifndef|ifeq|ifneq):) {
 			# Other conditions we just pass through
 			++$depth;
 			$stack{$depth} = { 'isours' => 0, 'emit' => $stack{$depth-1}->{'emit'} };
-		} elsif (m:^[#]else:) {
+			$lastgood = $line;
+		} elsif (m:^([#]|)else:) {
 			if ($stack{$depth}->{'isours'}) {
 				$emit = 0;
 				$stack{$depth}->{'emit'} = ($stack{$depth-1}->{'emit'} && !$stack{$depth}->{'anytrue'});
 			}
-		} elsif (m:^[#]endif:) {
+			$lastgood = $line;
+		} elsif (m:^([#]|)endif:) {
 			if ($stack{$depth}->{'isours'}) {
 				$emit = 0;
 			}
 			--$depth;
+			if ($depth < 0) {
+				die("unmatched endif on line $filename:$inlines \"$line\"");
+			}
+
 		}
 
 		if ($emit) {
 			print OUTFILE "$_\n";
-			$lines++;
+			$outlines++;
 		}
 	}
 
 	if ($depth != 0) {
 		print STDERR "warning: unmatched #if/#ifdef/#elif/#else/#endif in $filename\n";
+		print STDERR "last known good line: $filename:$inlines $lastgood\n";
 	}
 
 	close INFILE;
 	close OUTFILE;
 
 	# After doing all that work, nuke empty files
-	if ($lines) {
+	if ($outlines) {
 		my $outfilename = "$outdir/$filename";
 
 		# Create the directory the output file lives in.

@@ -1,4 +1,5 @@
-#if LAB >= 4
+ifdef LAB4
+
 CLEAN_FILES += \
 	user/buggyhello \
 	user/evilhello \
@@ -43,4 +44,4 @@ $(OBJDIR)/user/%.o: lib.h
 
 .PRECIOUS: %.o user/%
 
-#endif
+endif

@@ -1,4 +1,4 @@
-#if LAB >= 3
+ifdef LAB3
 
 OBJDIRS += lib
 
@@ -12,7 +12,7 @@ LIB_SRCFILES :=		\
 			lib/string.c \
 			lib/syscall.c
 
-#if LAB >= 5
+ifdef LAB5
 LIB_SRCFILES :=		\
 			lib/fd.c \
 			lib/file.c \
@@ -21,15 +21,15 @@ LIB_SRCFILES :=		\
 			lib/pageref.c \
 			lib/spawn.c \
 			$(LIB_SRCFILES)
-#endif
+endif
 
-#if LAB >= 6
+ifdef LAB6
 LIB_SRCFILES :=		\
 			lib/console.c \
 			lib/pipe.c \
 			lib/wait.c \
 			$(LIB_SRCFILES)
-#endif
+endif
 
 
 LIB_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LIB_SRCFILES))
@@ -38,5 +38,4 @@ $(OBJDIR)/lib/libuser.a: $(LIB_OBJFILES)
 	@echo ar $@
 	@$(AR) r $@ $(LIB_OBJFILES)
 
-#endif
-
+endif

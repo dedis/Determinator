@@ -8,6 +8,11 @@
 OBJDIR := obj
 
 #if LAB >= 999
+ifdef LAB
+SETTINGLAB := true
+else
+-include .oldlab
+endif
 #
 # Anything in an #if LAB >= 999 always gets cut out by mklab.pl on export,
 # and thus is for the internal instructor/TA project tree only.
@@ -17,10 +22,10 @@ OBJDIR := obj
 # (instead of exporting a student tree and then building),
 # invoke 'make' as follows:
 #
-#	make LAB=# SOL=#
+#	make LAB=# SOL=# labsetup
+#       make
 #
 # substituting the appropriate LAB# and SOL# to control the build.
-# Be sure to do a 'make clean' when changing the LAB# or SOL#.
 #
 # Pass the LAB and SOL values to the C compiler.
 DEFS	:= $(DEFS) -DLAB=$(LAB) -DSOL=$(SOL)
@@ -59,17 +64,6 @@ OBJDIRS :=
 all:
 
 
-# Include Makefrags for subdirectories
-include boot/Makefrag
-include kern/Makefrag
-include lib/Makefrag
-#if LAB >= 4
-include user/Makefrag
-#endif
-#if LAB >= 5
-include fs/Makefrag
-#endif
-
 # Eliminate default suffix rules
 .SUFFIXES:
                                                                                 
@@ -97,26 +91,71 @@ $(OBJDIR)/%.o: %.S
 #if LAB >= 999	// Visible only in instructor's project tree
 
 # Use a fake target to make sure both LAB and SOL are defined.
--include .oldlab
 all inc/types.h: checklab
 checklab:
-ifndef LAB
-	@echo LAB and SOL must be defined to build in the instructor tree.
+ifdef SETTINGLAB
+	@echo "run: make LAB=N SOL=N labsetup, then just run make"
 	@false
 endif
-ifndef SOL
-	@echo LAB and SOL must be defined to build in the instructor tree.
-	@false
+	@echo "Building LAB=$(LAB) SOL=$(SOL)"
+
+labsetup:
+	rm -rf obj
+	echo >.oldlab "LAB=$(LAB)"
+	echo >>.oldlab "SOL=$(SOL)"
+	echo >>.oldlab "LAB1=true"
+ifeq ($(LAB), 2)
+	echo >>.oldlab "LAB2=true"
 endif
-ifdef OLDLAB
-ifneq ($(LAB):$(SOL),$(OLDLAB))
-	@echo "Do a 'make clean' before changing the value of LAB or SOL."
-	@false
+ifeq ($(LAB), 3)
+	echo >>.oldlab "LAB2=true"
+	echo >>.oldlab "LAB3=true"
 endif
-else
-	echo >.oldlab "OLDLAB=$(LAB):$(SOL)"
+ifeq ($(LAB), 4)
+	echo >>.oldlab "LAB2=true"
+	echo >>.oldlab "LAB3=true"
+	echo >>.oldlab "LAB4=true"
+endif
+ifeq ($(LAB), 5)
+	echo >>.oldlab "LAB2=true"
+	echo >>.oldlab "LAB3=true"
+	echo >>.oldlab "LAB4=true"
+	echo >>.oldlab "LAB5=true"
+endif
+ifeq ($(LAB), 6)
+	echo >>.oldlab "LAB2=true"
+	echo >>.oldlab "LAB3=true"
+	echo >>.oldlab "LAB4=true"
+	echo >>.oldlab "LAB5=true"
+	echo >>.oldlab "LAB6=true"
 endif
 
+ifndef LAB5
+all: $(OBJDIR)/fs/fs.img
+$(OBJDIR)/fs/fs.img:
+	@mkdir -p $(@D)
+	touch $@
+endif
+
+clean: deloldlab
+deloldlab:
+	rm -f .oldlab
+#endif // LAB >= 999
+
+# Include Makefrags for subdirectories
+include boot/Makefrag
+include kern/Makefrag
+#if LAB >= 3
+include lib/Makefrag
+#endif
+#if LAB >= 4
+include user/Makefrag
+#endif
+#if LAB >= 5
+include fs/Makefrag
+#endif
+
+#if LAB >= 999
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S
 LAB_DIRS := inc lib $(OBJDIRS)
@@ -125,7 +164,7 @@ LAB_FILES := CODING GNUmakefile .bochsrc mergedep.pl grade.sh boot/sign.pl \
 	fs/testshell.sh fs/testshell.key fs/testshell.out fs/out \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
-BIOS_FILES := bios/BIOS-bochs-latest bios/VGABIOS-elpin-2.40
+BIOS_FILES := bios/BIOS-bochs-latest bios/VGABIOS-lgpl-latest
 
 # Fake targets to export the student lab handout and solution trees.
 # It's important that these aren't just called 'lab%' and 'sol%',
@@ -156,6 +195,7 @@ export-prep%: $(BIOS_FILES)
 	$(PERL) mklab.pl $* `echo -1+$* | bc` prep$* $(LAB_FILES)
 	cp -R bios prep$*/
 
+%.c: $(OBJDIR)
 lab%.tar.gz: $(BIOS_FILES)
 	gmake export-lab$*
 	tar cf - lab$* | gzip > lab$*.tar.gz
