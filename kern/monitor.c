@@ -84,7 +84,7 @@ mon_backtrace(int argc, char **argv)
 
 /***** Kernel monitor command interpreter *****/
 
-#define WHITESPACE "\t\r\n"
+#define WHITESPACE "\t\r\n "
 #define MAXARGS 16
 
 static void
