@@ -200,8 +200,6 @@ LAB_FILES := CODING GNUmakefile .bochsrc mergedep.pl grade.sh boot/sign.pl \
 	conf/env.mk \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
-BIOS_FILES := $(wildcard bios/BIOS-bochs-latest bios/VGABIOS-lgpl-latest)
-
 # Fake targets to export the student lab handout and solution trees.
 # It's important that these aren't just called 'lab%' and 'sol%',
 # because that causes 'lab%' to match 'kern/lab3.S' and delete it - argh!
@@ -218,26 +216,26 @@ BIOS_FILES := $(wildcard bios/BIOS-bochs-latest bios/VGABIOS-lgpl-latest)
 #
 # In general, only sol% and prep% trees are supposed to compile directly.
 #
-export-lab%: $(BIOS_FILES) always
+export-lab%: always
 	rm -rf lab$*
 	num=`echo $$(($*-$(LABADJUST)))`; \
-		$(MKLABENV) $(PERL) mklab.pl $$num 0 lab$* $(LAB_FILES)
+		$(MKLABENV) $(PERL) mklab.pl $$num 3 lab$* $(LAB_FILES)
 	test -d lab$*/conf || mkdir lab$*/conf
 	echo >lab$*/conf/lab.mk "LAB=$*"
 	echo >>lab$*/conf/lab.mk "PACKAGEDATE="`date`
-export-sol%: $(BIOS_FILES) always
+export-sol%: always
 	rm -rf sol$*
 	num=`echo $$(($*-$(LABADJUST)))`; \
 		$(MKLABENV) $(PERL) mklab.pl $$num $$num sol$* $(LAB_FILES)
 	echo >sol$*/conf/lab.mk "LAB=$*"
-export-prep%: $(BIOS_FILES) always
+export-prep%: always
 	rm -rf prep$*
 	num=`echo $$(($*-$(LABADJUST)))`;
 		$(MKLABENV) $(PERL) mklab.pl $num `expr $num - 1` prep$* $(LAB_FILES)
 	echo >prep$*/conf/lab.mk "LAB=$*"
 
 %.c: $(OBJDIR)
-lab%.tar.gz: $(BIOS_FILES) always
+lab%.tar.gz: always
 	$(MAKE) export-lab$*
 	tar cf - lab$* | gzip > lab$*.tar.gz
 
@@ -248,13 +246,6 @@ build-sol%: export-sol% always
 build-prep%: export-prep% always
 	cd prep$*; $(MAKE)
 
-# Distribute the BIOS images Bochs needs with the lab trees
-# in order to avoid absolute pathname dependencies in .bochsrc.
-bios:
-	mkdir $@
-bios/%: /usr/local/share/bochs/% bios
-	cp $< $@
-all: $(BIOS_FILES)
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
 bochs: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
