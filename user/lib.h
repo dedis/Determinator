@@ -30,9 +30,11 @@ int	strcmp(const char*, const char*);
 // libos.c or entry.S
 extern struct Env *env;
 extern struct Env envs[NENV];
-extern struct Page *pages;
+extern struct Page pages[];
+void	exit(void);
 
 // fork.c
+#define	PTE_SHARED	0x400
 int	fork(void);
 int	sfork(void);	// Challenge!
 
@@ -81,6 +83,7 @@ int	fsipc_close(u_int);
 int	fsipc_dirty(u_int, u_int);
 int	fsipc_remove(const char*);
 int	fsipc_sync(void);
+int	fsipc_incref(u_int);
 
 // file.c
 int	open(const char *path, int mode);
@@ -92,6 +95,10 @@ int	seek(int fd, u_int offset);
 int	delete(const char *path);
 int	ftruncate(int fd, u_int size);
 int	sync(void);
+void	fd_close_all(void);
+void	fd_fork_all(void);
+int	pipe(int[2]);
+int	readn(int fd, void *buf, u_int nbytes);
 
 // spawn.c
 int	spawn(char*, char**);

@@ -94,6 +94,17 @@ fsipc_close(u_int fileid)
 	return fsipc(FSREQ_CLOSE, req, 0, 0);
 }
 
+// Increment the reference count on fileid so that it can be shared.
+int
+fsipc_incref(u_int fileid)
+{
+	struct Fsreq_incref *req;
+
+	req = (struct Fsreq_incref*)fsipcbuf;
+	req->req_fileid = fileid;
+	return fsipc(FSREQ_INCREF, req, 0, 0);
+}
+
 // Ask the file server to mark a particular file block dirty.
 int
 fsipc_dirty(u_int fileid, u_int offset)

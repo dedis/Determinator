@@ -63,7 +63,10 @@ KERN_BINFILES := \
 	user/pingpong1 \
 	user/pingpong2 \
 	user/pingpongs \
+	user/pipereadeof \
+	user/pipewriteeof \
 	user/primes \
+	user/primespipe \
 	user/testfsipc \
 	user/writemotd \
 	fs/fs \

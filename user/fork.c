@@ -3,6 +3,8 @@
 
 #include "lib.h"
 
+#define debug 0
+
 #define PTE_COW		0x800
 
 //
@@ -17,8 +19,11 @@ pgfault(u_int va, u_int err)
 	u_char *tmp;
 
 #if SOL >= 4
-	if ((vpt[PPN(va)] & (PTE_P|PTE_U|PTE_W|PTE_COW)) != (PTE_P|PTE_U|PTE_COW))
-		panic("fault at %x with pte %x, not copy-on-write", va, vpt[PPN(va)]);
+	if (debug) printf("fault %08x %08x %d from %08x\n", va, &vpt[VPN(va)], err&7, (&va)[4]);
+
+	if ((vpt[VPN(va)] & (PTE_P|PTE_U|PTE_W|PTE_COW)) != (PTE_P|PTE_U|PTE_COW))
+		panic("fault at %x with pte %x from %08x, not copy-on-write",
+			va, vpt[PPN(va)], (&va)[4]);
 
 	tmp = (u_char*)(UTEXT-BY2PG);	// should be available!
 
@@ -59,8 +64,8 @@ duppage(u_int envid, u_int pn)
 	pte = vpt[pn];
 
 	// if the page is just read-only, just map it in.
-	if ((pte&(PTE_W|PTE_COW)) == 0) {
-		if ((r=sys_mem_map(0, addr, envid, addr, pte&PTE_FLAGS)) < 0)
+	if ((pte&(PTE_W|PTE_COW)) == 0 || (pte&PTE_SHARED)) {
+		if ((r=sys_mem_map(0, addr, envid, addr, pte&PTE_USER)) < 0)
 			panic("sys_mem_map: %e", r);
 		return;
 	}
@@ -133,6 +138,9 @@ fork(void)
 	if ((r=sys_set_pgfault_handler(envid, env->env_pgfault_handler, env->env_xstacktop)) < 0)
 		panic("set_pgfault_handler: %e", r);
 
+
+	// Duplicate the file descriptors
+	fd_fork_all();
 
 	// Okay, the child is ready for life on its own.
 	if ((r=sys_set_env_status(envid, ENV_RUNNABLE)) < 0)

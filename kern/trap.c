@@ -211,8 +211,8 @@ page_fault_handler(struct Trapframe *tf)
 	}
 
 	if (curenv->env_pgfault_handler == 0) {
-		printf("[%08x] user fault va %08x ip %08x\n",
-			curenv->env_id, fault_va, tf->tf_eip);
+		printf("[%08x] user fault va %08x ip %08x eax %08x\n",
+			curenv->env_id, fault_va, tf->tf_eip, tf->tf_eax);
 		env_destroy(curenv);
 	}
 

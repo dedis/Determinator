@@ -66,6 +66,7 @@ struct Super {
 #define FSREQ_DIRTY	5
 #define FSREQ_REMOVE	6
 #define FSREQ_SYNC	7
+#define FSREQ_INCREF	8
 
 
 struct Fsreq_open {
@@ -86,6 +87,10 @@ struct Fsreq_set_size {
 };
 
 struct Fsreq_close {
+	int req_fileid;
+};
+
+struct Fsreq_incref {
 	int req_fileid;
 };
 

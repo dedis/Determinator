@@ -1,6 +1,9 @@
 #if LAB >= 5
 #include "lib.h"
 #include <inc/fs.h>
+#include <inc/pipe.h>
+
+#define debug 0
 
 // maximum number of open files
 #define MAXFD	32
@@ -15,11 +18,19 @@ struct Fileinfo
 	u_int fi_omode;		// file open mode (O_RDONLY etc.)
 	u_int fi_fileid;	// file id on server
 	u_int fi_offset;	// r/w offset
+	u_int fi_ispipe;	// is the fd a pipe?
 };
 
 // local information about open files
 extern struct Fileinfo fdtab[MAXFD];
 
+#if LAB >= 6
+// pipe i/o
+static int piperead(struct Fileinfo*, u_char*, u_int);
+static int pipewrite(struct Fileinfo*, const u_char*, u_int);
+static int pipeclose(struct Fileinfo*);
+
+#endif
 // Find an available struct Fileinfo in filetab
 static int
 fd_alloc(struct Fileinfo **fi)
@@ -34,6 +45,8 @@ fd_alloc(struct Fileinfo **fi)
 			if (fi)
 				*fi = &fdtab[i];
 			fdtab[i].fi_busy = 1;
+			fdtab[i].fi_ispipe = 0;
+			fdtab[i].fi_fileid = 0;
 			fdtab[i].fi_va = FILEBASE+PDMAP*i;
 			
 			return i;
@@ -49,6 +62,28 @@ fd_lookup(int fd, struct Fileinfo **fi)
 		return -E_INVAL;
 	*fi = &fdtab[fd];
 	return 0;
+}
+
+// Tell the file server that we're sharing our fds with a child.
+void
+fd_fork_all(void)
+{
+	int i, r;
+
+	for (i=0; i<MAXFD; i++)
+		if (fdtab[i].fi_busy && !fdtab[i].fi_ispipe)
+			if ((r = fsipc_incref(fdtab[i].fi_fileid)) < 0)
+				panic("fsipc_incref: %e", r);
+}	
+
+// Tell the file server that we're exiting.
+void
+fd_close_all(void)
+{
+	int i;
+
+	for (i=0; i<MAXFD; i++)
+		close(i);
 }
 
 // Open a file (or directory),
@@ -96,6 +131,9 @@ close(int fd)
 	if ((r = fd_lookup(fd, &fi)) < 0)
 		return r;
 
+	if (fi->fi_ispipe)
+		return pipeclose(fi);
+
 	ret = 0;
 	for (i=0; i < fi->fi_size; i+=BY2PG) {
 		if ((vpt[VPN(fi->fi_va+i)]&(PTE_P|PTE_D)) == (PTE_P|PTE_D))
@@ -128,6 +166,9 @@ read(int fd, void *buf, u_int n)
 	if ((fi->fi_omode & O_ACCMODE) == O_WRONLY)
 		return -E_INVAL;
 
+	if (fi->fi_ispipe)
+		return piperead(fi, buf, n);
+
 	// avoid reading past the end of file
 	if (fi->fi_offset > fi->fi_size)
 		return 0;
@@ -140,6 +181,23 @@ read(int fd, void *buf, u_int n)
 	return n;
 }
 
+// Read exactly 'n' bytes, instead of up to n bytes.
+// Only really useful for reads from pipes.
+int
+readn(int fd, void *buf, u_int n)
+{
+	int m, tot;
+
+	for (tot=0; tot<n; tot+=m) {
+		m = read(fd, (char*)buf+tot, n-tot);
+		if (m < 0)
+			return m;
+		if (m == 0)
+			break;
+	}
+	return tot;	
+}
+
 // Find the virtual address of the page
 // that maps the file block starting at 'offset'.
 int
@@ -150,6 +208,8 @@ read_map(int fd, u_int offset, void **blk)
 
 	if ((r = fd_lookup(fd, &fi)) < 0)
 		return r;
+	if (fi->fi_ispipe)
+		return -E_INVAL;
 	if (offset > MAXFILESIZE)
 		return -E_NO_DISK;
 	*blk = (void*)(fi->fi_va + offset);
@@ -170,6 +230,9 @@ write(int fd, const void *buf, u_int n)
 	// only if the file is writable...
 	if ((fi->fi_omode & O_ACCMODE) == O_RDONLY)
 		return -E_INVAL;
+
+	if (fi->fi_ispipe)
+		return pipewrite(fi, buf, n);
 
 	// don't write past the maximum file size
 	tot = fi->fi_offset + n;
@@ -253,4 +316,114 @@ sync(void)
 	return fsipc_sync();
 }
 
+#if LAB >= 6
+int
+pipe(int pfd[2])
+{
+	struct Fileinfo *fi0, *fi1;
+	struct Pipe *p;
+	int fd0, fd1, r;
+
+	if ((r = fd_alloc(&fi0)) < 0)
+		return r;
+	fd0 = r;
+
+	if ((r = fd_alloc(&fi1)) < 0) {
+		fi0->fi_busy = 0;
+		return r;
+	}
+	fd1 = r;
+
+	if ((r = sys_mem_alloc(0, fi0->fi_va, PTE_P|PTE_W|PTE_U|PTE_SHARED)) < 0
+	||  (r = sys_mem_map(0, fi0->fi_va, 0, fi1->fi_va, PTE_P|PTE_W|PTE_U|PTE_SHARED)) < 0
+	||  (r = sys_mem_alloc(0, fi0->fi_va+BY2PG, PTE_P|PTE_U|PTE_SHARED)) < 0
+	||  (r = sys_mem_alloc(0, fi1->fi_va+BY2PG, PTE_P|PTE_U|PTE_SHARED)) < 0) {
+		sys_mem_unmap(0, fi0->fi_va);
+		sys_mem_unmap(0, fi1->fi_va);
+		sys_mem_unmap(0, fi0->fi_va+BY2PG);
+		sys_mem_unmap(0, fi1->fi_va+BY2PG);
+		fi0->fi_busy = 0;
+		fi1->fi_busy = 0;
+		return r;
+	}
+
+	fi0->fi_ispipe = 1;
+	fi0->fi_omode = O_RDONLY;
+
+	fi1->fi_ispipe = 1;
+	fi1->fi_omode = O_WRONLY;
+
+	p = (struct Pipe*)fi0->fi_va;
+	p->p_page = PPN(vpt[VPN(fi0->fi_va)]);
+	p->p_rdpage = PPN(vpt[VPN(fi0->fi_va+BY2PG)]);
+	p->p_wrpage = PPN(vpt[VPN(fi1->fi_va+BY2PG)]);
+	assert(p->p_rpos == 0);
+	assert(p->p_wpos == 0);
+
+	if (debug) printf("[%08x] create pipe %08x\n", env->env_id, vpt[VPN(fi0->fi_va)]);
+	pfd[0] = fd0;
+	pfd[1] = fd1;
+	return 0;
+}
+
+int
+piperead(struct Fileinfo *fi, u_char *buf, u_int n)
+{
+	u_int i;
+	struct Pipe *p;
+
+	p = (struct Pipe*)fi->fi_va;
+	if (debug) printf("[%08x] piperead %08x %d rpos %d wpos %d\n", env->env_id, vpt[VPN(p)], n, p->p_rpos, p->p_wpos);
+	for (i=0; i<n; i++) {
+		while (p->p_rpos == p->p_wpos) {
+			// pipe is empty
+			// if we got any data, return it
+			if (i > 0)
+				return i;
+			// if all the writers are gone (it's only readers now), note eof
+			if (pages[p->p_rdpage].pp_ref == pages[p->p_page].pp_ref)
+				return 0;
+			// yield and see what happens
+			sys_yield();
+		}
+		// there's a byte.  take it.
+		buf[i] = p->p_buf[p->p_rpos++%BY2PIPE];
+	}
+	return i;
+}
+
+int
+pipewrite(struct Fileinfo *fi, const u_char *buf, u_int n)
+{
+	u_int i;
+	struct Pipe *p;
+
+	p = (struct Pipe*)fi->fi_va;
+	if (debug) printf("[%08x] pipewrite %08x %d rpos %d wpos %d\n", env->env_id, vpt[VPN(p)], n, p->p_rpos, p->p_wpos);
+
+	for (i=0; i<n; i++) {
+		while (p->p_wpos >= p->p_rpos+sizeof(p->p_buf)) {
+			// pipe is full
+			// if all the readers are gone (it's only writers now), note eof
+			if (pages[p->p_wrpage].pp_ref == pages[p->p_page].pp_ref)
+				return i;
+			// yield and see what happens
+			sys_yield();
+		}
+		// there's room for a byte.  store it.
+		p->p_buf[p->p_wpos++%BY2PIPE] = buf[i];
+	}
+	return i;
+}
+
+int
+pipeclose(struct Fileinfo *fi)
+{
+	sys_mem_unmap(0, fi->fi_va);
+	sys_mem_unmap(0, fi->fi_va+BY2PG);
+	fi->fi_busy = 0;
+	return 0;
+}
+
+#endif /* LAB >= 6 */
 #endif /* LAB >= 5 */

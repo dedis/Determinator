@@ -13,6 +13,7 @@ struct Open {
 	struct File *o_file;	// mapped descriptor for open file
 	u_int o_envid;		// envid of client
 	int o_mode;		// open mode
+	int o_ref;		// number of references
 };
 
 // Max number of open files in the file system at once
@@ -34,6 +35,7 @@ open_alloc(struct Open **o)
 	for (fileid = 0; fileid < MAXOPEN; fileid++) {
 		if (opentab[fileid].o_file == 0) {
 			*o = &opentab[fileid];
+			(*o)->o_ref = 1;
 			return fileid;
 		}
 	}
@@ -128,23 +130,14 @@ serve_set_size(u_int envid, struct Fsreq_set_size *rq)
 	if (debug) printf("serve_set_size %08x %08x %08x\n", envid, rq->req_fileid, rq->req_size);
 
 #if SOL >= 5
-	int fileid = rq->req_fileid;
-	struct Open *o = &opentab[fileid];
-	int rc;
+	struct Open *o;
+	int r;
 
-	// Validate fileid passed by user
-	if (fileid < 0 || fileid >= MAXOPEN ||
-	    o->o_file == 0 || o->o_envid != envid) {
-		rc = E_INVAL;
+	if ((r = open_lookup(envid, rq->req_fileid, &o)) < 0)
 		goto out;
-	}
-
-	// Resize the file as requested
-	rc = file_set_size(o->o_file, rq->req_size);
-
-	// Reply to the client
-	out:
-	ipc_send(envid, rc, 0, 0);
+	r = file_set_size(o->o_file, rq->req_size);
+out:
+	ipc_send(envid, r, 0, 0);
 #else
 	// Your code here
 	panic("serve_set_size not implemented");
@@ -157,32 +150,43 @@ serve_close(u_int envid, struct Fsreq_close *rq)
 	if (debug) printf("serve_close %08x %08x\n", envid, rq->req_fileid);
 
 #if SOL >= 5
-	int fileid = rq->req_fileid;
-	struct Open *o = &opentab[fileid];
-	int rc;
+	struct Open *o;
+	int r;
 
-	// Validate fileid passed by user
-	if (fileid < 0 || fileid >= MAXOPEN ||
-	    o->o_file == 0 || o->o_envid != envid) {
-		rc = E_INVAL;
+	if ((r = open_lookup(envid, rq->req_fileid, &o)) < 0)
 		goto out;
-	}
+	if (--o->o_ref > 0)
+		goto out;
 
-	// Close the file and clear the open table entry
 	file_close(o->o_file);
 	o->o_file = 0;
 	o->o_envid = 0;
-	rc = 0;
+	r = 0;
 
-	// Reply to the client
 out:
-	ipc_send(envid, rc, 0, 0);
+	ipc_send(envid, r, 0, 0);
 #else
 	// Your code here
 	panic("serve_close not implemented");
 #endif
 }
 
+void
+serve_incref(u_int envid, struct Fsreq_incref *rq)
+{
+	if (debug) printf("serve_incref %08x %08x\n", envid, rq->req_fileid);
+
+	struct Open *o;
+	int r;
+
+	if ((r = open_lookup(envid, rq->req_fileid, &o)) < 0)
+		goto out;
+	r = ++o->o_ref;
+
+out:
+	ipc_send(envid, r, 0, 0);
+}	
+		
 void
 serve_remove(u_int envid, struct Fsreq_remove *rq)
 {
@@ -211,24 +215,15 @@ serve_dirty(u_int envid, struct Fsreq_dirty *rq)
 	if (debug) printf("serve_dirty %08x %08x %08x\n", envid, rq->req_fileid, rq->req_offset);
 
 #if SOL >= 5
-	int rc;
-	u_int fileid = rq->req_fileid;
-	struct Open *o = &opentab[fileid];
+	struct Open *o;
+	int r;
 
-	// Validate fileid passed by user
-	
-	if (fileid < 0 || fileid >= MAXOPEN ||
-	    o->o_file == 0 || o->o_envid != envid) {
-		rc = E_INVAL;
+	if ((r = open_lookup(envid, rq->req_fileid, &o)) < 0)
 		goto out;
-	}
+	r = file_dirty(o->o_file, rq->req_offset);
 
-	// Resize the file as requested
-	rc = file_dirty(o->o_file, rq->req_offset);
-
-	// Reply to the client
-	out:
-	ipc_send(envid, rc, 0, 0);
+out:
+	ipc_send(envid, r, 0, 0);
 #else
 	// Your code here
 	panic("serve_dirty not implemented");
@@ -282,6 +277,9 @@ serve(void)
 			break;
 		case FSREQ_SYNC:
 			serve_sync(whom);
+			break;
+		case FSREQ_INCREF:
+			serve_incref(whom, (struct Fsreq_incref*)REQVA);
 			break;
 		default:
 			printf("Invalid request code %d from %08x\n", whom, req);
