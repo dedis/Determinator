@@ -20,10 +20,10 @@ i386_init(void)
 	cons_init();
 	i386_detect_memory();
 	i386_vm_init();
-	ppage_init();
-	ppage_check();
-
+	page_init();
+	page_check();
 ///LAB3
+
 	idt_init();
 	pic_init();
 	kclock_init();
