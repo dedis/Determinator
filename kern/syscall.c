@@ -4,6 +4,7 @@
 #include <inc/x86.h>
 #include <kern/env.h>
 #include <kern/pmap.h>
+#include <kern/trap.h>
 #include <kern/syscall.h>
 #include <kern/console.h>
 #include <kern/printf.h>
@@ -133,7 +134,7 @@ sys_env_alloc(u_int inherit, u_int initial_esp)
 		e->env_pgfault_handler = curenv->env_pgfault_handler;
 		e->env_xstacktop = curenv->env_xstacktop;
 
-		e->env_tf = *utf;
+		e->env_tf = *UTF;
 		e->env_tf.tf_eax = 0;	 // return 0 to child
 	} else {
 		e->env_tf.tf_esp = initial_esp;
@@ -196,7 +197,7 @@ sys_ipc_send(u_int envid, u_int value)
 #endif
 
 #if 1
-	utf->tf_eax = 0; // caller sees return value of 0
+	UTF->tf_eax = 0; // caller sees return value of 0
 	env_run(e);	 // switch to destination environment
 	/* NOT REACHED */
 #else
@@ -257,8 +258,8 @@ sys_set_env_status(u_int envid, u_int status)
 //
 // Upon the completion of this function the permission bits of the
 // PTE must satifies:
-// permission -- PG_U|PG_P are required,
-//               PG_USER|PG_W are optional,
+// permission -- PTE_U|PTE_P are required,
+//               PTE_AVAIL|PTE_W are optional,
 //               but not other bits are allowed
 //
 // The tlb is invalidated for 'va'.
@@ -273,12 +274,12 @@ int
 sys_mod_perms(u_int va, u_int add, u_int del)
 {
 ///LAB5
-	Pde pde = vpd[PDENO(va)];
-	if (!(pde & PG_P))
+	Pde pde = vpd[PDX(va)];
+	if (!(pde & PTE_P))
 		return -E_INVAL;
 	if (va >= UTOP)
 		return -E_INVAL;
-	if (del & PG_P)
+	if (del & PTE_P)
 		return -E_INVAL;
 	vpt[PGNO(va)] |= add; // XXX check these
 	vpt[PGNO(va)] &= ~del; // XXX ditto
@@ -296,8 +297,8 @@ sys_mod_perms(u_int va, u_int add, u_int del)
 //
 // envid==0, means the current environment.
 //
-// perm -- PG_U|PG_P are required, 
-//         PG_USER|PG_W are optional,
+// perm -- PTE_U|PTE_P are required, 
+//         PTE_AVAIL|PTE_W are optional,
 //         but not other bits are allowed
 //
 //RETURNS
@@ -326,12 +327,12 @@ sys_mem_alloc(u_int envid, u_int va, u_int perm)
 	else if (env->env_parent_id != curenv->env_id)
 		return -E_BAD_ENV;
 
-	if ((r = ppage_alloc(&pp)) < 0)
+	if ((r = page_alloc(&pp)) < 0)
 		return r;
 
 	// XXX -- check perms
-	if ((r = ppage_insert(env->env_pgdir, pp, va, perm)) < 0) {
-		ppage_free(pp);
+	if ((r = page_insert(env->env_pgdir, pp, va, perm)) < 0) {
+		page_free(pp);
 		return r;
 	}
 	return 0;
@@ -345,8 +346,8 @@ sys_mem_alloc(u_int envid, u_int va, u_int perm)
 // 'perm'.
 // envid==0, means the current environment.
 //
-// perm -- PG_U|PG_P are required, 
-//         PG_USER|PG_W are optional,
+// perm -- PTE_U|PTE_P are required, 
+//         PTE_AVAIL|PTE_W are optional,
 //         but not other bits are allowed
 //
 //RETURNS
@@ -378,14 +379,14 @@ sys_mem_remap(u_int srcva, u_int envid, u_int va, u_int perm)
 	else if (env->env_parent_id != curenv->env_id)
 		return -E_BAD_ENV;
 
-	if (!(vpd[PDENO(srcva)] & PG_P))
+	if (!(vpd[PDX(srcva)] & PTE_P))
 		return -E_INVAL;
 	pte = vpt[PGNO(srcva)];
-	if (!(pte & PG_P))
+	if (!(pte & PTE_P))
 		return -E_INVAL;
 
 	// XXX -- check perms
-	return ppage_insert(env->env_pgdir, &ppages[PGNO(pte)], va, perm);
+	return page_insert(env->env_pgdir, &ppages[PGNO(pte)], va, perm);
 ///END
 }
 
@@ -419,7 +420,7 @@ sys_mem_unmap(u_int envid, u_int va)
 	else if (env->env_parent_id != curenv->env_id)
 		return -E_BAD_ENV;
 
-	ppage_remove(env->env_pgdir, va);
+	page_remove(env->env_pgdir, va);
 	return 0;
 ///END
 }
@@ -461,7 +462,7 @@ sys_disk_read(u_int diskno, u_int blockno, u_int va)
 	if (va >= UTOP)
 		return -E_INVAL;
 
-	ret = sys_mem_alloc(0, va, PG_U|PG_W|PG_P);
+	ret = sys_mem_alloc(0, va, PTE_U|PTE_W|PTE_P);
 	if (ret < 0)
 		return ret;
 

@@ -13,7 +13,7 @@ clock(void)
 
 // round-robin scheduling
 void
-yield(void)
+sched_yield(void)
 {
 ///LAB5
 	// marks current position in the round-robin sweep
@@ -24,15 +24,15 @@ yield(void)
 		sched_idx++;
 		sched_idx %= NENV; 
 		// skip the idle env
-		if (sched_idx && __envs[sched_idx].env_status == ENV_OK)
-			env_run(&__envs[sched_idx]);
+		if (sched_idx && envs[sched_idx].env_status == ENV_OK)
+			env_run(&envs[sched_idx]);
 		// we fall out of the loop when we've
 		// checked all envs except the idle env
 	} while (start != sched_idx);
 
 	// idle env must always be runnable
 ///END
-	assert(__envs[0].env_status == ENV_OK);
-	env_run(&__envs[0]);
+	assert(envs[0].env_status == ENV_OK);
+	env_run(&envs[0]);
 }
 ///END

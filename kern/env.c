@@ -6,6 +6,8 @@
 #include <inc/error.h>
 #include <kern/env.h>
 #include <kern/pmap.h>
+#include <kern/trap.h>
+#include <kern/sched.h>
 #include <kern/printf.h>
 
 struct Env *envs = NULL;		/* All environments */
@@ -21,8 +23,8 @@ static u_int
 mkenvid(struct Env *e)
 {
 	static u_long next_env_id = 0;
-	// lower bits of envid hold e's position in the __envs array
-	u_int idx = e - __envs;
+	// lower bits of envid hold e's position in the envs array
+	u_int idx = e - envs;
 	// high bits of envid hold an increasing number
 	return(next_env_id++ << (1 + LOG2NENV)) | idx;
 }
@@ -37,7 +39,7 @@ mkenvid(struct Env *e)
 struct Env *
 envid2env(u_int envid, int *error)
 {
-	struct Env *e = &__envs[envidx(envid)];
+	struct Env *e = &envs[ENVX(envid)];
 	if (e->env_status == ENV_FREE || e->env_id != envid) {
 		*error = -E_BAD_ENV;
 		return NULL;
@@ -50,32 +52,34 @@ envid2env(u_int envid, int *error)
 //
 // Sets up the the stack and program binary for a user process.
 //   The binary image is loaded at VA UTEXT.
-//   One page for the stack is mapped at VA USTACKTOP - NBPG.
+//   One page for the stack is mapped at VA USTACKTOP - BY2PG.
 //
 void
 load_aout(struct Env* e, u_char *binary, u_int size)
 {
 	// Hint: 
-	//  Use ppage_alloc, ppage_insert, pp2va and e->env_pgdir
+	//  Use page_alloc, page_insert, page2kva and e->env_pgdir
 
 ///SOL3
 	int i, r;
 	struct Page *pp;
 
 	// Allocate and map physical pages
-	for (i = 0; i < size; i += NBPG) {
-		if ((r = ppage_alloc(&pp)) < 0)
+	for (i = 0; i < size; i += BY2PG) {
+		if ((r = page_alloc(&pp)) < 0)
 			panic("load_aout: could not alloc page. Errno %d\n", r);
-		bcopy(&binary[i], pp2va(pp), min(NBPG, size - i));
-		if ((r = ppage_insert(e->env_pgdir, pp, UTEXT + i, PG_P|PG_W|PG_U)) < 0)
+		bcopy(&binary[i], (void*)page2kva(pp), MIN(BY2PG, size - i));
+		if ((r = page_insert(e->env_pgdir, pp, UTEXT + i,
+					PTE_P|PTE_W|PTE_U)) < 0)
 			panic("load_aout: could not map page. Errno %d\n", r);
 	}
 	
 
 	/* Give it a stack */
-	if ((r = ppage_alloc(&pp)) < 0)
+	if ((r = page_alloc(&pp)) < 0)
 		panic("load_aout: could not alloc page. Errno %d\n", r);
-	if ((r = ppage_insert(e->env_pgdir, pp, USTACKTOP - NBPG, PG_P|PG_W|PG_U)) < 0)
+	if ((r = page_insert(e->env_pgdir, pp, USTACKTOP - BY2PG,
+				PTE_P|PTE_W|PTE_U)) < 0)
 		panic("load_aout: could not map page. Errno %d\n", r);
 ///END
 }
@@ -87,9 +91,9 @@ load_aout(struct Env* e, u_char *binary, u_int size)
 
 
 //
-// Marks all envs in __envs as free and insert them into 
+// Marks all environments in 'envs' as free and inserts them into 
 // the env_free_list.  Insert in reverse order, so that
-// the first call to env_alloc() returns __envs[0].
+// the first call to env_alloc() returns envs[0].
 //
 void
 env_init(void)
@@ -98,8 +102,8 @@ env_init(void)
 	int i;
 	LIST_INIT (&env_free_list);
 	for (i = NENV - 1; i >= 0; i--) {
-		__envs[i].env_status = ENV_FREE;    
-		LIST_INSERT_HEAD (&env_free_list, &__envs[i], env_link);
+		envs[i].env_status = ENV_FREE;    
+		LIST_INSERT_HEAD (&env_free_list, &envs[i], env_link);
 	}
 ///END
 }
@@ -125,30 +129,30 @@ env_setup_vm(struct Env *e)
 	struct Page *pp1 = NULL;
 
 	/* Allocate a page for the page directory */
-	if ((r = ppage_alloc(&pp1)) < 0)
+	if ((r = page_alloc(&pp1)) < 0)
 		return r;
 	// Hint:
 	//    - The VA space of all envs is identical above UTOP
 	//      (except at VPT and UVPT) 
-	//    - Use p0pgdir_boot
-	//    - Do not make any calls to ppage_alloc 
+	//    - Use boot_pgdir
+	//    - Do not make any calls to page_alloc 
 	//    - Note: pp_refcnt is not maintained for physical pages mapped above UTOP.
 
 ///SOL3
-	e->env_cr3 = pp2pa(pp1);
-	e->env_pgdir = pp2va(pp1);
-	bzero(e->env_pgdir, NBPG);
+	e->env_cr3 = page2pa(pp1);
+	e->env_pgdir = page2kva(pp1);
+	bzero(e->env_pgdir, BY2PG);
 
 	/* The VA space of all envs is identical above UTOP...*/
-	static_assert(UTOP % NBPD == 0);
-	for (i = PDENO (UTOP); i < NLPG; i++)
-		e->env_pgdir[i] = p0pgdir_boot[i];
+	static_assert(UTOP % BY2PDE == 0);
+	for (i = PDX(UTOP); i <= PDX(~0); i++)
+		e->env_pgdir[i] = boot_pgdir[i];
 
 ///END
 
 	/* ...except at VPT and UVPT.  These map the env's own page table */  
-	e->env_pgdir[PDENO(VPT)]   = e->env_cr3 | PG_P | PG_W;
-	e->env_pgdir[PDENO(UVPT)]  = e->env_cr3 | PG_P | PG_U;
+	e->env_pgdir[PDX(VPT)]   = e->env_cr3 | PTE_P | PTE_W;
+	e->env_pgdir[PDX(UVPT)]  = e->env_cr3 | PTE_P | PTE_U;
 
 	/* success */
 	return 0;
@@ -237,18 +241,18 @@ env_free(struct Env *e)
 	Pte *pt;
 	u_int pdeno, pteno;
 
-	static_assert( (UTOP % NBPD) == 0);
+	static_assert( (UTOP % BY2PDE) == 0);
 	/* Flush all pages */
-	for (pdeno = 0; pdeno < PDENO (UTOP); pdeno++) {
-		if (!(e->env_pgdir[pdeno] & PG_P))
+	for (pdeno = 0; pdeno < PDX(UTOP); pdeno++) {
+		if (!(e->env_pgdir[pdeno] & PTE_P))
 			continue;
-		pt = ptov(e->env_pgdir[pdeno] & ~PGMASK);
-		for (pteno = 0; pteno < NLPG; pteno++)
-			if (pt[pteno] & PG_P)
-				ppage_remove(e->env_pgdir, (pdeno << PDSHIFT) | (pteno << PGSHIFT));
-		ppage_free(kva2pp((u_long) pt));
+		pt = (Pte*)KADDR(PTE_ADDR(e->env_pgdir[pdeno]));
+		for (pteno = 0; pteno <= PTX(~0); pteno++)
+			if (pt[pteno] & PTE_P)
+				page_remove(e->env_pgdir, (pdeno << PDSHIFT) | (pteno << PGSHIFT));
+		page_free(pa2page(PADDR((u_long) pt)));
 	}
-	ppage_free(kva2pp((u_long) (e->env_pgdir)));
+	page_free(pa2page(PADDR((u_long) (e->env_pgdir))));
 ///END 
 
 	// For lab 3, env_free() doesn't really do
@@ -282,7 +286,7 @@ void
 env_pop_tf(struct Trapframe *tf)
 {
 #if 0
-	printf(" --> %d 0x%x\n", envidx(curenv->env_id), tf->tf_eip);
+	printf(" --> %d 0x%x\n", ENVX(curenv->env_id), tf->tf_eip);
 #endif
 
 	asm volatile("movl %0,%%esp\n"
@@ -314,7 +318,7 @@ env_run(struct Env *e)
 ///SOL3
 	// save register state of currently executing env
 	if (curenv)
-		curenv->env_tf = *utf;
+		curenv->env_tf = *UTF;
 	curenv = e;
 	// switch to e's addressing context
 	lcr3 (e->env_cr3);

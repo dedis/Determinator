@@ -11,13 +11,13 @@
 #include <kern/kclock.h>
 
 u_int page_fault_mode = PFM_NONE;
-static struct Ts ts;
+static struct Taskstate ts;
 
 /* Interrupt descriptor table.  (Must be built at run time because
  * shifted function addresses can't be represented in relocation records.)
  */
-struct gate_desc idt[256] = { {0}, };
-struct pseudo_desc idt_pd =
+struct Gatedesc idt[256] = { {0}, };
+struct Pseudodesc idt_pd =
 {
 	0, sizeof(idt) - 1, (unsigned long) idt,
 };
@@ -26,7 +26,7 @@ struct pseudo_desc idt_pd =
 void
 idt_init(void)
 {
-	extern struct seg_desc gdt[];
+	extern struct Segdesc gdt[];
 ///LAB4
 	extern void
 		Xdivide,Xdebug,Xnmi,Xbrkpt,Xoflow,Xbound,
@@ -93,7 +93,8 @@ idt_init(void)
 
 	// Love to put this code in the initialization of gdt, but
 	// the compiler generates an error incorrectly.
-	gdt[GD_TSS >> 3] = seg(STS_T32A, (u_long) (&ts), sizeof(struct Ts), 0);
+	gdt[GD_TSS >> 3] = SEG16(STS_T32A, (u_long) (&ts),
+					sizeof(struct Taskstate), 0);
 	gdt[GD_TSS >> 3].sd_s = 0;
 
 	ltr(GD_TSS);
@@ -207,7 +208,7 @@ page_fault_handler(struct Trapframe *tf)
 					"   eip = 0x%x, cs = 0x%x, eflags = 0x%x(pte 0x%x)\n",
 					tf->tf_trapno, 0xffff & tf->tf_err, va, env_id,
 					tf->tf_eip, 0xffff & tf->tf_cs, tf->tf_eflags, 
-					vpd[PDENO(va)] & PG_P ? vpt[PGNO(va)] : -1);
+					vpd[PDX(va)] & PG_P ? vpt[PGNO(va)] : -1);
 
 	/* Only traps from user mode push %ss:%esp */
 	if (tf->tf_err & FEC_U)

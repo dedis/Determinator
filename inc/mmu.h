@@ -36,10 +36,10 @@
 #define PDE2PD		1024		/* page directory entries to a (per) page directory */
 #define PTE2PT		1024		/* page table entries to a page table */
 #define BY2PG		4096		/* bytes to a page */
-#define PGSHIFT		12			/* log(BY2PG) */
+#define PGSHIFT		12		/* log(BY2PG) */
 
-/* PDMAP is a crummy name, but I can't think of a better one.  -rsc */
-#define PDMAP		(4*1024*1024)	/* bytes mapped by a page directory entry */
+#define BY2PDE		(4*1024*1024)	/* bytes mapped by a page directory entry */
+#define PDSHIFT		22		/* log2(BY2PDE) */
 
 
 /* At IOPHYSMEM (640K) there is a 384K hole for I/O.  From the kernel,
@@ -51,17 +51,17 @@
 /* Page Table/Directory Entry flags
  *   these are defined by the hardware
  */
-#define PTE_P 0x1               /* Present */
-#define PTE_W 0x2               /* Writeable */
-#define PTE_U 0x4               /* User */
-#define PTE_PWT 0x8             /* Write-Through */
-#define PTE_PCD 0x10            /* Cache-Disable */
-#define PTE_A 0x20              /* Accessed */
-#define PTE_D 0x40              /* Dirty */
-#define PTE_PS 0x80             /* Page Size */
-#define PTE_MBZ 0x180           /* Bits must be zero */
-#define PTE_USER 0xe00          /* Bits for user processes */
-#define PTE_FLAGS 0xfff         /* All flags */
+#define PTE_P		0x001	/* Present */
+#define PTE_W		0x002	/* Writeable */
+#define PTE_U		0x004	/* User */
+#define PTE_PWT		0x008	/* Write-Through */
+#define PTE_PCD		0x010	/* Cache-Disable */
+#define PTE_A		0x020	/* Accessed */
+#define PTE_D		0x040	/* Dirty */
+#define PTE_PS		0x080	/* Page Size */
+#define PTE_MBZ		0x180	/* Bits must be zero */
+#define PTE_AVAIL	0xe00	/* Available for software use */
+#define PTE_FLAGS	0xfff	/* All flags */
 
 /* address in page table entry */
 #define PTE_ADDR(pte)	((u_long)(pte)&~PTE_FLAGS)
@@ -132,7 +132,9 @@
 	.byte(((base)>>16)&0xff), (0x90|(type)),             \
 		(0xc0|(((lim)>>16)&0xf)), (((base)>>24)&0xff)
 
-#else
+#else	/* not __ASSEMBLER__ */
+
+#include <inc/types.h>
 
 /* Segment Descriptors */
 struct Segdesc {
@@ -148,7 +150,7 @@ struct Segdesc {
 	unsigned sd_rsv1 : 1;        /* reserved */
 	unsigned sd_db : 1;          /* 0 = 16-bit segment, 1 = 32-bit segment */
 	unsigned sd_g : 1;           /* Granularity: limit scaled by 4K when set */
-	unsigned sd_base_31_24 : 8;  /* Hight bits of base */
+	unsigned sd_base_31_24 : 8;  /* High bits of base */
 };
 /* Null segment */
 #define SEG_NULL (struct Segdesc){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -310,17 +312,17 @@ struct Pseudodesc {
  *                     |  Physical Memory             | RW/--
  *                     |                              | RW/--
  *    KERNBASE ----->  +------------------------------+
- *                     |  Kernel Virtual Page Table   | RW/--    PDMAP
+ *                     |  Kernel Virtual Page Table   | RW/--    BY2PDE
  *    VPT,KSTACKTOP--> +------------------------------+                 --+
  *                     |        Kernel Stack          | RW/--  KSTKSIZE   |
- *                     | - - - - - - - - - - - - - - -|                 PDMAP
+ *                     | - - - - - - - - - - - - - - -|                 BY2PDE
  *                     |       Invalid memory         | --/--             |
  *    ULIM     ------> +------------------------------+                 --+
- *                     |      R/O User VPT            | R-/R-    PDMAP
+ *                     |      R/O User VPT            | R-/R-    BY2PDE
  *    UVPT      ---->  +------------------------------+
- *                     |        R/O PAGES             | R-/R-    PDMAP
+ *                     |        R/O PAGES             | R-/R-    BY2PDE
  *    UPAGES    ---->  +------------------------------+
- *                     |        R/O ENVS              | R-/R-    PDMAP
+ *                     |        R/O ENVS              | R-/R-    BY2PDE
  * UTOP,UENVS -------> +------------------------------+
  * UXSTACKTOP -/       |      user exception stack    | RW/RW   BY2PG  
  *                     +------------------------------+
@@ -337,7 +339,7 @@ struct Pseudodesc {
  *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
  *                     |                              |
  *    UTEXT ------->   +------------------------------+
- *                     |                              |  2 * PDMAP
+ *                     |                              |  2 * BY2PDE
  *    0 ------------>  +------------------------------+
  */
 
@@ -350,10 +352,10 @@ struct Pseudodesc {
  * the PD itself, thereby turning the PD into a page table which
  * maps all PTEs over the last 4 Megs of the virtual address space.
  */
-#define VPT (KERNBASE - PDMAP)
+#define VPT (KERNBASE - BY2PDE)
 #define KSTACKTOP VPT
 #define KSTKSIZE (8 * BY2PG)   		/* size of a kernel stack */
-#define ULIM (KSTACKTOP - PDMAP) 
+#define ULIM (KSTACKTOP - BY2PDE) 
 
 /*
  * User read-only mappings! Anything below here til UTOP are readonly to user.
@@ -361,11 +363,11 @@ struct Pseudodesc {
  */
 
 /* Same as VPT but read-only for users */
-#define UVPT (ULIM - PDMAP)
+#define UVPT (ULIM - BY2PDE)
 /* Read-only copies of all ppage structures */
-#define UPAGES (UVPT - PDMAP)
+#define UPAGES (UVPT - BY2PDE)
 /* Read only copy of the global env structures */
-#define UENVS (UPAGES - PDMAP)
+#define UENVS (UPAGES - BY2PDE)
 
 /*
  * Top of user VM. User can manipulate VA from UTOP-1 and down!
@@ -373,8 +375,8 @@ struct Pseudodesc {
 #define UTOP UENVS
 #define UXSTACKTOP (UTOP)           /* one page user exception stack */
 /* leave top page invalid to guard against exception stack overflow */ 
-#define USTACKTOP (UTOP - 2*BY2PD)   /* top of the normal user stack */
-#define UTEXT (2*PDMAP)
+#define USTACKTOP (UTOP - 2*BY2PG)   /* top of the normal user stack */
+#define UTEXT (2*BY2PDE)
 
 /*
  * Page fault modes inside kernel.
@@ -426,7 +428,7 @@ extern u_long npage;
 
 /*
  * The page directory entry corresponding to the virtual address range
- * from VPT to (VPT+PDMAP) points to the page directory itself
+ * from VPT to (VPT+BY2PDE) points to the page directory itself
  * (treating it as a page table as well as a page directory).  One
  * result of treating the page directory as a page table is that all
  * PTE's can be accessed through a "virtual page table" at virtual

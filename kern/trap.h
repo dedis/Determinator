@@ -17,7 +17,5 @@ void page_fault_handler(struct Trapframe *);
 void backtrace(struct Trapframe *);
 extern u_int page_fault_mode;
 
-#endif /* !__ASSEMBLER__ */
-
 #endif /* _KERN_TRAP_H_ */
 ///END

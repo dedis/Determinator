@@ -209,7 +209,7 @@ pgfault_handler (u_int va, u_int err, u_int esp, u_int eflags, u_int eip)
 
 ///LAB5
   /* copy-on-write fault */
-  if ((vpd[PDENO(va)] & (PG_P|PG_U)) == (PG_P|PG_U)) {
+  if ((vpd[PDX(va)] & (PG_P|PG_U)) == (PG_P|PG_U)) {
     Pte pte = vpt[PGNO(va)];
     if ((pte&PG_COW) && (err&FEC_WR)) {
       handle_cow_fault (va, pte);
@@ -309,7 +309,7 @@ dump_va_space ()
   //u_int va_lim = 0xffffffff;
   u_int va_lim = UTOP; 
   for (va = 0; va < va_lim; ) {
-    pde = vpd[PDENO(va)];
+    pde = vpd[PDX(va)];
 
     if (!(pde & PG_P)) {
       va += NBPD;
@@ -317,7 +317,7 @@ dump_va_space ()
     }
 
     sys_cputs ("PGDIR[");
-    sys_cputu (PDENO(va));
+    sys_cputu (PDX(va));
     printx ("] = ", pde, "\n");
 
     for (i = 0; i < NLPG; i++, va += NBPG) {
@@ -360,7 +360,7 @@ fork (void)
   // mark parent address space COW and insert pages into child with
   // COW set.
   for (va = 0; va < UTOP; va += NBPD) {
-    if (vpd[PDENO(va)] & PG_P) {
+    if (vpd[PDX(va)] & PG_P) {
       Pte *pt = &vpt[PGNO(va)];
       for (j = 0; j < NLPG; j++) {
 	if (pt[j] & (PG_P|PG_W)) {
