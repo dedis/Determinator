@@ -40,7 +40,6 @@
 #include <inc/error.h>
 #include <kern/env.h>
 #include <kern/pmap.h>
-#include <kern/sched.h>
 #include <kern/printf.h>
 
 struct Env *__envs = NULL;		/* All environments */
@@ -93,7 +92,7 @@ load_aout (struct Env* e, u_char *binary, u_int size)
   // Hint: 
   //  Use ppage_alloc, ppage_insert, pp2va and e->env_pgdir
 
-///LAB4
+///SOL3
   int i, r;
   struct Ppage *pp;
 
@@ -129,7 +128,7 @@ load_aout (struct Env* e, u_char *binary, u_int size)
 void
 env_init (void)
 {
-///LAB4
+///SOL3
   int i;
   LIST_INIT (&env_free_list);
   for (i = NENV - 1; i >= 0; i--) {
@@ -158,11 +157,6 @@ env_setup_vm (struct Env *e)
 
   int i, r;
   struct Ppage *pp1 = NULL;
-///LAB4
-#if 0
-  struct Ppage *pp2 = NULL;
-#endif
-///END
 
   /* Allocate a page for the page directory */
   if ((r = ppage_alloc (&pp1)) < 0)
@@ -174,7 +168,7 @@ env_setup_vm (struct Env *e)
   //    - Do not make any calls to ppage_alloc 
   //    - Note: pp_refcnt is not maintained for physical pages mapped above UTOP.
 
-///LAB4
+///SOL3
   e->env_cr3 = pp2pa (pp1);
   e->env_pgdir = pp2va (pp1);
   bzero (e->env_pgdir, NBPG);
@@ -227,18 +221,11 @@ env_alloc (struct Env **new, u_int parent_id)
   // You also need to set tf_eip to the correct value.
   // Hint: see load_aout
 
-///LAB4
+///SOL3
   e->env_tf.tf_eip = UTEXT + 0x20; // right past a.out header
-///END
-///LAB4
   e->env_tf.tf_eflags = FL_IF; // interrupts enabled
-///END
-///LAB4
-#if 0
-///END
+///ELSE
   e->env_tf.tf_eflags = 0;
-///LAB4
-#endif
 ///END
 
   e->env_ipc_blocked = 0;
@@ -264,7 +251,7 @@ env_alloc (struct Env **new, u_int parent_id)
 void
 env_create (u_char *binary, int size)
 {
-////LAB4
+////SOL3
   int r;
   struct Env *e;
   if ((r = env_alloc (&e, 0)) < 0)
@@ -280,7 +267,7 @@ env_create (u_char *binary, int size)
 void
 env_free (struct Env *e)
 {
-///LAB4
+///SOL3
   Pte *pt;
   u_int pdeno, pteno;
 
@@ -358,7 +345,7 @@ env_run (struct Env *e)
   // Hint: Skip step 1 until exercise 4.  You don't
   // need it for exercise 1, and in exercise 4 you'll better
   // understand what you need to do.
-///LAB4
+///SOL3
   // save register state of currently executing env
   if (curenv)
     curenv->env_tf = *utf;

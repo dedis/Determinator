@@ -158,7 +158,8 @@ kprintf (const char *fmt, va_list ap)
     }
     lflag = 0;
     qflag = 0;
-  reswitch:switch (ch = *(u_char *) fmt++) {
+  reswitch:
+    switch (ch = *(u_char *) fmt++) {
     case '0':
       padc = '0';
       goto reswitch;
@@ -232,18 +233,26 @@ kprintf (const char *fmt, va_list ap)
       }
       base = 10;
       goto number;
-    case 'o':
-      uq = lflag ? va_arg (ap, u_long)
-	: qflag ? va_arg (ap, long long)
-	: va_arg (ap, u_int);
-      base = 8;
-      goto number;
     case 'u':
       uq = lflag ? va_arg (ap, u_long)
 	: qflag ? va_arg (ap, long long)
 	: va_arg (ap, u_int);
       base = 10;
       goto number;
+    case 'o':
+///SOL2
+      uq = lflag ? va_arg (ap, u_long)
+	: qflag ? va_arg (ap, long long)
+	: va_arg (ap, u_int);
+      base = 8;
+      goto number;
+///ELSE
+      // Replace this with your code to print in octal.
+      cnputc ('X');
+      cnputc ('X');
+      cnputc ('X');
+      break;
+///END
     case 'p':
       cnputc ('0');
       cnputc ('x');

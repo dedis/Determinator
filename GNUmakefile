@@ -20,7 +20,7 @@ CFLAGS	:= $(CFLAGS) -O2 -fno-builtin -I$(TOP) -MD -MP
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
-CLEAN_FILES := .deps
+CLEAN_FILES := .deps bochs.log
 CLEAN_PATS := *.o *.d
 
 
@@ -60,8 +60,7 @@ clean:
 	rm -rf $(CLEAN_FILES) $(foreach dir,$(OBJDIRS), \
 				$(addprefix $(dir)/,$(CLEAN_PATS)))
 
-handin:
-	-gmake clean
+handin: clean
 	-rm handin.tgz
 	$(TAR) czvf handin5.tgz .
 

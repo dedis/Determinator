@@ -40,7 +40,6 @@
 #include <inc/error.h>
 #include <kern/pmap.h>
 #include <kern/env.h>
-#include <kern/sched.h>
 #include <kern/printf.h>
 #include <kern/kclock.h>
 

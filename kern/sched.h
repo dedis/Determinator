@@ -1,4 +1,4 @@
-
+///LAB3
 /*
  * Copyright (C) 1998 Exotec, Inc.
  *
@@ -68,11 +68,12 @@
  * the copyright notices, if any, listed below.
  */
 
-#ifndef __SCHEDULER_H__
-#define __SCHEDULER_H__
+#ifndef __SCHED_H__
+#define __SCHED_H__
 
 void sched_init (void);
 void yield (void);
 void sched_intr (int); 
 
-#endif /* __SCHEDULER_H__ */
+#endif /* __SCHED_H__ */
+///END

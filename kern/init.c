@@ -36,18 +36,18 @@
  */
 
 #include <inc/asm.h>
+#include <inc/trap.h>
 #include <kern/pmap.h>
 #include <kern/env.h>
-#include <kern/trap.h>
-#include <kern/sched.h>
 #include <kern/console.h>
 #include <kern/printf.h>
 #include <kern/picirq.h>
 #include <kern/kclock.h>
+///LAB3
+#include <kern/sched.h>
 ///END
 
 
-///LAB2
 void
 i386_init (void)
 {
@@ -57,16 +57,13 @@ i386_init (void)
   i386_vm_init ();
   ppage_init ();
 
-///LAB2
 #if 1
   {
     extern void ppage_check ();
     ppage_check ();
   }
 #endif
-///END
 
-///END
 ///LAB3
   idt_init ();
   pic_init ();
@@ -107,9 +104,9 @@ i386_init (void)
 #endif
 
   yield ();
-///END  
-///LAB2
-  panic ("init.c: i386_init() yield returned");
+///END
+
+  panic ("init.c: end of i386_init() reached!");
 }
 
 
@@ -162,5 +159,3 @@ atexit (void (*function)(void))
   panic ("atexit: function %p", function);
 }
 ///END
-
-

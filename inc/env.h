@@ -40,9 +40,8 @@
 
 #include <inc/types.h>
 #include <inc/queue.h>
+#include <inc/trap.h>
 #include <inc/mmu.h> 
-#include <kern/sched.h>
-#include <kern/trap.h>
 
 #define LOG2NENV 10
 #define NENV (1<<LOG2NENV)

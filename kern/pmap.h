@@ -39,8 +39,8 @@
 #define _KERN_PMAP_H_
 
 #include <inc/pmap.h>
+#include <inc/trap.h>
 #include <kern/printf.h>
-#include <kern/trap.h>
 
 extern struct seg_desc gdt[];
 extern struct pseudo_desc gdt_pd;

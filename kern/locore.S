@@ -38,7 +38,7 @@
 
 #include <inc/asm.h>
 #include <inc/mmu.h>
-#include <kern/trap.h>
+#include <inc/trap.h>
 #include <kern/picirq.h>
 
 ###################################################################
