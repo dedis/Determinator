@@ -1,5 +1,9 @@
 Post-2004 TODOs:
 
+- definitely set V = @ at UCLA; "V =" was a mistake --E
+
+- consider -Werror --E
+
 - Consider changing 'gmake handin' to use something other than 
   email. Notably, in 2004 we had a bunch of students who, due to
   misconfigured local sendmail's etc, thought they had succeeded in
@@ -18,9 +22,9 @@ Post-2004 TODOs:
   (3) [6.824] Give students accounts on PDOS machines and basically do
       the same thing as (2) above.
 
-- get rid of inc/args.h bogosity --E
+- get rid of inc/args.h --E
 
-- merge kern/*.h into kern/private.h --E
+- merge kern/*.h into kern/private.h ? --E
 
 - no header files with the same name in kern/ and inc/ ? --E
 
