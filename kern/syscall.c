@@ -370,9 +370,10 @@ sys_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm)
 // Block until a value is ready.  Record that you want to receive,
 // mark yourself not runnable, and then give up the CPU.
 //
-// Again, dstva should have the same restrictions as it had in 
-// sys_mem_map.
-static int
+// Again, dstva should have the same restrictions as it had in
+// sys_mem_map.  If it violates these restrictions, assume that it is
+// zero.
+static void
 sys_ipc_recv(u_int dstva)
 {
 #if SOL >= 4
@@ -380,7 +381,7 @@ sys_ipc_recv(u_int dstva)
 		panic("already recving!");
 
 	if (dstva >= UTOP)
-		return -E_INVAL;
+		dstva = 0;
 
 	curenv->env_ipc_recving = 1;
 	curenv->env_ipc_dstva = dstva;
