@@ -10,11 +10,11 @@
 #include <kern/sched.h>
 #include <kern/printf.h>
 
-struct Env *envs = NULL;		/* All environments */
-struct Env *curenv = NULL;	        /* the current env */
+struct Env *envs = NULL;		// All environments
+struct Env *curenv = NULL;	        // the current env
 ///END
 ///LAB3
-static struct Env_list env_free_list;	/* Free list */
+static struct Env_list env_free_list;	// Free list
 
 //
 // Calculates the envid for env e.  
@@ -56,7 +56,7 @@ envid2env(u_int envid, int *error)
 //   at virtual address USTACKTOP - BY2PG.
 //
 void
-load_aout(struct Env* e, u_char *binary, u_int size)
+load_aout(struct Env *e, u_char *binary, u_int size)
 {
 ///SOL3
 	int i, r;
@@ -132,7 +132,7 @@ env_setup_vm(struct Env *e)
 	int i, r;
 	struct Page *pp1 = NULL;
 
-	/* Allocate a page for the page directory */
+	// Allocate a page for the page directory
 	if ((r = page_alloc(&pp1)) < 0)
 		return r;
 	// Hint:
@@ -147,18 +147,17 @@ env_setup_vm(struct Env *e)
 	e->env_pgdir = page2kva(pp1);
 	bzero(e->env_pgdir, BY2PG);
 
-	/* The VA space of all envs is identical above UTOP...*/
+	// The VA space of all envs is identical above UTOP...
 	static_assert(UTOP % PDMAP == 0);
 	for (i = PDX(UTOP); i <= PDX(~0); i++)
 		e->env_pgdir[i] = boot_pgdir[i];
 
 ///END
 
-	/* ...except at VPT and UVPT.  These map the env's own page table */  
+	// ...except at VPT and UVPT.  These map the env's own page table
 	e->env_pgdir[PDX(VPT)]   = e->env_cr3 | PTE_P | PTE_W;
 	e->env_pgdir[PDX(UVPT)]  = e->env_cr3 | PTE_P | PTE_U;
 
-	/* success */
 	return 0;
 }
 
@@ -185,8 +184,8 @@ env_alloc(struct Env **new, u_int parent_id)
 	e->env_parent_id = parent_id;
 	e->env_status = ENV_OK;
 
-	/* Set initial values of registers */
-	/*  (lower 2 bits of the seg regs is the RPL -- 3 means user process) */
+	// Set initial values of registers
+	//  (lower 2 bits of the seg regs is the RPL -- 3 means user process)
 	e->env_tf.tf_ds = GD_UD | 3;
 	e->env_tf.tf_es = GD_UD | 3;
 	e->env_tf.tf_ss = GD_UD | 3;
@@ -209,11 +208,11 @@ env_alloc(struct Env **new, u_int parent_id)
 	e->env_pgfault_handler = 0;
 	e->env_xstacktop = 0;
 
-	/* commit the allocation */
+	// commit the allocation
 	LIST_REMOVE (e, env_link);
 	*new = e;
 
-	return 0; /* success */
+	return 0;
 }
 
 
@@ -246,7 +245,7 @@ env_free(struct Env *e)
 	u_int pdeno, pteno;
 
 	static_assert( (UTOP % PDMAP) == 0);
-	/* Flush all pages */
+	// Flush all pages
 	for (pdeno = 0; pdeno < PDX(UTOP); pdeno++) {
 		if (!(e->env_pgdir[pdeno] & PTE_P))
 			continue;
