@@ -28,12 +28,12 @@ init_stack(u_int child, char **argv, u_int *init_esp)
 		tot += strlen(argv[argc])+1;
 
 	// Make sure everything will fit in the initial stack page
-	if (ROUND(tot, 4)+4*(argc+3) > BY2PG)
+	if (ROUNDUP(tot, 4)+4*(argc+3) > BY2PG)
 		return -E_NO_MEM;
 
 	// Determine where to place the strings and the args array
 	strings = (char*)TMPPAGETOP - tot;
-	args = (u_int*)(TMPPAGETOP - ROUND(tot, 4) - 4*(argc+1));
+	args = (u_int*)(TMPPAGETOP - ROUNDUP(tot, 4) - 4*(argc+1));
 
 	if ((r = sys_mem_alloc(0, TMPPAGE, PTE_P|PTE_U|PTE_W)) < 0)
 		return r;

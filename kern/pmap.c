@@ -123,7 +123,7 @@ alloc(u_int n, u_int align, int clear)
 	//	Step 5: return allocated chunk
 
 #if SOL >= 2
-	freemem = ROUND(freemem, align);
+	freemem = ROUNDUP(freemem, align);
 	if (freemem+n < freemem || freemem+n > KERNBASE+maxpa)
 		panic("out of memory during i386_vm_init");
 	v = (void*)freemem;
@@ -362,13 +362,13 @@ check_boot_pgdir(void)
 	pgdir = boot_pgdir;
 
 	// check pages array
-	n = ROUND(npage*sizeof(struct Page), BY2PG);
+	n = ROUNDUP(npage*sizeof(struct Page), BY2PG);
 	for(i=0; i<n; i+=BY2PG)
 		assert(va2pa(pgdir, UPAGES+i) == PADDR(pages)+i);
 	
 #if LAB >= 3
 	// check envs array
-	n = ROUND(NENV*sizeof(struct Env), BY2PG);
+	n = ROUNDUP(NENV*sizeof(struct Env), BY2PG);
 	for(i=0; i<n; i+=BY2PG)
 		assert(va2pa(pgdir, UENVS+i) == PADDR(envs)+i);
 #endif
