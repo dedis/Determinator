@@ -605,10 +605,20 @@ score=0
 	cnt=`grep "ebp f0109...  eip f0100...  args" bochs.out|wc -w`
 	if [ $cnt -eq 80 ]
 	then
-		score=`echo 30+$score | bc`
-		echo OK
+		score=`echo 15+$score | bc`
+		awk 'BEGIN{printf("Count OK");}' </dev/null
 	else
-		echo WRONG
+		awk 'BEGIN{printf("Count WRONG");}' </dev/null
+	fi
+
+	cnt=`grep "ebp f0109...  eip f0100...  args" bochs.out | awk 'BEGIN { FS = ORS = " " }
+{ print $6 }
+END { printf("\n") }' | grep '^00000000 00000000 00000001 00000002 00000003 00000004 00000005' | wc -w`
+	if [ $cnt -eq 8 ]; then
+		score=`echo 15+$score | bc`
+		echo , Args OK
+	else
+		echo , Args WRONG
 	fi
 
 echo "Score: $score/50"
