@@ -22,7 +22,7 @@ _brkpt_end:
 .global _badds_start
 _badds_start:
 	.space 0x20  # pretend there is an a.out header here	
-	xorl %eax, %eax
+	movl $8,%eax
 	movw %ax, %ds
 .global _badds_end
 _badds_end:
@@ -37,7 +37,7 @@ _pgfault_rd_nopage_end:
 .global _pgfault_rd_noperms_start
 _pgfault_rd_noperms_start:
 	.space 0x20  # pretend there is an a.out header here	
-	movl 0xffffffff, %eax
+	movl 0xfffffff0, %eax
 .global _pgfault_rd_noperms_end
 _pgfault_rd_noperms_end:
 
@@ -51,7 +51,7 @@ _pgfault_wr_nopage_end:
 .global _pgfault_wr_noperms_start
 _pgfault_wr_noperms_start:
 	.space 0x20  # pretend there is an a.out header here	
-	movl %eax, 0xffffffff
+	movl %eax, 0xfffffff0
 .global _pgfault_wr_noperms_end
 _pgfault_wr_noperms_end:
 

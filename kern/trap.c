@@ -47,7 +47,7 @@ idt_init(void)
 	SETGATE(idt[T_DIVIDE], 0, GD_KT, &Xdivide, 0);
 	SETGATE(idt[T_DEBUG],  0, GD_KT, &Xdebug,  0);
 	SETGATE(idt[T_NMI],    0, GD_KT, &Xnmi,    0);
-	SETGATE(idt[T_BRKPT],  0, GD_KT, &Xbrkpt,  0);
+	SETGATE(idt[T_BRKPT],  0, GD_KT, &Xbrkpt,  3);
 	SETGATE(idt[T_OFLOW],  0, GD_KT, &Xoflow,  0);
 	SETGATE(idt[T_BOUND],  0, GD_KT, &Xbound,  0);
 	SETGATE(idt[T_ILLOP],  0, GD_KT, &Xillop,  0);
@@ -79,9 +79,11 @@ idt_init(void)
 	SETGATE(idt[IRQ_OFFSET + 14], 0, GD_KT, &Xirq14, 0);
 	SETGATE(idt[IRQ_OFFSET + 15], 0, GD_KT, &Xirq15, 0);
 
+#if SOL >= 4
 	// dpl=3 since it is explicitly invoked with "int $T_SYSCALL"
 	// by the user process(at priv level 3)
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, &Xsyscall, 3);
+#endif
 
 #endif /* SOL >= 3 */
 
