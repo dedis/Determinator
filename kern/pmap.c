@@ -590,7 +590,7 @@ page_decref(struct Page* pp)
 //   -E_NO_MEM, if page table couldn't be allocated
 //
 int
-pgdir_walk(pde_t *pgdir, void *va, int create, pte_t **pte_store)
+pgdir_walk(pde_t *pgdir, const void *va, int create, pte_t **pte_store)
 {
 #if SOL >= 2
 	int r;

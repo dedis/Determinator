@@ -114,7 +114,7 @@ lpt_putc(int c)
 /***** Text-mode CGA/VGA display output *****/
 
 static unsigned addr_6845;
-static uint16_t* crt_buf;
+static uint16_t *crt_buf;
 static uint16_t crt_pos;
 
 void

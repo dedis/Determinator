@@ -5,7 +5,7 @@
 
 struct Super *super;
 
-#if SOL >= 99
+#if SOL >= 999
 static uint32_t nbitmap;	// number of bitmap blocks
 #endif
 uint32_t *bitmap;		// bitmap blocks mapped in memory

@@ -39,7 +39,7 @@ sys_cgetc(void)
 	// The cons_getc() primitive doesn't wait for a character,
 	// but the sys_cgetc() system call does.
 	while ((c = cons_getc()) == 0)
-		; /* spin */
+		/* do nothing */;
 
 	return c;
 }
@@ -125,7 +125,7 @@ static int
 sys_env_set_status(envid_t envid, int status)
 {
 #if SOL >= 3
-	struct Env* e;
+	struct Env *e;
 	int r;
 
 	if ((r = envid2env(envid, &e, 1)) < 0)
@@ -230,8 +230,8 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 {
 #if SOL >= 4
 	int r;
-	struct Env* e;
-	struct Page* pp;
+	struct Env *e;
+	struct Page *pp;
 
 	if ((r = envid2env(envid, &e, 1)) < 0)
 		return r;
