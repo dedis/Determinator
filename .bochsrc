@@ -10,7 +10,7 @@ megs: 32
 
 # filename of ROM images
 romimage: file=bios/BIOS-bochs-latest, address=0xf0000
-vgaromimage: bios/VGABIOS-elpin-2.40
+vgaromimage: bios/VGABIOS-lgpl-latest
 
 # Use the parallel port as an alternate console,
 # so that we can run Bochs without the GUI.
@@ -59,11 +59,11 @@ panic: action=ask
 # you machine is panicing and the most recent screen changes are not
 # displayed before it panics.
 
-vga_update_interval: 100000
+vga_update_interval: 10000
 
 # changing ips can lead to dramatically different performance.  It
 # also affects how quickly time passes in the emulated machine.
-ips: 1000000 
+ips: 15000000
 
 keyboard_serial_delay: 10
 
