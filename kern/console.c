@@ -17,18 +17,31 @@ void cons_intr(int (*proc)(void));
 
 /***** Serial I/O code *****/
 
-#define COM1 0x3F8
-#define COMSTATUS 5
-#define   COMDATA 0x01
-#define COMREAD 0
-#define COMWRITE 0
+#define COM1		0x3F8
+
+#define COM_RX		0	// In:	Receive buffer (DLAB=0)
+#define COM_DLL		0	// Out: Divisor Latch Low (DLAB=1)
+#define COM_DLM		1	// Out: Divisor Latch High (DLAB=1)
+#define COM_IER		1	// Out: Interrupt Enable Register
+#define   COM_IER_RDI	0x01	//   Enable receiver data interrupt
+#define COM_IIR		2	// In:	Interrupt ID Register
+#define COM_FCR		2	// Out: FIFO Control Register
+#define COM_LCR		3	// Out: Line Control Register
+#define	  COM_LCR_DLAB	0x80	//   Divisor latch access bit
+#define	  COM_LCR_WLEN8	0x03	//   Wordlength: 8 bits
+#define COM_MCR		4	// Out: Modem Control Register
+#define	  COM_MCR_RTS	0x02	// RTS complement
+#define	  COM_MCR_DTR	0x01	// DTR complement
+#define	  COM_MCR_OUT2	0x08	// Out2 complement
+#define COM_LSR		5	// In:	Line Status Register
+#define   COM_LSR_DATA	0x01	//   Data available
 
 int
 serial_proc_data(void)
 {
-	if (!(inb(COM1+COMSTATUS) & COMDATA))
+	if (!(inb(COM1+COM_LSR) & COM_LSR_DATA))
 		return -1;
-	return inb(COM1+COMREAD);
+	return inb(COM1+COM_RX);
 }
 
 void
@@ -40,15 +53,38 @@ serial_intr(void)
 void
 serial_init(void)
 {
+	// Turn off the FIFO
+	outb(COM1+COM_FCR, 0);
+	
+	// Set speed; requires DLAB latch
+	outb(COM1+COM_LCR, COM_LCR_DLAB);
+	outb(COM1+COM_DLL, (uint8_t)(115200 / 9600));
+	outb(COM1+COM_DLM, 0);
+
+	// 8 data bits, 1 stop bit, parity off; turn off DLAB latch
+	outb(COM1+COM_LCR, COM_LCR_WLEN8 & ~COM_LCR_DLAB);
+
+	// No modem controls
+	outb(COM1+COM_MCR, 0);
+	// Enable rcv interrupts
+	outb(COM1+COM_IER, COM_IER_RDI);
+
+	// Clear any preexisting overrun indications and interrupts
+	(void) inb(COM1+COM_LSR);
+	(void) inb(COM1+COM_IIR);
+	(void) inb(COM1+COM_RX);
+	
 #if LAB >= 4
-	irq_setmask_8259A(irq_mask_8259A & ~(1<<4));	
+	// Enable keyboard interrupts
+	irq_setmask_8259A(irq_mask_8259A & ~(1<<4));
 #endif
 }
 
 
 
 /***** Parallel port output code *****/
-// For information on PC parallel port programming, see:
+// For information on PC parallel port programming, see the class References
+// page.
 
 // Stupid I/O delay routine necessitated by historical PC design flaws
 static void
@@ -78,21 +114,21 @@ lpt_putc(int c)
 /***** Text-mode CGA/VGA display output *****/
 
 static unsigned addr_6845;
-static u_short *crt_buf;
-static short crt_pos;
+static uint16_t* crt_buf;
+static uint16_t crt_pos;
 
 void
 cga_init(void)
 {
-	u_short volatile *cp;
-	u_short was;
-	u_int pos;
+	volatile uint16_t *cp;
+	uint16_t was;
+	unsigned pos;
 
-	cp = (short *) (KERNBASE + CGA_BUF);
+	cp = (uint16_t*) (KERNBASE + CGA_BUF);
 	was = *cp;
-	*cp = (u_short) 0xA55A;
+	*cp = (uint16_t) 0xA55A;
 	if (*cp != 0xA55A) {
-		cp = (short *) (KERNBASE + MONO_BUF);
+		cp = (uint16_t*) (KERNBASE + MONO_BUF);
 		addr_6845 = MONO_BASE;
 	} else {
 		*cp = was;
@@ -101,11 +137,11 @@ cga_init(void)
 	
 	/* Extract cursor location */
 	outb(addr_6845, 14);
-	pos = inb(addr_6845+1) << 8;
+	pos = inb(addr_6845 + 1) << 8;
 	outb(addr_6845, 15);
-	pos |= inb(addr_6845+1);
+	pos |= inb(addr_6845 + 1);
 
-	crt_buf = (u_short *)cp;
+	crt_buf = (uint16_t*) cp;
 	crt_pos = pos;
 }
 
@@ -114,18 +150,19 @@ void
 cga_putc(int c)
 {
 	/* if no attribute given, then use black on white */
-	if (!(c & ~0xff)) c |= 0x0700;
+	if (!(c & ~0xff))
+		c |= 0x0700;
 
 	switch (c & 0xff) {
 	case '\b':
 		if (crt_pos > 0) {
 			crt_pos--;
-			crt_buf[crt_pos] = (c&~0xff) | ' ';
+			crt_buf[crt_pos] = (c & ~0xff) | ' ';
 		}
 		break;
 	case '\n':
 		crt_pos += CRT_COLS;
-		/* cascade	*/
+		/* fallthru */
 	case '\r':
 		crt_pos -= (crt_pos % CRT_COLS);
 		break;
@@ -156,20 +193,20 @@ cga_putc(int c)
 
 	/* move that little blinky thing */
 	outb(addr_6845, 14);
-	outb(addr_6845+1, crt_pos >> 8);
+	outb(addr_6845 + 1, crt_pos >> 8);
 	outb(addr_6845, 15);
-	outb(addr_6845+1, crt_pos);
+	outb(addr_6845 + 1, crt_pos);
 }
 
 
 
 /***** Keyboard input code *****/
 
-#define NO	0
+#define NO		0
 
-#define SHIFT	(1<<0)
-#define CTL	(1<<1)
-#define ALT	(1<<2)
+#define SHIFT		(1<<0)
+#define CTL		(1<<1)
+#define ALT		(1<<2)
 
 #define CAPSLOCK	(1<<3)
 #define NUMLOCK		(1<<4)
@@ -211,7 +248,7 @@ static char shiftmap[256] =
 	'&',  '*',  '(',  ')',  '_',  '+',  '\b', '\t',
 	'Q',  'W',  'E',  'R',  'T',  'Y',  'U',  'I',
 	'O',  'P',  '{',  '}',  '\n', NO,   'A',  'S',
-	'D',  'F',  'G',  'H',  'J',  'K',  'L',  ';',
+	'D',  'F',  'G',  'H',  'J',  'K',  'L',  ':',
 	'"',  '~',  NO,   '|',  'Z',  'X',  'C',  'V',
 	'B',  'N',  'M',  '<',  '>',  '?',  NO,   '*',
 	NO,   ' ',   NO,   NO,   NO,   NO,   NO,   NO,
@@ -248,8 +285,8 @@ static int
 kbd_proc_data(void)
 {
 	int c;
-	u_char data;
-	static u_int shift;
+	uint8_t data;
+	static uint32_t shift;
 
 	if ((inb(KBSTATP) & KBS_DIB) == 0)
 		return -1;
@@ -300,12 +337,12 @@ kbd_init(void)
 // where we stash characters received from the keyboard or serial port
 // whenever the corresponding interrupt occurs.
 
-#define BY2CONS 512
+#define CONSBUFSIZE 512
 
 static struct {
-	u_char buf[BY2CONS];
-	u_int rpos;
-	u_int wpos;
+	uint8_t buf[CONSBUFSIZE];
+	uint32_t rpos;
+	uint32_t wpos;
 } cons;
 
 // called by device interrupt routines to feed input characters
@@ -319,7 +356,7 @@ cons_intr(int (*proc)(void))
 		if (c == 0)
 			continue;
 		cons.buf[cons.wpos++] = c;
-		if (cons.wpos == BY2CONS)
+		if (cons.wpos == CONSBUFSIZE)
 			cons.wpos = 0;
 	}
 }
@@ -339,7 +376,7 @@ cons_getc(void)
 	// grab the next character from the input buffer.
 	if (cons.rpos != cons.wpos) {
 		c = cons.buf[cons.rpos++];
-		if (cons.rpos == BY2CONS)
+		if (cons.rpos == CONSBUFSIZE)
 			cons.rpos = 0;
 		return c;
 	}

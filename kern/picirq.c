@@ -7,8 +7,8 @@
 
 
 /* Keep copy of current IRQ mask */
-u_short irq_mask_8259A = 0xFFFF;
-static u_int didinit;
+uint16_t irq_mask_8259A = 0xFFFF;
+static bool didinit;
 
 /* Initialize the 8259A interrupt controllers. */
 void
@@ -74,7 +74,7 @@ pic_init(void)
 }
 
 void
-irq_setmask_8259A (u_short mask)
+irq_setmask_8259A(uint16_t mask)
 {
 	int i;
 	irq_mask_8259A = mask;
@@ -83,7 +83,7 @@ irq_setmask_8259A (u_short mask)
 	outb(IO_PIC1+1, (char)mask);
 	outb(IO_PIC2+1, (char)(mask >> 8));
 	printf("enabled interrupts:");
-	for (i=0; i<16; i++)
+	for (i = 0; i < 16; i++)
 		if (~mask & (1<<i))
 			printf(" %d", i);
 	printf("\n");
