@@ -119,7 +119,9 @@ if ($labno < 1 || $solno !~ /^0|[1-9][0-9]*$/) {
 }
 
 # Create a new output directory.
-mkdir($outdir, 0777) or die "mkdir $outdir: $!";
+if (!(-d $outdir)) {
+	mkdir($outdir) or die "mkdir $outdir: $!";
+}
 
 # Populate the output directory
 foreach $i (@ARGV) {
