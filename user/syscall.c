@@ -151,12 +151,15 @@ sys_panic(char *msg)
 }
 
 #endif
-#if SOL >= 6
 int
 sys_cgetc(void)
 {
+#if SOL >= 6
 	return syscall(SYS_cgetc, 0, 0, 0, 0, 0);
+#else
+	panic("sys_cgetc not implemented");
+	return -E_INVAL;
+#endif
 }
 
-#endif
 #endif

@@ -157,71 +157,50 @@ file_stat(struct Fd *fd, struct Stat *st)
 	return 0;
 }
 
-#if SOL >= 5
 // Truncate or extend an open file to 'size' bytes
 int
 ftruncate(int fdnum, u_int size)
 {
-	int r;
+	int i, r;
 	struct Fd *fd;
 	struct Filefd *f;
-	u_int oldsize, va;
+	u_int oldsize, va, fileid;
 
 	if (size > MAXFILESIZE)
 		return -E_NO_DISK;
 
 	if ((r = fd_lookup(fdnum, &fd)) < 0)
 		return r;
+	if (fd->fd_dev_id != devfile.dev_id)
+		return -E_INVAL;
 
 	f = (struct Filefd*)fd;
+	fileid = f->f_fileid;
 	oldsize = f->f_file.f_size;
-	if ((r = fsipc_set_size(f->f_fileid, size)) < 0)
+	if ((r = fsipc_set_size(fileid, size)) < 0)
 		return r;
 
 	va = fd2data(fd);
+#if SOL >= 6
 	if ((r = fmap(f, oldsize, size)) < 0)
 		return r;
 	funmap(f, oldsize, size, 0);
-	return 0;
-}
-
 #else
-// Truncate or extend an open file to 'size' bytes
-int
-ftruncate(int fd, u_int size)
-{
-	int i, r;
-	struct Fileinfo *fi;
-	u_int oldsize;
-
-	if (size > MAXFILESIZE)
-		return -E_NO_DISK;
-
-	if ((r = fd_lookup(fd, &fi)) < 0)
-		return r;
-
-	oldsize = fi->fi_size;
-	if ((r = fsipc_set_size(fi->fi_fileid, size)) < 0)
-		return r;
-
 	// Map any new pages needed if extending the file
 	for (i = ROUND(oldsize, BY2PG); i < ROUND(size, BY2PG); i += BY2PG) {
-		if ((r = fsipc_map(fi->fi_fileid, i, fi->fi_va+i)) < 0) {
-			fsipc_set_size(fi->fi_fileid, oldsize);
+		if ((r = fsipc_map(fileid, i, va+i)) < 0) {
+			fsipc_set_size(fileid, oldsize);
 			return r;
 		}
 	}
 
 	// Unmap pages if truncating the file
 	for (i = ROUND(size, BY2PG); i < ROUND(oldsize, BY2PG); i+=BY2PG)
-		if ((r = sys_mem_unmap(0, fi->fi_va+i)) < 0)
-			panic("ftruncate: sys_mem_unmap %08x: %e",
-				fi->fi_va+i, r);
-
-	fi->fi_size = size;
+		if ((r = sys_mem_unmap(0, va+i)) < 0)
+			panic("ftruncate: sys_mem_unmap %08x: %e", va+i, r);
+#endif
 	return 0;
 }
-#endif
 
 #if SOL >= 5
 static int
