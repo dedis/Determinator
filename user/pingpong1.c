@@ -19,7 +19,7 @@ umain(void)
 
 	for (;;) {
 		i = ipc_recv(&who);
-		printf("%x got %d from %d\n", sys_getenvid(), i, who);
+		printf("%x got %d from %x\n", sys_getenvid(), i, who);
 		if (i == 100)
 			return;
 		i++;
@@ -38,6 +38,7 @@ duppage(u_int dstenv, u_int addr)
 
 	tmp = (u_char*)(UTEXT-BY2PG);	// should be available!
 
+	// This is NOT what you should do in your fork.
 	if ((r=sys_mem_alloc(dstenv, addr, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_mem_alloc: %e", r);
 	if ((r=sys_mem_map(dstenv, addr, 0, (u_int)tmp, PTE_P|PTE_U|PTE_W)) < 0)
@@ -61,6 +62,7 @@ dumbfork(void)
 		return 0;
 	}
 	
+	// This is NOT what you should do in your fork.
 	for (addr=UTEXT; addr<(u_int)end; addr+=BY2PG)
 		duppage(envid, addr);
 	duppage(envid, ROUNDDOWN((u_int)&addr, BY2PG));

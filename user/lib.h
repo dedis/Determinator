@@ -33,13 +33,13 @@ extern struct Page *pages;
 
 // fork.c
 int	fork(void);
+int	sfork(void);	// Challenge!
 
 // pgfault.c
 void	set_pgfault_handler(void(*)(u_int va, u_int err));
 
 // syscall.c
 void	sys_cputs(char*);
-void	sys_cputu(u_int);
 // int	sys_env_alloc(void);
 void	sys_env_destroy(void);
 u_int	sys_getenvid(void);

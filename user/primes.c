@@ -1,5 +1,7 @@
 #if LAB >= 4
-// Prime sieve.  See http://plan9.bell-labs.com/~rsc/thread.html.
+// Concurrent version of prime sieve of Eratosthenes.
+// Invented by Doug McIlroy, inventor of Unix pipes.
+// See http://plan9.bell-labs.com/~rsc/thread.html.
 // The picture halfway down the page and the text surrounding it
 // explain what's going on here.
 //

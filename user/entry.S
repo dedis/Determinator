@@ -60,7 +60,7 @@ __asm_pgfault_handler:
 	//	(your code here)
 #endif
 
-	// call the page fault handler
+	// call the C page fault handler
 	movl __pgfault_handler, %eax
 	call *%eax
 

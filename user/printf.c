@@ -88,7 +88,7 @@ getint(va_list *ap, int lflag, int qflag)
 }
 
 static void
-cons_putc(char **pbuf, char *ebuf, int ch)
+buf_putc(char **pbuf, char *ebuf, int ch)
 {
 	char *buf;
 
@@ -118,7 +118,7 @@ vsnprintf(char *buf, int m, const char *fmt, va_list ap)
 		padc = ' ';
 		width = 0;
 		while ((ch = *(u_char *) fmt++) != '%') {
-			cons_putc(&buf, ebuf, ch);
+			buf_putc(&buf, ebuf, ch);
 			if (ch == '\0')
 				return buf-1-obuf;
 		}
@@ -157,16 +157,16 @@ vsnprintf(char *buf, int m, const char *fmt, va_list ap)
 			uq = va_arg(ap, int);
 			p = va_arg(ap, char *);
 			for (q = ksprintn(uq, *p++, NULL); (ch = *q--) != '\0';)
-				cons_putc(&buf, ebuf, ch);
+				buf_putc(&buf, ebuf, ch);
 
 			if (!uq)
 				break;
 
 			for (tmp = 0; (n = *p++) != '\0'; ) {
 				if (uq & (1 << (n - 1))) {
-					cons_putc(&buf, ebuf, tmp ? ',' : '<');
+					buf_putc(&buf, ebuf, tmp ? ',' : '<');
 					for (; (n = *p) > ' '; ++p)
-						cons_putc(&buf, ebuf, n);
+						buf_putc(&buf, ebuf, n);
 					tmp = 1;
 				}
 				else
@@ -174,10 +174,10 @@ vsnprintf(char *buf, int m, const char *fmt, va_list ap)
 						continue;
 			}
 			if (tmp)
-				cons_putc(&buf, ebuf, '>');
+				buf_putc(&buf, ebuf, '>');
 			break;
 		case 'c':
-			cons_putc(&buf, ebuf, va_arg(ap, int));
+			buf_putc(&buf, ebuf, va_arg(ap, int));
 			break;
 		case 'e':
 			n = va_arg(ap, int);
@@ -196,16 +196,16 @@ vsnprintf(char *buf, int m, const char *fmt, va_list ap)
 			if ((p = va_arg(ap, char *)) == NULL)
 					p = "(null)";
 			while ((ch = *p++) != '\0')
-				cons_putc(&buf, ebuf, ch);
+				buf_putc(&buf, ebuf, ch);
 			break;
 		case 'd':
 			uq = getint(&ap, lflag, qflag);
 			/*if (qflag && (quad_t) uq < 0) {
-				cons_putc(&buf, ebuf, '-');
+				buf_putc(&buf, ebuf, '-');
 				uq = -(quad_t) uq;
 			}
 			else*/ if ((long)uq < 0) {
-				cons_putc(&buf, ebuf, '-');
+				buf_putc(&buf, ebuf, '-');
 				uq = -(long) uq;
 			}
 			base = 10;
@@ -219,8 +219,8 @@ vsnprintf(char *buf, int m, const char *fmt, va_list ap)
 			base = 8;
 			goto number;
 		case 'p':
-			cons_putc(&buf, ebuf, '0');
-			cons_putc(&buf, ebuf, 'x');
+			buf_putc(&buf, ebuf, '0');
+			buf_putc(&buf, ebuf, 'x');
 			uq = (u_long) va_arg(ap, void *);
 			base = 16;
 			goto number;
@@ -231,17 +231,17 @@ vsnprintf(char *buf, int m, const char *fmt, va_list ap)
 			p = ksprintn(uq, base, &tmp);
 			if (width && (width -= tmp) > 0)
 				while (width--)
-					cons_putc(&buf, ebuf, padc);
+					buf_putc(&buf, ebuf, padc);
 			while ((ch = *p--) != '\0')
-				cons_putc(&buf, ebuf, ch);
+				buf_putc(&buf, ebuf, ch);
 			break;
 		default:
-			cons_putc(&buf, ebuf, '%');
+			buf_putc(&buf, ebuf, '%');
 			if (lflag)
-				cons_putc(&buf, ebuf, 'l');
+				buf_putc(&buf, ebuf, 'l');
 			/* FALLTHROUGH */
 		case '%':
-			cons_putc(&buf, ebuf, ch);
+			buf_putc(&buf, ebuf, ch);
 		}
 	}
 }

@@ -2,15 +2,17 @@
 CLEAN_FILES += \
 	user/buggyhello \
 	user/evilhello \
+	user/fairness \
 	user/fault \
 	user/faultalloc \
-	user/faultalloc-bad \
+	user/faultallocbad \
 	user/faultdie \
 	user/hello \
 	user/idle \
 	user/pingpong \
 	user/pingpong1 \
 	user/pingpong2 \
+	user/pingpongs \
 	user/primes \
 
 USERLIB := \
@@ -23,10 +25,11 @@ USERLIB := \
 	user/syscall.o \
 
 user/%: user/entry.o user/%.o $(USERLIB)
-	$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib $^
+	@echo ld $@
+	@$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib $^
 
 user/%.asm: user/%
-	$(OBJDUMP) --adjust-vma=0x7ff000 $^ >$@
+	$(OBJDUMP) --adjust-vma=0x7ff000 -S $^ >$@
 
 user/%.o: lib.h
 

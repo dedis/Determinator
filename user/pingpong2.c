@@ -17,7 +17,7 @@ umain(void)
 
 	for (;;) {
 		i = ipc_recv(&who);
-		printf("%x got %d from %d\n", sys_getenvid(), i, who);
+		printf("%x got %d from %x\n", sys_getenvid(), i, who);
 		if (i == 100)
 			return;
 		i++;

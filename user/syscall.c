@@ -35,12 +35,6 @@ syscall(int num, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 }
 
 void
-sys_cputu(u_int a1)
-{
-	syscall(SYS_cputu, a1, 0, 0, 0, 0);
-}
-
-void
 sys_cputs(char *a1)
 {
 	syscall(SYS_cputs, (u_int) a1, 0, 0, 0, 0);
@@ -58,19 +52,11 @@ sys_env_destroy(void)
 	syscall(SYS_env_destroy, 0, 0, 0, 0, 0);
 }
 
-int
-sys_set_env_status(u_int env, u_int status)
-{
-	return syscall(SYS_set_env_status, env, status, 0, 0, 0);
-}
-
 u_int
 sys_getenvid(void)
 {
 	 return syscall(SYS_getenvid, 0, 0, 0, 0, 0);
 }
-
-// sys_env_alloc is inlined in lib.h
 
 int
 sys_ipc_can_send(u_int a1, u_int a2)
@@ -123,10 +109,22 @@ sys_mem_map(u_int srcenv, u_int srcva, u_int dstenv, u_int dstva, u_int perm)
 }
 
 int
-sys_mem_unmap(u_int env, u_int va)
+sys_mem_unmap(u_int envid, u_int va)
 {
 #if SOL >= 4
-	return syscall(SYS_mem_unmap, env, va, 0, 0, 0);
+	return syscall(SYS_mem_unmap, envid, va, 0, 0, 0);
+#else
+	// Your code here.
+#endif
+}
+
+// sys_env_alloc is inlined in lib.h
+
+int
+sys_set_env_status(u_int envid, u_int status)
+{
+#if SOL >= 4
+	return syscall(SYS_set_env_status, env, status, 0, 0, 0);
 #else
 	// Your code here.
 #endif

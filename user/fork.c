@@ -9,9 +9,6 @@
 // Custom page fault handler - if faulting page is copy-on-write,
 // map in our own private writable copy.
 //
-// Hint - the TA solution uses vpt[], sys_mem_alloc(), sys_mem_map(),
-// and sys_mem_unmap().
-//
 
 static void
 pgfault(u_int va, u_int err)
@@ -19,7 +16,7 @@ pgfault(u_int va, u_int err)
 	int r;
 	u_char *tmp;
 
-
+#if SOL >= 4
 	if ((vpt[PPN(va)] & (PTE_P|PTE_U|PTE_W|PTE_COW)) != (PTE_P|PTE_U|PTE_COW))
 		panic("fault at %x with pte %x, not copy-on-write", va, vpt[PPN(va)]);
 
@@ -37,16 +34,15 @@ pgfault(u_int va, u_int err)
 	// unmap our work space
 	if ((r=sys_mem_unmap(0, (u_int)tmp)) < 0)
 		panic("sys_mem_unmap: %e", r);
+#endif
 }
 
 //
 // Map our virtual page pn (address pn*BY2PG) into the target envid
 // at the same virtual address.  if the page is writable or copy-on-write,
-// the new mapping must be marked copy on write and then our mapping must be
+// the new mapping must be created copy on write and then our mapping must be
 // marked copy on write as well.  (Exercise: why mark ours copy-on-write again if
 // it was already copy-on-write?)
-//
-// Hint - the TA solution uses vpt[] and sys_mem_map().
 // 
 static void
 duppage(u_int envid, u_int pn)
@@ -91,10 +87,7 @@ duppage(u_int envid, u_int pn)
 // User-level fork.  Create a child and then copy our address space
 // and page fault handler setup to the child.
 //
-// Hint: the TA solution uses vpd[], vpt[], sys_env_alloc(), sys_getenvid(),
-// duppage(), sys_mem_alloc(), sys_set_pgfault_handler(),
-// sys_set_env_status(), and a handful of predefined constants.
-//
+// Hint: use vpd, vpt, and duppage.
 // Hint: remember to fix "env" in the child process!
 // 
 int
@@ -110,7 +103,7 @@ fork(void)
 	if (envid < 0)
 		return envid;
 	if (envid == 0) {
-		env = &envs[ENVX(sys_getenvid())];
+		env = &envs[sys_getenvid()];
 		return 0;
 	}
 
@@ -134,11 +127,19 @@ fork(void)
 	if ((r=sys_set_pgfault_handler(envid, env->env_pgfault_handler, env->env_xstacktop)) < 0)
 		panic("set_pgfault_handler: %e", r);
 
+
 	// Okay, the child is ready for life on its own.
 	if ((r=sys_set_env_status(envid, ENV_RUNNABLE)) < 0)
 		panic("sys_set_env_status: %e", r);
 
 	return envid;
 #endif
+}
+
+// Challenge!
+int
+sfork(void)
+{
+	return -E_INVAL;
 }
 #endif
