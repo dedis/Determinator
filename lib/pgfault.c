@@ -1,12 +1,12 @@
-#if LAB >= 3
-// User-level page fault handler.
-// We use an assembly wrapper around a C function.
-// The assembly wrapper is in entry.S.
+#if LAB >= 4
+// User-level page fault handler support.
+// We use an assembly language wrapper around a C function.
+// The assembly wrapper is in pfentry.S.
 
 #include <inc/lib.h>
 
 extern void (*_pgfault_handler)(u_int, u_int);
-extern void _asm_pgfault_handler(void);
+extern void _pgfault_entry(void);
 
 //
 // Set the page fault handler function.
@@ -26,12 +26,12 @@ set_pgfault_handler(void (*fn)(u_int va, u_int err))
 		if ((r=sys_mem_alloc(0, UXSTACKTOP-BY2PG, PTE_P|PTE_U|PTE_W)) < 0)
 			panic("allocating exception stack: %e", r);
 
-		// install assembly handler with operating system
-		sys_set_pgfault_handler(0, (u_int)_asm_pgfault_handler);
+		// register assembly pgfault entrypoint with JOS kernel
+		sys_set_pgfault_entry(0, (u_int)_pgfault_entry);
 #else
 		// Your code here:
 		// map one page of exception stack with top at UXSTACKTOP
-		// register assembly handler and stack with operating system
+		// register assembly pgfault entrypoint with JOS kernel
 		panic("set_pgfault_handler not implemented");
 #endif
 	}
@@ -40,4 +40,4 @@ set_pgfault_handler(void (*fn)(u_int va, u_int err))
 	_pgfault_handler = fn;
 }
 
-#endif
+#endif	// LAB >= 4

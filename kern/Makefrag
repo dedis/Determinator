@@ -60,6 +60,11 @@ ifdef LAB4
 # Binary program images to embed within the kernel.
 KERN_BINFILES := \
 	user/idle \
+	user/faultdie \
+	user/faultalloc \
+	user/faultallocbad \
+	user/faultbadhandler \
+	user/faultevilhandler \
 	user/fairness \
 	user/pingpong \
 	user/pingpong1 \
@@ -73,12 +78,7 @@ KERN_BINFILES := \
 	user/buggyhello \
 	user/testbss \
 	user/exit \
-	user/fault \
-	user/faultdie \
-	user/faultalloc \
-	user/faultallocbad \
-	user/faultbadhandler \
-	user/faultevilhandler
+	user/fault
 else
 KERN_BINFILES := 
 endif	# not LAB3

@@ -30,7 +30,7 @@ struct Env {
 	u_int env_cr3;                  // Physical address of page dir
 
 	// Exception handling
-	u_int env_pgfault_handler;      // page fault state
+	u_int env_pgfault_entry;      // page fault state
 
 #if LAB >= 4
 	// Lab 4 IPC

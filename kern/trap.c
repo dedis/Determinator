@@ -175,12 +175,6 @@ trap(struct Trapframe *tf)
 	// print_trapframe(tf);
 
 	// Handle processor exceptions
-#if SOL >= 4
-	if (tf->tf_trapno == T_PGFLT) {
-		page_fault_handler(tf);
-		return;
-	}
-#endif
 #if SOL >= 3
 	if (tf->tf_trapno == T_SYSCALL) {
 		// handle system call
@@ -195,16 +189,16 @@ trap(struct Trapframe *tf)
 		return;
 	}
 #endif
-
 #if LAB >= 4
+	if (tf->tf_trapno == T_PGFLT) {
+		page_fault_handler(tf);
+		return;
+	}
+
 	// Handle external interrupts
 	if (tf->tf_trapno == IRQ_OFFSET+0) {
 		// irq 0 -- clock interrupt
-#if SOL >= 4
 		sched_yield();
-#else
-		panic("clock interrupt");
-#endif
 	}
 #if SOL >= 6
 	if (tf->tf_trapno == IRQ_OFFSET+1) {
@@ -237,6 +231,7 @@ trap(struct Trapframe *tf)
 }
 
 
+#if LAB >= 4
 void
 page_fault_handler(struct Trapframe *tf)
 {
@@ -246,7 +241,7 @@ page_fault_handler(struct Trapframe *tf)
 	// Read processor's CR2 register to find the faulting address
 	fault_va = rcr2();
 
-#if SOL >= 3
+#if SOL >= 4
 	if ((tf->tf_cs & 3) == 0) {
 		switch (page_fault_mode) {
 		default:
@@ -312,11 +307,12 @@ page_fault_handler(struct Trapframe *tf)
 	page_fault_mode = PFM_NONE;
 
 	env_run(curenv);
-#else	// not SOL >= 3
+#else	// not SOL >= 4
 	// Fill this in
 	print_trapframe(tf);
 	panic("page fault");
-#endif	// not SOL >= 3
+#endif	// not SOL >= 4
 }
+#endif	// LAB >= 4
 
 #endif /* LAB >= 3 */

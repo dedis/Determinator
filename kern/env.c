@@ -190,10 +190,11 @@ env_alloc(struct Env **new, u_int parent_id)
 	// You also need to set tf_eip to the correct value at some point.
 	// Hint: see load_icode
 
+#if LAB >= 4
 	// Clear the page fault handler until user installs one.
 	e->env_pgfault_handler = 0;
 
-#if LAB >= 4
+	// Also clear the IPC receiving flag.
 	e->env_ipc_recving = 0;
 #endif
 

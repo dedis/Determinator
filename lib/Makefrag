@@ -7,7 +7,6 @@ LIB_SRCFILES :=		\
 			lib/libmain.c \
 			lib/exit.c \
 			lib/panic.c \
-			lib/pgfault.c \
 			lib/printf.c \
 			lib/printfmt.c \
 			lib/readline.c \
@@ -17,6 +16,8 @@ LIB_SRCFILES :=		\
 
 ifdef LAB4
 LIB_SRCFILES :=		$(LIB_SRCFILES) \
+			lib/pgfault.c \
+			lib/pfentry.S \
 			lib/fork.c \
 			lib/ipc.c
 endif

@@ -68,27 +68,6 @@ sys_env_destroy(u_int envid)
 	return 0;
 }
 
-// Set envid's pagefault handler entry point and exception stack.
-// (xstacktop points one byte past exception stack).
-//
-// Returns 0 on success, < 0 on error.
-static int
-sys_set_pgfault_handler(u_int envid, u_int func)
-{
-#if SOL >= 3
-	int r;
-	struct Env *e;
-
-	if ((r=envid2env(envid, &e, 1)) < 0)
-		return r;
-	e->env_pgfault_handler = func;
-	return 0;
-#else
-	// Your code here.
-	panic("sys_set_pgfault_handler not implemented");
-#endif
-}
-
 //
 // Allocate a page of memory and map it at 'va' with permission
 // 'perm' in the address space of 'envid'.
@@ -278,6 +257,27 @@ sys_set_status(u_int envid, u_int status)
 #endif
 }
 
+// Set envid's pagefault handler entry point and exception stack.
+// (xstacktop points one byte past exception stack).
+//
+// Returns 0 on success, < 0 on error.
+static int
+sys_set_pgfault_entry(u_int envid, u_int func)
+{
+#if SOL >= 3
+	int r;
+	struct Env *e;
+
+	if ((r=envid2env(envid, &e, 1)) < 0)
+		return r;
+	e->env_pgfault_entry = func;
+	return 0;
+#else
+	// Your code here.
+	panic("sys_set_pgfault_entry not implemented");
+#endif
+}
+
 // deschedule current environment
 static void
 sys_yield(void)
@@ -393,8 +393,6 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 		return sys_getenvid();
 	case SYS_env_destroy:
 		return sys_env_destroy(a1);
-	case SYS_set_pgfault_handler:
-		return sys_set_pgfault_handler(a1, a2);
 	case SYS_mem_alloc:
 		return sys_mem_alloc(a1, a2, a3);
 	case SYS_mem_map:
@@ -408,6 +406,8 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 		return sys_set_trapframe(a1, (struct Trapframe*)a2);
 	case SYS_set_status:
 		return sys_set_status(a1, a2);
+	case SYS_set_pgfault_entry:
+		return sys_set_pgfault_entry(a1, a2);
 	case SYS_yield:
 		sys_yield();
 		return 0;

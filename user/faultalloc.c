@@ -1,5 +1,5 @@
-#if LAB >= 4
-#elif LAB >= 3
+#if LAB >= 5
+#elif LAB >= 4
 // test user-level fault handler -- alloc pages to fix faults
 
 #include <inc/lib.h>

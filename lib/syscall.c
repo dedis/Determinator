@@ -59,17 +59,6 @@ sys_getenvid(void)
 }
 
 int
-sys_set_pgfault_handler(u_int envid, u_int a1)
-{
-#if SOL >= 3
-	return syscall(SYS_set_pgfault_handler, envid, a1, 0, 0, 0);
-#else
-	// Your code here.
-	panic("sys_set_pgfault_handler not implemented");
-#endif
-}
-
-int
 sys_mem_alloc(u_int envid, u_int va, u_int perm)
 {
 #if SOL >= 3
@@ -115,6 +104,17 @@ int
 sys_set_status(u_int envid, u_int status)
 {
 	return syscall(SYS_set_status, envid, status, 0, 0, 0);
+}
+
+int
+sys_set_pgfault_entry(u_int envid, u_int a1)
+{
+#if SOL >= 3
+	return syscall(SYS_set_pgfault_entry, envid, a1, 0, 0, 0);
+#else
+	// Your code here.
+	panic("sys_set_pgfault_entry not implemented");
+#endif
 }
 
 void
