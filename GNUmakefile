@@ -321,4 +321,4 @@ apply-patch:
 
 always:
 
-.PHONY: all always patch apply-patch handin tarball
+.PHONY: all always patch apply-patch handin tarball grade
