@@ -91,7 +91,7 @@ KERN_BINFILES := $(addprefix $(OBJDIR)/, $(KERN_BINFILES))
 $(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
 	@echo ld $@
 	@$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) -b binary $(KERN_BINFILES)
-	@$(OBJDUMP) -S --adjust-vma=0xf00ff000 $@ > $@.asm
+	@$(OBJDUMP) -S $@ > $@.asm
 	@$(NM) -n $@ > $@.sym
 
 # How to build the Bochs disk image
