@@ -132,58 +132,51 @@ print_trapframe(struct Trapframe *tf)
 void
 trap(struct Trapframe *tf)
 {
-#if SOL >= 3
-	if (tf->tf_trapno == IRQ_OFFSET) {
-		// irq 0 -- clock interrupt
-		sched_yield();
-	}
-#if LAB >= 4
+	// print_trapframe(tf);
+
 	if (tf->tf_trapno == T_PGFLT) {
 		page_fault_handler(tf);
+		return;
 	}
-	else if (tf->tf_trapno == T_SYSCALL) {
-		/* tf_eax - # of system call
-		 * tf_edx - 1st argument(if any)
-		 * tf_ecx - 2nd argument(if any)
-		 * tf_ebx - 3rd argument(if any)
-		 * tf_esi - 4th argument(if any)
-		 */
-		tf->tf_eax = dispatch_syscall(
-				tf->tf_eax, tf->tf_edx, tf->tf_ecx,
-				tf->tf_ebx, tf->tf_esi);
-	}
-#endif /* not LAB >= 4 */
-#if LAB >= 6
-	else if (tf->tf_trapno == IRQ_OFFSET + 1) {
-		kbd_intr();
-	}
-#endif
-	else if (tf->tf_trapno >= IRQ_OFFSET && 
-		 tf->tf_trapno < IRQ_OFFSET + MAX_IRQS) {
-		// just ignore spurious interrupts
-		u_int irq = tf->tf_trapno - IRQ_OFFSET;
-		printf("ignoring unexpected IRQ %d:", irq);
-		printf(" eip 0x%x;", tf->tf_eip);
-		printf(" cs = 0x%x;", tf->tf_cs & 0xffff);
-		printf(" eflags = 0x%x\n", tf->tf_eflags);
-	} else {
-		// the user process or the kernel has a bug..
-#if SOL >= 3
-		if (tf->tf_cs == GD_KT)
-			panic("unhandled trap in kernel");
-		else {
-			print_trapframe(tf);
-			env_destroy(curenv);
-		}
+
+	if (tf->tf_trapno == T_SYSCALL) {
+		// handle system call
+#if SOL >= 4
+		syscall(tf);
 #else
-		print_trapframe(tf);
-		panic("unhandled trap");
+		panic("system call");
 #endif
 	}
-#else /* not SOL >= 3 */
+	if (tf->tf_trapno == IRQ_OFFSET+0) {
+		// irq 0 -- clock interrupt
+#if SOL >= 3
+		sched_yield();
+#else
+		panic("clock interrupt");
+#endif
+	}
+	if (IRQ_OFFSET <= tf->tf_trapno 
+	&& tf->tf_trapno < IRQ_OFFSET+MAX_IRQS) {
+		// just ingore spurious interrupts
+		printf("spurious interrupt on irq %d\n",
+			tf->tf_trapno - IRQ_OFFSET);
+		print_trapframe(tf);
+		return;
+	}
+
+	// the user process or the kernel has a bug.
+#if SOL >= 3
+	if (tf->tf_cs == GD_KT)
+		panic("unhandled trap in kernel");
+	else {
+		print_trapframe(tf);
+		env_destroy(curenv);
+		return;
+	}
+#else
 	print_trapframe(tf);
 	panic("unhandled trap");
-#endif /* not SOL >= 3 */
+#endif
 }
 
 
@@ -255,8 +248,5 @@ page_fault_handler(struct Trapframe *tf)
 #endif /* not SOL >= 4 */
 }
 #endif /* LAB >= 4 */
-
-// 4491726
-
 
 #endif /* LAB >= 3 */
