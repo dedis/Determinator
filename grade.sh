@@ -113,8 +113,8 @@ runtest1() {
 #if LAB >= 6
 score=0
 
-# 30 points - run-icode
-pts=30
+# 20 points - run-icode
+pts=20
 runtest1 -tag 'updated file system switch' icode \
 	'icode: read /motd' \
 	'This is /motd, the message of the day.' \
@@ -143,6 +143,20 @@ runtest1 -tag 'pipe' testpipe \
 	'pipe read closed properly' \
 	'pipe write closed properly' \
 
+# 10 points - run-testpiperace
+pts=10
+runtest1 -tag 'pipe race' testpiperace \
+	! 'child detected race' \
+	! 'RACE: pipe appears closed' \
+	"race didn't happen" \
+
+# 10 points - run-testpiperace2
+pts=10
+runtest1 -tag 'pipe race 2' testpiperace2 \
+	! 'RACE: pipe appears closed' \
+	! 'child detected race' \
+	"race didn't happen" \
+
 # 10 points - run-primespipe
 pts=10
 timeout=120
@@ -154,8 +168,8 @@ runtest1 -tag 'primes' primespipe \
 	! 30 31 ! 32 ! 33 ! 34 ! 35 ! 36 37 ! 38 ! 39 \
 	541 1009 1097
 
-# 30 points - run-testshell
-pts=30
+# 20 points - run-testshell
+pts=20
 timeout=60
 runtest1 -tag 'shell' testshell \
 	'shell ran correctly' \

@@ -105,22 +105,28 @@ int	fsipc_remove(const char*);
 int	fsipc_sync(void);
 int	fsipc_incref(u_int);
 
-// file.c
-int	open(const char *path, int mode);
+// fd.c
 int	close(int fd);
 int	read(int fd, void *buf, u_int nbytes);
-int	read_map(int fd, u_int offset, void **blk);
 int	write(int fd, const void *buf, u_int nbytes);
 int	seek(int fd, u_int offset);
-int	delete(const char *path);
-int	ftruncate(int fd, u_int size);
-int	sync(void);
 void	close_all(void);
-int	pipe(int[2]);
 int	readn(int fd, void *buf, u_int nbytes);
 int	dup(int oldfd, int newfd);
 int	fstat(int fd, struct Stat*);
 int	stat(const char *path, struct Stat*);
+
+// file.c
+int	open(const char *path, int mode);
+int	read_map(int fd, u_int offset, void **blk);
+int	delete(const char *path);
+int	ftruncate(int fd, u_int size);
+int	sync(void);
+
+// pipe.c
+int	pipe(int[2]);
+int	pipeisclosed(int);
+
 // spawn.c
 int	spawn(char*, char**);
 int	spawnl(char*, char*, ...);

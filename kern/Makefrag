@@ -71,6 +71,8 @@ KERN_BINFILES := \
 	user/testfsipc \
 	user/testkbd \
 	user/testpipe \
+	user/testpiperace \
+	user/testpiperace2 \
 	user/testptelibrary \
 	user/testshell \
 	user/writemotd \

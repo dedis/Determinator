@@ -14,12 +14,12 @@
 u_int
 primeproc(int fd)
 {
-	int i, id, p, pfd[2], wfd;
+	int i, id, p, pfd[2], wfd, r;
 
 	// fetch a prime from our left neighbor
 top:
-	if (readn(fd, &p, 4) != 4)
-		panic("primeproc could not read initial prime");
+	if ((r=readn(fd, &p, 4)) != 4)
+		panic("primeproc could not read initial prime: %d, %e", r, r >= 0 ? 0 : r);
 
 	printf("%d\n", p);
 
@@ -40,18 +40,18 @@ top:
 
 	// filter out multiples of our prime
 	for (;;) {
-		if (readn(fd, &i, 4) != 4)
-			panic("primeproc %d readn", p);
+		if ((r=readn(fd, &i, 4)) != 4)
+			panic("primeproc %d readn %d %d %e", p, fd, r, r >= 0 ? 0 : r);
 		if (i%p)
-			if (write(wfd, &i, 4) != 4)
-				panic("primeproc %d write", p);
+			if ((r=write(wfd, &i, 4)) != 4)
+				panic("primeproc %d write: %d %e", p, r, r >= 0 ? 0 : r);
 	}
 }
 
 void
 umain(void)
 {
-	int i, id, p[2];
+	int i, id, p[2], r;
 
 	argv0 = "primespipe";
 
@@ -71,8 +71,8 @@ umain(void)
 
 	// feed all the integers through
 	for (i=2;; i++)
-		if (write(p[1], &i, 4) != 4)
-			panic("generator write");
+		if ((r=write(p[1], &i, 4)) != 4)
+			panic("generator write: %d, %e", r, r >= 0 ? 0 : r);
 }
 
 #endif

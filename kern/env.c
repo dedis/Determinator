@@ -343,7 +343,6 @@ env_pop_tf(struct Trapframe *tf)
 	panic("iret failed");  /* mostly to placate the compiler */
 }
 
-
 //
 // Context switch from curenv to env e.
 // Note: if this is the first call to env_run, curenv is NULL.
@@ -360,6 +359,7 @@ env_run(struct Env *e)
 	// restore e's address space
 	lcr3(e->env_cr3);
 	// restore e's register state
+	e->env_runs++;
 	env_pop_tf(&e->env_tf);
 #else /* not SOL >= 3 */
 	// step 1: save register state of curenv

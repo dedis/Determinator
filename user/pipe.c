@@ -68,6 +68,55 @@ err:	return r;
 }
 
 static int
+_pipeisclosed(struct Fd *fd, struct Pipe *p)
+{
+#if SOL >= 6
+	int n, nn, ret;
+
+	for (;;) {
+		n = env->env_runs;
+		ret = pageref(fd)==pageref(p);
+		nn = env->env_runs;
+		if (n == nn)
+			return ret;
+		if (n != nn && ret == 1)
+			printf("pipe race avoided\n", n, env->env_runs, ret);
+	}
+#else
+	// Your code here.
+	// 
+	// Check pageref(fd) and pageref(p),
+	// returning 1 if they're the same, 0 otherwise.
+	// 
+	// The logic here is that pageref(p) is the total
+	// number of readers *and* writers, whereas pageref(fd)
+	// is the number of file descriptors like fd (readers if fd is
+	// a reader, writers if fd is a writer).
+	// 
+	// If the number of file descriptors like fd is equal
+	// to the total number of readers and writers, then
+	// everybody left is what fd is.  So the other end of
+	// the pipe is closed.
+
+	panic("_pipeisclosed not implemented");
+	return 0;
+#endif
+}
+
+int
+pipeisclosed(int fdnum)
+{
+	struct Fd *fd;
+	struct Pipe *p;
+	int r;
+
+	if ((r = fd_lookup(fdnum, &fd)) < 0)
+		return r;
+	p = (struct Pipe*)fd2data(fd);
+	return _pipeisclosed(fd, p);
+}
+
+static int
 piperead(struct Fd *fd, void *vbuf, u_int n, u_int offset)
 {
 #if SOL >= 6
@@ -89,7 +138,7 @@ piperead(struct Fd *fd, void *vbuf, u_int n, u_int offset)
 			if (i > 0)
 				return i;
 			// if all the writers are gone, note eof
-			if (pageref(fd) == pageref(p))
+			if (_pipeisclosed(fd, p))
 				return 0;
 			// yield and see what happens
 			if (debug) printf("piperead yield\n");
@@ -107,6 +156,8 @@ piperead(struct Fd *fd, void *vbuf, u_int n, u_int offset)
 	// you have not yet copied any bytes.  (If you have copied
 	// some bytes, return what you have instead of yielding.)
 	// If the pipe is empty and closed and you didn't copy any data out, return 0.
+	// Use _pipeisclosed to check whether the pipe is closed.
+
 	panic("piperead not implemented");
 	return -E_INVAL;
 #endif
@@ -131,7 +182,7 @@ pipewrite(struct Fd *fd, const void *vbuf, u_int n, u_int offset)
 		while (p->p_wpos >= p->p_rpos+sizeof(p->p_buf)) {
 			// pipe is full
 			// if all the readers are gone (it's only writers like us now), note eof
-			if (pageref(fd) == pageref(p))
+			if (_pipeisclosed(fd, p))
 				return 0;
 			// yield and see what happens
 			if (debug) printf("pipewrite yield\n");
@@ -148,6 +199,7 @@ pipewrite(struct Fd *fd, const void *vbuf, u_int n, u_int offset)
 	// of the data.  If the pipe fills and you've only copied some of
 	// the data, wait for the pipe to empty and then keep copying.
 	// If the pipe is full and closed, return 0.
+	// Use _pipeisclosed to check whether the pipe is closed.
 
 	panic("pipewrite not implemented");
 	return -E_INVAL;
@@ -170,6 +222,9 @@ pipestat(struct Fd *fd, struct Stat *stat)
 static int
 pipeclose(struct Fd *fd)
 {
+#if SOL >= 6
+	sys_mem_unmap(0, (u_int)fd);
+#endif
 	sys_mem_unmap(0, fd2data(fd));
 	return 0;
 }

@@ -143,24 +143,38 @@ dup(int oldfdnum, int newfdnum)
 	if ((r = fd_lookup(oldfdnum, &oldfd)) < 0)
 		return r;
 	close(newfdnum);
-	newfd = (struct Fd*)INDEX2FD(newfdnum);
-	if ((r = sys_mem_map(0, (u_int)oldfd, 0, (u_int)newfd, vpt[VPN(oldfd)]&PTE_USER)) < 0)
-		return r;
 
+	newfd = (struct Fd*)INDEX2FD(newfdnum);
 	ova = fd2data(oldfd);
 	nva = fd2data(newfd);
 
-	if (vpd[PDX(ova)])
+#if SOL >= 6
+#else
+	if ((r = sys_mem_map(0, (u_int)oldfd, 0, (u_int)newfd, vpt[VPN(oldfd)]&PTE_USER)) < 0)
+		goto err;
+#endif
+	if (vpd[PDX(ova)]) {
 		for (i=0; i<PDMAP; i+=BY2PG) {
 			pte = vpt[VPN(ova+i)];
 			if(pte&PTE_P) {
 				// should be no error here -- pd is already allocated
 				if ((r = sys_mem_map(0, ova+i, 0, nva+i, pte&PTE_USER)) < 0)
-					panic("dup sys_mem_map: %e", r);
+					goto err;
 			}
 		}
+	}
+#if SOL >= 6
+	if ((r = sys_mem_map(0, (u_int)oldfd, 0, (u_int)newfd, vpt[VPN(oldfd)]&PTE_USER)) < 0)
+		goto err;
+#endif
 
 	return newfdnum;
+
+err:
+	sys_mem_unmap(0, (u_int)newfd);
+	for (i=0; i<PDMAP; i+=BY2PG)
+		sys_mem_unmap(0, nva+i);
+	return r;
 }
 
 int
