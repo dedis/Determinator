@@ -6,7 +6,7 @@
 void
 handler(u_int va, u_int err)
 {
-	printf("i faulted at va %x, err %x\n", va, err);
+	printf("i faulted at va %x, err %x\n", va, err&7);
 	sys_env_destroy();
 }
 

@@ -19,6 +19,9 @@ ipc_send(u_int whom, u_int val)
 	if(r == 0)
 		return;
 	panic("error in ipc_send: %e", r);
+#else
+	// Your code here.
+	panic("ipc_send not implemented");
 #endif
 }
 
@@ -33,6 +36,10 @@ ipc_recv(u_int *whom)
 	sys_ipc_recv();
 	*whom = env->env_ipc_from;
 	return env->env_ipc_value;
+#else
+	// Your code here
+	panic("ipc_recv not implemented");
+	return 0;
 #endif
 }
 

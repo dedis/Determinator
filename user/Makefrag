@@ -6,7 +6,12 @@ CLEAN_FILES += \
 	user/fault \
 	user/faultalloc \
 	user/faultallocbad \
+	user/faultbadhandler \
+	user/faultbadstack \
 	user/faultdie \
+	user/faultevilhandler \
+	user/faultevilstack \
+	user/faultgoodstack \
 	user/hello \
 	user/idle \
 	user/pingpong \

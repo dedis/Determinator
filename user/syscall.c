@@ -65,6 +65,7 @@ sys_ipc_can_send(u_int a1, u_int a2)
 	return syscall(SYS_ipc_can_send, a1, a2, 0, 0, 0);
 #else
 	// Your code here.
+	panic("sys_ipc_can_send not implemented");
 #endif
 }
 
@@ -75,6 +76,7 @@ sys_ipc_recv(void)
 	syscall(SYS_ipc_recv, 0, 0, 0, 0, 0);
 #else
 	// Your code here.
+	panic("sys_ipc_recv not implemented");
 #endif
 }
 
@@ -85,6 +87,7 @@ sys_set_pgfault_handler(u_int envid, u_int a1, u_int a2)
 	return syscall(SYS_set_pgfault_handler, envid, a1, a2, 0, 0);
 #else
 	// Your code here.
+	panic("sys_set_pgfault_handler not implemented");
 #endif
 }
 
@@ -95,6 +98,7 @@ sys_mem_alloc(u_int envid, u_int va, u_int perm)
 	return syscall(SYS_mem_alloc, envid, va, perm, 0, 0);
 #else
 	// Your code here.
+	panic("sys_mem_alloc not implemented");
 #endif
 }
 
@@ -105,6 +109,7 @@ sys_mem_map(u_int srcenv, u_int srcva, u_int dstenv, u_int dstva, u_int perm)
 	return syscall(SYS_mem_map, srcenv, srcva, dstenv, dstva, perm);
 #else
 	// Your code here.
+	panic("sys_mem_map not implemented");
 #endif
 }
 
@@ -115,6 +120,7 @@ sys_mem_unmap(u_int envid, u_int va)
 	return syscall(SYS_mem_unmap, envid, va, 0, 0, 0);
 #else
 	// Your code here.
+	panic("sys_mem_unmap not implemented");
 #endif
 }
 
@@ -127,6 +133,7 @@ sys_set_env_status(u_int envid, u_int status)
 	return syscall(SYS_set_env_status, envid, status, 0, 0, 0);
 #else
 	// Your code here.
+	panic("sys_set_env_status not implemented");
 #endif
 }
 

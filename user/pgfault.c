@@ -30,6 +30,7 @@ set_pgfault_handler(void (*fn)(u_int va, u_int err))
 		// Your code here:
 		// map one page of exception stack with top at UXSTACKTOP
 		// register assembly handler and stack with operating system
+		panic("set_pgfault_handler not implemented");
 #endif
 	}
 

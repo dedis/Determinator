@@ -203,15 +203,15 @@ page_fault_handler(struct Trapframe *tf)
 			panic("page fault");
 	
 		case PFM_KILL:
-			printf("user env %d made kernel fault at %x\n",
-				curenv->env_id, va);
+			printf("[%08x] PFM_KILL va %08x ip %08x\n", 
+				curenv->env_id, va, tf->tf_eip);
 			env_destroy(curenv);
 		}
 	}
 
 	if (curenv->env_pgfault_handler == 0) {
-		printf("user env 0x%x:0x%x: fault addr %x\n", 
-			tf->tf_cs, tf->tf_eip, va);
+		printf("[%08x] user fault va %08x ip %08x\n",
+			curenv->env_id, va, tf->tf_eip);
 		env_destroy(curenv);
 	}
 

@@ -60,6 +60,7 @@ sys_ipc_recv(void)
 	sched_yield();
 #else
 	// Your code here
+	panic("sys_ipc_recv not implemented");
 #endif
 }
 
@@ -97,6 +98,7 @@ sys_ipc_can_send(u_int envid, u_int value)
 	return 0;
 #else
 	// Your code here
+	panic("sys_ipc_can_send not implemented");
 #endif
 }
 
@@ -118,6 +120,7 @@ sys_set_pgfault_handler(u_int envid, u_int func, u_int xstacktop)
 	return 0;
 #else
 	// Your code here.
+	panic("sys_set_pgfault_handler not implemented");
 #endif
 }
 
@@ -159,6 +162,7 @@ sys_mem_alloc(u_int envid, u_int va, u_int perm)
 	return 0;
 #else
 	// Your code here.
+	panic("sys_mem_alloc not implemented");
 #endif
 }
 
@@ -190,6 +194,9 @@ sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm)
 	if ((r = page_insert(ed->env_pgdir, p, dstva, perm)) < 0)
 		return r;
 	return 0;
+#else
+	// Your code here.
+	panic("sys_mem_map not implemented");
 #endif
 }
 
@@ -212,6 +219,9 @@ sys_mem_unmap(u_int envid, u_int va)
 		return -E_INVAL;
 	page_remove(e->env_pgdir, va);
 	return 0;
+#else
+	// Your code here.
+	panic("sys_mem_unmap not implemented");
 #endif
 }
 
@@ -238,6 +248,7 @@ sys_env_alloc(void)
 	return e->env_id;
 #else
 	// Your code here.
+	panic("sys_env_alloc not implemented");
 #endif
 }
 
@@ -261,6 +272,7 @@ sys_set_env_status(u_int envid, u_int status)
 	return 0;
 #else
 	// Your code here.
+	panic("sys_env_set_status not implemented");
 #endif
 }
 
@@ -348,6 +360,7 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 	}
 #else
 	// Your code here
+	panic("syscall not implemented");
 #endif
 }
 

@@ -34,6 +34,9 @@ pgfault(u_int va, u_int err)
 	// unmap our work space
 	if ((r=sys_mem_unmap(0, (u_int)tmp)) < 0)
 		panic("sys_mem_unmap: %e", r);
+#else
+	// Your code here.
+	panic("pgfault not implemented");
 #endif
 }
 
@@ -80,6 +83,9 @@ duppage(u_int envid, u_int pn)
 		panic("sys_mem_map: %e", r);
 	if ((r=sys_mem_map(0, addr, 0, addr, PTE_P|PTE_U|PTE_COW)) < 0)
 		panic("sys_mem_map: %e", r);
+#else
+	// Your code here.
+	panic("duppage not implemented");
 #endif
 }
 
@@ -133,6 +139,9 @@ fork(void)
 		panic("sys_set_env_status: %e", r);
 
 	return envid;
+#else
+	// Your code here.
+	panic("fork not implemented");
 #endif
 }
 
@@ -140,6 +149,7 @@ fork(void)
 int
 sfork(void)
 {
+	panic("sfork not implemented");
 	return -E_INVAL;
 }
 #endif

@@ -64,11 +64,11 @@ runtest() {
 runtest1() {
 	tag=$1
 	shift
-	shift
 	runtest $tag "DEFS=-DTEST=binary_user_${tag}_start DEFS+=-DTESTSIZE=binary_user_${tag}_size" "$@"
 }
 
 score=0
+
 runtest1 hello \
 	'.00000000. new env 00000800' \
 	'.00000000. new env 00001001' \
@@ -127,7 +127,28 @@ runtest1 faultallocbad \
 	'.00001001. PFM_KILL va deadbeef ip f01.....' \
 	'.00001001. free env 00001001' 
 
-echo PART B SCORE: $score/30
+runtest1 faultbadhandler \
+	'.00001001. PFM_KILL va eebfcffc ip f01.....' \
+	'.00001001. free env 00001001'
+
+runtest1 faultbadstack \
+	'.00001001. PFM_KILL va ef800000 ip f01.....' \
+	'.00001001. free env 00001001'
+
+runtest1 faultgoodstack \
+	'i faulted at va deadbeef, err 6, stack eebfd...' \
+	'.00001001. exiting gracefully' \
+	'.00001001. free env 00001001' 
+
+runtest1 faultevilhandler \
+	'.00001001. PFM_KILL va eebfcffc ip f01.....' \
+	'.00001001. free env 00001001'
+
+runtest1 faultevilstack \
+	'.00001001. PFM_KILL va ef800000 ip f01.....' \
+	'.00001001. free env 00001001'
+
+echo PART B SCORE: $score/55
 
 score=0
 
@@ -172,6 +193,9 @@ runtest1 primes \
 	'11 .00003806. new env 00004007' 
 
 echo PART C SCORE: $score/15
+
+
+
 
 
 #elif LAB >= 3
