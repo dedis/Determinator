@@ -433,7 +433,8 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 	case SYS_ipc_can_send:
 		return sys_ipc_can_send(a1, a2, a3, a4);
 	case SYS_ipc_recv:
-		return sys_ipc_recv(a1);
+		sys_ipc_recv(a1);
+		return 0;
 #endif	// SOL >= 4
 	default:
 		return -E_INVAL;

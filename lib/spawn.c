@@ -114,7 +114,7 @@ map_segment(int child, u_int va, u_int memsz,
 	int i, r;
 	void *blk;
 
-	printf("map_segment %x+%x\n", va, memsz);
+	//printf("map_segment %x+%x\n", va, memsz);
 
 	if ((i = (va&(BY2PG-1))) != 0) {
 		va -= i;
@@ -222,8 +222,8 @@ spawn(char *prog, char **argv)
 	if ((r = sys_set_trapframe(child, &tf)) < 0)
 		panic("sys_set_tf: %e", r);
 
-	if ((r = sys_set_env_status(child, ENV_RUNNABLE)) < 0)
-		panic("sys_set_env_status: %e", r);
+	if ((r = sys_set_status(child, ENV_RUNNABLE)) < 0)
+		panic("sys_set_status: %e", r);
 
 	return child;
 
@@ -294,7 +294,7 @@ error:
 	//     You can use envs[ENVX(child)].env_tf as a template trapframe
 	//     in order to get the initial segment registers and such.
 	//
-	//   - Start the child process running with sys_set_env_status().
+	//   - Start the child process running with sys_set_status().
 	//
 	panic("spawn unimplemented!");
 #endif /* not SOL >= 5 */
