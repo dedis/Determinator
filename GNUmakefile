@@ -273,12 +273,12 @@ tarball: clean
 # For test runs
 run-%:
 	$(V)rm -f $(OBJDIR)/kern/init.o $(OBJDIR)/kern/bochs.img
-	$(V)$(MAKE) "DEFS=-DTEST=binary_user_$*_start -DTESTSIZE=binary_user_$*_size" $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
+	$(V)$(MAKE) "DEFS=-DTEST=_binary_user_$*_start -DTESTSIZE=_binary_user_$*_size" $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 	bochs-nogui
 
 xrun-%:
 	$(V)rm -f $(OBJDIR)/kern/init.o $(OBJDIR)/kern/bochs.img
-	$(V)$(MAKE) "DEFS=-DTEST=binary_user_$*_start -DTESTSIZE=binary_user_$*_size" $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
+	$(V)$(MAKE) "DEFS=-DTEST=_binary_user_$*_start -DTESTSIZE=_binary_user_$*_size" $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 	bochs
 
 # This magic automatically generates makefile dependencies
