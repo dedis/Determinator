@@ -30,7 +30,7 @@ test_backtrace(int x)
 	if (x > 0)
 		test_backtrace(x-1);
 	else
-		mon_backtrace(0, 0);
+		mon_backtrace(0, 0, 0);
 	printf("leaving test_backtrace %d\n", x);
 }
 #endif
