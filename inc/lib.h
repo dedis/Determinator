@@ -20,7 +20,7 @@
 #include <inc/syscall.h>
 #if LAB >= 5
 #include <inc/fs.h>
-#include <inc/libfd.h>
+#include <inc/fd.h>
 #include <inc/args.h>
 #endif
 

@@ -4,8 +4,8 @@
 // that our user-land support library implements for the use of applications.
 // See the code in the lib directory for the implementation details.
 
-#ifndef _INC_LIBFD_H_
-#define _INC_LIBFD_H_ 1
+#ifndef _INC_FD_H_
+#define _INC_FD_H_ 1
 
 #include <inc/types.h>
 #include <inc/fs.h>
@@ -59,5 +59,5 @@ extern struct Dev devcons;
 extern struct Dev devfile;
 extern struct Dev devpipe;
 
-#endif	// not _INC_LIBFD_H_
+#endif	// not _INC_FD_H_
 #endif	// LAB >= 5
