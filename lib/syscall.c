@@ -109,12 +109,7 @@ sys_set_status(u_int envid, u_int status)
 int
 sys_set_pgfault_entry(u_int envid, u_int a1)
 {
-#if SOL >= 3
 	return syscall(SYS_set_pgfault_entry, envid, a1, 0, 0, 0);
-#else
-	// Your code here.
-	panic("sys_set_pgfault_entry not implemented");
-#endif
 }
 
 void

@@ -479,6 +479,7 @@ runtest1 divzero \
 	'TRAP frame at 0xefbfff..' \
 	'  trap 0x00000000 Divide error' \
 	'  eip  0x008.....' \
+	'  ss   0x----0023' \
 	'.00000800. free env 00000800'
 
 runtest1 breakpoint \
@@ -486,13 +487,23 @@ runtest1 breakpoint \
 	'TRAP frame at 0xefbfffbc' \
 	'  trap 0x00000003 Breakpoint' \
 	'  eip  0x008.....' \
+	'  ss   0x----0023' \
 	! '.00000800. free env 00000800'
+
+runtest1 softint \
+	'Welcome to the JOS kernel monitor!' \
+	'TRAP frame at 0xefbfffbc' \
+	'  trap 0x0000000d General Protection' \
+	'  eip  0x008.....' \
+	'  ss   0x----0023' \
+	'.00000800. free env 00000800'
 
 runtest1 badsegment \
 	'TRAP frame at 0xefbfffbc' \
 	'  trap 0x0000000d General Protection' \
 	'  err  0x0000001c' \
 	'  eip  0x008.....' \
+	'  ss   0x----0023' \
 	'.00000800. free env 00000800'
 
 runtest1 faultread \
@@ -533,7 +544,7 @@ runtest1 testbss \
 
 
 
-echo Score: $score/55
+echo Score: $score/60
 
 score=0
 

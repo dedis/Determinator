@@ -80,6 +80,7 @@ KERN_BINFILES := \
 	user/testbss \
 	user/divzero \
 	user/breakpoint \
+	user/softint \
 	user/badsegment \
 	user/faultread \
 	user/faultreadkernel \
