@@ -132,21 +132,20 @@ print_trapframe(struct Trapframe *tf)
 void
 trap(struct Trapframe *tf)
 {
-	// print_trapframe(tf);
-
+#if LAB >= 4
 	if (tf->tf_trapno == T_PGFLT) {
 		page_fault_handler(tf);
 		return;
 	}
+#endif
 
+#if SOL >= 4
 	if (tf->tf_trapno == T_SYSCALL) {
 		// handle system call
-#if SOL >= 4
 		syscall(tf);
-#else
-		panic("system call");
-#endif
+		return;
 	}
+#endif
 	if (tf->tf_trapno == IRQ_OFFSET+0) {
 		// irq 0 -- clock interrupt
 #if SOL >= 3
@@ -156,7 +155,7 @@ trap(struct Trapframe *tf)
 #endif
 	}
 	if (IRQ_OFFSET <= tf->tf_trapno 
-	&& tf->tf_trapno < IRQ_OFFSET+MAX_IRQS) {
+			&& tf->tf_trapno < IRQ_OFFSET+MAX_IRQS) {
 		// just ingore spurious interrupts
 		printf("spurious interrupt on irq %d\n",
 			tf->tf_trapno - IRQ_OFFSET);
@@ -165,16 +164,15 @@ trap(struct Trapframe *tf)
 	}
 
 	// the user process or the kernel has a bug.
+	print_trapframe(tf);
 #if SOL >= 3
 	if (tf->tf_cs == GD_KT)
 		panic("unhandled trap in kernel");
 	else {
-		print_trapframe(tf);
 		env_destroy(curenv);
 		return;
 	}
 #else
-	print_trapframe(tf);
 	panic("unhandled trap");
 #endif
 }
