@@ -130,9 +130,9 @@
 	.word 0, 0;        \
 	.byte 0, 0, 0, 0
 #define SEG(type,base,lim)                                   \
-	.word((lim)&0xffff), ((base)&0xffff);                \
+	.word(((lim)>>12)&0xffff), ((base)&0xffff);          \
 	.byte(((base)>>16)&0xff), (0x90|(type)),             \
-		(0xc0|(((lim)>>16)&0xf)), (((base)>>24)&0xff)
+		(0xc0|(((lim)>>28)&0xf)), (((base)>>24)&0xff)
 
 #else	// not __ASSEMBLER__
 
