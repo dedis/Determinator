@@ -331,7 +331,7 @@ page_fault_handler(struct Trapframe *tf)
 
 	// set user registers so that env_run switches to fault handler
 	tf->tf_esp = (uintptr_t) tos;
-	tf->tf_eip = curenv->env_pgfault_upcall;
+	tf->tf_eip = (uintptr_t) curenv->env_pgfault_upcall;
 	page_fault_mode = PFM_NONE;
 
 	env_run(curenv);

@@ -10,8 +10,8 @@
 void
 umain(void)
 {
-	sys_page_alloc(0, UXSTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W);
-	sys_env_set_pgfault_upcall(0, 0xDeadBeef);
+	sys_page_alloc(0, UXSTACKTOP - PGSIZE, PTE_P|PTE_U|PTE_W);
+	sys_env_set_pgfault_upcall(0, (void*) 0xDeadBeef);
 	*(int*)0 = 0;
 }
 #endif

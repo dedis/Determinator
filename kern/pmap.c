@@ -163,7 +163,7 @@ boot_pgdir_walk(pde_t *pgdir, uintptr_t la, int create)
 
 	pde = &pgdir[PDX(la)];
 	if (*pde & PTE_P)
-		pgtab = (pte_t*)KADDR(PTE_ADDR(*pde));
+		pgtab = (pte_t*) KADDR(PTE_ADDR(*pde));
 	else {
 		if (!create)
 			return 0;
@@ -254,7 +254,7 @@ i386_vm_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
 #if SOL >= 2
-	boot_map_segment(pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE,
+	boot_map_segment(pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE,
 		PADDR(bootstack), PTE_W);
 #endif
 
@@ -814,7 +814,7 @@ page_check(void)
 	assert(page_insert(boot_pgdir, pp1, (void*) PGSIZE, 0) == 0);
 
 	// should have pp1 at both 0 and PGSIZE, pp2 nowhere, ...
-	assert(check_va2pa(boot_pgdir, 0x0) == page2pa(pp1));
+	assert(check_va2pa(boot_pgdir, 0) == page2pa(pp1));
 	assert(check_va2pa(boot_pgdir, PGSIZE) == page2pa(pp1));
 	// ... and ref counts should reflect this
 	assert(pp1->pp_ref == 2);
