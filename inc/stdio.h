@@ -8,7 +8,7 @@
 #endif /* !NULL */
 
 // lib/stdio.c
-int	putchar(int c);
+void	putchar(int c);
 int	getchar(void);
 
 // lib/printfmt.c

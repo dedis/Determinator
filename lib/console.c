@@ -3,8 +3,7 @@
 #include <inc/string.h>
 #include <inc/lib.h>
 
-int
-putchar(int ch)
+void putchar(int ch)
 {
 #if LAB >= 6
 	unsigned char c = ch;
@@ -14,14 +13,12 @@ putchar(int ch)
 	// instead, write to file descriptor 0.
 	r = write(0, &c, 1);
 	if (r < 0)
-		return r;
-	return 0;
+		panic("calling putchar when FD 0 is not initialized");
 #else	// not LAB >= 6
 	char s[2] = {ch, 0};
 
 	// System call to output a string.
 	sys_cputs(s);
-	return 0;
 #endif	// not LAB >= 6
 }
 

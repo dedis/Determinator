@@ -368,10 +368,9 @@ cons_init(void)
 /***** High-level console read/write primitives *****/
 // used by readline() in particular
 
-int putchar(int c)
+void putchar(int c)
 {
 	cons_putc(c);
-	return 0;
 }
 
 int getchar(void)
