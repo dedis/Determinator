@@ -301,7 +301,7 @@ score=0
 timeout=10
 
 runtest1 dumbfork \
-	'.00000000. new env 00000800' \
+	'.00000000. new env 00001000' \
 	'.00000000. new env 00001001' \
 	'0: I am the parent!' \
 	'9: I am the parent!' \
@@ -310,8 +310,8 @@ runtest1 dumbfork \
 	'19: I am the child!' \
 	'.00001001. exiting gracefully' \
 	'.00001001. free env 00001001' \
-	'.00001802. exiting gracefully' \
-	'.00001802. free env 00001802'
+	'.00001002. exiting gracefully' \
+	'.00001002. free env 00001002'
 
 echo PART A SCORE: $score/5
 
@@ -369,51 +369,50 @@ runtest1 forktree \
 	'....: I am .111.' \
 	'....: I am .011.' \
 	'....: I am .001.' \
-	'.000028... exiting gracefully' \
-	'.000048... exiting gracefully' \
-	'.000058... exiting gracefully' \
-	'.000078... exiting gracefully' \
-	'.000078... free env 000078..'
+	'.00002001. exiting gracefully' \
+	'.0000100.. exiting gracefully' \
+	'.0000200.. exiting gracefully' \
+	'.0000200.. free env 0000200.'
 
 echo PART B SCORE: $score/50
 
 runtest1 spin \
-	'.00000000. new env 00000800' \
+	'.00000000. new env 00001000' \
 	'.00000000. new env 00001001' \
 	'I am the parent.  Forking the child...' \
-	'.00001001. new env 00001802' \
+	'.00001001. new env 00001002' \
 	'I am the parent.  Running the child...' \
 	'I am the child.  Spinning...' \
 	'I am the parent.  Killing the child...' \
-	'.00001001. destroying 00001802' \
-	'.00001001. free env 00001802' \
+	'.00001001. destroying 00001002' \
+	'.00001001. free env 00001002' \
 	'.00001001. exiting gracefully' \
 	'.00001001. free env 00001001'
 
 runtest1 pingpong \
-	'.00000000. new env 00000800' \
+	'.00000000. new env 00001000' \
 	'.00000000. new env 00001001' \
-	'.00001001. new env 00001802' \
-	'send 0 from 1001 to 1802' \
-	'1802 got 0 from 1001' \
-	'1001 got 1 from 1802' \
-	'1802 got 8 from 1001' \
-	'1001 got 9 from 1802' \
-	'1802 got 10 from 1001' \
+	'.00001001. new env 00001002' \
+	'send 0 from 1001 to 1002' \
+	'1002 got 0 from 1001' \
+	'1001 got 1 from 1002' \
+	'1002 got 8 from 1001' \
+	'1001 got 9 from 1002' \
+	'1002 got 10 from 1001' \
 	'.00001001. exiting gracefully' \
 	'.00001001. free env 00001001' \
-	'.00001802. exiting gracefully' \
-	'.00001802. free env 00001802' \
+	'.00001002. exiting gracefully' \
+	'.00001002. free env 00001002' \
 
 runtest1 primes \
-	'.00000000. new env 00000800' \
+	'.00000000. new env 00001000' \
 	'.00000000. new env 00001001' \
-	'.00001001. new env 00001802' \
-	'2 .00001802. new env 00002003' \
-	'3 .00002003. new env 00002804' \
-	'5 .00002804. new env 00003005' \
-	'7 .00003005. new env 00003806' \
-	'11 .00003806. new env 00004007' 
+	'.00001001. new env 00001002' \
+	'2 .00001002. new env 00001003' \
+	'3 .00001003. new env 00001004' \
+	'5 .00001004. new env 00001005' \
+	'7 .00001005. new env 00001006' \
+	'11 .00001006. new env 00001007' 
 
 echo PART C SCORE: $score/65
 
@@ -423,25 +422,25 @@ echo PART C SCORE: $score/65
 score=0
 
 runtest1 hello \
-	'.00000000. new env 00000800' \
+	'.00000000. new env 00001000' \
 	'hello, world' \
-	'i am environment 00000800' \
-	'.00000800. destroying 00000800' \
-	'.00000800. free env 00000800' \
+	'i am environment 00001000' \
+	'.00001000. exiting gracefully' \
+	'.00001000. free env 00001000' \
 	'Destroyed the only environment - nothing more to do!'
 
-# the [00000800] tags should have [] in them, but that's 
+# the [00001000] tags should have [] in them, but that's 
 # a regular expression reserved character, and i'll be damned if
 # I can figure out how many \ i need to add to get through 
 # however many times the shell interprets this string.  sigh.
 
 runtest1 buggyhello \
-	'.00000800. PFM_KILL va 00000001 ip f01.....' \
-	'.00000800. free env 00000800'
+	'.00001000. PFM_KILL va 00000001 ip f01.....' \
+	'.00001000. free env 00001000'
 
 runtest1 evilhello \
-	'.00000800. PFM_KILL va ef800000 ip f01.....' \
-	'.00000800. free env 00000800'
+	'.00001000. PFM_KILL va ef800000 ip f01.....' \
+	'.00001000. free env 00001000'
 
 runtest1 divzero \
 	! '1/0 is ........!' \
@@ -449,7 +448,7 @@ runtest1 divzero \
 	'  trap 0x00000000 Divide error' \
 	'  eip  0x008.....' \
 	'  ss   0x----0023' \
-	'.00000800. free env 00000800'
+	'.00001000. free env 00001000'
 
 runtest1 breakpoint \
 	'Welcome to the JOS kernel monitor!' \
@@ -457,7 +456,7 @@ runtest1 breakpoint \
 	'  trap 0x00000003 Breakpoint' \
 	'  eip  0x008.....' \
 	'  ss   0x----0023' \
-	! '.00000800. free env 00000800'
+	! '.00001000. free env 00001000'
 
 runtest1 softint \
 	'Welcome to the JOS kernel monitor!' \
@@ -465,7 +464,7 @@ runtest1 softint \
 	'  trap 0x0000000d General Protection' \
 	'  eip  0x008.....' \
 	'  ss   0x----0023' \
-	'.00000800. free env 00000800'
+	'.00001000. free env 00001000'
 
 runtest1 badsegment \
 	'TRAP frame at 0xefbfffbc' \
@@ -473,43 +472,43 @@ runtest1 badsegment \
 	'  err  0x0000001c' \
 	'  eip  0x008.....' \
 	'  ss   0x----0023' \
-	'.00000800. free env 00000800'
+	'.00001000. free env 00001000'
 
 runtest1 faultread \
 	! 'I read ........ from location 0!' \
-	'.00000800. user fault va 00000000 ip 008.....' \
+	'.00001000. user fault va 00000000 ip 008.....' \
 	'TRAP frame at 0xefbfffbc' \
 	'  trap 0x0000000e Page Fault' \
 	'  err  0x00000004' \
-	'.00000800. free env 00000800'
+	'.00001000. free env 00001000'
 
 runtest1 faultreadkernel \
 	! 'I read ........ from location 0xf0100000!' \
-	'.00000800. user fault va f0100000 ip 008.....' \
+	'.00001000. user fault va f0100000 ip 008.....' \
 	'TRAP frame at 0xefbfffbc' \
 	'  trap 0x0000000e Page Fault' \
 	'  err  0x00000005' \
-	'.00000800. free env 00000800' \
+	'.00001000. free env 00001000' \
 
 runtest1 faultwrite \
-	'.00000800. user fault va 00000000 ip 008.....' \
+	'.00001000. user fault va 00000000 ip 008.....' \
 	'TRAP frame at 0xefbfffbc' \
 	'  trap 0x0000000e Page Fault' \
 	'  err  0x00000006' \
-	'.00000800. free env 00000800'
+	'.00001000. free env 00001000'
 
 runtest1 faultwritekernel \
-	'.00000800. user fault va f0100000 ip 008.....' \
+	'.00001000. user fault va f0100000 ip 008.....' \
 	'TRAP frame at 0xefbfffbc' \
 	'  trap 0x0000000e Page Fault' \
 	'  err  0x00000007' \
-	'.00000800. free env 00000800'
+	'.00001000. free env 00001000'
 
 runtest1 testbss \
 	'Making sure bss works right...' \
 	'Yes, good.  Now doing a wild write off the end...' \
-	'.00000800. user fault va 00c..... ip 008.....' \
-	'.00000800. free env 00000800'
+	'.00001000. user fault va 00c..... ip 008.....' \
+	'.00001000. free env 00001000'
 
 
 
