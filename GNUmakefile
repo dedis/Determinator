@@ -7,6 +7,8 @@
 #
 OBJDIR := obj
 
+LABADJUST = 0
+
 ifdef GCCPREFIX
 SETTINGGCCPREFIX := true
 else
@@ -212,15 +214,18 @@ BIOS_FILES := bios/BIOS-bochs-latest bios/VGABIOS-lgpl-latest
 #
 export-lab%: $(BIOS_FILES)
 	rm -rf lab$*
-	$(PERL) mklab.pl $* 0 lab$* $(LAB_FILES)
+	num=`echo $$(($*-$(LABADJUST)))`; \
+		$(PERL) mklab.pl $$num 0 lab$* $(LAB_FILES)
 	# cp -R bios lab$*/
 export-sol%: $(BIOS_FILES)
 	rm -rf sol$*
-	$(PERL) mklab.pl $* $* sol$* $(LAB_FILES)
+	num=`echo $$(($*-$(LABADJUST)))`; \
+		$(PERL) mklab.pl $$num $$num sol$* $(LAB_FILES)
 	# cp -R bios sol$*/
 export-prep%: $(BIOS_FILES)
 	rm -rf prep$*
-	$(PERL) mklab.pl $* `echo -1+$* | bc` prep$* $(LAB_FILES)
+	num=`echo $$(($*-$(LABADJUST)))`;
+		$(PERL) mklab.pl $num `expr $num - 1` prep$* $(LAB_FILES)
 	# cp -R bios prep$*/
 
 %.c: $(OBJDIR)
