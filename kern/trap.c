@@ -270,7 +270,7 @@ page_fault_handler(struct Trapframe *tf)
 
 #if SOL >= 4
 	// See if the environment has installed a user page fault handler.
-	if (curenv->env_pgfault_entry == 0) {
+	if (curenv->env_pgfault_upcall == 0) {
 		printf("[%08x] user fault va %08x ip %08x\n",
 			curenv->env_id, fault_va, tf->tf_eip);
 		print_trapframe(tf);
@@ -316,7 +316,7 @@ page_fault_handler(struct Trapframe *tf)
 
 	// set user registers so that env_run switches to fault handler
 	tf->tf_esp = (u_int)tos;
-	tf->tf_eip = curenv->env_pgfault_entry;
+	tf->tf_eip = curenv->env_pgfault_upcall;
 	page_fault_mode = PFM_NONE;
 
 	env_run(curenv);

@@ -26,7 +26,7 @@ void	env_free(struct Env *e);
 void	env_create(uint8_t *binary, size_t size);
 void	env_destroy(struct Env *e);	// Does not return if e == curenv
 
-int	envid2env(envid_t envid, struct Env **penv, int checkperm);
+int	envid2env(envid_t envid, struct Env **env_store, bool checkperm);
 void	env_run(struct Env *e);		// Does not return
 void	env_pop_tf(struct Trapframe *tf); // Does not return
 

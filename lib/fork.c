@@ -144,7 +144,7 @@ fork(void)
 		panic("allocating exception stack: %e", r);
 
 	// Copy the user-mode exception entrypoint.
-	if ((r=sys_set_pgfault_entry(envid, env->env_pgfault_entry)) < 0)
+	if ((r=sys_set_pgfault_entry(envid, env->env_pgfault_upcall)) < 0)
 		panic("sys_set_pgfault_entry: %e", r);
 
 

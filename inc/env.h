@@ -1,8 +1,8 @@
 #if LAB >= 3
 /* See COPYRIGHT for copyright information. */
 
-#ifndef _ENV_H_
-#define _ENV_H_
+#ifndef JOS_INC_ENV_H
+#define JOS_INC_ENV_H
 
 #include <inc/types.h>
 #include <inc/queue.h>
@@ -37,33 +37,29 @@ typedef int32_t envid_t;
 #define ENV_NOT_RUNNABLE	2
 
 struct Env {
-	struct Trapframe env_tf;        // Saved registers
-	LIST_ENTRY(Env) env_link;       // Free list link pointers
-	u_int env_id;                   // Unique environment identifier
-	u_int env_parent_id;            // env_id of this env's parent
-	u_int env_status;               // Status of the environment
+	struct Trapframe env_tf;	// Saved registers
+	LIST_ENTRY(Env) env_link;	// Free list link pointers
+	envid_t env_id;			// Unique environment identifier
+	envid_t env_parent_id;		// env_id of this env's parent
+	unsigned env_status;		// Status of the environment
+	uint32_t env_runs;		// Number of times environment has run
 
 	// Address space
-	Pde  *env_pgdir;                // Kernel virtual address of page dir
-	u_int env_cr3;                  // Physical address of page dir
+	pde_t *env_pgdir;		// Kernel virtual address of page dir
+	physaddr_t env_cr3;		// Physical address of page dir
 
 #if LAB >= 4
 	// Exception handling
-	u_int env_pgfault_entry;	// page fault state
+	uintptr_t env_pgfault_upcall;	// page fault upcall entry point
 
 	// Lab 4 IPC
-	u_int env_ipc_value;            // data value sent to us 
-	u_int env_ipc_from;             // envid of the sender  
-	u_int env_ipc_recving;          // env is blocked receiving
-	u_int env_ipc_dstva;		// va at which to map received page
-	u_int env_ipc_perm;		// perm of page mapping received
-
-#if LAB >= 6
-	// Lab 6 scheduler counts
-	u_int env_runs;			// number of times been env_run'ed
-#endif // LAB >= 6
+	bool env_ipc_recving;		// env is blocked receiving
+	void *env_ipc_dstva;		// va at which to map received page
+	uint32_t env_ipc_value;		// data value sent to us 
+	envid_t env_ipc_from;		// envid of the sender	
+	int env_ipc_perm;		// perm of page mapping received
 #endif // LAB >= 4
 };
 
-#endif // !_ENV_H_
+#endif // !JOS_INC_ENV_H
 #endif // LAB >= 3

@@ -289,7 +289,7 @@ sys_set_pgfault_entry(u_int envid, u_int func)
 
 	if ((r=envid2env(envid, &e, 1)) < 0)
 		return r;
-	e->env_pgfault_entry = func;
+	e->env_pgfault_upcall = func;
 	return 0;
 #else
 	// Your code here.
