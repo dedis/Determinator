@@ -1,5 +1,4 @@
 #if LAB >= 6
-
 #include <inc/lib.h>
 
 int 
@@ -20,18 +19,18 @@ umain(int argc, char **argv)
 	int n;
 	void *v;
 
-	for(;;){
+	while (1) {
 		buf = readline("> ");
-		if(buf == 0)
+		if (buf == 0)
 			exit();
-		if(memcmp(buf, "free ", 5) == 0){
-			v = (void*)strtol(buf+5, 0, 0);
+		if (memcmp(buf, "free ", 5) == 0){
+			v = (void*) strtol(buf+5, 0, 0);
 			free(v);
 		}
-		else if(memcmp(buf, "malloc ", 7) == 0){
-			n = strtol(buf+7, 0, 0);
+		else if (memcmp(buf, "malloc ", 7) == 0){
+			n = strtol(buf + 7, 0, 0);
 			v = malloc(n);
-			printf("\t0x%x\n", (u_int)v);
+			printf("\t0x%x\n", (size_t) v);
 		}
 		else
 			printf("?unknown command\n");

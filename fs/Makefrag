@@ -26,7 +26,7 @@ USERAPPS :=		$(USERAPPS) \
 			$(OBJDIR)/user/testfdsharing \
 			$(OBJDIR)/user/testkbd \
 			$(OBJDIR)/user/testpipe \
-			$(OBJDIR)/user/testptelibrary \
+			$(OBJDIR)/user/testpteshare \
 			$(OBJDIR)/user/testshell \
 			$(OBJDIR)/user/testmalloc
 

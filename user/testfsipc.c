@@ -30,7 +30,7 @@ umain(void)
 		panic("serve_open /newmotd: %e", r);
 	fd = (struct Fd*) FVA;
 	if (strlen(msg) != fd->fd_file.file.f_size)
-		panic("serve_open returned size %d wanted %d\n", ff->f_file.f_size, strlen(msg));
+		panic("serve_open returned size %d wanted %d\n", fd->fd_file.file.f_size, strlen(msg));
 	printf("serve_open is good\n");
 
 	if ((r = fsipc_map(fd->fd_file.id, 0, UTEMP)) < 0)

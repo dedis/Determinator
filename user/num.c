@@ -1,5 +1,4 @@
 #if LAB >= 5
-
 #include <inc/lib.h>
 
 int bol = 1;
@@ -13,16 +12,16 @@ num(int f, char *s)
 	char c;
 
 	while ((n = read(f, &c, 1)) > 0) {
-		if(bol){
+		if (bol) {
 			fprintf(1, "%5d ", ++line);
 			bol = 0;
 		}
-		if((r=write(1, &c, 1))!=1)
+		if ((r=write(1, &c, 1)) != 1)
 			panic("write error copying %s: %e", s, r);
-		if(c == '\n')
+		if (c == '\n')
 			bol = 1;
 	}
-	if(n < 0)
+	if (n < 0)
 		panic("error reading %s: %e", s, n);
 }
 
@@ -32,17 +31,18 @@ umain(int argc, char **argv)
 	int f, i;
 
 	argv0 = "num";
-	if(argc == 1)
+	if (argc == 1)
 		num(0, "<stdin>");
-	else for(i=1; i<argc; i++){
-		f = open(argv[i], O_RDONLY);
-		if(f < 0)
-			panic("can't open %s: %e", argv[i], f);
-		else{
-			num(f, argv[i]);
-			close(f);
+	else
+		for (i = 1; i < argc; i++) {
+			f = open(argv[i], O_RDONLY);
+			if (f < 0)
+				panic("can't open %s: %e", argv[i], f);
+			else {
+				num(f, argv[i]);
+				close(f);
+			}
 		}
-	}
 	exit();
 }
 

@@ -12,5 +12,4 @@ wait(envid_t envid)
 	while (e->env_id == envid && e->env_status != ENV_FREE)
 		sys_yield();
 }
-
 #endif

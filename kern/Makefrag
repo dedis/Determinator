@@ -45,7 +45,7 @@ KERN_BINFILES :=	user/icode \
 			user/idle \
 			user/pingpong \
 			user/primes \
-			user/testptelibrary \
+			user/testpteshare \
 			user/testfdsharing \
 			user/testpipe \
 			user/testpiperace \

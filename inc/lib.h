@@ -26,7 +26,7 @@
 #include <inc/malloc.h>
 #endif
 
-#define USED(x) (void)(x)
+#define USED(x)		(void)(x)
 
 // libos.c or entry.S
 extern char *binaryname;
@@ -48,7 +48,7 @@ envid_t	sys_getenvid(void);
 int	sys_env_destroy(envid_t);
 #if LAB >= 4
 void	sys_yield(void);
-static __inline envid_t sys_exofork(void) __attribute__((always_inline));
+static envid_t sys_exofork(void);
 int	sys_env_set_status(envid_t env, int status);
 int	sys_env_set_trapframe(envid_t env, struct Trapframe *tf);
 int	sys_env_set_pgfault_upcall(envid_t env, void *upcall);
@@ -60,6 +60,7 @@ int	sys_ipc_try_send(envid_t to_env, uint32_t value, void *pg, int perm);
 int	sys_ipc_recv(void *rcv_pg);
 
 // This must be inlined.  Exercise for reader: why?
+static __inline envid_t sys_exofork(void) __attribute__((always_inline));
 static __inline envid_t
 sys_exofork(void)
 {
@@ -114,11 +115,11 @@ int	fsipc_remove(const char *path);
 int	fsipc_sync(void);
 
 // pageref.c
-int	pageref(void *pg);
+int	pageref(void *addr);
 
 // spawn.c
-int	spawn(const char *program, const char **argv);
-int	spawnl(const char *program, const char *arg0, ...);
+envid_t	spawn(const char *program, const char **argv);
+envid_t	spawnl(const char *program, const char *arg0, ...);
 #endif  // LAB >= 5
 
 #if LAB >= 6

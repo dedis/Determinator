@@ -242,7 +242,7 @@ env_alloc(struct Env **new, envid_t parent_id)
 // in the pages touched by the specified virtual address range.
 //
 static void
-map_segment(struct Env *e, void *va, u_int len)
+map_segment(struct Env *e, void *va, size_t len)
 {
 #if SOL >= 3
 	int r;

@@ -9,13 +9,13 @@
 
 #include <kern/console.h>
 #include <kern/monitor.h>
-#if LAB >= 2
+#if LAB >= 3
 #include <kern/trap.h>
 #endif
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
-#if SOL >= 2
+#if SOL >= 3
 static int mon_exit(int argc, char** argv, struct Trapframe* tf);
 #endif
 
@@ -32,7 +32,7 @@ static struct Command commands[] = {
 #if SOL >= 1
 	{ "backtrace", "Display a stack backtrace", mon_backtrace },
 #endif
-#if SOL >= 2
+#if SOL >= 3
 	{ "exit", "Exit the kernel monitor", mon_exit },
 #endif
 };
@@ -43,7 +43,7 @@ static struct Command commands[] = {
 /***** Implementations of basic kernel monitor commands *****/
 
 int
-mon_help(int argc, char** argv, struct Trapframe* tf)
+mon_help(int argc, char **argv, struct Trapframe *tf)
 {
 	int i;
 
@@ -53,7 +53,7 @@ mon_help(int argc, char** argv, struct Trapframe* tf)
 }
 
 int
-mon_kerninfo(int argc, char** argv, struct Trapframe* tf)
+mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 {
 	extern char _start[], etext[], edata[], end[];
 
@@ -68,13 +68,13 @@ mon_kerninfo(int argc, char** argv, struct Trapframe* tf)
 }
 
 int
-mon_backtrace(int argc, char** argv, struct Trapframe* tf)
+mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 #if SOL >= 1
-#if SOL >= 2
-	const uint32_t* ebp = (tf ? (const uint32_t*) tf->tf_ebp : (const uint32_t*) read_ebp());
+#if SOL >= 3
+	const uint32_t *ebp = (tf ? (const uint32_t*) tf->tf_ebp : (const uint32_t*) read_ebp());
 #else
-	const uint32_t* ebp = (const uint32_t*) read_ebp();
+	const uint32_t *ebp = (const uint32_t*) read_ebp();
 #endif
 	int i;
 
@@ -96,7 +96,7 @@ mon_backtrace(int argc, char** argv, struct Trapframe* tf)
 	return 0;
 }
 
-#if SOL >= 2
+#if SOL >= 3
 int
 mon_exit(int argc, char** argv, struct Trapframe* tf)
 {
@@ -111,7 +111,7 @@ mon_exit(int argc, char** argv, struct Trapframe* tf)
 #define MAXARGS 16
 
 static int
-runcmd(char* buf, struct Trapframe* tf)
+runcmd(char *buf, struct Trapframe *tf)
 {
 	int argc;
 	char *argv[MAXARGS];
@@ -150,17 +150,17 @@ runcmd(char* buf, struct Trapframe* tf)
 }
 
 void
-monitor(struct Trapframe* tf)
+monitor(struct Trapframe *tf)
 {
-	char* buf;
+	char *buf;
 
 	printf("Welcome to the JOS kernel monitor!\n");
 	printf("Type 'help' for a list of commands.\n");
 
-#if LAB >= 2
+#if LAB >= 3
 	if (tf != NULL)
 		print_trapframe(tf);
-#endif	// LAB >= 2
+#endif	// LAB >= 3
 
 	while (1) {
 		buf = readline("K> ");

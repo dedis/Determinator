@@ -1,159 +1,20 @@
 #if LAB >= 5
-
 #include <inc/lib.h>
 #include <inc/elf.h>
 
-#define TMPPAGE		(PGSIZE)
-#define TMPPAGETOP	(TMPPAGE+PGSIZE)
+#define UTEMP2USTACK(addr)	((void*) (addr) + (USTACKTOP - PGSIZE) - UTEMP)
+#define UTEMP2			(UTEMP + PGSIZE)
+#define UTEMP3			(UTEMP2 + PGSIZE)
 
-// Set up the initial stack page for the new child process with envid 'child',
-// using the arguments array pointed to by 'argv',
-// which is a null-terminated array of pointers to null-terminated strings.
-//
-// On success, returns 0 and sets *init_esp
-// to the initial stack pointer with which the child should start.
-// Returns < 0 on failure.
-//
-static int
-init_stack(u_int child, char **argv, u_int *init_esp)
-{
-	int argc, i, r, tot;
-	char *strings;
-	u_int *args;
-
-	// Count the number of arguments (argc)
-	// and the total amount of space needed for strings (tot)
-	tot = 0;
-	for (argc=0; argv[argc]; argc++)
-		tot += strlen(argv[argc])+1;
-
-	// Make sure everything will fit in the initial stack page
-	if (ROUNDUP(tot, 4)+4*(argc+3) > PGSIZE)
-		return -E_NO_MEM;
-
-	// Determine where to place the strings and the args array
-	strings = (char*)TMPPAGETOP - tot;
-	args = (u_int*)(TMPPAGETOP - ROUNDUP(tot, 4) - 4*(argc+1));
-
-	if ((r = sys_page_alloc(0, TMPPAGE, PTE_P|PTE_U|PTE_W)) < 0)
-		return r;
-
+// Helper functions for spawn.
+static int init_stack(envid_t child, const char **argv, uintptr_t *init_esp);
 #if SOL >= 5
-	for (i=0; i<argc; i++) {
-		args[i] = (u_int)strings + USTACKTOP - TMPPAGETOP;
-		strcpy(strings, argv[i]);
-		strings += strlen(argv[i])+1;
-	}
-	args[i] = 0;
-	assert(strings == (char*)TMPPAGETOP);
-
-	args[-1] = (u_int)args + USTACKTOP - TMPPAGETOP;
-	args[-2] = argc;
-
-	*init_esp = (u_int)&args[-2] + USTACKTOP - TMPPAGETOP;
-#else // not SOL >= 5
-	// Replace this with your code to:
-	//
-	//	- copy the argument strings into the stack page at 'strings'
-	//
-	//	- initialize args[0..argc-1] to be pointers to these strings
-	//	  that will be valid addresses for the child environment
-	//	  (for whom this page will be at USTACKTOP-BY2PG!).
-	//
-	//	- set args[argc] to 0 to null-terminate the args array.
-	//
-	//	- push two more words onto the child's stack below 'args',
-	//	  containing the argc and argv parameters to be passed
-	//	  to the child's umain() function.
-	//
-	//	- set *init_esp to the initial stack pointer for the child
-	//
-	*init_esp = USTACKTOP;	// Change this!
-#endif // not SOL >= 5
-
-	if ((r = sys_page_map(0, TMPPAGE, child, USTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
-		goto error;
-	if ((r = sys_page_unmap(0, TMPPAGE)) < 0)
-		goto error;
-
-	return 0;
-
-error:
-	sys_page_unmap(0, TMPPAGE);
-	return r;
-}
-
-#if SOL >= 6
-// Copy the mappings for library pages into the child address space.
-static void
-copy_library(u_int child)
-{
-	u_int i, j, pn, va;
-	int r;
-
-	for (i=0; i<PDX(UTOP); i++) {
-		if ((vpd[i]&PTE_P) == 0)
-			continue;
-		for (j=0; j<NPTENTRIES; j++) {
-			pn = i*NPTENTRIES+j;
-			if ((vpt[pn]&(PTE_P|PTE_SHARE)) == (PTE_P|PTE_SHARE)) {
-				va = pn<<PGSHIFT;
-				if ((r = sys_page_map(0, va, child, va, vpt[pn]&PTE_USER)) < 0)
-					panic("sys_page_map: %e", r);
-			}
-		}
-	}
-}
+static int map_segment(envid_t child, uintptr_t va, size_t memsz,
+		       int fd, size_t filesz, off_t fileoffset, int perm);
 #endif
-
-int
-map_segment(int child, u_int va, u_int memsz, 
-	int fd, u_int filesz, u_int fileoffset, u_int perm)
-{
-#if SOL >= 5
-	int i, r;
-	void *blk;
-
-	//printf("map_segment %x+%x\n", va, memsz);
-
-	if ((i = (va&(PGSIZE-1))) != 0) {
-		va -= i;
-		memsz += i;
-		filesz += i;
-		fileoffset -= i;
-	}
-
-	for (i = 0; i < memsz; i+=PGSIZE) {
-		if (i >= filesz) {
-			// allocate a blank page
-			if ((r = sys_page_alloc(child, va+i, perm)) < 0)
-				return r;
-		} else {
-			// from file
-			if (perm&PTE_W) {
-				// must make a copy so it can be writable
-				if ((r = sys_page_alloc(0, TMPPAGE, PTE_P|PTE_U|PTE_W)) < 0)
-					return r;
-				if ((r = seek(fd, fileoffset+i)) < 0)
-					return r;
-				if ((r = read(fd, (void*)TMPPAGE, MIN(PGSIZE, filesz-i))) < 0)
-					return r;
-				if ((r = sys_page_map(0, TMPPAGE, child, va+i, perm)) < 0)
-					panic("spawn: sys_page_map data: %e", r);
-				sys_page_unmap(0, TMPPAGE);
-			} else {
-				// can map buffer cache read only
-				if ((r = read_map(fd, fileoffset+i, &blk)) < 0)
-					return r;
-				if ((r = sys_page_map(0, (u_int)blk, child, va+i, perm)) < 0)
-					panic("spawn: sys_page_map text: %e", r);
-			}
-		}
-	}
-	return 0;
+#if LAB >= 6
+static int copy_shared_pages(envid_t child);
 #endif
-}
-
 
 // Spawn a child process from a program image loaded from the file system.
 // prog: the pathname of the program to run.
@@ -163,11 +24,12 @@ map_segment(int child, u_int va, u_int memsz,
 int
 spawn(const char *prog, const char **argv)
 {
+	unsigned char elf_buf[512];
+	struct Trapframe child_tf;
+	envid_t child;
+
 #if SOL >= 5
-	int child, fd, i, r;
-	u_int init_esp;
-	struct Trapframe tf;
-	u_char hdr[512];
+	int fd, i, r;
 	struct Elf *elf;
 	struct Proghdr *ph;
 	int perm;
@@ -177,9 +39,9 @@ spawn(const char *prog, const char **argv)
 	fd = r;
 
 	// Read elf header
-	elf = (struct Elf*)hdr;
-	if (read(fd, hdr, sizeof(hdr)) != sizeof(hdr)
-			|| elf->e_magic != ELF_MAGIC) {
+	elf = (struct Elf*) elf_buf;
+	if (read(fd, elf_buf, sizeof(elf_buf)) != sizeof(elf_buf)
+	    || elf->e_magic != ELF_MAGIC) {
 		close(fd);
 		printf("elf magic %08x want %08x\n", elf->e_magic, ELF_MAGIC);
 		return -E_NOT_EXEC;
@@ -190,20 +52,23 @@ spawn(const char *prog, const char **argv)
 		return r;
 	child = r;
 
-	// Set up stack.
-	if ((r = init_stack(child, argv, &init_esp)) < 0)
+	// Set up trap frame, including initial stack.
+	child_tf = envs[ENVX(child)].env_tf;
+	child_tf.tf_eip = elf->e_entry;
+
+	if ((r = init_stack(child, argv, &child_tf.tf_esp)) < 0)
 		return r;
 
 	// Set up program segments as defined in ELF header.
-	ph = (struct Proghdr*)(hdr+elf->e_phoff);
-	for (i=0; i<elf->e_phnum; i++, ph++) {
+	ph = (struct Proghdr*) (elf_buf + elf->e_phoff);
+	for (i = 0; i < elf->e_phnum; i++, ph++) {
 		if (ph->p_type != ELF_PROG_LOAD)
 			continue;
-		perm = PTE_P|PTE_U;
-		if(ph->p_flags & ELF_PROG_FLAG_WRITE)
+		perm = PTE_P | PTE_U;
+		if (ph->p_flags & ELF_PROG_FLAG_WRITE)
 			perm |= PTE_W;
 		if ((r = map_segment(child, ph->p_va, ph->p_memsz, 
-				fd, ph->p_filesz, ph->p_offset, perm)) < 0)
+				     fd, ph->p_filesz, ph->p_offset, perm)) < 0)
 			goto error;
 	}
 	close(fd);
@@ -211,19 +76,14 @@ spawn(const char *prog, const char **argv)
 
 #if SOL >= 6
 	// Copy shared library state.
-	copy_library(child);
+	copy_shared_pages(child);
 
 #endif
-	// Set up trap frame.
-	tf = envs[ENVX(child)].env_tf;
-	tf.tf_eip = elf->e_entry;
-	tf.tf_esp = init_esp;
-
-	if ((r = sys_env_set_trapframe(child, &tf)) < 0)
-		panic("sys_set_tf: %e", r);
+	if ((r = sys_env_set_trapframe(child, &child_tf)) < 0)
+		panic("sys_env_set_trapframe: %e", r);
 
 	if ((r = sys_env_set_status(child, ENV_RUNNABLE)) < 0)
-		panic("sys_set_status: %e", r);
+		panic("sys_env_set_status: %e", r);
 
 	return child;
 
@@ -234,9 +94,18 @@ error:
 #else /* not SOL >= 5 */
 	// Insert your code, following approximately this procedure:
 	//
-	//   - Open the program file and read the elf header (see inc/elf.h).
+	//   - Open the program file.
 	//
-	//   - Use sys_env_alloc() to create a new environment.
+	//   - Read the ELF header, as you have before, and sanity check its
+	//     magic number.  (Check out your load_icode!)
+	//
+	//   - Use sys_exofork() to create a new environment.
+	//
+	//   - Set child_tf to an initial struct Trapframe for the child.
+	//     Hint: The sys_exofork() system call has already created
+	//     a good basis, in envs[ENVX(child)].env_tf.
+	//     Hint: You must do something with the program's entry point.
+	//     What?  (See load_icode!)
 	//
 	//   - Call the init_stack() function above to set up
 	//     the initial stack page for the child environment.
@@ -263,10 +132,12 @@ error:
 	//	  p_filesz bytes of the segment are actually loaded
 	//	  from the executable file - you must clear the rest to zero.
 	//        For each page to be mapped for a read/write segment,
-	//        allocate a page in the parent temporarily at TMPPAGE,
+	//        allocate a page in the parent temporarily at UTEMP,
 	//        read() the appropriate portion of the file into that page
-	//	  and/or use memset() to zero non-loaded portions,
-	//        and then insert the page mapping into the child.
+	//	  and/or use memset() to zero non-loaded portions.
+	//	  (You can avoid calling memset(), if you like, because
+	//	  page_alloc() returns zeroed pages already.)
+	//        Then insert the page mapping into the child.
 	//        Look at init_stack() for inspiration.
 	//        Be sure you understand why you can't use read_map() here.
 	//
@@ -274,15 +145,17 @@ error:
 	//     are guaranteed to be page-aligned, so you must deal with
 	//     these non-page-aligned values appropriately.
 	//     The ELF linker does, however, guarantee that no two segments
-	//     will overlap on the same page.
+	//     will overlap on the same page; and it guarantees that
+	//     PGOFF(ph->p_offset) == PGOFF(ph->p_va).
 	//
-	//   - Use the new sys_set_trapframe() call to set up the
-	//     correct initial eip and esp register values in the child.
-	//     You can use envs[ENVX(child)].env_tf as a template trapframe
-	//     in order to get the initial segment registers and such.
+	//   - Call sys_env_set_trapframe(child, &child_tf) to set up the
+	//     correct initial eip and esp values in the child.
 	//
-	//   - Start the child process running with sys_set_status().
-	//
+	//   - Start the child process running with sys_env_set_status().
+
+	// LAB 5: Your code here.
+	
+	(void) child;
 	panic("spawn unimplemented!");
 #endif /* not SOL >= 5 */
 }
@@ -293,5 +166,186 @@ spawnl(const char *prog, const char *arg0, ...)
 {
 	return spawn(prog, &arg0);
 }
+
+
+// Set up the initial stack page for the new child process with envid 'child'
+// using the arguments array pointed to by 'argv',
+// which is a null-terminated array of pointers to null-terminated strings.
+//
+// On success, returns 0 and sets *init_esp
+// to the initial stack pointer with which the child should start.
+// Returns < 0 on failure.
+static int
+init_stack(envid_t child, const char **argv, uintptr_t *init_esp)
+{
+	size_t string_size;
+	int argc, i, r;
+	char *string_store;
+	uintptr_t *argv_store;
+
+	// Count the number of arguments (argc)
+	// and the total amount of space needed for strings (string_size).
+	string_size = 0;
+	for (argc = 0; argv[argc] != 0; argc++)
+		string_size += strlen(argv[argc]) + 1;
+
+	// Determine where to place the strings and the argv array.
+	// Set up pointers into the temporary page 'UTEMP'; we'll map a page
+	// there later, then remap that page into the child environment
+	// at (USTACKTOP - PGSIZE).
+	// strings is the topmost thing on the stack.
+	string_store = (char*) UTEMP + PGSIZE - string_size;
+	// argv is below that.  There's one argument pointer per argument, plus
+	// a null pointer.
+	argv_store = (uintptr_t*) (ROUNDDOWN(string_store, 4) - 4 * (argc + 1));
+	
+	// Make sure that argv, strings, and the 2 words that hold 'argc'
+	// and 'argv' themselves will all fit in a single stack page.
+	if ((void*) (argv_store - 2) < (void*) UTEMP)
+		return -E_NO_MEM;
+
+	// Allocate the single stack page at UTEMP.
+	if ((r = sys_page_alloc(0, (void*) UTEMP, PTE_P|PTE_U|PTE_W)) < 0)
+		return r;
+
+#if SOL >= 5
+	for (i = 0; i < argc; i++) {
+		argv_store[i] = UTEMP2USTACK(string_store);
+		strcpy(string_store, argv[i]);
+		string_store += strlen(argv[i]) + 1;
+	}
+	argv_store[argc] = 0;
+	assert(string_store == (char*)UTEMP + PGSIZE);
+
+	argv_store[-1] = UTEMP2USTACK(argv_store);
+	argv_store[-2] = argc;
+
+	*init_esp = UTEMP2USTACK(&argv_store[-2]);
+#else // not SOL >= 5
+	// Replace this with your code to:
+	//
+	//	* Initialize 'argv_store[i]' to point to argument string i,
+	//	  for all 0 <= i < argc.
+	//	  Also, copy the argument strings from 'argv' into the
+	//	  newly-allocated stack page.
+	//	  Hint: Copy the argument strings into string_store.
+	//	  Hint: Make sure that argv_store uses addresses valid in the
+	//	  CHILD'S environment!  The string_store variable itself
+	//	  points into page UTEMP, but the child environment will have
+	//	  this page mapped at USTACKTOP - PGSIZE.  Check out the
+	//	  UTEMP2USTACK macro defined above.
+	//
+	//	* Set 'argv_store[argc]' to 0 to null-terminate the args array.
+	//
+	//	* Push two more words onto the child's stack below 'args',
+	//	  containing the argc and argv parameters to be passed
+	//	  to the child's umain() function.
+	//	  argv should be below argc on the stack.
+	//	  (Again, argv should use an address valid in the child's
+	//	  environment.)
+	//
+	//	* Set *init_esp to the initial stack pointer for the child,
+	//	  (Again, use an address valid in the child's environment.)
+	//
+	// LAB 5: Your code here.
+	*init_esp = USTACKTOP;	// Change this!
+#endif // not SOL >= 5
+
+	// After completing the stack, map it into the child's address space
+	// and unmap it from ours!
+	if ((r = sys_page_map(0, UTEMP, child, (void*) (USTACKTOP - PGSIZE), PTE_P | PTE_U | PTE_W)) < 0)
+		goto error;
+	if ((r = sys_page_unmap(0, UTEMP)) < 0)
+		goto error;
+
+	return 0;
+
+error:
+	sys_page_unmap(0, UTEMP);
+	return r;
+}
+
+#if SOL >= 5
+static int
+map_segment(envid_t child, uintptr_t va, size_t memsz, 
+	int fd, size_t filesz, off_t fileoffset, int perm)
+{
+	int i, r;
+	void *blk;
+
+	//printf("map_segment %x+%x\n", va, memsz);
+
+	if ((i = PGOFF(va))) {
+		va -= i;
+		memsz += i;
+		filesz += i;
+		fileoffset -= i;
+	}
+
+	for (i = 0; i < memsz; i += PGSIZE) {
+		if (i >= filesz) {
+			// allocate a blank page
+			if ((r = sys_page_alloc(child, (void*) (va + i), perm)) < 0)
+				return r;
+		} else {
+			// from file
+			if (perm & PTE_W) {
+				// must make a copy so it can be writable
+				if ((r = sys_page_alloc(0, UTEMP, PTE_P|PTE_U|PTE_W)) < 0)
+					return r;
+				if ((r = seek(fd, fileoffset + i)) < 0)
+					return r;
+				if ((r = read(fd, UTEMP, MIN(PGSIZE, filesz-i))) < 0)
+					return r;
+				if ((r = sys_page_map(0, UTEMP, child, (void*) (va + i), perm)) < 0)
+					panic("spawn: sys_page_map data: %e", r);
+				sys_page_unmap(0, UTEMP);
+			} else {
+				// can map buffer cache read only
+				if ((r = read_map(fd, fileoffset + i, &blk)) < 0)
+					return r;
+				if ((r = sys_page_map(0, blk, child, (void*) (va + i), perm)) < 0)
+					panic("spawn: sys_page_map text: %e", r);
+			}
+		}
+	}
+	return 0;
+}
+#endif
+
+#if SOL >= 6
+// Copy the mappings for shared pages into the child address space.
+static int
+copy_shared_pages(envid_t child)
+{
+	int pn, last_pn, r;
+	void* va;
+
+#if SOL >= 5
+	for (pn = 0; pn < VPN(UTOP); ) {
+		if (!(vpd[pn >> 10] & PTE_P))
+			pn += NPTENTRIES;
+		else {
+			last_pn = pn + NPTENTRIES;
+			for (; pn < last_pn; pn++)
+				if ((vpt[pn] & (PTE_P | PTE_SHARE)) == (PTE_P | PTE_SHARE)) {
+					va = (void*) (pn << PGSHIFT);
+					if ((r = sys_page_map(0, va, child, va, vpt[pn] & PTE_USER)) < 0)
+						return r;
+				}
+		}
+	}
+#else
+	// Loop over all pages in the current address space,
+	// and copy any pages marked as PTE_SHARE into 'child'
+	// at the same location and with the same permissions.
+	// Hint: Use vpd, vpt, and sys_page_map.
+
+	// LAB 5: Your code here.
+#endif
+	
+	return 0;
+}
+#endif
 
 #endif

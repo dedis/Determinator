@@ -18,14 +18,6 @@ typedef unsigned int uint32_t;
 typedef long long int64_t;
 typedef unsigned long long uint64_t;
 
-// temporary (to be removed)
-typedef uint32_t u_int;
-typedef uint32_t u_long;
-typedef uint32_t Pde;
-typedef uint32_t Pte;
-typedef uint16_t u_short;
-typedef uint8_t u_char;
-
 // Pointers and addresses are 32 bits long.
 // We use pointer types to represent virtual addresses,
 // uintptr_t to represent the numerical values of virtual addresses,
