@@ -45,3 +45,11 @@ Also, (copied from Russ's E-mail):
 
 	more comments and less code
 
+
+---
+New TODO items for Fall 2004:
+
+- change kernel link address from 0xf0100020 to 0xf0100000;
+	we no longer need to reserve the 0x20 for the a.out header
+	since we're now using ELF!
+

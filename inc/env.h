@@ -1,4 +1,4 @@
-#if LAB >= 2	// pmap.c must allocate array of Env structures
+#if LAB >= 3
 /* See COPYRIGHT for copyright information. */
 
 #ifndef _ENV_H_

@@ -1,4 +1,4 @@
-#if LAB >= 2
+#if LAB >= 3
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/x86.h>
@@ -18,7 +18,6 @@
 struct Env *envs = NULL;		// All environments
 struct Env *curenv = NULL;	        // the current env
 
-#if LAB >= 3
 static struct Env_list env_free_list;	// Free list
 
 //
@@ -420,4 +419,3 @@ env_run(struct Env *e)
 
 
 #endif /* LAB >= 3 */
-#endif /* LAB >= 2 */

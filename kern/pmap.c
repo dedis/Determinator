@@ -8,8 +8,10 @@
 #include <inc/assert.h>
 
 #include <kern/pmap.h>
-#include <kern/env.h>
 #include <kern/kclock.h>
+#if LAB >= 3
+#include <kern/env.h>
+#endif
 
 u_long boot_cr3; /* Physical address of boot time pg dir */
 Pde* boot_pgdir;
@@ -264,6 +266,7 @@ i386_vm_init(void)
 	boot_map_segment(pgdir, UPAGES, n, PADDR(pages), PTE_U);
 #endif
 
+#if LAB >= 3
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// You must allocate this array yourself.
@@ -273,11 +276,12 @@ i386_vm_init(void)
 	//    - envs itself -- kernel RW, user NONE
 	//    - the image of envs mapped at UENVS  -- kernel R, user R
 	// Your code goes here: 
-#if SOL >= 2
+#if SOL >= 3
 	n = NENV*sizeof(struct Env);
 	envs = alloc(n, BY2PG, 1);
 	boot_map_segment(pgdir, UENVS, n, PADDR(envs), PTE_U);
-#endif
+#endif	// SOL >= 3
+#endif	// LAB >= 3
 
 	check_boot_pgdir();
 
@@ -354,10 +358,12 @@ check_boot_pgdir(void)
 	for(i=0; i<n; i+=BY2PG)
 		assert(va2pa(pgdir, UPAGES+i) == PADDR(pages)+i);
 	
+#if LAB >= 3
 	// check envs array
 	n = ROUND(NENV*sizeof(struct Env), BY2PG);
 	for(i=0; i<n; i+=BY2PG)
 		assert(va2pa(pgdir, UENVS+i) == PADDR(envs)+i);
+#endif
 
 	// check phys mem
 	for(i=0; KERNBASE+i != 0; i+=BY2PG)
@@ -374,7 +380,9 @@ check_boot_pgdir(void)
 		case PDX(UVPT):
 		case PDX(KSTACKTOP-1):
 		case PDX(UPAGES):
+#if LAB >= 3
 		case PDX(UENVS):
+#endif
 			assert(pgdir[i]);
 			break;
 		default:
@@ -495,7 +503,7 @@ page_alloc(struct Page **pp)
 		return 0;
 	}
 
-	warn("page_alloc() can't find memory");
+	//warn("page_alloc() can't find memory");
 #endif /* not SOL >= 2 */
 	return -E_NO_MEM;
 }
@@ -559,7 +567,7 @@ pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte)
 			return 0;
 		}
 		if ((r = page_alloc(&pp)) < 0) {
-			warn("pgdir_walk: could not allocate page for va %lx", va);
+			//warn("pgdir_walk: could not allocate page for va %lx", va);
 			return r;
 		}
 		pp->pp_ref++;
@@ -699,8 +707,13 @@ void
 tlb_invalidate(Pde *pgdir, u_long va)
 {
 	// Flush the entry only if we're modifying the current address space.
+#if LAB >= 4
 	if (!curenv || curenv->env_pgdir == pgdir)
 		invlpg(va);
+#else
+	// For now, there is only one address space, so always invalidate.
+	invlpg(va);
+#endif
 }
 
 void

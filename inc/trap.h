@@ -1,4 +1,4 @@
-#if LAB >= 2	// pmap.c must allocate Envs, which contain Trapframes
+#if LAB >= 3
 #ifndef _TRAP_H_
 #define _TRAP_H_
 
@@ -62,4 +62,4 @@ struct Trapframe {
 #endif /* !__ASSEMBLER__ */
 
 #endif /* _TRAP_H_ */
-#endif /* LAB >= 2 */
+#endif /* LAB >= 3 */
