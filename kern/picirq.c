@@ -1,6 +1,5 @@
-/* See COPYRIGHT for copyright information. */
-
 ///LAB3
+/* See COPYRIGHT for copyright information. */
 
 #include <kern/picirq.h>
 

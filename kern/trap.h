@@ -1,6 +1,5 @@
-/* See COPYRIGHT for copyright information. */
-
 ///LAB3
+/* See COPYRIGHT for copyright information. */
 
 #ifndef _KERN_TRAP_H_
 #define _KERN_TRAP_H_

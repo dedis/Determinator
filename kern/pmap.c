@@ -64,8 +64,8 @@ void
 i386_detect_memory(void)
 {
 	// CMOS tells us how many kilobytes there are
-	basemem = ROUNDDOWN(nvram_read(NVRAM_BASELO)*1024, PGSIZE);
-	extmem = ROUNDDOWN(nvram_read(NVRAM_EXTLO)*1024, PGSIZE);
+	basemem = ROUNDDOWN(nvram_read(NVRAM_BASELO)*1024, BY2PG);
+	extmem = ROUNDDOWN(nvram_read(NVRAM_EXTLO)*1024, BY2PG);
 
 	// Calculate the maxmium physical address based on whether
 	// or not there is any extended memory.  See comment in ../inc/mmu.h.
@@ -74,7 +74,7 @@ i386_detect_memory(void)
 	else
 		maxpa = basemem;
 
-	npage = maxpa / PGSIZE;
+	npage = maxpa / BY2PG;
 
 	printf("Physical memory: %dK available, ", (int)(maxpa/1024));
 	printf("base = %dK, extended = %dK\n", (int)(basemem/1024), (int)(extmem/1024));
@@ -148,7 +148,7 @@ boot_pgdir_walk(Pde *pgdir, u_long va, int create)
 	else {
 		if (!create)
 			return 0;
-		pgtab = alloc(PGSIZE, PGSIZE, 1);
+		pgtab = alloc(BY2PG, BY2PG, 1);
 		*pde = PADDR(pgtab)|PTE_P|PTE_W;
 	}
 	return &pgtab[PTX(va)];
@@ -157,7 +157,7 @@ boot_pgdir_walk(Pde *pgdir, u_long va, int create)
 
 //
 // Map [va, va+size) of virtual address space to physical [pa, pa+size)
-// in the page table rooted at pgdir.  Size is a multiple of PGSIZE.
+// in the page table rooted at pgdir.  Size is a multiple of BY2PG.
 // Use permission bits perm|PTE_P for the entries.
 //
 static void
@@ -166,7 +166,7 @@ boot_map_segment(Pde *pgdir, u_long va, u_long size, u_long pa, int perm)
 ///SOL2
 	u_long i;
 
-	for (i=0; i<size; i+=PGSIZE)
+	for (i=0; i<size; i+=BY2PG)
 		*boot_pgdir_walk(pgdir, va+i, 1) = (pa+i)|perm|PTE_P;
 ///END
 }
@@ -191,7 +191,7 @@ i386_vm_init(void)
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
-	pgdir = alloc(PGSIZE, PGSIZE, 1);
+	pgdir = alloc(BY2PG, BY2PG, 1);
 	boot_pgdir = pgdir;
 	boot_cr3 = PADDR(pgdir);
 
@@ -247,7 +247,7 @@ i386_vm_init(void)
 	// Your code goes here: 
 ///SOL2
 	n = npage*sizeof(struct Page);
-	pages = alloc(n, PGSIZE, 1);
+	pages = alloc(n, BY2PG, 1);
 	boot_map_segment(pgdir, UPAGES, n, PADDR(pages), PTE_U);
 ///END
 
@@ -260,7 +260,7 @@ i386_vm_init(void)
 	// Your code goes here: 
 ///SOL2
 	n = NENV*sizeof(struct Env);
-	envs = alloc(n, PGSIZE, 1);
+	envs = alloc(n, BY2PG, 1);
 	boot_map_segment(pgdir, UENVS, n, PADDR(envs), PTE_U);
 ///END
 
@@ -324,74 +324,67 @@ i386_vm_init(void)
 // in fact it doesn't test the permission bits at all,
 // but it is a pretty good sanity check. 
 //
-static Pte getent(Pde *pgdir, u_long va);
+static u_long va2pa(Pde *pgdir, u_long va);
 
 static void
 check_boot_pgdir(void)
 {
-#if 0
-	extern char bootstacktop;
-	u_int nbytes;
-	int i;
-	Pte *pt;
-	u_int ptr;
+	u_long i, n;
+	Pde *pgdir;
+
+	pgdir = boot_pgdir;
+
+	// check pages array
+	n = ROUND(npage*sizeof(struct Page), BY2PG);
+	for(i=0; i<n; i+=BY2PG)
+		assert(va2pa(pgdir, UPAGES+i) == PADDR(pages)+i);
 	
-	// check final value of freemem
-	assert((u_int)freemem == (u_int)&__envs[NENV]);
-	
-	// check __env array and its pg tbl
-	ptr = (u_int)&__envs[0];
-	pt = (Pte*)(ptr - NBPG); // __env's pgtbl resides right before it
-	nbytes = PGROUNDUP (NENV * sizeof(struct Env));
-	for (i = 0; i < nbytes / NBPG; i++, ptr += NBPG)
-		assert((pt[i] & ~PGMASK) == kva2pa(ptr));
+	// check envs array
+	n = ROUND(NENV*sizeof(struct Env), BY2PG);
+	for(i=0; i<n; i+=BY2PG)
+		assert(va2pa(pgdir, UENVS+i) == PADDR(envs)+i);
 
-	// check page array and its pg tbl
-	ptr = (u_int)&pages[0];
-	pt = (Pte*)(ptr - NBPG); // page's pgtbl resides right before it
-	nbytes = PGROUNDUP (npage * sizeof(struct Page));
-	for (i = 0; i < nbytes / NBPG; i++, ptr += NBPG)
-		assert((pt[i] & ~PGMASK) == kva2pa(ptr));
+	// check phys mem
+	for(i=0; KERNBASE+i != 0; i+=BY2PG)
+		assert(va2pa(pgdir, KERNBASE+i) == i);
 
-	// check the pgtbls that map phys memory
-	pt = (Pte *)((u_int)pt - NBPG * NPPT);
-	for (i = 0; i < NPPT * NLPG; i++)
-		assert(pt[i] >> PGSHIFT == i);
+	// check kernel stack
+	for(i=0; i<KSTKSIZE; i+=BY2PG)
+		assert(va2pa(pgdir, KSTACKTOP-KSTKSIZE+i) == PADDR(bootstack)+i);
 
-	// check the pgtbl for the kernel stack
-	for (i = 1; i <= KSTKSIZE/NBPG; i++) {
-		ptr = (u_int)ptov(pt[-i] & ~PGMASK);
-		assert(ptr < (u_int)&bootstacktop && ptr >= (u_int)&bootstacktop - KSTKSIZE);
+	// check for zero/non-zero in PDEs
+	for (i = 0; i < PDE2PD; i++) {
+		switch (i) {
+		case PDX(VPT):
+		case PDX(UVPT):
+		case PDX(KSTACKTOP-1):
+		case PDX(UPAGES):
+		case PDX(UENVS):
+			assert(pgdir[i]);
+			break;
+		default:
+			if(i >= PDX(KERNBASE))
+				assert(pgdir[i]);
+			else
+				assert(pgdir[i]==0);
+			break;
+		}
 	}
-
-	// check the boot pgdir
-	pt = (Pte *)((u_int)pt - 2*NBPG);
-	assert((u_int)pt == (u_int)p0pgdir_boot);
-	
-	// check for zero in certain PDEs 
-	for (i = 0; i < NLPG; i++) {
-		if (i >= PDENO(KERNBASE))  assert(p0pgdir_boot[i]);
-		else if (i == PDENO(VPT)) assert(p0pgdir_boot[i]);
-		else if (i == PDENO(UVPT)) assert(p0pgdir_boot[i]);
-		else if (i == PDENO(KSTACKTOP-NBPD)) assert(p0pgdir_boot[i]);
-		else if (i == PDENO(UPPAGES)) assert(p0pgdir_boot[i]);
-		else if (i == PDENO(UENVS)) assert(p0pgdir_boot[i]);
-		else assert(p0pgdir_boot[i] == 0);
-	}
-#endif
-	printf("check_boot_page_directory() succeeded!\n");
+	printf("check_boot_pgdir() succeeded!\n");
 }
 
-static Pte
-getent(Pde *pgdir, u_long va)
+static u_long
+va2pa(Pde *pgdir, u_long va)
 {
 	Pte *p;
 
 	pgdir = &pgdir[PDX(va)];
 	if (!(*pgdir&PTE_P))
-		return 0;
+		return ~0;
 	p = (Pte*)KADDR(PTE_ADDR(*pgdir));
-	return p[PTX(va)];
+	if (!(p[PTX(va)]&PTE_P))
+		return ~0;
+	return PTE_ADDR(p[PTX(va)]);
 }
 		
 // --------------------------------------------------------------
@@ -412,20 +405,20 @@ page_init(void)
 	LIST_INIT (&page_free_list);
 
 	// Align freemem to page boundary.
-	alloc(0, PGSIZE, 0);
+	alloc(0, BY2PG, 0);
 
 	for (i=0; i<npage; i++) {
 		// Off-limits until proven otherwise.
 		inuse = 1;
 
 		// The bottom basemem bytes are free except page 0.
-		if (i!=0 && i<basemem/PGSIZE)
+		if (i!=0 && i<basemem/BY2PG)
 			inuse = 0;
 
 		// The IO hole and the kernel abut.
 
 		// The memory past the kernel is free.
-		if (i >= (freemem-KERNBASE)/PGSIZE)
+		if (i >= (freemem-KERNBASE)/BY2PG)
 			inuse = 0;
 
 		pages[i].pp_ref = inuse;
@@ -499,7 +492,6 @@ page_alloc(struct Page **pp)
 void
 page_free(struct Page *pp)
 {
-	// Fill this function in
 ///SOL2
 	if (pp->pp_ref) {
 		warn("page_free: attempt to free mapped page");
@@ -507,6 +499,8 @@ page_free(struct Page *pp)
 	}
 	LIST_INSERT_HEAD(&page_free_list, pp, pp_link);
 	pp->pp_ref = 0;
+///ELSE
+	// Fill this function in
 ///END
 }
 
@@ -542,10 +536,12 @@ pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte)
 			warn("pgdir_walk: could not allocate page for va %lx", va);
 			return r;
 		}
+		pp->pp_ref++;
+
 		pgtab = (Pte*)page2kva(pp);
 
 		// Make sure all those PTE_P bits are zero.
-		bzero(pgtab, PGSIZE);
+		bzero(pgtab, BY2PG);
 
 		// The permissions here are overly generous, but they can
 		// be further restricted by the permissions in the page table 
@@ -560,7 +556,7 @@ pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte)
 //
 // Map the physical page 'pp' at virtual address 'va'.
 // The permissions (the low 12 bits) of the page table
-//  entry should be set to 'perm'.
+//  entry should be set to 'perm|PTE_P'.
 //
 // Details
 //   - If there is already a page mapped at 'va', it is page_remove()d.
@@ -588,7 +584,7 @@ page_insert(Pde *pgdir, struct Page *pp, u_long va, u_int perm)
 		page_remove(pgdir, va);
 
 	pp->pp_ref++;
-	*pte = page2pa(pp) | perm;
+	*pte = page2pa(pp) | perm | PTE_P;
 	return 0;
 ///ELSE
 	// Fill this function in
@@ -623,7 +619,9 @@ page_remove(Pde *pgdir, u_long va)
 
 	// Page is not mapped?  No work to do.
 	if (pte == 0)
+{warn("page_remove: not mapped %08lx\n", va);
 		return;
+}
 
 	// Sanity check: should be mapped and a valid entry.
 	if (!(*pte & PTE_P) || PPN(PTE_ADDR(*pte)) >= npage) {
@@ -658,100 +656,91 @@ tlb_invalidate(Pde *pgdir, u_long va)
 void
 page_check(void)
 {
-#if 0
-	int r;
-	struct Page *pp;
-	struct Page *pp1;
-	struct Page *pp2;
-	// XXX
-	// This alloc_list idea is dumb and it complicates
-	// the code!
-	//
-	// Just reference page directly &pages[ppn].
-	//
+	struct Page *pp, *pp0, *pp1, *pp2;
+	struct Page_list fl;
 
-	struct Page_list alloc_list;
-	LIST_INIT (&alloc_list);
+	// should be able to allocate three pages
+	pp0 = pp1 = pp2 = 0;
+	assert(page_alloc(&pp0) == 0);
+	assert(page_alloc(&pp1) == 0);
+	assert(page_alloc(&pp2) == 0);
 
-	while (1) {
-		r = page_alloc(&pp);
-		if (r < 0)
-			break;
-		LIST_INSERT_HEAD(&alloc_list, pp, pp_link);
+	assert(pp0);
+	assert(pp1 && pp1 != pp0);
+	assert(pp2 && pp2 != pp1 && pp2 != pp0);
 
-		// must not return an in use page
-		assert(pp->pp_ref == 0);
-		assert((u_int)pp2va(pp) < (u_int)IOPHYSMEM + KERNBASE
-						|| (u_int)pp2va(pp) >= (u_int)freemem);
-	}
+	// temporarily steal the rest of the free pages
+	fl = page_free_list;
+	LIST_INIT(&page_free_list);
 
-
-	pp = LIST_FIRST (&alloc_list);   
-	pp1 = LIST_NEXT (pp, pp_link);
-	pp2 = LIST_NEXT (pp1, pp_link);
-	LIST_REMOVE (pp, pp_link);
-	LIST_REMOVE (pp1, pp_link);
-	LIST_REMOVE (pp2, pp_link);
+	// should be no free memory
+	assert(page_alloc(&pp) == -E_NO_MEM);
 
 	// there is no free memory, so we can't allocate a page table 
-	assert(page_insert(p0pgdir_boot, pp, 0x0, PTE_P) < -1);
-	page_free(pp);
+	assert(page_insert(boot_pgdir, pp1, 0x0, 0) < 0);
 
-	assert(page_insert(p0pgdir_boot, pp1, 0x0, PTE_P) == 0);
-	// expect: pp1 mapped 0x0
-	assert(pgdir_get_ptep(p0pgdir_boot, 0x0));
-	assert(*pgdir_get_ptep(p0pgdir_boot, 0x0) >> PGSHIFT == pp2ppn(pp1));
-
-	assert(page_insert(p0pgdir_boot, pp2, NBPG, PTE_P) == 0);
-	// expect: pp1 mapped 0x0, pp2 at NBPG
-	assert(pgdir_get_ptep(p0pgdir_boot, 0x0));
-	assert(*pgdir_get_ptep(p0pgdir_boot, 0x0) >> PGSHIFT == pp2ppn(pp1));
-	assert(pgdir_get_ptep(p0pgdir_boot, NBPG));
-	assert(*pgdir_get_ptep(p0pgdir_boot, NBPG) >> PGSHIFT == pp2ppn(pp2));
+	// free pp0 and try again: pp0 should be used for page table
+	page_free(pp0);
+	assert(page_insert(boot_pgdir, pp1, 0x0, 0) == 0);
+	assert(PTE_ADDR(boot_pgdir[0]) == page2pa(pp0));
+	assert(va2pa(boot_pgdir, 0x0) == page2pa(pp1));
 	assert(pp1->pp_ref == 1);
+
+	// should be able to map pp2 at BY2PG because pp0 is already allocated for page table
+	assert(page_insert(boot_pgdir, pp2, BY2PG, 0) == 0);
+	assert(va2pa(boot_pgdir, BY2PG) == page2pa(pp2));
 	assert(pp2->pp_ref == 1);
 
-	// insert pp1 at VA NBPG (pp2 is already mapped there)
-	assert(page_insert(p0pgdir_boot, pp1, NBPG, PTE_P) == 0);
-	// expect: pp1 mapped at both 0x0 and NBPG, pp2 not mapped
-	assert(pgdir_get_ptep(p0pgdir_boot, 0x0));
-	assert(*pgdir_get_ptep(p0pgdir_boot, 0x0) >> PGSHIFT == pp2ppn(pp1));
-	assert(pgdir_get_ptep(p0pgdir_boot, NBPG));
-	assert(*pgdir_get_ptep(p0pgdir_boot, NBPG) >> PGSHIFT == pp2ppn(pp1));
+	// should not be able to map at PDMAP because need free page for page table
+	assert(page_insert(boot_pgdir, pp0, PDMAP, 0) < 0);
+
+	// insert pp1 at BY2PG (replacing pp2)
+	assert(page_insert(boot_pgdir, pp1, BY2PG, 0) == 0);
+
+	// should have pp1 at both 0 and BY2PG, pp2 nowhere, ...
+	assert(va2pa(boot_pgdir, 0x0) == page2pa(pp1));
+	assert(va2pa(boot_pgdir, BY2PG) == page2pa(pp1));
+	// ... and ref counts should reflect this
 	assert(pp1->pp_ref == 2);
 	assert(pp2->pp_ref == 0);
-	// alloc should return pp2, since it should be the only thing on the page_free_list
-	assert(page_alloc(&pp) == 0);
-	assert(pp == pp2);
 
-	page_remove(p0pgdir_boot, 0x0);
-	// expect: pp1 mapped at NBPG
-	assert(pgdir_get_ptep(p0pgdir_boot, 0x0));
-	assert(*pgdir_get_ptep(p0pgdir_boot, 0x0) == 0);
-	assert(pgdir_get_ptep(p0pgdir_boot, NBPG));
-	assert(*pgdir_get_ptep(p0pgdir_boot, NBPG) >> PGSHIFT == pp2ppn(pp1));
+	// pp2 should be returned by page_alloc
+	assert(page_alloc(&pp) == 0 && pp == pp2);
+
+	// unmapping pp1 at 0 should keep pp1 at BY2PG
+	page_remove(boot_pgdir, 0x0);
+	assert(va2pa(boot_pgdir, 0x0) == ~0);
+	assert(va2pa(boot_pgdir, BY2PG) == page2pa(pp1));
 	assert(pp1->pp_ref == 1);
 	assert(pp2->pp_ref == 0);
 
-	page_remove(p0pgdir_boot, NBPG);
-	// expect: pp1 not mapped
-	assert(pgdir_get_ptep(p0pgdir_boot, 0x0));
-	assert(*pgdir_get_ptep(p0pgdir_boot, 0x0) == 0);
-	assert(pgdir_get_ptep(p0pgdir_boot, NBPG));
-	assert(*pgdir_get_ptep(p0pgdir_boot, NBPG) == 0);
+	// unmapping pp1 at BY2PG should free it
+	page_remove(boot_pgdir, BY2PG);
+	assert(va2pa(boot_pgdir, 0x0) == ~0);
+	assert(va2pa(boot_pgdir, BY2PG) == ~0);
 	assert(pp1->pp_ref == 0);
 	assert(pp2->pp_ref == 0);
 
-	// return all remaining memory to the free list
-	page_free(pp);
-	while (1) {
-		pp = LIST_FIRST (&alloc_list);
-		if (!pp)
-			break;
-		LIST_REMOVE (pp, pp_link);
-		page_free(pp);
-	}
-#endif
+	// so it should be returned by page_alloc
+	assert(page_alloc(&pp) == 0 && pp == pp1);
+
+	// should be no free memory
+	assert(page_alloc(&pp) == -E_NO_MEM);
+
+	// forcibly take pp0 back
+	assert(PTE_ADDR(boot_pgdir[0]) == page2pa(pp0));
+	boot_pgdir[0] = 0;
+	assert(pp0->pp_ref == 1);
+	pp0->pp_ref = 0;
+
+	// give free list back
+	page_free_list = fl;
+
+	// free the pages we took
+	page_free(pp0);
+	page_free(pp1);
+	page_free(pp2);
+
 	printf("page_check() succeeded!\n");
 }
 

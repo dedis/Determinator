@@ -31,12 +31,16 @@
 #define PPN(va)		(((u_long)(va))>>12)
 
 /* offset in page */
-#define PGOFF(va)	(((u_long)(va)) & 0xFFF)
+#define PGOFF(va)		(((u_long)(va)) & 0xFFF)
+
+#define PDE2PD		1024		/* page directory entries to a (per) page directory */
+#define PTE2PT		1024		/* page table entries to a page table */
+
+#define BY2PG		4096		/* bytes to a page */
 
 #define PDMAP		(4*1024*1024)	/* bytes mapped by a page directory entry */
-#define PGMASK		(PGSIZE-1)	/* mask offset bits in va */
-#define PGSIZE		4096		/* bytes in a page */
-#define PGSHIFT		12		/* log(PGSHIFT) */
+
+#define PGSHIFT		12			/* log(BY2PG) */
 
 /* At IOPHYSMEM (640K) there is a 384K hole for I/O.  From the kernel,
  * IOPHYSMEM can be addressed at KERNBASE + IOPHYSMEM.  The hole ends
@@ -348,7 +352,7 @@ struct Pseudodesc {
  */
 #define VPT (KERNBASE - PDMAP)
 #define KSTACKTOP VPT
-#define KSTKSIZE (8 * PGSIZE)   		/* size of a kernel stack */
+#define KSTKSIZE (8 * BY2PG)   		/* size of a kernel stack */
 #define ULIM (KSTACKTOP - PDMAP) 
 
 /*
@@ -369,7 +373,7 @@ struct Pseudodesc {
 #define UTOP UENVS
 #define UXSTACKTOP (UTOP)           /* one page user exception stack */
 /* leave top page invalid to guard against exception stack overflow */ 
-#define USTACKTOP (UTOP - 2*PGSIZE)   /* top of the normal user stack */
+#define USTACKTOP (UTOP - 2*BY2PD)   /* top of the normal user stack */
 #define UTEXT (2*PDMAP)
 
 /*

@@ -57,9 +57,9 @@ include boot/Makefrag
 
 #///LAB200
 # Find all potentially exportable files
-LAB_PATS := Makefrag *.c *.h *.S
+LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S
 LAB_DIRS := inc user $(OBJDIRS)
-LAB_FILES := GNUmakefile .bochsrc mergedep.pl grade.sh \
+LAB_FILES := CODING GNUmakefile .bochsrc mergedep.pl grade.sh \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
 BIOS_FILES := bios/BIOS-bochs-latest bios/VGABIOS-elpin-2.40

@@ -17,7 +17,7 @@
 
 
 /*
- * gas won't do logial shifts in computed immediates!
+ * gas won't do logical shifts in computed immediates!
  */
 #define SRL(val, shamt) (((val) >> (shamt)) & ~(-1 << (32 - (shamt))))
 
