@@ -9,13 +9,13 @@
 OBJDIRS += boot
 CLEAN_FILES += boot/boot boot/boot.out
 
-BOOT_OBJS := boot/boot.o boot/main.o
+BOOT_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o
 
 
-boot/boot: $(BOOT_OBJS)
+$(OBJDIR)/boot/boot: $(BOOT_OBJS)
 	@echo mk boot/boot
 	@i386-osclass-aout-ld -N -e start -Ttext 0x7C00 -o $@.out $^
 	@i386-osclass-aout-objcopy -S -O binary $@.out $@
-	@perl boot/sign.pl boot/boot
+	@perl boot/sign.pl $(OBJDIR)/boot/boot
 
 #endif

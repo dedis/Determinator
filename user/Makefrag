@@ -31,14 +31,14 @@ CLEAN_FILES += \
 
 OBJDIRS += user
 
-user/%: user/%.o lib/entry.o lib/libuser.a
+$(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libuser.a
 	@echo ld $@
-	@$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib -Llib -luser $^
+	@$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib -L$(OBJDIR)/lib -luser $^
 
-user/%.asm: user/%
+$(OBJDIR)/user/%.asm: user/%
 	$(OBJDUMP) --adjust-vma=0x7ff000 -S $^ >$@
 
-user/%.o: lib.h
+$(OBJDIR)/user/%.o: lib.h
 
 .PRECIOUS: %.o user/%
 

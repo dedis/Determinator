@@ -5,6 +5,7 @@
 #	Recursive Make Considered Harmful
 #	http://aegis.sourceforge.net/auug97.pdf
 #
+OBJDIR := obj
 
 #if LAB >= 999
 #
@@ -52,8 +53,6 @@ ULDFLAGS := -Ttext 0x800020
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
-CLEAN_FILES := .deps bochs.log
-CLEAN_PATS := *.o *.d *.asm
 
 
 # Make sure that 'all' is the first target
@@ -76,10 +75,12 @@ include fs/Makefrag
                                                                                 
 
 # Rules for building regular object files
-%.o: %.c
+$(OBJDIR)/%.o: %.c
 	@echo cc $<
+	@mkdir -p $(@D)
 	@$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
-%.o: %.S
+$(OBJDIR)/%.o: %.S
+	@mkdir -p $(@D)
 	@echo as $<
 	@$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
 
@@ -125,8 +126,6 @@ LAB_FILES := CODING GNUmakefile .bochsrc mergedep.pl grade.sh boot/sign.pl \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
 BIOS_FILES := bios/BIOS-bochs-latest bios/VGABIOS-elpin-2.40
-
-CLEAN_FILES += bios lab? sol?
 
 # Fake targets to export the student lab handout and solution trees.
 # It's important that these aren't just called 'lab%' and 'sol%',
@@ -177,16 +176,15 @@ bios/%: /usr/local/share/bochs/% bios
 all: $(BIOS_FILES)
 #endif // LAB >= 999
 
-bochs: kern/bochs.img fs/fs.img
+bochs: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 	bochs-nogui
 
 kernel.asm: kern/kernel
 	$(OBJDUMP) -S --adjust-vma=0xf00ff000 kern/kernel >kernel.asm
 
-# For cleaning the source tree
+# For deleting the build
 clean:
-	rm -rf $(CLEAN_FILES) $(foreach dir,$(OBJDIRS), \
-				$(addprefix $(dir)/,$(CLEAN_PATS)))
+	rm -rf $(OBJDIR)
 
 grade:
 	@gmake clean >/dev/null 2>/dev/null
@@ -200,23 +198,24 @@ handin: clean
 
 # For test runs
 run-%:
-	@rm -f kern/init.o kern/bochs.img
-	@gmake "DEFS=-DTEST=binary_user_$*_start -DTESTSIZE=binary_user_$*_size" kern/bochs.img fs/fs.img
+	@rm -f $(OBJDIR)/kern/init.o $(OBJDIR)/kern/bochs.img
+	@gmake "DEFS=-DTEST=binary_user_$*_start -DTESTSIZE=binary_user_$*_size" $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 	bochs-nogui
 
 xrun-%:
-	@rm -f kern/init.o kern/bochs.img
-	@gmake "DEFS=-DTEST=binary_user_$*_start -DTESTSIZE=binary_user_$*_size" kern/bochs.img fs/fs.img
+	@rm -f $(OBJDIR)/kern/init.o $(OBJDIR)/kern/bochs.img
+	@gmake "DEFS=-DTEST=binary_user_$*_start -DTESTSIZE=binary_user_$*_size" $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 	bochs
 
 # This magic automatically generates makefile dependencies
 # for header files included from C source files we compile,
 # and keeps those dependencies up-to-date every time we recompile.
 # See 'mergedep.pl' for more information.
-.deps: $(foreach dir, $(OBJDIRS), $(wildcard $(dir)/*.d))
+$(OBJDIR)/.deps: $(foreach dir, $(OBJDIRS), $(wildcard $(OBJDIR)/$(dir)/*.d))
+	@mkdir -p $(@D)
 	@$(PERL) mergedep.pl $@ $^
 
--include .deps
+-include $(OBJDIR)/.deps
 
 .phony: lab%.tar.gz
 
