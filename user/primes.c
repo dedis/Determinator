@@ -39,8 +39,7 @@ top:
 void
 umain(void)
 {
-	int i, r, id;
-	u_int addr;
+	int i, id;
 
 	// fork the first prime process in the chain
 	if ((id=fork()) < 0)

@@ -113,8 +113,11 @@ clean:
 	rm -rf $(CLEAN_FILES) $(foreach dir,$(OBJDIRS), \
 				$(addprefix $(dir)/,$(CLEAN_PATS)))
 
-grade: all
+grade:
+	gmake clean
+	gmake all
 	sh grade.sh
+	gmake clean
 
 handin: clean
 	-rm -f handin5.tgz

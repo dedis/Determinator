@@ -20,6 +20,13 @@ void env_run(struct Env *e);
 void env_pop_tf(struct Trapframe *tf);
 
 #if LAB >= 4
+// for the grading script
+#define ENV_CREATE2(x, y) \
+{ \
+	extern u_char x[], y[]; \
+	env_create(x, (int)y); \
+}
+
 #define ENV_CREATE(x) \
 { \
 	extern u_char binary_##x##_start[], \
@@ -28,6 +35,12 @@ void env_pop_tf(struct Trapframe *tf);
 		(int)binary_##x##_size); \
 }
 #elif LAB >= 3
+#define ENV_CREATE2(x) \
+{ \
+	extern u_char x[], y[]; \
+	env_create(x, y-x); \
+}
+
 #define ENV_CREATE(x) \
 { \
 	extern u_char x##_start[], x##_end[]; \

@@ -94,7 +94,7 @@ int
 fork(void)
 {
 #if SOL >= 4
-	int envid, i, j, pn, addr, r;
+	int envid, i, j, pn, r;
 
 	set_pgfault_handler(pgfault);
 
@@ -103,7 +103,7 @@ fork(void)
 	if (envid < 0)
 		return envid;
 	if (envid == 0) {
-		env = &envs[sys_getenvid()];
+		env = &envs[ENVX(sys_getenvid())];
 		return 0;
 	}
 

@@ -124,7 +124,7 @@ int
 sys_set_env_status(u_int envid, u_int status)
 {
 #if SOL >= 4
-	return syscall(SYS_set_env_status, env, status, 0, 0, 0);
+	return syscall(SYS_set_env_status, envid, status, 0, 0, 0);
 #else
 	// Your code here.
 #endif

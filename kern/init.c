@@ -42,7 +42,7 @@ i386_init(void)
 
 #if defined(TEST)
 	// Don't touch -- used by grading script!
-	ENV_CREATE(TEST)
+	ENV_CREATE2(TEST, TESTSIZE)
 #elif defined(TEST_PINGPONG2)
 	// Don't touch -- used by grading script!
 	ENV_CREATE(user_pingpong2);

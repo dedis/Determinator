@@ -317,9 +317,6 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 	switch (sn) {
 	case SYS_getenvid:
 		return sys_getenvid();
-	case SYS_cputu:
-		sys_cputu(a1);
-		return 0;
 	case SYS_cputs:
 		sys_cputs((char*)a1);
 		return 0;
