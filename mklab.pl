@@ -32,12 +32,24 @@ sub dofile {
 		chomp;
 		$inlines++;
 		$emit = $stack{$depth}->{'emit'};
-		if (m:^(ifdef|ifndef|[#]elif|[#]if)\s+(LAB|SOL)(\s*[>][=]\s*|)(\d+):) {
+		if (m:^(ifdef|ifndef|[#]elif|[#]if)\s+(LAB|SOL)\s*([=<>!][=]|[<>]|)\s*(\d+):) {
 			# Parse a new condition
-			if ($2 eq "LAB") {
-				$cond = ($labno >= $4);
+			my $val = ($2 eq 'LAB' ? $labno : $solno);
+			my $cond;
+			if ($3 eq '' || $3 eq '>=') {
+				$cond = $val >= $4;
+			} elsif ($3 eq '==') {
+				$cond = $val == $4;
+			} elsif ($3 eq '<') {
+				$cond = $val < $4;
+			} elsif ($3 eq '>') {
+				$cond = $val > $4;
+			} elsif ($3 eq '<=') {
+				$cond = $val <= $4;
+			} elsif ($3 eq '!=') {
+				$cond = $val != $4;
 			} else {
-				$cond = ($solno >= $4);
+				die;
 			}
 			if ($1 eq "#if" or $1 eq "ifdef" or $1 eq "ifndef") {
 				$stack{++$depth} = { 'anytrue' => 0, 'isours' => 1 };
@@ -115,7 +127,7 @@ sub usage {
 	exit(1);
 }
 
-if(@ARGV < 3) {
+if (@ARGV < 3) {
 	usage();
 }
 

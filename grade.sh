@@ -14,11 +14,18 @@ fi
 
 pts=5
 timeout=30
+preservefs=n
 
-runbochs() {
+echo_n () {
+	# suns can't echo -n, and Mac OS X can't echo "x\c"
+	# assume argument has no doublequotes
+	awk 'BEGIN { printf("'"$*"'"); }' </dev/null
+}
+
+runbochs () {
 	# Find the address of the kernel readline function,
 	# which the kernel monitor uses to read commands interactively.
-	brkaddr=`grep readline obj/kern/kernel.sym | sed -e's/ .*$//g'`
+	brkaddr=`grep 'readline$' obj/kern/kernel.sym | sed -e's/ .*$//g'`
 	#echo "brkaddr $brkaddr"
 
 	# Run Bochs, setting a breakpoint at readline(),
@@ -38,16 +45,18 @@ runbochs() {
 #if LAB >= 3
 
 # Usage: runtest <tagname> <defs> <strings...>
-runtest() {
+runtest () {
 	perl -e "print '$1: '"
-	rm -f obj/kern/init.o obj/kern/kernel obj/kern/bochs.img
+	rm -f obj/kern/init.o obj/kern/kernel obj/kern/bochs.img 
+	[ "$preservefs" = y ] || rm -f obj/fs/fs.img
 	if $verbose
 	then
 		echo "gmake $2... "
 	fi
-	if ! gmake $2 >$out
+	gmake $2 >$out
+	if [ $? -ne 0 ]
 	then
-		echo gmake failed 
+		echo gmake $2 failed 
 		exit 1
 	fi
 	runbochs
@@ -61,13 +70,13 @@ runtest() {
 	fi
 }
 
-quicktest() {
+quicktest () {
 	perl -e "print '$1: '"
 	shift
 	continuetest "$@"
 }
 
-continuetest() {
+continuetest () {
 	okay=yes
 
 	not=false
@@ -89,7 +98,8 @@ continuetest() {
 			fi
 			not=false
 		else
-			if ! egrep "^$i\$" bochs.out >/dev/null
+			egrep "^$i\$" bochs.out >/dev/null
+			if [ $? -ne 0 ]
 			then
 				echo "missing '$i'"
 				if $verbose
@@ -103,15 +113,15 @@ continuetest() {
 	done
 	if [ "$okay" = "yes" ]
 	then
-		score=`echo $pts+$score | bc`
+		score=`expr $pts + $score`
 		echo OK
 	else
 		echo WRONG
 	fi
 }
 
-# Usage: runtest1 [-tag <tagname>] <progname>
-runtest1() {
+# Usage: runtest1 [-tag <tagname>] <progname> [-Ddef...] STRINGS...
+runtest1 () {
 	if [ $1 = -tag ]
 	then
 		shift
@@ -124,7 +134,12 @@ runtest1() {
 		prog=$1
 		shift
 	fi
-	runtest "$tag" "DEFS=-DTEST=_binary_obj_user_${prog}_start DEFS+=-DTESTSIZE=_binary_obj_user_${prog}_size" "$@"
+	runtest1_defs=
+	while expr "x$1" : 'x-D.*' >/dev/null; do
+		runtest1_defs="DEFS+='$1' $runtest1_defs"
+		shift
+	done
+	runtest "$tag" "DEFS='-DTEST=_binary_obj_user_${prog}_start' DEFS+='-DTESTSIZE=_binary_obj_user_${prog}_size' $runtest1_defs" "$@"
 }
 
 #endif
@@ -510,21 +525,19 @@ runbochs
 
 score=0
 
-# echo -n "Page directory: "
-awk 'BEGIN{printf("Page directory: ");}' </dev/null	# goddamn suns can't echo -n.
+echo_n "Page directory: "
  if grep "check_boot_pgdir() succeeded!" bochs.out >/dev/null
  then
-	score=`echo 20+$score | bc`
+	score=`expr 20 + $score`
 	echo OK
  else
 	echo WRONG
  fi
 
-# echo -n "Page management: "
-awk 'BEGIN{printf("Page management: ");}' </dev/null
+echo_n "Page management: "
  if grep "page_check() succeeded!" bochs.out >/dev/null
  then
-	score=`echo 30+$score | bc`
+	score=`expr 30 + $score`
 	echo OK
  else
 	echo WRONG
@@ -539,36 +552,34 @@ runbochs
 
 score=0
 
-	# echo -n "Printf: "
-	awk 'BEGIN{printf("Printf: ");}' </dev/null
+	echo_n "Printf: "
 #ifdef ENV_CLASS_NYU
 	if grep "480 decimal is 740 octal!" bochs.out >/dev/null
 #else /* !ENV_CLASS_NYU */
 	if grep "6828 decimal is 15254 octal!" bochs.out >/dev/null
 #endif /* !ENV_CLASS_NYU */
 	then
-		score=`echo 20+$score | bc`
+		score=`expr 20 + $score`
 		echo OK
 	else
 		echo WRONG
 	fi
 
-	# echo -n "Printf: "
-	awk 'BEGIN{printf("Backtrace: ");}' </dev/null
+	echo_n "Backtrace: "
 	cnt=`grep "ebp f0109...  eip f0100...  args" bochs.out|wc -w`
 	if [ $cnt -eq 80 ]
 	then
-		score=`echo 15+$score | bc`
-		awk 'BEGIN{printf("Count OK");}' </dev/null
+		score=`expr 15 + $score`
+		echo_n "Count OK"
 	else
-		awk 'BEGIN{printf("Count WRONG");}' </dev/null
+		echo_n "Count WRONG"
 	fi
 
 	cnt=`grep "ebp f0109...  eip f0100...  args" bochs.out | awk 'BEGIN { FS = ORS = " " }
 { print $6 }
 END { printf("\n") }' | grep '^00000000 00000000 00000001 00000002 00000003 00000004 00000005' | wc -w`
 	if [ $cnt -eq 8 ]; then
-		score=`echo 15+$score | bc`
+		score=`expr 15 + $score`
 		echo , Args OK
 	else
 		echo , Args WRONG
