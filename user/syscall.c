@@ -151,7 +151,7 @@ sys_panic(char *msg)
 }
 
 #endif
-#if LAB >= 6
+#if SOL >= 6
 int
 sys_cgetc(void)
 {

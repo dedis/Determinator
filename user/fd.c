@@ -1,6 +1,5 @@
 #if LAB >= 5
 #include "lib.h"
-#include <inc/fd.h>
 
 #define debug 0
 
@@ -20,39 +19,48 @@ static struct Dev *devtab[] =
 };
 
 int
-dev_lookup(int dev_char, struct Dev **dev)
+dev_lookup(int dev_id, struct Dev **dev)
 {
 	int i;
 
 	for (i=0; devtab[i]; i++)
-		if (devtab[i]->dev_char == dev_char) {
+		if (devtab[i]->dev_id == dev_id) {
 			*dev = devtab[i];
 			return 0;
 		}
-	printf("[%08x] unknown device type %d\n", env->env_id, dev_char);
+	printf("[%08x] unknown device type %d\n", env->env_id, dev_id);
 	return -E_INVAL;
 }
 
 int
-fd_alloc(u_int *pva)
+fd_alloc(struct Fd **fd)
 {
-	int i, r;
+#if SOL >= 6
+	int i;
 	u_int va;
-
-	if (!(vpd[PDX(FDTABLE)]&PTE_P)) {
-		if ((r = sys_mem_alloc(0, FDTABLE, PTE_P|PTE_W|PTE_U|PTE_LIBRARY)) < 0)
-			return -E_NO_MEM;
-		sys_mem_unmap(0, FDTABLE);
-	}
 
 	for (i=0; i<MAXFD; i++) {
 		va = (u_int)INDEX2FD(i);
-		if (((vpd[PDX(va)]&PTE_P) == 0 || vpt[VPN(va)]&PTE_P) == 0) {
-			*pva = va;
+		if ((vpd[PDX(va)]&PTE_P) == 0 || (vpt[VPN(va)]&PTE_P) == 0) {
+			*fd = (struct Fd*)va;
 			return 0;
 		}
 	}
 	return -E_MAX_OPEN;
+#else
+	// Your code here.
+	//
+	// Find the smallest i from 0 to MAXFD-1 that doesn't have
+	// its fd page mapped.  Set *fd to the fd page virtual address.
+	// (Do not allocate a page.  It is up to the caller to allocate
+	// the page.  This means that if someone calls fd_alloc twice
+	// in a row without allocating the first page we return, we'll
+	// return the same page the second time.)
+	// Return 0 on success, or an error code on error.
+
+	panic("fd_alloc not implemented");
+	return -E_MAX_OPEN;
+#endif
 }
 
 void
@@ -62,21 +70,31 @@ fd_close(struct Fd *fd)
 }
 
 int
-fd_lookup(int fd, struct Fd **pfd)
+fd_lookup(int fdnum, struct Fd **fd)
 {
+#if SOL >= 6
 	u_int va;
 
-	if (fd < 0 || fd >= MAXFD) {
+	if (fdnum < 0 || fdnum >= MAXFD) {
 		if (debug) printf("[%08x] bad fd %d\n", env->env_id, fd);
 		return -E_INVAL;
 	}
-	va = (u_int)INDEX2FD(fd);
+	va = (u_int)INDEX2FD(fdnum);
 	if(!(vpd[PDX(va)]&PTE_P) || !(vpt[VPN(va)]&PTE_P)) {
 		if (debug) printf("[%08x] closed fd %d\n", env->env_id, fd);
 		return -E_INVAL;
 	}
-	*pfd = (struct Fd*)va;
+	*fd = (struct Fd*)va;
 	return 0;
+#else
+	// Your code here.
+	// 
+	// Check that fdnum is in range and mapped.  If not, return -E_INVAL.
+	// Set *fd to the fd page virtual address.  Return 0.
+
+	panic("fd_lookup not implemented");
+	return -E_INVAL;
+#endif
 }
 
 u_int
@@ -99,7 +117,7 @@ close(int fdnum)
 	struct Fd *fd;
 
 	if ((r = fd_lookup(fdnum, &fd)) < 0
-	||  (r = dev_lookup(fd->fd_dev, &dev)) < 0)
+	||  (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	r = (*dev->dev_close)(fd);
 	fd_close(fd);
@@ -153,7 +171,7 @@ read(int fdnum, void *buf, u_int n)
 	struct Fd *fd;
 
 	if ((r = fd_lookup(fdnum, &fd)) < 0
-	||  (r = dev_lookup(fd->fd_dev, &dev)) < 0)
+	||  (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	if ((fd->fd_omode & O_ACCMODE) == O_WRONLY) {
 		printf("[%08x] read %d -- bad mode\n", env->env_id, fdnum); 
@@ -188,7 +206,7 @@ write(int fdnum, const void *buf, u_int n)
 	struct Fd *fd;
 
 	if ((r = fd_lookup(fdnum, &fd)) < 0
-	||  (r = dev_lookup(fd->fd_dev, &dev)) < 0)
+	||  (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	if ((fd->fd_omode & O_ACCMODE) == O_RDONLY) {
 		printf("[%08x] write %d -- bad mode\n", env->env_id, fdnum);
@@ -222,7 +240,7 @@ fstat(int fdnum, struct Stat *stat)
 	struct Fd *fd;
 
 	if ((r = fd_lookup(fdnum, &fd)) < 0
-	||  (r = dev_lookup(fd->fd_dev, &dev)) < 0)
+	||  (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	stat->st_name[0] = 0;
 	stat->st_size = 0;

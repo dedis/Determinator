@@ -358,12 +358,14 @@ sys_panic(char *msg)
 	panic("%s", TRUP(msg));
 }
 
+#if SOL >= 6
 static int
 sys_cgetc(void)
 {
 	return cons_getc();
 }
 
+#endif
 #endif
 // Dispatches to the correct kernel function, passing the arguments.
 int

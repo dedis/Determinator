@@ -55,6 +55,14 @@ umain(int argc, char **argv)
 		panic("first opencons used fd %d", r);
 	if ((r = dup(0, 1)) < 0)
 		panic("dup: %e", r);
-	spawnl("sh", "sh", (char*)0);
+	for (;;) {
+		printf("init: starting sh\n");
+		r = spawnl("sh", "sh", (char*)0);
+		if (r < 0) {
+			printf("init: spawn sh: %e", r);
+			continue;
+		}
+		wait(r);
+	}
 }
 #endif

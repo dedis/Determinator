@@ -70,7 +70,8 @@ include fs/Makefrag
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S
 LAB_DIRS := inc $(OBJDIRS)
 LAB_FILES := CODING GNUmakefile .bochsrc mergedep.pl grade.sh boot/sign.pl \
-	fs/motd fs/newmotd \
+	fs/lorem fs/motd fs/newmotd fs/script \
+	fs/testshell.sh fs/testshell.key fs/testshell.out fs/out \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
 BIOS_FILES := bios/BIOS-bochs-latest bios/VGABIOS-elpin-2.40
@@ -126,6 +127,17 @@ grade:
 handin: clean
 	-rm -f handin5.tgz
 	tar cf - . | gzip | uuencode handin.tar.gz | mail 6.828-handin@pdos.lcs.mit.edu
+
+# For test runs
+run-%:
+	@rm -f kern/init.o kern/bochs.img
+	@gmake "DEFS=-DTEST=binary_user_$*_start -DTESTSIZE=binary_user_$*_size" kern/bochs.img fs/fs.img
+	bochs-nogui
+
+xrun-%:
+	@rm -f kern/init.o kern/bochs.img
+	@gmake "DEFS=-DTEST=binary_user_$*_start -DTESTSIZE=binary_user_$*_size" kern/bochs.img fs/fs.img
+	bochs
 
 # This magic automatically generates makefile dependencies
 # for header files included from C source files we compile,

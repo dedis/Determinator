@@ -18,7 +18,7 @@ pts=5
 
 runtest() {
 	perl -e "print '$1: '"
-	rm -f kern/init.o kern/kernel kern/bochs.img
+	rm -f kern/init.o kern/kernel kern/bochs.img fs/fs.img
 	if $verbose
 	then
 		perl -e "print 'gmake $2... '"
@@ -29,7 +29,7 @@ runtest() {
 		exit 1
 	fi
 	(
-		ulimit -t 20
+		ulimit -t 40
 		(echo c; echo die; echo quit) |
 			bochs-nogui 'parport1: enabled=1, file="bochs.out"'
 	) >$out 2>$err
@@ -110,7 +110,47 @@ runtest1() {
 
 #endif
 
-#if LAB >= 5
+#if LAB >= 6
+score=0
+
+# 30 points - run-icode
+pts=30
+runtest1 -tag 'updated file system switch' icode \
+	'icode: read /motd' \
+	'This is /motd, the message of the day.' \
+	'icode: spawn /init' \
+	'init: running' \
+	'init: data seems okay' \
+	'icode: exiting' \
+	'init: bss seems okay' \
+	"init: args: 'init' 'initarg1' 'initarg2'" \
+	'init: running sh' \
+
+pts=10
+runtest1 -tag 'PTE_LIBRARY' testptelibrary \
+	'fork handles PTE_LIBRARY right' \
+	'spawn handles PTE_LIBRARY right' \
+
+# 10 points - run-testfdsharing
+pts=10
+runtest1 -tag 'fd sharing' testfdsharing \
+	'read in parent succeeded' \
+	'read in child succeeded' 
+
+# 20 points - run-testpipe
+pts=20
+runtest1 -tag 'pipe' testpipe \
+	'pipe read closed properly' \
+	'pipe write closed properly' \
+
+# 30 points - run-testshell
+pts=30
+runtest1 -tag 'shell' testshell \
+	'shell ran correctly' \
+
+echo SCORE: $score/100
+
+#elif LAB >= 5
 score=0
 
 rm -f fs/fs.img

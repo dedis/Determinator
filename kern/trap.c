@@ -160,10 +160,12 @@ trap(struct Trapframe *tf)
 		panic("clock interrupt");
 #endif
 	}
+#if SOL >= 6
 	if (tf->tf_trapno == IRQ_OFFSET+1) {
 		kbd_intr();
 		return;
 	}
+#endif
 	if (tf->tf_trapno == IRQ_OFFSET+4) {
 		serial_intr();
 		return;
@@ -263,3 +265,4 @@ page_fault_handler(struct Trapframe *tf)
 #endif /* LAB >= 4 */
 
 #endif /* LAB >= 3 */
+

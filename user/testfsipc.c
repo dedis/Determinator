@@ -11,7 +11,7 @@ strecmp(char *a, char *b)
 
 char *msg = "This is the NEW message of the day!\n\n";
 
-#define FVA 0xCCCCC000
+#define FVA (struct Fd*)0xCCCCC000
 
 void
 umain(void)
@@ -42,7 +42,7 @@ umain(void)
 		panic("serve_close: %e", r);
 	printf("serve_close is good\n");
 	fileid = ff->f_fileid;
-	sys_mem_unmap(0, FVA);
+	sys_mem_unmap(0, (u_int)FVA);
 
 	if ((r = fsipc_map(fileid, 0, BY2PG)) != -E_INVAL)
 		panic("serve_map does not handle stale fileids correctly");

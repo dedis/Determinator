@@ -63,8 +63,13 @@ duppage(u_int envid, u_int pn)
 	addr = pn<<PGSHIFT;
 	pte = vpt[pn];
 
-	// if the page is just read-only, just map it in.
+#if SOL >= 6
+	// if the page is just read-only or is library-shared, map it directly.
 	if ((pte&(PTE_W|PTE_COW)) == 0 || (pte&PTE_LIBRARY)) {
+#else
+	// if the page is just read-only, just map it in.
+	if ((pte&(PTE_W|PTE_COW)) == 0) {
+#endif
 		if ((r=sys_mem_map(0, addr, envid, addr, pte&PTE_USER)) < 0)
 			panic("sys_mem_map: %e", r);
 		return;
@@ -148,26 +153,6 @@ fork(void)
 	// Your code here.
 	panic("fork not implemented");
 #endif
-}
-
-void
-copy_library(u_int child)
-{
-	u_int i, j, pn, va;
-	int r;
-
-	for (i=0; i<PDX(UTOP); i++) {
-		if ((vpd[i]&PTE_P) == 0)
-			continue;
-		for (j=0; j<PTE2PT; j++) {
-			pn = i*PTE2PT+j;
-			if ((vpt[pn]&(PTE_P|PTE_LIBRARY)) == (PTE_P|PTE_LIBRARY)) {
-				va = pn<<PGSHIFT;
-				if ((r = sys_mem_map(0, va, child, va, vpt[pn]&PTE_USER)) < 0)
-					panic("sys_mem_map: %e", r);
-			}
-		}
-	}
 }
 
 // Challenge!

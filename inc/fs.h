@@ -24,7 +24,6 @@
 
 #define MAXFILESIZE	(NINDIRECT*BY2BLK)
 
-#include <inc/fd.h>
 struct File {
 	u_char f_name[MAXNAMELEN];	// filename
 	u_int f_size;			// file size in bytes
@@ -38,14 +37,6 @@ struct File {
 
 	u_char f_pad[256-MAXNAMELEN-4-4-NDIRECT*4-4-4-4];
 };
-
-struct Filefd 
-{
-	struct Fd f_fd;
-	u_int f_fileid;
-	struct File f_file;
-};
-
 
 #define FILE2BLK	(BY2BLK/sizeof(struct File))
 
@@ -64,7 +55,6 @@ struct Super {
 	struct File s_root;	// Root directory node
 };
 
-
 // Definitions for requests from clients to file system
 
 #define FSREQ_OPEN	1
@@ -78,8 +68,6 @@ struct Super {
 struct Fsreq_open {
 	char req_path[MAXPATHLEN];
 	u_int req_omode;
-	u_int req_fileid;
-	u_int req_size;
 };
 
 struct Fsreq_map {

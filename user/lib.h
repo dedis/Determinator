@@ -6,7 +6,8 @@
 #include <inc/pmap.h>
 #include <inc/syscall.h>
 #include <inc/args.h>
-#include <inc/fd.h>
+#include <inc/fs.h>
+#include <user/fd.h>
 
 #define USED(x) (void)(x)
 
@@ -43,7 +44,6 @@ void	exit(void);
 #define	PTE_LIBRARY	0x400
 int	fork(void);
 int	sfork(void);	// Challenge!
-void	copy_library(u_int);
 
 // wait.c
 void	wait(u_int);
@@ -96,7 +96,7 @@ sys_env_alloc(void)
 
 #if LAB >= 5
 // fsipc.c
-int	fsipc_open(const char*, u_int, u_int);
+int	fsipc_open(const char*, u_int, struct Fd*);
 int	fsipc_map(u_int, u_int, u_int);
 int	fsipc_set_size(u_int, u_int);
 int	fsipc_close(u_int);

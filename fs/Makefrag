@@ -12,8 +12,14 @@ FSOFILES := \
 	fs/test.o \
 
 FSIMGFILES := \
+	fs/lorem \
 	fs/motd \
 	fs/newmotd \
+	fs/script \
+	fs/testshell.sh \
+	fs/testshell.key \
+	fs/testshell.out \
+	fs/out \
 	user/cat \
 	user/echo \
 	user/init \
@@ -23,6 +29,11 @@ FSIMGFILES := \
 	user/primes \
 	user/primespipe \
 	user/sh \
+	user/testfdsharing \
+	user/testkbd \
+	user/testpipe \
+	user/testptelibrary \
+	user/testshell \
 
 fs/fs:	user/entry.o $(FSOFILES) $(USERLIB)
 	@echo ld $@

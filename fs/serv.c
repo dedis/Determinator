@@ -6,7 +6,6 @@
 
 #include "fs.h"
 #include <inc/x86.h>
-#include <inc/fd.h>
 
 #define debug 0
 
@@ -127,10 +126,14 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	ff->f_fileid = o->o_fileid;
 	o->o_mode = rq->req_omode;
 	ff->f_fd.fd_omode = o->o_mode;
-	ff->f_fd.fd_dev = devfile.dev_char;
+	ff->f_fd.fd_dev_id = devfile.dev_id;
 
 	if (debug) printf("sending success, page %08x\n", (u_int)o->o_ff);
+#if SOL >= 6
 	ipc_send(envid, 0, (u_int)o->o_ff, PTE_P|PTE_U|PTE_W|PTE_LIBRARY);
+#else
+	ipc_send(envid, 0, (u_int)o->o_ff, PTE_P|PTE_U|PTE_W);
+#endif
 	return;
 out:
 	ipc_send(envid, r, 0, 0);
@@ -153,7 +156,11 @@ serve_map(u_int envid, struct Fsreq_map *rq)
 	if ((r = file_get_block(o->o_file, rq->req_offset/BY2BLK, &blk)) < 0)
 		goto out;
 
+#if SOL >= 6
+	perm = PTE_U|PTE_P|PTE_LIBRARY;
+#else
 	perm = PTE_U|PTE_P;
+#endif
 	if ((o->o_mode & O_ACCMODE) != O_RDONLY)
 		perm |= PTE_W;
 	ipc_send(envid, 0, (u_int)blk, perm);

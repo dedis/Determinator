@@ -11,7 +11,7 @@ static int file_stat(struct Fd *fd, struct Stat *stat);
 
 struct Dev devfile =
 {
-.dev_char=	'f',
+.dev_id=	'f',
 .dev_name=	"file",
 .dev_read=	file_read,
 .dev_write=	file_write,
@@ -31,20 +31,20 @@ open(const char *path, int mode)
 {
 #if SOL >= 5
 	int r;
-	u_int va;
+	struct Fd *fd;
 	struct Filefd *f;
 
-	if ((r = fd_alloc(&va)) < 0
-	||  (r = fsipc_open(path, mode, va)) < 0)
+	if ((r = fd_alloc(&fd)) < 0
+	||  (r = fsipc_open(path, mode, fd)) < 0)
 		return r;
-	f = (struct Filefd*)va;
+	f = (struct Filefd*)fd;
 
 	if ((r = fmap(f, 0, f->f_file.f_size)) < 0) {
 		funmap(f, 0, f->f_file.f_size, 0);
-		sys_mem_unmap(0, va);
+		sys_mem_unmap(0, (u_int)fd);
 		return r;
 	}
-	return fd2num((struct Fd*)f);
+	return fd2num(fd);
 #else
 	// Your code here.
 	panic("open() unimplemented!");
@@ -107,7 +107,7 @@ read_map(int fdnum, u_int offset, void **blk)
 
 	if ((r = fd_lookup(fdnum, &fd)) < 0)
 		return r;
-	if (fd->fd_dev != devfile.dev_char)
+	if (fd->fd_dev_id != devfile.dev_id)
 		return -E_INVAL;
 	va = fd2data(fd) + offset;
 	if (offset >= MAXFILESIZE)
@@ -157,6 +157,7 @@ file_stat(struct Fd *fd, struct Stat *st)
 	return 0;
 }
 
+#if SOL >= 5
 // Truncate or extend an open file to 'size' bytes
 int
 ftruncate(int fdnum, u_int size)
@@ -183,6 +184,44 @@ ftruncate(int fdnum, u_int size)
 	funmap(f, oldsize, size, 0);
 	return 0;
 }
+
+#else
+// Truncate or extend an open file to 'size' bytes
+int
+ftruncate(int fd, u_int size)
+{
+	int i, r;
+	struct Fileinfo *fi;
+	u_int oldsize;
+
+	if (size > MAXFILESIZE)
+		return -E_NO_DISK;
+
+	if ((r = fd_lookup(fd, &fi)) < 0)
+		return r;
+
+	oldsize = fi->fi_size;
+	if ((r = fsipc_set_size(fi->fi_fileid, size)) < 0)
+		return r;
+
+	// Map any new pages needed if extending the file
+	for (i = ROUND(oldsize, BY2PG); i < ROUND(size, BY2PG); i += BY2PG) {
+		if ((r = fsipc_map(fi->fi_fileid, i, fi->fi_va+i)) < 0) {
+			fsipc_set_size(fi->fi_fileid, oldsize);
+			return r;
+		}
+	}
+
+	// Unmap pages if truncating the file
+	for (i = ROUND(size, BY2PG); i < ROUND(oldsize, BY2PG); i+=BY2PG)
+		if ((r = sys_mem_unmap(0, fi->fi_va+i)) < 0)
+			panic("ftruncate: sys_mem_unmap %08x: %e",
+				fi->fi_va+i, r);
+
+	fi->fi_size = size;
+	return 0;
+}
+#endif
 
 #if SOL >= 5
 static int

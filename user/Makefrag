@@ -25,6 +25,8 @@ CLEAN_FILES += \
 	user/primes \
 	user/primespipe \
 	user/testfsipc \
+	user/testpipe \
+	user/testshell \
 	user/writemotd \
 
 OBJDIRS += user

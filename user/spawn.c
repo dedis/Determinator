@@ -82,6 +82,29 @@ error:
 	return r;
 }
 
+#if SOL >= 6
+// Copy the mappings for library pages into the child address space.
+static void
+copy_library(u_int child)
+{
+	u_int i, j, pn, va;
+	int r;
+
+	for (i=0; i<PDX(UTOP); i++) {
+		if ((vpd[i]&PTE_P) == 0)
+			continue;
+		for (j=0; j<PTE2PT; j++) {
+			pn = i*PTE2PT+j;
+			if ((vpt[pn]&(PTE_P|PTE_LIBRARY)) == (PTE_P|PTE_LIBRARY)) {
+				va = pn<<PGSHIFT;
+				if ((r = sys_mem_map(0, va, child, va, vpt[pn]&PTE_USER)) < 0)
+					panic("sys_mem_map: %e", r);
+			}
+		}
+	}
+}
+
+#endif
 // Spawn a child process from a program image loaded from the file system.
 // prog: the pathname of the program to run.
 // argv: pointer to null-terminated array of pointers to strings,
@@ -149,9 +172,11 @@ printf("aout magic %08x want %08x\n", aout.a_magic, AOUT_MAGIC);
 			goto error;
 	}
 
+#if SOL >= 6
 	// Copy shared library state.
 	copy_library(child);
 
+#endif
 	// Set up trap frame.
 	tf = envs[ENVX(child)].env_tf;
 	tf.tf_eip = aout.a_entry;

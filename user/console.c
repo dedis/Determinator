@@ -8,7 +8,7 @@ static int cons_stat(struct Fd*, struct Stat*);
 
 struct Dev devcons =
 {
-.dev_char=	'c',
+.dev_id=	'c',
 .dev_name=	"cons",
 .dev_read=	cons_read,
 .dev_write=	cons_write,
@@ -24,23 +24,20 @@ iscons(int fdnum)
 
 	if ((r = fd_lookup(fdnum, &fd)) < 0)
 		return r;
-	return fd->fd_dev == devcons.dev_char;
+	return fd->fd_dev_id == devcons.dev_id;
 }
 
 int
 opencons(void)
 {
 	int r;
-	u_int va;
 	struct Fd *fd;
 
-	if ((r = fd_alloc(&va)) < 0)
+	if ((r = fd_alloc(&fd)) < 0)
 		return r;
-	if ((r = sys_mem_alloc(0, va, PTE_P|PTE_U|PTE_W|PTE_LIBRARY)) < 0)
+	if ((r = sys_mem_alloc(0, (u_int)fd, PTE_P|PTE_U|PTE_W|PTE_LIBRARY)) < 0)
 		return r;
-printf("opencons at %08x\n", va);
-	fd = (struct Fd*)va;
-	fd->fd_dev = devcons.dev_char;
+	fd->fd_dev_id = devcons.dev_id;
 	fd->fd_omode = O_RDWR;
 	return fd2num(fd);
 }
@@ -59,6 +56,8 @@ cons_read(struct Fd *fd, void *vbuf, u_int n, u_int offset)
 		sys_yield();
 	if (c < 0)
 		return c;
+	if (c == 0x04)	// ctl-d is eof
+		return 0;
 	*(char*)vbuf = c;
 	return 1;
 }

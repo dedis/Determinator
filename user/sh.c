@@ -1,7 +1,7 @@
 #if LAB >= 6
 #include "lib.h"
 
-#define debug 0
+int debug = 0;
 
 //
 // get the next token from string s
@@ -15,6 +15,9 @@
 //
 // eventually (once we parse the space where the nul will go),
 // words get nul-terminated.
+#define WHITESPACE " \t\r\n"
+#define SYMBOLS "<|>&;()"
+
 int
 _gettoken(char *s, char **p1, char **p2)
 {
@@ -30,13 +33,13 @@ _gettoken(char *s, char **p1, char **p2)
 	*p1 = 0;
 	*p2 = 0;
 
-	while(*s == ' ' || *s == '\t' || *s == '\n')
+	while(strchr(WHITESPACE, *s))
 		*s++ = 0;
 	if(*s == 0) {
 		if (debug > 1) printf("EOL\n");
 		return 0;
 	}
-	if(*s == '>' || *s == '|'){
+	if(strchr(SYMBOLS, *s)){
 		t = *s;
 		*p1 = s;
 		*s++ = 0;
@@ -45,7 +48,7 @@ _gettoken(char *s, char **p1, char **p2)
 		return t;
 	}
 	*p1 = s;
-	while(*s && !strchr(" \t\n>|", *s))
+	while(*s && !strchr(WHITESPACE SYMBOLS, *s))
 		s++;
 	*p2 = s;
 	if (debug > 1) {
@@ -96,11 +99,32 @@ again:
 			}
 			argv[argc++] = t;
 			break;
+		case '<':
+			if(gettoken(0, &t) != 'w'){
+				printf("syntax error: < not followed by word\n");
+				exit();
+			}
+#if SOL >= 6
+			if ((fd = open(t, O_RDONLY)) < 0) {
+				printf("open %s for read: %e", t, fd);
+				exit();
+			}
+			if(fd != 0){
+				dup(fd, 0);
+				close(fd);
+			}
+#else
+			// Your code here -- open t for reading,
+			// dup it onto fd 0, and then close the fd you got.
+			panic("< redirection not implemented");
+#endif
+			break;
 		case '>':
 			if(gettoken(0, &t) != 'w'){
 				printf("syntax error: > not followed by word\n");
 				exit();
 			}
+#if SOL >= 6
 			if ((fd = open(t, O_WRONLY)) < 0) {
 				printf("open %s for write: %e", t, fd);
 				exit();
@@ -109,8 +133,14 @@ again:
 				dup(fd, 1);
 				close(fd);
 			}
+#else
+			// Your code here -- open t for writing,
+			// dup it onto fd 1, and then close the fd you got.
+			panic("> redirection not implemented");
+#endif
 			break;
 		case '|':
+#if SOL >= 6
 			if((r=pipe(p)) < 0){
 				printf("pipe: %e", r);
 				exit();
@@ -136,6 +166,24 @@ again:
 				close(p[0]);
 				goto runit;
 			}
+#else
+			// Your code here.
+			// 	First, allocate a pipe.
+			//	Then fork.
+			//	the child runs the right side of the pipe:
+			//		dup the read end of the pipe onto 0
+			//		close the read end of the pipe
+			//		close the write end of the pipe
+			//		goto again, to parse the rest of the command line
+			//	the parent runs the left side of the pipe:
+			//		dup the write end of the pipe onto 1
+			//		close the write end of the pipe
+			//		close the read end of the pipe
+			//		set "rightpipe" to the child envid
+			//		goto runit, to execute this piece of the pipeline
+			//			and then wait for the right side to finish
+#endif
+			panic("| not implemented");
 			break;
 		}
 	}
@@ -176,14 +224,12 @@ readline(char *buf, u_int n)
 	r = 0;
 	for(i=0; i<n; i++){
 		if((r = read(0, buf+i, 1)) != 1){
-			if(r == 0)
-				printf("unexpected eof\n");
-			else
+			if(r < 0)
 				printf("read error: %e", r);
 			exit();
 		}
 		if(buf[i] == '\b'){
-			if(i >= 2)
+			if(i > 0)
 				i -= 2;
 			else
 				i = 0;
@@ -204,19 +250,26 @@ char buf[1024];
 void
 usage(void)
 {
-	printf("usage: sh [-i] [command-file]\n");
+	printf("usage: sh [-dix] [command-file]\n");
 	exit();
 }
 
 void
 umain(int argc, char **argv)
 {
-	int r, interactive;
+	int r, interactive, echocmds;
 
 	interactive = '?';
+	echocmds = 0;
 	ARGBEGIN{
+	case 'd':
+		debug++;
+		break;
 	case 'i':
 		interactive = 1;
+		break;
+	case 'x':
+		echocmds = 1;
 		break;
 	default:
 		usage();
@@ -237,6 +290,10 @@ umain(int argc, char **argv)
 			fprintf(1, "$ ");
 		readline(buf, sizeof buf);
 		if (debug) printf("LINE: %s\n", buf);
+		if (buf[0] == '#')
+			continue;
+		if (echocmds)
+			fprintf(1, "# %s\n", buf);
 		if ((r = fork()) < 0)
 			panic("fork: %e", r);
 		if (r == 0) {
