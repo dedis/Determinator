@@ -2,8 +2,7 @@
 /*
  * Minimal PIO-based (non-interrupt-driven) IDE driver code.
  * For information about what all this IDE/ATA magic means,
- * see for example "The Guide to ATA/ATAPI documentation" at:
- *	http://www.stanford.edu/~csapuntz/ide.html
+ * see the materials available on the 6.828 reference materials page.
  */
 
 #include "fs.h"
