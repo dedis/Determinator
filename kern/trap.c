@@ -105,21 +105,25 @@ idt_init(void)
 static void
 print_trapframe(struct Trapframe *tf)
 {
-	printf("%%%% Trap 0x%x(errcode 0x%x)\n", tf->tf_trapno, 0xffff & tf->tf_err);
-	printf("   cs:eip 0x%x:0x%x; ", 0xffff & tf->tf_cs, tf->tf_eip);
-	printf("ss:esp 0x%x:0x%x; ", 0xffff & tf->tf_ss, tf->tf_esp);
-	printf("ebp 0x%x\n", tf->tf_ebp);
-	printf("   eax 0x%x; ", tf->tf_eax);
-	printf("ebx 0x%x; ", tf->tf_ebx);
-	printf("ecx 0x%x; ", tf->tf_ecx);
-	printf("edx 0x%x;\n", tf->tf_edx);
-	printf("   eflags 0x%x; ", tf->tf_eflags);
-	printf("edi 0x%x; ", tf->tf_edi);
-	printf("esi 0x%x; ", tf->tf_esi);
-	printf("ds 0x%x; ", 0xffff & tf->tf_ds);
-	printf("es 0x%x;\n", 0xffff & tf->tf_es);
+	printf("TRAP frame at %p\n", tf);
+	printf("	edi  0x%x\n", tf->tf_edi);
+	printf("	esi  0x%x\n", tf->tf_esi);
+	printf("	ebp  0x%x\n", tf->tf_ebp);
+	printf("	oesp 0x%x\n", tf->tf_oesp);
+	printf("	ebx  0x%x\n", tf->tf_ebx);
+	printf("	edx  0x%x\n", tf->tf_edx);
+	printf("	ecx  0x%x\n", tf->tf_ecx);
+	printf("	eax  0x%x\n", tf->tf_eax);
+	printf("	es   0x%x\n", tf->tf_es);
+	printf("	ds   0x%x\n", tf->tf_ds);
+	printf("	trap 0x%x\n", tf->tf_trapno);
+	printf("	err  0x%x\n", tf->tf_err);
+	printf("	eip  0x%x\n", tf->tf_eip);
+	printf("	cs   0x%x\n", tf->tf_cs);
+	printf("	flag 0x%x\n", tf->tf_eflags);
+	printf("	esp  0x%x\n", tf->tf_esp);
+	printf("	ss   0x%x\n", tf->tf_ss);
 }
-
 
 void
 trap(struct Trapframe *tf)
@@ -131,13 +135,7 @@ trap(struct Trapframe *tf)
 		printf("*");
 #endif
 
-///LAB4
-#if 0
-///END
-	print_trapframe(tf);
-///LAB4
-#endif
-///END
+	/* print_trapframe(tf); */
 
 	if (tf->tf_trapno == T_PGFLT) {
 		page_fault_handler(tf);
@@ -175,25 +173,16 @@ trap(struct Trapframe *tf)
 		printf(" eflags = 0x%x\n", tf->tf_eflags);
 	} else {
 		// the user process or the kernel has a bug..
-		print_trapframe(tf);
-		panic("That does it(Unhandled trap).");
 ///LAB4
 		if (tf->tf_cs == GD_KT)
-			panic("That does it(Unhandled trap in kernel).");
+			panic("unhandled trap in kernel");
 		else
 			env_destroy(curenv);
+///ELSE
+		print_trapframe(tf);
+		panic("unhandled trap");
 ///END
 	}
-
-///LAB4
-#if 0
-///END
-	panic("in lab3 don't continue..");
-///LAB4
-#endif
-///END
-
-
 }
 
 

@@ -6,8 +6,8 @@
 #include <inc/env.h>
 
 LIST_HEAD(Env_list, Env);
-extern struct Env *envs;		/* All environments */
-extern struct Env *curenv;	        /* the current env */
+extern struct Env *envs;		// All environments
+extern struct Env *curenv;	        // the current env
 
 void env_init (void);
 int env_alloc (struct Env **e, u_int parent_id);

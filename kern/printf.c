@@ -70,7 +70,7 @@ ksprintn(u_quad_t uq, int base, int *lenp)
  * equivalent.
  */
 
-static char *error_string[NERRORS] =
+static char *error_string[MAXERROR+1] =
 {
 	NULL,
 	"unspecified error",
@@ -170,7 +170,7 @@ kprintf(const char *fmt, va_list ap)
 			n = va_arg(ap, int);
 			if(n < 0)
 				n = -n;
-			if(n > NERRORS || (p = error_string[n]) == NULL)
+			if(n > MAXERROR || (p = error_string[n]) == NULL)
 				printf("error %d", n);
 			else
 				printf("%s", p);

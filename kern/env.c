@@ -26,7 +26,7 @@ mkenvid(struct Env *e)
 	// lower bits of envid hold e's position in the envs array
 	u_int idx = e - envs;
 	// high bits of envid hold an increasing number
-	return(next_env_id++ << (1 + LOG2NENV)) | idx;
+	return(++next_env_id << (1 + LOG2NENV)) | idx;
 }
 
 //
@@ -212,7 +212,7 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 
 //
 // Allocates a new env and loads the a.out binary into it.
-//  - new env's  parent env id is 0
+//  - new env's parent env id is 0
 void
 env_create(u_char *binary, int size)
 {
@@ -250,7 +250,7 @@ env_free(struct Env *e)
 ///END 
 
 	// For lab 3, env_free() doesn't really do
-	// anything(except leak memory).  We'll fix
+	// anything (except leak memory).  We'll fix
 	// this in later labs.
 	e->env_status = ENV_FREE;
 	LIST_INSERT_HEAD(&env_free_list, e, env_link);
@@ -295,7 +295,7 @@ env_pop_tf(struct Trapframe *tf)
 
 //
 // Context switch from curenv to env e.
-// Note: is this is the first call to env_run, curenv is NULL.
+// Note: if this is the first call to env_run, curenv is NULL.
 //  (This function does not return.)
 void
 env_run(struct Env *e)
