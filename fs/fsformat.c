@@ -9,34 +9,16 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <assert.h>
 #include <errno.h>
 
-/* It's too hard to know who has typedefed what. */
-#define int8_t xx_int8_t
-#define int16_t xx_int16_t
-#define int32_t xx_int32_t
-#define int64_t xx_int64_t
-#define uint8_t xx_uint8_t
-#define uint16_t xx_uint16_t
-#define uint32_t xx_uint32_t
-#define uint64_t xx_uint64_t
-#define u_int8_t xx_u_int8_t
-#define u_int16_t xx_u_int16_t
-#define u_int32_t xx_u_int32_t
-#define u_int64_t xx_u_int64_t
-#define u_char xx_u_char
-#define u_short xx_u_short
-#define u_int xx_u_int
-#define u_long xx_u_long
-#define u_quad_t xx_u_quad_t
-#define quad_t xx_quad_t
-#define register_t xx_register_t
-#define size_t xx_size_t
-#define qaddr_t xx_qaddr_t
+/* Prevent inc/types.h, included from inc/fs.h,
+ * from attempting to redefine types defined in the host's inttypes.h. */
+#define _INC_TYPES_H_
 
-#include <inc/types.h>
 #include <inc/mmu.h>
 #include <inc/fs.h>
 
@@ -50,9 +32,9 @@ typedef struct File File;
 
 Super super;
 int diskfd;
-u_int nblock;
-u_int nbitblock;
-u_int nextb;
+uint32_t nblock;
+uint32_t nbitblock;
+uint32_t nextb;
 
 enum
 {
@@ -65,20 +47,20 @@ enum
 typedef struct Block Block;
 struct Block
 {
-	u_int busy;
-	u_int bno;
-	u_int used;
-	u_char buf[BY2BLK];
-	u_int type;
+	uint32_t busy;
+	uint32_t bno;
+	uint32_t used;
+	uint8_t buf[BY2BLK];
+	uint32_t type;
 };
 
 Block cache[16];
 
-long
-readn(int f, void *av, long n)
+int32_t
+readn(int f, void *av, int32_t n)
 {
 	char *a;
-	long m, t;
+	int32_t m, t;
 
 	a = av;
 	t = 0;
@@ -96,12 +78,12 @@ readn(int f, void *av, long n)
 
 // make little-endian
 void
-swizzle(u_int *x)
+swizzle(uint32_t *x)
 {
-	u_int y;
-	u_char *z;
+	uint32_t y;
+	uint8_t *z;
 
-	z = (u_char*)x;
+	z = (uint8_t*)x;
 	y = *x;
 	z[0] = y&0xFF;
 	z[1] = (y>>8)&0xFF;
@@ -129,7 +111,7 @@ flushb(Block *b)
 	int i;
 	struct Super *s;
 	struct File *f;
-	u_int *u;
+	uint32_t *u;
 
 	switch(b->type){
 	case BLOCK_SUPER:
@@ -144,7 +126,7 @@ flushb(Block *b)
 			swizzlefile(f+i);
 		break;
 	case BLOCK_BITS:
-		u = (u_int*)b->buf;
+		u = (uint32_t*)b->buf;
 		for(i=0; i<BY2BLK/4; i++)
 			swizzle(u+i);
 		break;
@@ -168,7 +150,7 @@ flushb(Block *b)
 			swizzlefile(f+i);
 		break;
 	case BLOCK_BITS:
-		u = (u_int*)b->buf;
+		u = (uint32_t*)b->buf;
 		for(i=0; i<BY2BLK/4; i++)
 			swizzle(u+i);
 		break;
@@ -336,7 +318,7 @@ gotit:
 				f->f_indirect = bindir->bno;
 			}else
 				bindir = getblk(f->f_indirect, 0, BLOCK_BITS);
-			((u_int*)bindir->buf)[nblk] = b->bno;
+			((uint32_t*)bindir->buf)[nblk] = b->bno;
 			putblk(bindir);
 		}else{
 			fprintf(stderr, "%s: file too large\n", name);
@@ -359,7 +341,7 @@ finishfs(void)
 
 	for(i=0; i<nextb; i++){
 		b = getblk(2+i/BIT2BLK, 0, BLOCK_BITS);
-		((u_int*)b->buf)[(i%BIT2BLK)/32] &= ~(1<<(i%32));
+		((uint32_t*)b->buf)[(i%BIT2BLK)/32] &= ~(1<<(i%32));
 		putblk(b);
 	}
 
@@ -367,7 +349,7 @@ finishfs(void)
 	if(nblock != nbitblock*BIT2BLK){
 		b = getblk(2+nbitblock-1, 0, BLOCK_BITS);
 		for(i=nblock%BIT2BLK; i<BIT2BLK; i++)
-			((u_int*)b->buf)[i/32] &= ~(1<<(i%32));
+			((uint32_t*)b->buf)[i/32] &= ~(1<<(i%32));
 		putblk(b);
 	}
 
@@ -397,6 +379,8 @@ int
 main(int argc, char **argv)
 {
 	int i;
+
+	assert(sizeof(struct File) == BY2FILE);
 
 	if(argc < 2)
 		usage();

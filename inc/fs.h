@@ -24,15 +24,20 @@
 
 #define MAXFILESIZE	(NINDIRECT*BY2BLK)
 
+#define BY2FILE		256
 struct File {
-	u_char f_name[MAXNAMELEN];	// filename
-	u_int f_size;			// file size in bytes
-	u_int f_type;			// file type
-	u_int f_direct[NDIRECT];
-	u_int f_indirect;
+  union {
+    struct {
+	uint8_t f_name[MAXNAMELEN];	// filename
+	uint32_t f_size;		// file size in bytes
+	uint32_t f_type;		// file type
+	uint32_t f_direct[NDIRECT];
+	uint32_t f_indirect;
 
 	struct File *f_dir;		// valid only in memory
-	u_char f_pad[256-MAXNAMELEN-4-4-NDIRECT*4-4-4];
+    };
+    uint8_t f_pad[BY2FILE];		// make sizeof(struct File) == BY2FILE
+  };
 };
 
 #define FILE2BLK	(BY2BLK/sizeof(struct File))
@@ -47,8 +52,8 @@ struct File {
 #define FS_MAGIC	0x68286097	// Everyone's favorite OS class
 
 struct Super {
-	u_int s_magic;		// Magic number: FS_MAGIC
-	u_int s_nblocks;	// Total number of blocks on disk
+	uint32_t s_magic;	// Magic number: FS_MAGIC
+	uint32_t s_nblocks;	// Total number of blocks on disk
 	struct File s_root;	// Root directory node
 };
 
@@ -63,31 +68,31 @@ struct Super {
 #define FSREQ_SYNC	7
 
 struct Fsreq_open {
-	char req_path[MAXPATHLEN];
-	u_int req_omode;
+	uint8_t req_path[MAXPATHLEN];
+	uint32_t req_omode;
 };
 
 struct Fsreq_map {
-	int req_fileid;
-	u_int req_offset;
+	int32_t req_fileid;
+	uint32_t req_offset;
 };
 
 struct Fsreq_set_size {
-	int req_fileid;
-	u_int req_size;
+	int32_t req_fileid;
+	uint32_t req_size;
 };
 
 struct Fsreq_close {
-	int req_fileid;
+	int32_t req_fileid;
 };
 
 struct Fsreq_dirty {
-	int req_fileid;
-	u_int req_offset;
+	int32_t req_fileid;
+	uint32_t req_offset;
 };
 
 struct Fsreq_remove {
-	u_char req_path[MAXPATHLEN];
+	uint8_t req_path[MAXPATHLEN];
 };
 
 #endif // _FS_H_
