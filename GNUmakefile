@@ -60,7 +60,7 @@ clean:
 	rm -rf $(CLEAN_FILES) $(foreach dir,$(OBJDIRS), \
 				$(addprefix $(dir)/,$(CLEAN_PATS)))
 
-grade:
+grade: all
 	sh grade.sh
 
 handin: clean
@@ -90,11 +90,11 @@ LAB_FILES := GNUmakefile .bochsrc mergedep.pl grade.sh \
 # Fake targets to export the student lab handout and solution trees.
 # It's important that these aren't just called 'lab%' and 'sol%',
 # because that causes 'lab%' to match 'kern/lab3.S' and delete it - argh!
-export-lab%:
+export-lab%: bios
 	rm -rf lab$*
 	$(PERL) mklab.pl $* 0 $(LAB_FILES)
 	cp -R bios lab$*/
-export-sol%:
+export-sol%: bios
 	rm -rf sol$*
 	$(PERL) mklab.pl $* 1 $(LAB_FILES)
 	cp -R bios sol$*/
