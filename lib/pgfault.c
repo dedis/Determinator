@@ -25,7 +25,7 @@ set_pgfault_handler(void (*fn)(u_int va, u_int err))
 	int r;
 
 	if (_pgfault_handler == 0) {
-#if SOL >= 3
+#if SOL >= 4
 		// map exception stack
 		if ((r=sys_mem_alloc(0, UXSTACKTOP-BY2PG, PTE_P|PTE_U|PTE_W)) < 0)
 			panic("allocating exception stack: %e", r);

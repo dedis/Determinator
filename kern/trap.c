@@ -103,7 +103,7 @@ idt_init(void)
 	SETGATE(idt[T_ALIGN],  0, GD_KT, &Xalign,  0);
 	SETGATE(idt[T_MCHK],   0, GD_KT, &Xmchk,   0);
 
-#if LAB >= 4
+#if SOL >= 4
 	SETGATE(idt[IRQ_OFFSET + 0], 0, GD_KT, &Xirq0, 0);
 	SETGATE(idt[IRQ_OFFSET + 1], 0, GD_KT, &Xirq1, 0);
 	SETGATE(idt[IRQ_OFFSET + 2], 0, GD_KT, &Xirq2, 0);
@@ -120,7 +120,7 @@ idt_init(void)
 	SETGATE(idt[IRQ_OFFSET + 13], 0, GD_KT, &Xirq13, 0);
 	SETGATE(idt[IRQ_OFFSET + 14], 0, GD_KT, &Xirq14, 0);
 	SETGATE(idt[IRQ_OFFSET + 15], 0, GD_KT, &Xirq15, 0);
-#endif	// LAB >= 4
+#endif	// SOL >= 4
 
 	// Use DPL=3 here because system calls are explicitly invoked
 	// by the user process (with "int $T_SYSCALL").
