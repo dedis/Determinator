@@ -71,11 +71,11 @@ CLEAN_FILES += bios lab? sol?
 # because that causes 'lab%' to match 'kern/lab3.S' and delete it - argh!
 export-lab%: $(BIOS_FILES)
 	rm -rf lab$*
-	$(PERL) mklab.pl $* 0 $(LAB_FILES)
+	$(PERL) mklab.pl $* $* lab$* $(LAB_FILES)
 	cp -R bios lab$*/
 export-sol%: $(BIOS_FILES)
 	rm -rf sol$*
-	$(PERL) mklab.pl $* 1 $(LAB_FILES)
+	$(PERL) mklab.pl $* $* sol$* $(LAB_FILES)
 	cp -R bios sol$*/
 
 lab%.tar.gz: $(BIOS_FILES)

@@ -21,83 +21,51 @@ sub dofile {
 	open(OUTFILE, ">$tmpfilename") or die "Can't open $tmpfilename";
 
 	my $lines = 0;
-	my @pass = ();
-	while (<INFILE>) {
+	my %stack;
+	my $depth = 0;
+	$stack{$depth}->{'emit'} = 1;
 
+	while(<INFILE>) {
 		my $line = $_;
-		my $enabled = ($#pass < 0 || $pass[0]);
-		my $doprint = $enabled;
-
-		if (m|^[#]if\s+LAB\s*[>][=]\s*(\d+)|) {
-
-			# Collapse "#if LAB >= N" blocks
-			$doprint = 0;
-			if ($enabled) {
-				unshift (@pass, $labno >= $1);
+		chomp;
+		$emit = $stack{$depth}->{'emit'};
+		if (m:^[#](elif|if)\s+(LAB|SOL)\s*[>][=]\s*(\d+):) {
+			# Parse a new condition
+			if ($2 eq "LAB") {
+				$cond = ($labno >= $3);
 			} else {
-				unshift (@pass, $pass[0]);
+				$cond = ($solno >= $3);
 			}
-
-		} elsif (m|^[#]if\s+SOL\s*[>][=]\s*(\d+)|) {
-
-			# Collapse "#if SOL >= N" blocks
-			$doprint = 0;
-			if ($enabled) {
-				unshift (@pass, $solno >= $1);
-			} else {
-				unshift (@pass, $pass[0]);
+			if ($1 eq "if") {
+				$stack{++$depth} = { 'anytrue' => 0, 'isours' => 1 };
 			}
-
-		} elsif (m|^[#]if|) {
-
-			# Do not collapse other types of ifdefs,
-			# but keep track of them to preserve proper nesting.
-			if ($enabled) {
-				unshift (@pass, 2);
-			} else {
-				unshift (@pass, $pass[0]);
+			$stack{$depth}->{'emit'} = ($stack{$depth-1}->{'emit'} && $cond);
+			$stack{$depth}->{'anytrue'} |= $cond;
+			$emit = 0;
+		} elsif (m:^[#]if:) {
+			# Other conditions we just pass through
+			++$depth;
+			$stack{$depth} = { 'isours' => 1, 'emit' => $stack{$depth-1}->{'emit'} };
+		} elsif (m:^[#]else:) {
+			if ($stack{$depth}->{'isours'}) {
+				$emit = 0;
+				$stack{$depth}->{'emit'} = ($stack{$depth-1}->{'emit'} && !$stack{$depth}->{'anytrue'});
 			}
-
-		} elsif (m|^[#]else|) {
-
-			if ($#pass >= 1 && $pass[0] == 2) {
-				# Not an ifdef we're collapsing - do nothing.
-			} elsif ($enabled) {
-				# Output was enabled, so disable it
-				$pass[0] = 0;
-				$doprint = 0;
-			} elsif ($#pass >= 1 && !$pass[1]) {
-				# Output was disabled by enclosing ifdef,
-				# so keep it disabled.
-				$pass[0] = 0;
-				$doprint = 0;
-			} else {
-				# Output was disabled by current ifdef,
-				# so enable it now
-				$pass[0] = 1;
-				$doprint = 0;
+		} elsif (m:^[#]endif:) {
+			if ($stack{$depth}->{'isours'}) {
+				$emit = 0;
 			}
-
-		} elsif (m|^[#]endif|) {
-			if ($#pass >= 0) {
-				if ($pass[0] < 2) {
-					$doprint = 0;
-				}
-				shift (@pass);
-			} else {
-				print "Warning: unmatched #endif in $filename\n";
-			}
+			--$depth;
 		}
 
-		# Copy the line to the output file if appropriate
-		if ($doprint) {
-			print OUTFILE $line;
+		if ($emit) {
+			print OUTFILE "$_\n";
 			$lines++;
 		}
 	}
 
-	if ($#pass >= 0) {
-		print "Warning: unmatched #if/#ifdef in $filename\n";
+	if ($depth != 0) {
+		print STDERR "warning: unmatched #if/#ifdef/#elif/#else/#endif in $filename\n";
 	}
 
 	close INFILE;
@@ -119,27 +87,27 @@ sub dofile {
 	}
 }
 
-$labno = shift(@ARGV);
-$sols = shift(@ARGV);
-
-if ($labno < 1 || ($sols ne "0" && $sols ne "1")) {
-	print "Usage: mklab <labno> <sols> <srcfiles...>\n";
+sub usage { 
+	print STDERR "usage: mklab <labno> <solno> <outdir> <srcfiles...>\n";
 	exit(1);
 }
 
-if ($sols == 0) {
-	$outdir = "lab$labno";
-	$solno = 0;
-} else {
-	$outdir = "sol$labno";
-	$solno = $labno;
+if(@ARGV < 3) {
+	usage();
 }
 
-# Blow away the old output directory and create a new one
-mkdir($outdir, 0777) or die "Can't create subdirectory $outdir";
+$labno = shift(@ARGV);
+$solno = shift(@ARGV);
+$outdir = shift(@ARGV);
+
+if ($labno < 1 || $solno !~ /^0|[1-9][0-9]*$/) {
+	usage();
+}
+
+# Create a new output directory.
+mkdir($outdir, 0777) or die "mkdir $outdir: $!";
 
 # Populate the output directory
-foreach $i (0 .. $#ARGV) {
-	dofile($ARGV[$i]);
+foreach $i (@ARGV) {
+	dofile($i);
 }
-
