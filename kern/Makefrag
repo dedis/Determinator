@@ -48,6 +48,8 @@ ifdef LAB6
 KERN_BINFILES := \
 	user/icode \
 	user/idle \
+	user/pingpong \
+	user/primes \
 	user/testptelibrary \
 	user/testfdsharing \
 	user/testpipe \
