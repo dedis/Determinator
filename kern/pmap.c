@@ -519,6 +519,7 @@ page_free(struct Page *pp)
 int
 pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte)
 {
+///SOL2
 	int r;
 	struct Page *pp;
 	Pde *pde;
@@ -551,6 +552,9 @@ pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte)
 
 	*ppte = &pgtab[PTX(va)];
 	return 0;
+///ELSE
+	// Fill this function in
+///END
 }
 
 //
@@ -619,9 +623,7 @@ page_remove(Pde *pgdir, u_long va)
 
 	// Page is not mapped?  No work to do.
 	if (pte == 0)
-{warn("page_remove: not mapped %08lx\n", va);
 		return;
-}
 
 	// Sanity check: should be mapped and a valid entry.
 	if (!(*pte & PTE_P) || PPN(PTE_ADDR(*pte)) >= npage) {
@@ -643,7 +645,8 @@ page_remove(Pde *pgdir, u_long va)
 }
 
 //
-// xxx
+// Invalidate a TLB entry, but only if the page tables being
+// edited are the ones currently in use by the processor.
 //
 void
 tlb_invalidate(Pde *pgdir, u_long va)
