@@ -21,19 +21,20 @@
 // translates from virtual address to physical address
 #define PADDR(kva)						\
 ({								\
-	u_long a = (u_long) (kva);				\
-	if (a < KERNBASE)					\
-		panic("PADDR called with invalid kva %08lx", a);\
-	a - KERNBASE;						\
+	u_long __m_kva = (u_long) (kva);			\
+	if (__m_kva < KERNBASE)					\
+		panic("PADDR called with invalid kva %08lx", __m_kva);\
+	__m_kva - KERNBASE;					\
 })
 
 // translates from physical address to kernel virtual address
 #define KADDR(pa)						\
 ({								\
-	u_long ppn = PPN(pa);					\
-	if (ppn >= npage)					\
-		panic("KADDR called with invalid pa %08lx", (u_long)pa);\
-	(pa) + KERNBASE;					\
+	u_long __m_pa = (pa); \
+	u_long __m_ppn = PPN(__m_pa);				\
+	if (__m_ppn >= npage)					\
+		panic("KADDR called with invalid pa %08lx", __m_pa);\
+	__m_pa + KERNBASE;					\
 })
 
 
