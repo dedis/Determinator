@@ -1,5 +1,4 @@
 #if LAB >= 6
-
 #include <inc/lib.h>
 
 char *msg = "Now is the time for all good men to come to the aid of their party.";

@@ -1,5 +1,4 @@
 #if LAB >= 6
-
 #include <inc/lib.h>
 
 void wrong(int, int, int);
@@ -28,7 +27,7 @@ umain(void)
 		dup(wfd, 1);
 		close(rfd);
 		close(wfd);
-		if ((r = spawnl("sh", "sh", "-x", 0)) < 0)
+		if ((r = spawnl("/sh", "sh", "-x", 0)) < 0)
 			panic("spawn: %e", r);
 		close(0);
 		close(1);

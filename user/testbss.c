@@ -6,7 +6,7 @@
 
 #define ARRAYSIZE (1024*1024)
 
-u_int bigarray[ARRAYSIZE];
+uint32_t bigarray[ARRAYSIZE];
 
 void
 umain(void)

@@ -7,7 +7,7 @@
 void
 umain(void)
 {
-	printf("I read %08x from location 0!\n", *(u_int*)0);
+	printf("I read %08x from location 0!\n", *(unsigned*)0);
 }
 
 #endif

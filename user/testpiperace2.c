@@ -6,7 +6,6 @@ void
 umain(void)
 {
 	int p[2], r, i;
-	u_int va;
 	struct Fd *fd;
 	struct Env *kid;
 
@@ -62,7 +61,7 @@ umain(void)
 		panic("somehow the other end of p[0] got closed!");
 	if ((r = fd_lookup(p[0], &fd)) < 0)
 		panic("cannot look up p[0]: %e", r);
-	va = fd2data(fd);
+	(void) fd2data(fd);
 	printf("\nrace didn't happen\n");
 }
 #endif

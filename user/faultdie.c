@@ -5,9 +5,9 @@
 #include <inc/lib.h>
 
 void
-handler(void *va, uint32_t err)
+handler(void *addr, uint32_t err)
 {
-	printf("i faulted at va %x, err %x\n", va, err&7);
+	printf("i faulted at va %x, err %x\n", addr, err & 7);
 	sys_env_destroy(sys_getenvid());
 }
 

@@ -35,7 +35,7 @@ init_stack(u_int child, char **argv, u_int *init_esp)
 	strings = (char*)TMPPAGETOP - tot;
 	args = (u_int*)(TMPPAGETOP - ROUNDUP(tot, 4) - 4*(argc+1));
 
-	if ((r = sys_mem_alloc(0, TMPPAGE, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r = sys_page_alloc(0, TMPPAGE, PTE_P|PTE_U|PTE_W)) < 0)
 		return r;
 
 #if SOL >= 5
@@ -71,15 +71,15 @@ init_stack(u_int child, char **argv, u_int *init_esp)
 	*init_esp = USTACKTOP;	// Change this!
 #endif // not SOL >= 5
 
-	if ((r = sys_mem_map(0, TMPPAGE, child, USTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r = sys_page_map(0, TMPPAGE, child, USTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
 		goto error;
-	if ((r = sys_mem_unmap(0, TMPPAGE)) < 0)
+	if ((r = sys_page_unmap(0, TMPPAGE)) < 0)
 		goto error;
 
 	return 0;
 
 error:
-	sys_mem_unmap(0, TMPPAGE);
+	sys_page_unmap(0, TMPPAGE);
 	return r;
 }
 
@@ -96,10 +96,10 @@ copy_library(u_int child)
 			continue;
 		for (j=0; j<NPTENTRIES; j++) {
 			pn = i*NPTENTRIES+j;
-			if ((vpt[pn]&(PTE_P|PTE_LIBRARY)) == (PTE_P|PTE_LIBRARY)) {
+			if ((vpt[pn]&(PTE_P|PTE_SHARE)) == (PTE_P|PTE_SHARE)) {
 				va = pn<<PGSHIFT;
-				if ((r = sys_mem_map(0, va, child, va, vpt[pn]&PTE_USER)) < 0)
-					panic("sys_mem_map: %e", r);
+				if ((r = sys_page_map(0, va, child, va, vpt[pn]&PTE_USER)) < 0)
+					panic("sys_page_map: %e", r);
 			}
 		}
 	}
@@ -126,27 +126,27 @@ map_segment(int child, u_int va, u_int memsz,
 	for (i = 0; i < memsz; i+=PGSIZE) {
 		if (i >= filesz) {
 			// allocate a blank page
-			if ((r = sys_mem_alloc(child, va+i, perm)) < 0)
+			if ((r = sys_page_alloc(child, va+i, perm)) < 0)
 				return r;
 		} else {
 			// from file
 			if (perm&PTE_W) {
 				// must make a copy so it can be writable
-				if ((r = sys_mem_alloc(0, TMPPAGE, PTE_P|PTE_U|PTE_W)) < 0)
+				if ((r = sys_page_alloc(0, TMPPAGE, PTE_P|PTE_U|PTE_W)) < 0)
 					return r;
 				if ((r = seek(fd, fileoffset+i)) < 0)
 					return r;
 				if ((r = read(fd, (void*)TMPPAGE, MIN(PGSIZE, filesz-i))) < 0)
 					return r;
-				if ((r = sys_mem_map(0, TMPPAGE, child, va+i, perm)) < 0)
-					panic("spawn: sys_mem_map data: %e", r);
-				sys_mem_unmap(0, TMPPAGE);
+				if ((r = sys_page_map(0, TMPPAGE, child, va+i, perm)) < 0)
+					panic("spawn: sys_page_map data: %e", r);
+				sys_page_unmap(0, TMPPAGE);
 			} else {
 				// can map buffer cache read only
 				if ((r = read_map(fd, fileoffset+i, &blk)) < 0)
 					return r;
-				if ((r = sys_mem_map(0, (u_int)blk, child, va+i, perm)) < 0)
-					panic("spawn: sys_mem_map text: %e", r);
+				if ((r = sys_page_map(0, (u_int)blk, child, va+i, perm)) < 0)
+					panic("spawn: sys_page_map text: %e", r);
 			}
 		}
 	}
@@ -161,7 +161,7 @@ map_segment(int child, u_int va, u_int memsz,
 // 	 which will be passed to the child as its command-line arguments.
 // Returns child envid on success, < 0 on failure.
 int
-spawn(char *prog, char **argv)
+spawn(const char *prog, const char **argv)
 {
 #if SOL >= 5
 	int child, fd, i, r;
@@ -186,7 +186,7 @@ spawn(char *prog, char **argv)
 	}
 
 	// Create new child environment
-	if ((r = sys_env_alloc()) < 0)
+	if ((r = sys_exofork()) < 0)
 		return r;
 	child = r;
 
@@ -219,10 +219,10 @@ spawn(char *prog, char **argv)
 	tf.tf_eip = elf->e_entry;
 	tf.tf_esp = init_esp;
 
-	if ((r = sys_set_trapframe(child, &tf)) < 0)
+	if ((r = sys_env_set_trapframe(child, &tf)) < 0)
 		panic("sys_set_tf: %e", r);
 
-	if ((r = sys_set_status(child, ENV_RUNNABLE)) < 0)
+	if ((r = sys_env_set_status(child, ENV_RUNNABLE)) < 0)
 		panic("sys_set_status: %e", r);
 
 	return child;
@@ -289,9 +289,9 @@ error:
 
 // Spawn, taking command-line arguments array directly on the stack.
 int
-spawnl(char *prog, char *args, ...)
+spawnl(const char *prog, const char *arg0, ...)
 {
-	return spawn(prog, &args);
+	return spawn(prog, &arg0);
 }
 
 #endif

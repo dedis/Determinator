@@ -1,12 +1,11 @@
 #if LAB >= 6
-
 #include <inc/lib.h>
 
 void
 umain(void)
 {
 	int p[2], r, pid, i, max;
-	u_int va;
+	void *va;
 	struct Fd *fd;
 	struct Env *kid;
 
@@ -61,7 +60,7 @@ umain(void)
 	if ((r = fd_lookup(p[0], &fd)) < 0)
 		panic("cannot look up p[0]: %e", r);
 	va = fd2data(fd);
-	if (pageref((void*)va) != 3+1)
+	if (pageref(va) != 3+1)
 		printf("\nchild detected race\n");
 	else
 		printf("\nrace didn't happen\n", max);

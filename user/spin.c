@@ -8,12 +8,13 @@
 void
 umain(void)
 {
-	u_int who;
+	envid_t env;
 
 	printf("I am the parent.  Forking the child...\n");
-	if ((who = fork()) == 0) {
+	if ((env = fork()) == 0) {
 		printf("I am the child.  Spinning...\n");
-		for (;;) { }
+		while (1)
+			/* nada */;
 	}
 
 	printf("I am the parent.  Running the child...\n");
@@ -22,9 +23,12 @@ umain(void)
 	sys_yield();
 	sys_yield();
 	sys_yield();
+	sys_yield();
+	sys_yield();
+	sys_yield();
 
 	printf("I am the parent.  Killing the child...\n");
-	sys_env_destroy(who);
+	sys_env_destroy(env);
 }
 
 #endif

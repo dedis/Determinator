@@ -11,11 +11,11 @@
 
 #include <inc/lib.h>
 
-u_int
+unsigned
 primeproc(void)
 {
 	int i, id, p;
-	u_int envid;
+	envid_t envid;
 
 	// fetch a prime from our left neighbor
 top:
@@ -29,9 +29,9 @@ top:
 		goto top;
 	
 	// filter out multiples of our prime
-	for (;;) {
+	while (1) {
 		i = ipc_recv(&envid, 0, 0);
-		if (i%p)
+		if (i % p)
 			ipc_send(id, i, 0, 0);
 	}
 }
@@ -42,13 +42,13 @@ umain(void)
 	int i, id;
 
 	// fork the first prime process in the chain
-	if ((id=fork()) < 0)
+	if ((id = fork()) < 0)
 		panic("fork: %e", id);
 	if (id == 0)
 		primeproc();
 
 	// feed all the integers through
-	for (i=2;; i++)
+	for (i = 2; ; i++)
 		ipc_send(id, i, 0, 0);
 }
 

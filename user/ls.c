@@ -1,19 +1,18 @@
 #if LAB >= 5
-
 #include <inc/lib.h>
 
 int flag[256];
 
-void lsdir(char*, char*);
-void ls1(char*, u_int, u_int, char*);
+void lsdir(const char*, const char*);
+void ls1(const char*, bool, off_t, const char*);
 
 void
-ls(char *path, char *prefix)
+ls(const char *path, const char *prefix)
 {
 	int r;
 	struct Stat st;
 
-	if ((r=stat(path, &st)) < 0)
+	if ((r = stat(path, &st)) < 0)
 		panic("stat %s: %e", path, r);
 	if (st.st_isdir && !flag['d'])
 		lsdir(path, prefix);
@@ -22,7 +21,7 @@ ls(char *path, char *prefix)
 }
 
 void
-lsdir(char *path, char *prefix)
+lsdir(const char *path, const char *prefix)
 {
 	int fd, n;
 	struct File f;
@@ -39,7 +38,7 @@ lsdir(char *path, char *prefix)
 }
 
 void
-ls1(char *prefix, u_int isdir, u_int size, char *name)
+ls1(const char *prefix, bool isdir, off_t size, const char *name)
 {
 	char *sep;
 
@@ -76,7 +75,7 @@ umain(int argc, char **argv)
 	case 'd':
 	case 'F':
 	case 'l':
-		flag[(u_char)ARGC()]++;
+		flag[(uint8_t)ARGC()]++;
 		break;
 	}ARGEND
 

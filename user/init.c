@@ -1,5 +1,4 @@
 #if LAB >= 5
-
 #include <inc/lib.h>
 
 struct {
@@ -13,13 +12,11 @@ struct {
 char bss[6000];
 
 int
-sum(char *s, int n)
+sum(const char *s, int n)
 {
-	int i, tot;
-
-	tot = 0;
-	for(i=0; i<n; i++)
-		tot ^= i*s[i];
+	int i, tot = 0;
+	for (i = 0; i < n; i++)
+		tot ^= i * s[i];
 	return tot;
 }
 		
@@ -31,18 +28,18 @@ umain(int argc, char **argv)
 	printf("init: running\n");
 
 	want = 0xf989e;
-	if ((x=sum((char*)&data, sizeof data)) != want)
+	if ((x = sum((char*)&data, sizeof data)) != want)
 		printf("init: data is not initialized: got sum %08x wanted %08x\n",
 			x, want);
 	else
 		printf("init: data seems okay\n");
-	if ((x=sum(bss, sizeof bss)) != 0)
+	if ((x = sum(bss, sizeof bss)) != 0)
 		printf("bss is not initialized: wanted sum 0 got %08x\n", x);
 	else
 		printf("init: bss seems okay\n");
 
 	printf("init: args:");
-	for (i=0; i<argc; i++)
+	for (i = 0; i < argc; i++)
 		printf(" '%s'", argv[i]);
 	printf("\n");
 
@@ -59,14 +56,14 @@ umain(int argc, char **argv)
 		panic("dup: %e", r);
 	for (;;) {
 		printf("init: starting sh\n");
-		r = spawnl("sh", "sh", (char*)0);
+		r = spawnl("/sh", "sh", (char*)0);
 		if (r < 0) {
 			printf("init: spawn sh: %e\n", r);
 			continue;
 		}
 		wait(r);
 	}
-#else	// LAB 5
+#else  // LAB 5
 	printf("init: exiting\n");
 #endif
 }

@@ -1,5 +1,4 @@
 #if LAB >= 5
-
 #include <inc/lib.h>
 
 void

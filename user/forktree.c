@@ -5,10 +5,10 @@
 
 #define DEPTH 3
 
-void forktree(char *cur);
+void forktree(const char *cur);
 
 void
-forkchild(char *cur, char branch)
+forkchild(const char *cur, char branch)
 {
 	char nxt[DEPTH+1];
 
@@ -23,9 +23,9 @@ forkchild(char *cur, char branch)
 }
 
 void
-forktree(char *cur)
+forktree(const char *cur)
 {
-	printf("%x: I am '%s'\n", sys_getenvid(), cur);
+	printf("%04x: I am '%s'\n", sys_getenvid(), cur);
 
 	forkchild(cur, '0');
 	forkchild(cur, '1');

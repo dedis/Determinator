@@ -9,18 +9,18 @@
 void
 umain(void)
 {
-	u_int who, id;
+	envid_t who, id;
 
 	id = sys_getenvid();
 
 	if (env == &envs[1]) {
-		for (;;) {
+		while (1) {
 			ipc_recv(&who, 0, 0);
 			printf("%x recv from %x\n", id, who);
 		}
 	} else {
 		printf("%x loop sending to %x\n", id, envs[1].env_id);
-		for (;;)
+		while (1)
 			ipc_send(envs[1].env_id, 0, 0, 0);
 	}
 }

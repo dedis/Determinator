@@ -120,7 +120,7 @@ free(void *v)
 
 	if (v == 0)
 		return;
-	assert(mbegin <= v && v < mend);
+	assert(mbegin <= (uint8_t*) v && (uint8_t*) v < mend);
 
 	c = ROUNDDOWN(v, PGSIZE);
 

@@ -6,14 +6,14 @@
 #include <inc/lib.h>
 
 void
-handler(void *va, uint32_t err)
+handler(void *addr, uint32_t err)
 {
 	int r;
 
-	printf("fault %x\n", va);
-	if ((r = sys_page_alloc(0, va, PTE_P|PTE_U|PTE_W)) < 0)
-		panic("allocating at %x in page fault handler: %e", va, r);
-	snprintf((char*)va, 100, "this string was faulted in at %x", va);
+	printf("fault %x\n", addr);
+	if ((r = sys_page_alloc(0, ROUNDDOWN(addr, PGSIZE), PTE_P|PTE_U|PTE_W)) < 0)
+		panic("allocating at %x in page fault handler: %e", addr, r);
+	snprintf((char*) addr, 100, "this string was faulted in at %x", addr);
 }
 
 void

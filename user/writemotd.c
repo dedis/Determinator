@@ -1,5 +1,4 @@
 #if LAB >= 5
-
 #include <inc/lib.h>
 
 void
@@ -13,6 +12,9 @@ umain(void)
 		panic("open /newmotd: %e", rfd);
 	if ((wfd = open("/motd", O_RDWR)) < 0)
 		panic("open /motd: %e", wfd);
+	printf("file descriptors %d %d\n", rfd, wfd);
+	if (rfd == wfd)
+		panic("open /newmotd and /motd give same file descriptor");
 
 	printf("OLD MOTD\n===\n");
 	while ((n = read(wfd, buf, sizeof buf-1)) > 0) {
@@ -29,7 +31,7 @@ umain(void)
 	while ((n = read(rfd, buf, sizeof buf-1)) > 0) {
 		buf[n] = 0;
 		sys_cputs(buf);
-		if ((r=write(wfd, buf, n)) != n)
+		if ((r = write(wfd, buf, n)) != n)
 			panic("write /motd: %e", r);
 	}
 	printf("===\n");

@@ -1,4 +1,4 @@
-#if LAB >= 6
+#if LAB >= 5
 // Concurrent version of prime sieve of Eratosthenes.
 // Invented by Doug McIlroy, inventor of Unix pipes.
 // See http://plan9.bell-labs.com/~rsc/thread.html.
@@ -11,14 +11,14 @@
 
 #include <inc/lib.h>
 
-u_int
+unsigned
 primeproc(int fd)
 {
 	int i, id, p, pfd[2], wfd, r;
 
 	// fetch a prime from our left neighbor
 top:
-	if ((r=readn(fd, &p, 4)) != 4)
+	if ((r = readn(fd, &p, 4)) != 4)
 		panic("primeproc could not read initial prime: %d, %e", r, r >= 0 ? 0 : r);
 
 	printf("%d\n", p);

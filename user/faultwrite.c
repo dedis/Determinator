@@ -7,7 +7,7 @@
 void
 umain(void)
 {
-	*(u_int*)0 = 0;
+	*(unsigned*)0 = 0;
 }
 
 #endif

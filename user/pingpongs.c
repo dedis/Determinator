@@ -5,12 +5,13 @@
 
 #include <inc/lib.h>
 
-u_int val;
+uint32_t val;
 
 void
 umain(void)
 {
-	u_int who, i;
+	envid_t who;
+	uint32_t i;
 
 	i = 0;
 	if ((who = sfork()) != 0) {
