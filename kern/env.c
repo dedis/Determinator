@@ -130,10 +130,10 @@ env_setup_vm(struct Env *e)
 	// Hint:
 
 	int i, r;
-	struct Page *pp1 = NULL;
+	struct Page *p = NULL;
 
 	// Allocate a page for the page directory
-	if ((r = page_alloc(&pp1)) < 0)
+	if ((r = page_alloc(&p)) < 0)
 		return r;
 	// Hint:
 	//    - The VA space of all envs is identical above UTOP
@@ -143,8 +143,8 @@ env_setup_vm(struct Env *e)
 	//    - Note: pp_refcnt is not maintained for physical pages mapped above UTOP.
 
 ///SOL3
-	e->env_cr3 = page2pa(pp1);
-	e->env_pgdir = page2kva(pp1);
+	e->env_cr3 = page2pa(p);
+	e->env_pgdir = page2kva(p);
 	bzero(e->env_pgdir, BY2PG);
 
 	// The VA space of all envs is identical above UTOP...
