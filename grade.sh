@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Kernel will panic, which will drop back to debugger.
-(echo "c"; echo "quit") | bochs-nogui >bochs.out
+(echo "c"; echo "quit") | bochs-nogui 'parport1: enable=1, file="bochs.out"' 
 
 score=0
 

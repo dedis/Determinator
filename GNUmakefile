@@ -101,9 +101,8 @@ grade: all
 	sh grade.sh
 
 handin: clean
-	-rm handin.tgz
-	$(TAR) czvf handin5.tgz .
-
+	-rm -f handin5.tgz
+	tar cf - . | gzip | uuencode handin.tar.gz | mail 6.828-handin@pdos.lcs.mit.edu
 
 # This magic automatically generates makefile dependencies
 # for header files included from C source files we compile,
@@ -113,4 +112,6 @@ handin: clean
 	@$(PERL) mergedep.pl $@ $^
 
 -include .deps
+
+.phony: lab%.tar.gz
 
