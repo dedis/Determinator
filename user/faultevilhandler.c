@@ -7,8 +7,8 @@
 void
 umain(void)
 {
-	sys_mem_alloc(0, UXSTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W);
-	sys_set_pgfault_entry(0, 0xF0100020);
+	sys_page_alloc(0, UXSTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W);
+	sys_env_set_pgfault_upcall(0, 0xF0100020);
 	*(int*)0 = 0;
 }
 #endif

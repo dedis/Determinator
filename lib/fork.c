@@ -30,16 +30,16 @@ pgfault(u_int va, u_int err)
 	tmp = (u_char*)(UTEXT-PGSIZE);	// should be available!
 
 	// copy page
-	if ((r=sys_mem_alloc(0, (u_int)tmp, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r=sys_page_alloc(0, (void*) tmp, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_mem_alloc: %e", r);
 	memcpy(tmp, (u_char*)ROUNDDOWN(va, PGSIZE), PGSIZE);
 
 	// remap over faulting page
-	if ((r=sys_mem_map(0, (u_int)tmp, 0, va, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r=sys_page_map(0, (void*) tmp, 0, va, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_mem_map: %e", r);
 
 	// unmap our work space
-	if ((r=sys_mem_unmap(0, (u_int)tmp)) < 0)
+	if ((r=sys_page_unmap(0, (void*) tmp)) < 0)
 		panic("sys_mem_unmap: %e", r);
 #else
 	// Your code here.
@@ -72,8 +72,8 @@ duppage(u_int envid, u_int pn)
 	// if the page is just read-only, just map it in.
 	if ((pte&(PTE_W|PTE_COW)) == 0) {
 #endif
-		if ((r=sys_mem_map(0, addr, envid, addr, pte&PTE_USER)) < 0)
-			panic("sys_mem_map: %e", r);
+		if ((r=sys_page_map(0, addr, envid, addr, pte&PTE_USER)) < 0)
+			panic("sys_page_map: %e", r);
 		return;
 	}
 
@@ -88,12 +88,12 @@ duppage(u_int envid, u_int pn)
 	//
 	// Even if we think the page is already copy-on-write in our
 	// address space, we need to mark it copy-on-write again after
-	// the first sys_mem_map, just in case a page fault has caused
+	// the first sys_page_map, just in case a page fault has caused
 	// us to copy the page in the interim.
 
-	if ((r=sys_mem_map(0, addr, envid, addr, PTE_P|PTE_U|PTE_COW)) < 0)
+	if ((r=sys_page_map(0, addr, envid, addr, PTE_P|PTE_U|PTE_COW)) < 0)
 		panic("sys_mem_map: %e", r);
-	if ((r=sys_mem_map(0, addr, 0, addr, PTE_P|PTE_U|PTE_COW)) < 0)
+	if ((r=sys_page_map(0, addr, 0, addr, PTE_P|PTE_U|PTE_COW)) < 0)
 		panic("sys_mem_map: %e", r);
 #else
 	// Your code here.
@@ -117,7 +117,7 @@ fork(void)
 	set_pgfault_handler(pgfault);
 
 	// Create a child.
-	envid = sys_env_alloc();
+	envid = sys_exofork();
 	if (envid < 0)
 		return envid;
 	if (envid == 0) {
@@ -140,16 +140,16 @@ fork(void)
 	}
 
 	// The child needs to start out with a valid exception stack.
-	if ((r=sys_mem_alloc(envid, UXSTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r=sys_page_alloc(envid, UXSTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("allocating exception stack: %e", r);
 
 	// Copy the user-mode exception entrypoint.
-	if ((r=sys_set_pgfault_entry(envid, env->env_pgfault_upcall)) < 0)
+	if ((r=sys_env_set_pgfault_upcall(envid, env->env_pgfault_upcall)) < 0)
 		panic("sys_set_pgfault_entry: %e", r);
 
 
 	// Okay, the child is ready for life on its own.
-	if ((r=sys_set_status(envid, ENV_RUNNABLE)) < 0)
+	if ((r=sys_env_set_status(envid, ENV_RUNNABLE)) < 0)
 		panic("sys_set_env_status: %e", r);
 
 	return envid;

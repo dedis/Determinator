@@ -27,11 +27,11 @@ set_pgfault_handler(void (*fn)(u_int va, u_int err))
 	if (_pgfault_handler == 0) {
 #if SOL >= 4
 		// map exception stack
-		if ((r=sys_mem_alloc(0, UXSTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
+		if ((r=sys_page_alloc(0, UXSTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
 			panic("allocating exception stack: %e", r);
 
 		// register assembly pgfault entrypoint with JOS kernel
-		sys_set_pgfault_entry(0, (u_int)_pgfault_entry);
+		sys_env_set_pgfault_upcall(0, (u_int)_pgfault_entry);
 #else
 		// Your code here:
 		// map one page of exception stack with top at UXSTACKTOP

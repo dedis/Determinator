@@ -43,40 +43,39 @@ void	set_pgfault_handler(void(*)(u_int va, u_int err));
 char *	readline(const char *buf);
 
 // syscall.c
-void	sys_cputs(char*);
+void	sys_cputs(const char *);
 int	sys_cgetc(void);
-u_int	sys_getenvid(void);
-int	sys_env_destroy(u_int);
+envid_t	sys_getenvid(void);
+int	sys_env_destroy(envid_t);
 #if LAB >= 4
 void	sys_yield(void);
-int	sys_mem_alloc(u_int, u_int, u_int);
-int	sys_mem_map(u_int, u_int, u_int, u_int, u_int);
-int	sys_mem_unmap(u_int, u_int);
-// int	sys_env_alloc(void);
-int	sys_set_trapframe(u_int, struct Trapframe*);
-int	sys_set_status(u_int, u_int);
-int	sys_set_pgfault_entry(u_int, u_int);
-int	sys_ipc_can_send(u_int, u_int, u_int, u_int);
-void	sys_ipc_recv(u_int);
+int	sys_page_alloc(envid_t, void *, int);
+int	sys_page_map(envid_t, void *, envid_t, void *, int);
+int	sys_page_unmap(envid_t, void*);
+// envid_t sys_exofork(void);
+int	sys_env_set_status(envid_t, int);
+int	sys_env_set_trapframe(envid_t, struct Trapframe*);
+int	sys_env_set_pgfault_upcall(envid_t, uintptr_t);
+int	sys_ipc_try_send(envid_t, uint32_t, void *, int);
+int	sys_ipc_recv(void *);
 
 // This must be inlined.  
 // Exercise for reader: why?
-static inline int
-sys_env_alloc(void)
+static inline envid_t
+sys_exofork(void)
 {
-	int ret;
-
+	envid_t ret;
 	asm volatile("int %2"
 		: "=a" (ret)
-		: "a" (SYS_env_alloc),
+		: "a" (SYS_exofork),
 		  "i" (T_SYSCALL)
 	);
 	return ret;
 }
 
 // ipc.c
-void	ipc_send(u_int whom, u_int val, u_int srcva, u_int perm);
-u_int	ipc_recv(u_int *whom, u_int dstva, u_int *perm);
+void	ipc_send(envid_t whom, uint32_t val, void *srcva, int perm);
+uint32_t ipc_recv(envid_t *whom, void *dstva, int *perm);
 
 // fork.c
 #define	PTE_LIBRARY	0x400

@@ -1,31 +1,28 @@
 #if LAB >= 3
-#ifndef _SYSCALL_H_
-#define _SYSCALL_H_
-
-#include <inc/types.h>
+#ifndef JOS_INC_SYSCALL_H
+#define JOS_INC_SYSCALL_H
 
 /* system call numbers */
 enum
 {
-	SYS_cputs	= 0,
+	SYS_cputs = 0,
 	SYS_cgetc,
 	SYS_getenvid,
 	SYS_env_destroy,
 #if LAB >= 4
+	SYS_page_alloc,
+	SYS_page_map,
+	SYS_page_unmap,
+	SYS_exofork,
+	SYS_env_set_status,
+	SYS_env_set_trapframe,
+	SYS_env_set_pgfault_upcall,
 	SYS_yield,
-	SYS_mem_alloc,
-	SYS_mem_map,
-	SYS_mem_unmap,
-	SYS_env_alloc,
-	SYS_set_trapframe,
-	SYS_set_status,
-	SYS_set_pgfault_entry,
-	SYS_ipc_can_send,
+	SYS_ipc_try_send,
 	SYS_ipc_recv,
 #endif	// LAB >= 4
-
-	NSYSCALLS,
+	NSYSCALLS
 };
 
-#endif /* !_SYSCALL_H_ */
+#endif /* !JOS_INC_SYSCALL_H */
 #endif /* LAB >= 3 */

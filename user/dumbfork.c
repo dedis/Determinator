@@ -32,12 +32,12 @@ duppage(u_int dstenv, u_int addr)
 	tmp = (u_char*)(UTEXT-PGSIZE);	// should be available!
 
 	// This is NOT what you should do in your fork.
-	if ((r=sys_mem_alloc(dstenv, addr, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r=sys_page_alloc(dstenv, addr, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_mem_alloc: %e", r);
-	if ((r=sys_mem_map(dstenv, addr, 0, (u_int)tmp, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r=sys_page_map(dstenv, addr, 0, tmp, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_mem_map: %e", r);
 	memcpy(tmp, (u_char*)addr, PGSIZE);
-	if ((r=sys_mem_unmap(0, (u_int)tmp)) < 0)
+	if ((r=sys_page_unmap(0, (u_int)tmp)) < 0)
 		panic("sys_mem_unmap: %e", r);
 }
 
@@ -52,7 +52,7 @@ dumbfork(void)
 	// so that the child will appear to have called sys_env_alloc() too -
 	// except that in the child, this "fake" call to sys_env_alloc()
 	// will return 0 instead of the envid of the child.
-	envid = sys_env_alloc();
+	envid = sys_exofork();
 	if (envid < 0)
 		panic("sys_env_fork: %e", envid);
 	if (envid == 0) {
@@ -75,7 +75,7 @@ dumbfork(void)
 
 	// Start the child environment running
 	// (at the point above where the register state was copied).
-	if ((r=sys_set_status(envid, ENV_RUNNABLE)) < 0)
+	if ((r=sys_env_set_status(envid, ENV_RUNNABLE)) < 0)
 		panic("sys_set_status: %e", r);
 
 	return envid;

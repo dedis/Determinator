@@ -4,8 +4,8 @@
 #include <inc/syscall.h>
 #include <inc/lib.h>
 
-static inline int
-syscall(int num, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
+static inline uint32_t
+syscall(int num, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
 {
 	int ret;
 
@@ -35,9 +35,9 @@ syscall(int num, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 }
 
 void
-sys_cputs(char *a1)
+sys_cputs(const char *a1)
 {
-	syscall(SYS_cputs, (u_int) a1, 0, 0, 0, 0);
+	syscall(SYS_cputs, (uint32_t) a1, 0, 0, 0, 0);
 }
 
 int
@@ -47,12 +47,12 @@ sys_cgetc(void)
 }
 
 int
-sys_env_destroy(u_int envid)
+sys_env_destroy(envid_t envid)
 {
 	return syscall(SYS_env_destroy, envid, 0, 0, 0, 0);
 }
 
-u_int
+envid_t
 sys_getenvid(void)
 {
 	 return syscall(SYS_getenvid, 0, 0, 0, 0, 0);
@@ -66,53 +66,53 @@ sys_yield(void)
 }
 
 int
-sys_mem_alloc(u_int envid, u_int va, u_int perm)
+sys_page_alloc(envid_t envid, void *va, int perm)
 {
-	return syscall(SYS_mem_alloc, envid, va, perm, 0, 0);
+	return syscall(SYS_page_alloc, envid, (uint32_t) va, perm, 0, 0);
 }
 
 int
-sys_mem_map(u_int srcenv, u_int srcva, u_int dstenv, u_int dstva, u_int perm)
+sys_page_map(envid_t srcenv, void *srcva, envid_t dstenv, void *dstva, int perm)
 {
-	return syscall(SYS_mem_map, srcenv, srcva, dstenv, dstva, perm);
+	return syscall(SYS_page_map, srcenv, (uint32_t) srcva, dstenv, (uint32_t) dstva, perm);
 }
 
 int
-sys_mem_unmap(u_int envid, u_int va)
+sys_page_unmap(envid_t envid, void *va)
 {
-	return syscall(SYS_mem_unmap, envid, va, 0, 0, 0);
+	return syscall(SYS_page_unmap, envid, (uint32_t) va, 0, 0, 0);
 }
 
-// sys_env_alloc is inlined in lib.h
+// sys_exofork is inlined in lib.h
 
 int
-sys_set_trapframe(u_int envid, struct Trapframe *tf)
+sys_env_set_status(envid_t envid, int status)
 {
-	return syscall(SYS_set_trapframe, envid, (u_int)tf, 0, 0, 0);
-}
-
-int
-sys_set_status(u_int envid, u_int status)
-{
-	return syscall(SYS_set_status, envid, status, 0, 0, 0);
+	return syscall(SYS_env_set_status, envid, status, 0, 0, 0);
 }
 
 int
-sys_set_pgfault_entry(u_int envid, u_int a1)
+sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 {
-	return syscall(SYS_set_pgfault_entry, envid, a1, 0, 0, 0);
+	return syscall(SYS_env_set_trapframe, envid, (uint32_t) tf, 0, 0, 0);
 }
 
 int
-sys_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm)
+sys_env_set_pgfault_upcall(envid_t envid, uintptr_t upcall)
 {
-	return syscall(SYS_ipc_can_send, envid, value, srcva, perm, 0);
+	return syscall(SYS_env_set_pgfault_upcall, envid, upcall, 0, 0, 0);
 }
 
-void
-sys_ipc_recv(u_int dstva)
+int
+sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, int perm)
 {
-	syscall(SYS_ipc_recv, dstva, 0, 0, 0, 0);
+	return syscall(SYS_ipc_try_send, envid, value, (uint32_t) srcva, perm, 0);
+}
+
+int
+sys_ipc_recv(void *dstva)
+{
+	return syscall(SYS_ipc_recv, (uint32_t) dstva, 0, 0, 0, 0);
 }
 #endif	// LAB >= 4
 
