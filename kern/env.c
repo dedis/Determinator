@@ -174,8 +174,17 @@ env_alloc(struct Env **new, u_int parent_id)
 #else
 	e->env_tf.tf_eflags = 0;
 #endif
-
+#if LAB >= 5
+	// If this is the file server (e==&envs[1]) give it I/O privileges.
+#if SOL >= 5
+	if (e == &envs[1])
+		e->env_tf.tf_eflags |= FL_IOPL0|FL_IOPL1;
+#else
+	//   (your code here)
+#endif
+#endif
 	e->env_ipc_recving = 0;
+
 
 	e->env_pgfault_handler = 0;
 	e->env_xstacktop = 0;

@@ -18,7 +18,7 @@ struct Fileinfo
 };
 
 // local information about open files
-static struct Fileinfo filetab[MAXFD];
+extern struct Fileinfo fdtab[MAXFD];
 
 // Find an available struct Fileinfo in filetab
 static int
@@ -26,12 +26,15 @@ fd_alloc(struct Fileinfo **fi)
 {
 	int i;
 
+	// entry.S only gives us a page!
+	assert(sizeof(fdtab) < BY2PG);
+
 	for (i=0; i<MAXFD; i++)
-		if (!filetab[i].fi_busy) {
+		if (!fdtab[i].fi_busy) {
 			if (fi)
-				*fi = &filetab[i];
-			filetab[i].fi_busy = 1;
-			filetab[i].fi_va = FILEBASE+PDMAP*i;
+				*fi = &fdtab[i];
+			fdtab[i].fi_busy = 1;
+			fdtab[i].fi_va = FILEBASE+PDMAP*i;
 			
 			return i;
 		}
@@ -42,9 +45,9 @@ fd_alloc(struct Fileinfo **fi)
 static int
 fd_lookup(int fd, struct Fileinfo **fi)
 {
-	if (fd < 0 || fd >= MAXFD || !filetab[fd].fi_busy)
+	if (fd < 0 || fd >= MAXFD || !fdtab[fd].fi_busy)
 		return -E_INVAL;
-	*fi = &filetab[fd];
+	*fi = &fdtab[fd];
 	return 0;
 }
 

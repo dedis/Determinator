@@ -39,15 +39,21 @@ sys_yield(void)
 }
 
 // destroy the current environment
-static void
-sys_env_destroy(void)
+static int
+sys_env_destroy(u_int envid)
 {
+	int r;
+	struct Env *e;
+
+	if ((r=envid2env(envid, &e, 1)) < 0)
+		return r;
 #if LAB >= 5
-	// printf("[%08x] exiting gracefully\n", curenv->env_id);
+	// printf("[%08x] destroying %08x\n", curenv->env_id, e->env_id);
 #else
-	printf("[%08x] exiting gracefully\n", curenv->env_id);
+	printf("[%08x] destroying %08x\n", curenv->env_id, e->env_id);
 #endif
-	env_destroy(curenv);
+	env_destroy(e);
+	return 0;
 }
 
 // Block until a value is ready.  Record that you want to receive,
@@ -247,10 +253,12 @@ sys_mem_unmap(u_int envid, u_int va)
 	int r;
 	struct Env *e;
 
-	if ((r=envid2env(envid, &e, 1)) == 0)
+	if ((r=envid2env(envid, &e, 1)) < 0)
 		return r;
+
 	if (va >= UTOP)
 		return -E_INVAL;
+
 	page_remove(e->env_pgdir, va);
 	return 0;
 #else
@@ -351,7 +359,7 @@ sys_panic(char *msg)
 int
 syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 {
-	// printf("syscall %d %d %d %d from env %d\n", sn, a1, a2, a3, curenv->env_id);
+	// printf("syscall %d %x %x %x from env %08x\n", sn, a1, a2, a3, curenv->env_id);
 
 #if SOL >= 4
 	switch (sn) {
@@ -364,8 +372,7 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 		sys_yield();
 		return 0;
 	case SYS_env_destroy:
-		sys_env_destroy();
-		return 0;
+		return sys_env_destroy(a1);
 	case SYS_env_alloc:
 		return sys_env_alloc();
 	case SYS_ipc_can_send:

@@ -1,6 +1,7 @@
 #if LAB >= 5
 CLEAN_FILES += \
 	fs/fs \
+	fs/fsformat \
 
 OBJDIRS += fs
 
@@ -8,13 +9,14 @@ FSOFILES := \
 	fs/ide.o \
 	fs/fs.o \
 	fs/serv.o \
+	fs/test.o \
 
 fs/fs:	user/entry.o $(FSOFILES) $(USERLIB)
 	@echo ld $@
 	@$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib $^
 
 fs/fs.asm: fs/fs
-	$(OBJDUMP) --adjust-vma=0x7ff000 -S $^ >$@
+	$(OBJDUMP) --adjust-vma=0x007ff000 -S $^ >$@
 
 fs/%.o:	fs/fs.h user/lib.h
 
@@ -23,7 +25,7 @@ fs/fsformat: fs/fsformat.c
 	gcc -I. -o fs/fsformat fs/fsformat.c
 
 fs/fs.img: fs/motd fs/newmotd fs/fsformat user/init
-	dd if=/dev/zero of=fs/fs.img bs=4096 count=1024
+	dd if=/dev/zero of=fs/fs.img bs=4096 count=1024 2>/dev/null
 	./fs/fsformat fs/fs.img fs/motd fs/newmotd user/init
 
 .PRECIOUS: fs/%

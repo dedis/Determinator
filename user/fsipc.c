@@ -66,7 +66,7 @@ fsipc_map(u_int fileid, u_int offset, u_int dstva)
 	if ((r=fsipc(FSREQ_MAP, req, dstva, &perm)) < 0)
 		return r;
 	if ((perm&~PTE_W) != (PTE_U|PTE_P))
-		panic("fsipc_map: unexpected permissions %08x", perm);
+		panic("fsipc_map: unexpected permissions %08x for dstva %08x", perm, dstva);
 	return 0;
 }
 

@@ -2,6 +2,7 @@
 CLEAN_FILES += \
 	user/buggyhello \
 	user/evilhello \
+	user/exit \
 	user/fairness \
 	user/fault \
 	user/faultalloc \
@@ -21,6 +22,7 @@ CLEAN_FILES += \
 	user/pingpong2 \
 	user/pingpongs \
 	user/primes \
+	user/testfsipc \
 	user/writemotd \
 
 OBJDIRS += user

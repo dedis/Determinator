@@ -3,11 +3,15 @@
 
 .data
 #if LAB >= 5
-	.p2align	PGSHIFT
-	.globl		_fsipcbuf
+	// define page-aligned fsipcbuf for fsipc.c
+	// ... and fdtab for file.c
+	.p2align PGSHIFT
+	.globl _fsipcbuf
 _fsipcbuf:
-	.space		BY2PG
-
+	.space BY2PG
+	.globl _fdtab
+_fdtab:
+	.space BY2PG
 #endif
 	.globl _envs
 	.set _envs, UENVS

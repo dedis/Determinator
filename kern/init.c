@@ -40,9 +40,8 @@ i386_init(void)
 	// Should always have an idle process as first one.
 	ENV_CREATE(user_idle);
 
-	// Start fs with I/O privileges
+	// Start fs.
 	ENV_CREATE(fs_fs);
-	envs[1].env_tf.tf_eflags |= FL_IOPL0|FL_IOPL1;
 
 	// Start init
 #if defined(TEST)
@@ -51,6 +50,7 @@ i386_init(void)
 #else
 	// Touch all you want.
 	// ENV_CREATE(user_writemotd);
+	// ENV_CREATE(user_testfsipc);
 	ENV_CREATE(user_icode);
 #endif
 

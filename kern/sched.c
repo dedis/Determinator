@@ -27,7 +27,7 @@ sched_yield(void)
 	if (curenv)
 		i = curenv-envs;
 	else
-		i = -1;
+		i = NENV-1;
 	for (j=1; j<=NENV; j++) {
 		if (j+i == NENV)
 			continue;
