@@ -14,6 +14,7 @@ FSOFILES := \
 FSIMGFILES := \
 	fs/lorem \
 	fs/newmotd \
+	fs/motd \
 	fs/out \
 	fs/script \
 	fs/testshell.key \
