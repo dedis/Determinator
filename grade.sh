@@ -31,9 +31,8 @@ runbochs() {
 	) | (
 		ulimit -t $timeout
 		bochs -q 'display_library: nogui' \
-			'parport1: enabled=1, file="bochs.out"' \
-			>$out 2>$err
-	)
+			'parport1: enabled=1, file="bochs.out"'
+	) >$out 2>$err
 }
 
 #if LAB >= 3
@@ -280,6 +279,7 @@ exit 0
 #elif LAB >= 4		/******************** LAB 4 ********************/
 
 score=0
+timeout=10
 
 runtest1 dumbfork \
 	'.00000000. new env 00000800' \
@@ -296,16 +296,19 @@ runtest1 dumbfork \
 
 echo PART A SCORE: $score/5
 
-runtest1 forktree \
-	'.00001001. PFM_KILL va 00000001 ip f01.....' \
-	'.00001001. free env 00001001'
-
-runtest1 evilhello \
-	'.00001001. PFM_KILL va ef800000 ip f01.....' \
-	'.00001001. free env 00001001'
-
-runtest1 fault \
+runtest1 faultread \
+	! 'I read ........ from location 0!' \
 	'.00001001. user fault va 00000000 ip 008.....' \
+	'TRAP frame at 0xefbfffbc' \
+	'  trap 0x0000000e Page Fault' \
+	'  err  0x00000004' \
+	'.00001001. free env 00001001'
+
+runtest1 faultwrite \
+	'.00001001. user fault va 00000000 ip 008.....' \
+	'TRAP frame at 0xefbfffbc' \
+	'  trap 0x0000000e Page Fault' \
+	'  err  0x00000006' \
 	'.00001001. free env 00001001'
 
 runtest1 faultdie \
@@ -326,45 +329,47 @@ runtest1 faultallocbad \
 	'.00001001. PFM_KILL va deadbeef ip f01.....' \
 	'.00001001. free env 00001001' 
 
+runtest1 faultnostack \
+	'.00001001. PFM_KILL va eebfff.. ip f01.....' \
+	'.00001001. free env 00001001'
+
 runtest1 faultbadhandler \
-	'.00001001. PFM_KILL va eebfcf.. ip f01.....' \
+	'.00001001. PFM_KILL va eebfef.. ip f01.....' \
 	'.00001001. free env 00001001'
-
-runtest1 faultbadstack \
-	'.00001001. PFM_KILL va ef800000 ip f01.....' \
-	'.00001001. free env 00001001'
-
-runtest1 faultgoodstack \
-	'i faulted at va deadbeef, err 6, stack eebfd...' \
-	'.00001001. exiting gracefully' \
-	'.00001001. free env 00001001' 
 
 runtest1 faultevilhandler \
-	'.00001001. PFM_KILL va eebfcf.. ip f01.....' \
+	'.00001001. PFM_KILL va eebfef.. ip f01.....' \
 	'.00001001. free env 00001001'
 
-runtest1 faultevilstack \
-	'.00001001. PFM_KILL va ef800000 ip f01.....' \
-	'.00001001. free env 00001001'
+runtest1 forktree \
+	'....: I am .0.' \
+	'....: I am .1.' \
+	'....: I am .000.' \
+	'....: I am .100.' \
+	'....: I am .110.' \
+	'....: I am .111.' \
+	'....: I am .011.' \
+	'....: I am .001.' \
+	'.000028... exiting gracefully' \
+	'.000048... exiting gracefully' \
+	'.000058... exiting gracefully' \
+	'.000078... exiting gracefully' \
+	'.000078... free env 000078..'
 
-echo PART B SCORE: $score/55
+echo PART B SCORE: $score/50
 
-score=0
-
-runtest1 pingpong1 \
+runtest1 spin \
 	'.00000000. new env 00000800' \
 	'.00000000. new env 00001001' \
+	'I am the parent.  Forking the child...' \
 	'.00001001. new env 00001802' \
-	'send 0 from 1001 to 1802' \
-	'1802 got 0 from 1001' \
-	'1001 got 1 from 1802' \
-	'1802 got 8 from 1001' \
-	'1001 got 9 from 1802' \
-	'1802 got 10 from 1001' \
+	'I am the parent.  Running the child...' \
+	'I am the child.  Spinning...' \
+	'I am the parent.  Killing the child...' \
+	'.00001001. destroying 00001802' \
+	'.00001001. free env 00001802' \
 	'.00001001. exiting gracefully' \
-	'.00001001. free env 00001001' \
-	'.00001802. exiting gracefully' \
-	'.00001802. free env 00001802' \
+	'.00001001. free env 00001001'
 
 runtest1 pingpong \
 	'.00000000. new env 00000800' \
@@ -391,51 +396,7 @@ runtest1 primes \
 	'7 .00003005. new env 00003806' \
 	'11 .00003806. new env 00004007' 
 
-echo PART C SCORE: $score/15
-
-
-XXXX
-preempt() {
-	# Check that alice and bob are running together
-	perl -e "print 'Scheduling: '"
-	(sed -e "s/^env_pop_tf/x&/" <kern/env.c; 
-	echo '
-	
-	void
-	env_pop_tf(struct Trapframe *tf)
-	{
-		printf("%d\n", (struct Env*)tf - envs);
-		asm volatile("movl %0,%%esp\n"
-			"\tpopal\n"
-			"\tpopl %%es\n"
-			"\tpopl %%ds\n"
-			"\taddl $0x8,%%esp\n" /* skip tf_trapno and tf_errcode */
-			"\tiret"
-			:: "g" (tf) : "memory");
-		panic("iret failed");  /* mostly to placate the compiler */
-	}
-	
-	') >kern/env-test.c
-	(	
-		rm kern/kernel
-		gmake 'DEFS=-DTEST_ALICEBOB' 'ENV=env-test'
-		ulimit -t 10
-		(echo c; echo quit) | bochs-nogui 'parport1: enable=1, file="bochs.out"'
-	) >/dev/null 2>/dev/null
-
-	x=`grep '^[01]$' bochs.out`
-	x=`echo $x | tr -d ' '`
-	case $x in
-	*01010101010101010101*)
-		score=`echo 15+$score | bc`
-		echo OK
-		;;
-	*)
-		echo WRONG
-	esac	
-}
-
-
+echo PART C SCORE: $score/65
 
 
 #elif LAB >= 3		/******************** LAB 3 ********************/

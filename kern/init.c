@@ -117,13 +117,9 @@ i386_init(void)
 #if defined(TEST)
 	// Don't touch -- used by grading script!
 	ENV_CREATE2(TEST, TESTSIZE)
-#elif defined(TEST_PINGPONG2)
-	// Don't touch -- used by grading script!
-	ENV_CREATE(user_pingpong2);
-	ENV_CREATE(user_pingpong2);
 #else
 	// Touch all you want.
-	ENV_CREATE(user_forktree);
+	ENV_CREATE(user_primes);
 #endif // TEST*
 #elif LAB >= 3
 	// Temporary test code specific to LAB 3

@@ -30,11 +30,11 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/$(ENV).c \
 			kern/kclock.c \
 			kern/picirq.c \
+			kern/printf.c \
 			kern/trap.c \
 			kern/trapentry.S \
 			kern/sched.c \
 			kern/syscall.c \
-			lib/printf.c \
 			lib/printfmt.c \
 			lib/readline.c \
 			lib/string.c
@@ -67,6 +67,7 @@ KERN_BINFILES := \
 	user/faultdie \
 	user/faultalloc \
 	user/faultallocbad \
+	user/faultnostack \
 	user/faultbadhandler \
 	user/faultevilhandler \
 	user/forktree \

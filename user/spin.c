@@ -19,6 +19,9 @@ umain(void)
 	printf("I am the parent.  Running the child...\n");
 	sys_yield();
 	sys_yield();
+	sys_yield();
+	sys_yield();
+	sys_yield();
 
 	printf("I am the parent.  Killing the child...\n");
 	sys_env_destroy(who);
