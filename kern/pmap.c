@@ -133,6 +133,10 @@ alloc(u_int n, u_int align, int clear)
 //	- if create == 0, return 0.
 //	- otherwise allocate a new directory page and install it.
 //
+// This function is abstracting away the 2-level nature of
+// the page directory for us by allocating new page tables
+// as needed.
+// 
 // Boot_pgdir_walk cannot fail.  It's too early to fail.
 // 
 static Pte*
@@ -189,6 +193,11 @@ i386_vm_init(void)
 	Pde *pgdir;
 	u_int cr0, n;
 
+///SOL2
+///ELSE
+	panic("i386_vm_init: This function is not finished\n");
+///END
+
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
 	pgdir = alloc(BY2PG, BY2PG, 1);
@@ -207,12 +216,6 @@ i386_vm_init(void)
 	// same for UVPT
 	// Permissions: kernel R, user R 
 	pgdir[PDX(UVPT)] = PADDR(pgdir)|PTE_U|PTE_P;
-
-///SOL2
-///ELSE
-	printf("\n");
-	panic("i386_vm_init: This function is not finished\n");
-///END
 
 	//////////////////////////////////////////////////////////////////////
 	// Map the kernel stack:
