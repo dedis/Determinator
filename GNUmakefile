@@ -114,10 +114,10 @@ clean:
 				$(addprefix $(dir)/,$(CLEAN_PATS)))
 
 grade:
-	gmake clean
+	@gmake clean >/dev/null 2>/dev/null
 	gmake all
 	sh grade.sh
-	gmake clean
+	@gmake clean >/dev/null 2>/dev/null
 
 handin: clean
 	-rm -f handin5.tgz
