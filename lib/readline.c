@@ -18,7 +18,7 @@ readline(const char *prompt)
 	for(;;) {
 		c = getchar();
 		if (c < 0) {
-			printf("read error: %e", c);
+			printf("read error: %e\n", c);
 			return NULL;
 		}
 		else if (c >= ' ' && i < BUFLEN-1) {

@@ -8,10 +8,11 @@ putchar(int ch)
 {
 	char s[2];
 
-	// Putchar is only called in two places:
-	// from readline when input is the console,
-	// and from printf.  In both cases we want to
-	// write to the console.
+	// Unlike standard Unix,
+	// but like our version of printf defined in lib/printf.c,
+	// our putchar function _always_ outputs to the system console
+	// and cannot be redirected by changing file descriptor 1.
+	// We do this in order to make debugging easier in JOS.
 
 	s[0] = ch;
 	s[1] = 0;
@@ -25,7 +26,9 @@ getchar(void)
 	unsigned char c;
 	int r;
 
-	// Read a character from file descriptor 0.
+	// JOS does, however, support standard _input_ redirection,
+	// allowing the user to redirect script files to the shell and such.
+	// Thus, getchar() reads a character from file descriptor 0.
 	r = read(0, &c, 1);
 	if (r < 0)
 		return r;

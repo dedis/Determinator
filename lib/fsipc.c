@@ -26,7 +26,9 @@ fsipc(u_int type, void *fsreq, u_int dstva, u_int *perm)
 }
 
 // Send file-open request to the file server.
-// Includes path and omode in request, sets *fileid and *size from reply.
+// Includes 'path' and 'omode' in request,
+// and on reply maps the returned file descriptor page
+// at the address indicated by the caller in 'fd'.
 // Returns 0 on success, < 0 on failure.
 int
 fsipc_open(const char *path, u_int omode, struct Fd *fd)
