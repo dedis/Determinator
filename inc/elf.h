@@ -1,7 +1,7 @@
 #ifndef JOS_INC_ELF_H
 #define JOS_INC_ELF_H
 
-#define ELF_MAGIC 0x464C457F	/* "\x7FELF" in little endian */
+#define ELF_MAGIC 0x464C457FU	/* "\x7FELF" in little endian */
 
 struct Elf {
 	uint32_t e_magic;
