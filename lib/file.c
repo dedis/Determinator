@@ -23,10 +23,11 @@ struct Dev devfile =
 .dev_trunc=	file_trunc,
 };
 
-#if SOL >= 5
+
+// Helper functions for file access
 static int fmap(struct Filefd *f, u_int oldsize, u_int newsize);
 static int funmap(struct Filefd *f, u_int oldsize, u_int newsize, u_int dirty);
-#endif
+
 
 // Open a file (or directory),
 // returning the file descriptor on success, < 0 on failure.
@@ -50,6 +51,7 @@ open(const char *path, int mode)
 	return fd2num(fd);
 #else
 	// Your code here.
+	// Hint: you may find fmap() helpful.
 	panic("open() unimplemented!");
 #endif
 }
@@ -72,6 +74,7 @@ file_close(struct Fd *fd)
 	return ret;
 #else
 	// Your code here.
+	// Hint: you may find funmap() helpful.
 	panic("close() unimplemented!");
 #endif
 }
@@ -186,7 +189,9 @@ file_trunc(struct Fd *fd, u_int newsize)
 	return 0;
 }
 
-#if SOL >= 5
+// Call the file system server to obtain and map file pages
+// when the size of the file as mapped in our memory increases.
+// Harmlessly does nothing if oldsize >= newsize.
 static int
 fmap(struct Filefd *f, u_int oldsize, u_int newsize)
 {
@@ -204,6 +209,9 @@ fmap(struct Filefd *f, u_int oldsize, u_int newsize)
 	return 0;
 }
 
+// Unmap any file pages that no longer represent valid file pages
+// when the size of the file as mapped in our address space decreases.
+// Harmlessly does nothing if newsize >= oldsize.
 static int
 funmap(struct Filefd *f, u_int oldsize, u_int newsize, u_int dirty)
 {
@@ -220,7 +228,6 @@ funmap(struct Filefd *f, u_int oldsize, u_int newsize, u_int dirty)
 	}
 	return ret;
 }
-#endif	// SOL >= 5
 
 // Delete a file
 int
