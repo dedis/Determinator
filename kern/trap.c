@@ -175,7 +175,7 @@ trap(struct Trapframe *tf)
 		printf(" eflags = 0x%x\n", tf->tf_eflags);
 	} else {
 		// the user process or the kernel has a bug..
-#if LAB >= 4
+#if SOL >= 3
 		if (tf->tf_cs == GD_KT)
 			panic("unhandled trap in kernel");
 		else

@@ -1,5 +1,4 @@
 #if LAB >= 3
-
 #include <kern/env.h>
 #include <kern/pmap.h>
 #include <kern/picirq.h>
@@ -38,9 +37,18 @@ sched_yield(void)
 	} while (start != sched_idx);
 
 	// idle env must always be runnable
-#endif /* LAB >= 5 */
+#elif SOL >= 3
+	int i, j;
+
+	i = curenv-envs;
+	for (j=1; j<=NENV; j++)
+		if(envs[(j+i)%NENV].env_status == ENV_RUNNABLE)
+			env_run(&envs[(j+i)%NENV]);
+	panic("no runnable envs");
+#else
 	assert(envs[0].env_status == ENV_RUNNABLE);
 	env_run(&envs[0]);
+#endif /* SOL >= 3 */
 }
 
-#endif /* LAB >= 3 */
+#endif

@@ -105,7 +105,7 @@ env_setup_vm(struct Env *e)
 
 	// The VA space of all envs is identical above UTOP...
 	static_assert(UTOP % PDMAP == 0);
-	for (i = PDX(UTOP); i <= PDX(~0); i++)
+	for (i = PDX(UTOP); i < PDX(~0); i++)
 		e->env_pgdir[i] = boot_pgdir[i];
 
 #endif /* SOL >= 3 */
@@ -184,24 +184,24 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 {
 #if SOL >= 3
 	int i, r;
-	struct Page *pp;
+	struct Page *p;
 
 	// Allocate and map physical pages
 	for (i = 0; i < size; i += BY2PG) {
-		if ((r = page_alloc(&pp)) < 0)
-			panic("load_icode: could not alloc page. Errno %d\n", r);
-		bcopy(&binary[i], (void*)page2kva(pp), MIN(BY2PG, size - i));
-		if ((r = page_insert(e->env_pgdir, pp, UTEXT + i,
+		if ((r = page_alloc(&p)) < 0)
+			panic("load_icode: could not alloc page: %e\n", r);
+		bcopy(&binary[i], (void*)page2kva(p), MIN(BY2PG, size - i));
+		if ((r = page_insert(e->env_pgdir, p, UTEXT + i,
 					PTE_P|PTE_W|PTE_U)) < 0)
 			panic("load_icode: could not map page. Errno %d\n", r);
 	}
 
 	/* Give it a stack */
-	if ((r = page_alloc(&pp)) < 0)
-		panic("load_icode: could not alloc page. Errno %d\n", r);
-	if ((r = page_insert(e->env_pgdir, pp, USTACKTOP - BY2PG,
+	if ((r = page_alloc(&p)) < 0)
+		panic("load_icode: could not alloc page: %e\n", r);
+	if ((r = page_insert(e->env_pgdir, p, USTACKTOP - BY2PG,
 				PTE_P|PTE_W|PTE_U)) < 0)
-		panic("load_icode: could not map page. Errno %d\n", r);
+		panic("load_icode: could not map page: %e\n", r);
 #else /* not SOL >= 3 */
 	// Hint: 
 	//  Use page_alloc, page_insert, page2kva and e->env_pgdir
@@ -222,7 +222,7 @@ env_create(u_char *binary, int size)
 	int r;
 	struct Env *e;
 	if ((r = env_alloc(&e, 0)) < 0)
-		panic("env_create: could not allocate env.  Error %d\n", r);
+		panic("env_create: could not allocate env: %e\n", r);
 	load_icode(e, binary, size);
 #endif /* not SOL >= 3 */
 }
@@ -301,14 +301,10 @@ env_pop_tf(struct Trapframe *tf)
 // Context switch from curenv to env e.
 // Note: if this is the first call to env_run, curenv is NULL.
 //  (This function does not return.)
+//
 void
 env_run(struct Env *e)
 {
-	// step 1: save register state of curenv
-	// step 2: set curenv
-	// step 3: use lcr3
-	// step 4: use env_pop_tf()
-
 #if SOL >= 3
 	// save register state of currently executing env
 	if (curenv)
@@ -319,6 +315,11 @@ env_run(struct Env *e)
 	// restore e's register state
 	env_pop_tf(&e->env_tf);
 #else /* not SOL >= 3 */
+	// step 1: save register state of curenv
+	// step 2: set curenv
+	// step 3: use lcr3
+	// step 4: use env_pop_tf()
+
 	// Hint: Skip step 1 until exercise 4.  You don't
 	// need it for exercise 1, and in exercise 4 you'll better
 	// understand what you need to do.
