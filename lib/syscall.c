@@ -46,12 +46,6 @@ sys_cgetc(void)
 	return syscall(SYS_cgetc, 0, 0, 0, 0, 0);
 }
 
-void
-sys_panic(char *msg)
-{
-	syscall(SYS_panic, (u_int)msg, 0, 0, 0, 0);
-}
-
 int
 sys_env_destroy(u_int envid)
 {

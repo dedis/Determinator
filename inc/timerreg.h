@@ -1,4 +1,4 @@
-#if LAB >= 3
+#if LAB >= 4
 /*	$NetBSD: timerreg.h,v 1.4 1994/10/27 04:18:17 cgd Exp $	*/
 
 /*
@@ -65,4 +65,4 @@
 #define		TIMER_16BIT	0x30	/* r/w counter 16 bits, LSB first */
 #define		TIMER_BCD	0x01	/* count in BCD */
 
-#endif // LAB >= 3
+#endif // LAB >= 4

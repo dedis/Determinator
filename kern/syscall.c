@@ -11,7 +11,9 @@
 #include <kern/trap.h>
 #include <kern/syscall.h>
 #include <kern/console.h>
+#if LAB >= 4
 #include <kern/sched.h>
+#endif
 
 // print a string to the system console.
 static void
@@ -38,16 +40,6 @@ sys_cgetc(void)
 		; /* spin */
 
 	return c;
-}
-
-// Panic the kernel (and therefore the whole system).
-// It would obviously not be very wise to have this system call
-// in a "real" working system, but it is useful to have in JOS for debugging.
-static void
-sys_panic(char *msg)
-{
-	// no page_fault_mode -- we are trying to panic!
-	panic("%s", TRUP(msg));
 }
 
 // return the current environment's envid
@@ -397,8 +389,6 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 		return 0;
 	case SYS_cgetc:
 		return sys_cgetc();
-	case SYS_panic:
-		sys_panic((char*)a1);
 	case SYS_getenvid:
 		return sys_getenvid();
 	case SYS_env_destroy:

@@ -1,4 +1,4 @@
-#if LAB >= 3
+#if LAB >= 4
 
 #include <inc/assert.h>
 
@@ -10,7 +10,6 @@
 void
 sched_yield(void)
 {
-#if LAB >= 4
 #if SOL >= 4
 	int i, j;
 
@@ -36,12 +35,6 @@ sched_yield(void)
 	// Run the special idle environment when nothing else is runnable.
 	assert(envs[0].env_status == ENV_RUNNABLE);
 	env_run(&envs[0]);
-#else	// not LAB >= 4
-	// We only have one user environment for now, so just run it.
-	// Panic if it's not runnable!
-	assert(envs[0].env_status == ENV_RUNNABLE);
-	env_run(&envs[0]);
-#endif	// not LAB >= 4
 }
 
-#endif	// LAB >= 3
+#endif	// LAB >= 4

@@ -7,11 +7,11 @@
 #include <kern/pmap.h>
 #include <kern/trap.h>
 #include <kern/env.h>
-#include <kern/sched.h>
 #include <kern/console.h>
-#include <kern/kclock.h>
 #include <kern/syscall.h>
 #if LAB >= 4
+#include <kern/sched.h>
+#include <kern/kclock.h>
 #include <kern/picirq.h>
 #endif
 

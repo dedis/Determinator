@@ -14,8 +14,8 @@
 #if LAB >= 3
 #include <kern/env.h>
 #include <kern/trap.h>
-#include <kern/sched.h>
 #if LAB >= 4
+#include <kern/sched.h>
 #include <kern/picirq.h>
 #endif	// LAB >= 4
 #endif	// LAB >= 3
@@ -143,9 +143,12 @@ i386_init(void)
 
 #endif
 
-#if LAB >= 3
+#if LAB >= 4
 	// Schedule and run the first user environment!
 	sched_yield();
+#else
+	// We only have one user environment for now, so just run it.
+	env_run(&envs[0]);
 #endif
 
 #if LAB >= 2

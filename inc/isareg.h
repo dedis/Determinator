@@ -1,4 +1,4 @@
-#if LAB >= 3
+#if LAB >= 4
 /* See COPYRIGHT for copyright information. */
 
 /*	$OpenBSD: isareg.h,v 1.2 1997/11/07 08:07:03 niklas Exp $	*/
@@ -128,4 +128,4 @@
 #define	IOM_SIZE	(IOM_END - IOM_BEGIN)
 
 #endif // !IOM_BEGIN
-#endif // LAB >= 3
+#endif // LAB >= 4

@@ -42,7 +42,6 @@ char *	readline(const char *buf);
 // syscall.c
 void	sys_cputs(char*);
 int	sys_cgetc(void);
-void	sys_panic(char*);
 u_int	sys_getenvid(void);
 int	sys_env_destroy(u_int);
 int	sys_set_pgfault_handler(u_int, u_int);

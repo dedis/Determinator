@@ -10,8 +10,8 @@
 
 #include <kern/env.h>
 #include <kern/pmap.h>
-#if LAB >= 3
 #include <kern/trap.h>
+#if LAB >= 4
 #include <kern/sched.h>
 #endif
 
@@ -396,10 +396,15 @@ void
 env_destroy(struct Env *e) 
 {
 	env_free(e);
+
+#if LAB >= 4
 	if (curenv == e) {
 		curenv = NULL;
 		sched_yield();
 	}
+#else
+	panic("Destroyed the only environment - nothing more to do!");
+#endif
 }
 
 
@@ -432,13 +437,20 @@ env_pop_tf(struct Trapframe *tf)
 void
 env_run(struct Env *e)
 {
-#if SOL >= 3
-#if SOL >= 4
+#if LAB >= 4
 	// save the register state of the previously executing environment
-	if (curenv)
+	if (curenv) {
+#if SOL >= 4
 		curenv->env_tf = *UTF;
-#endif // SOL >= 4
+#else
+		// Your code here.
+		// Hint: this can be done in a single line of code.
+		panic("need to save previous env's register state!");
+#endif
+	}
+#endif // LAB >= 4
 
+#if SOL >= 3
 	// keep track of which environment we're currently running
 	curenv = e;
 
@@ -451,18 +463,10 @@ env_run(struct Env *e)
 #endif
 	env_pop_tf(&e->env_tf);
 #else /* not SOL >= 3 */
-	// step 1: save the register state of old curenv.
-	//	(Copy it from where trapentry.S saves it on the kernel stack
-	//	into the trapframe portion of curenv.)
-	// step 2: set curenv to the new environment to be run.
-	// step 3: use lcr3 to switch to the new environment's address space.
-	// step 4: use env_pop_tf() to restore the new environment's registers
+	// step 1: set curenv to the new environment to be run.
+	// step 2: use lcr3 to switch to the new environment's address space.
+	// step 3: use env_pop_tf() to restore the new environment's registers
 	//	and drop into user mode in the new environment.
-
-	// Hint: You may skip step 1 until Part 2,
-	// where you start handling exceptions and system calls.
-	// You don't need it for Part 1, and in Part 2 you'll better
-	// understand what you need to do.
 #endif /* not SOL >= 3 */
 }
 

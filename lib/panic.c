@@ -6,28 +6,26 @@ char *argv0;
 
 /*
  * Panic is called on unresolvable fatal errors.
- * It prints "panic: mesg", and then enters an infinite loop.
- * If executing on Bochs, drop into the debugger rather than chew CPU.
+ * It prints "panic: <message>", then causes a breakpoint exception,
+ * which causes JOS to enter the JOS kernel monitor.
  */
 void
 _panic(const char *file, int line, const char *fmt,...)
 {
 	va_list ap;
-	char buf[256];
-	int n;
 
 	va_start(ap, fmt);
 
-	n = 0;
+	// Print the panic message
 	if (argv0)
-		n += snprintf(buf+n, sizeof buf-n, "%s: ", argv0);
-	n += snprintf(buf+n, sizeof buf-n, "user panic in %s at %s:%d: ", binaryname, file, line);
-	n += vsnprintf(buf+n, sizeof buf-n, fmt, ap);
-	n += snprintf(buf+n, sizeof buf-n, "\n");
-	va_end(ap);
-	sys_cputs(buf);
+		printf("%s: ", argv0);
+	printf("user panic in %s at %s:%d: ", binaryname, file, line);
+	vprintf(fmt, ap);
+	printf("\n");
 
-	for(;;);
+	// Cause a breakpoint exception
+	for (;;)
+		asm volatile("int3");
 }
 
 #endif // LAB >= 3
