@@ -2,7 +2,8 @@
 /*	$NetBSD: timerreg.h,v 1.4 1994/10/27 04:18:17 cgd Exp $	*/
 
 /*
- * Register definitions for the Intel 8253 Programmable Interval Timer.
+ * Register definitions for the Intel
+ * 8253/8254/82C54 Programmable Interval Timer (PIT).
  *
  * This chip has three independent 16-bit down counters that can be
  * read on the fly.  There are three mode registers and three countdown

@@ -128,6 +128,10 @@ KERN_BINFILES := $(foreach file, $(KERN_BINFILES), \
 $(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
 	@echo ld $@
 	@$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) -b binary $(KERN_BINFILES)
+	@i386-osclass-aout-nm $(OBJDIR)/kern/kernel \
+		| sort >$(OBJDIR)/kern/kernel.sym
+	@i386-osclass-aout-objdump -S --adjust-vma=0xfffffffff00ff000 \
+		$@ >$@.asm
 
 # How to build the Bochs disk image
 $(OBJDIR)/kern/bochs.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/boot

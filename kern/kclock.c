@@ -6,6 +6,7 @@
 
 #include <inc/x86.h>
 #if LAB >= 3
+#include <inc/stdio.h>
 #include <inc/isareg.h>
 #include <inc/timerreg.h>
 #endif

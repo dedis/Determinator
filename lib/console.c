@@ -21,6 +21,7 @@ putchar(int ch)
 
 	// System call to output a string.
 	sys_cputs(s);
+	return 0;
 #endif	// not LAB >= 6
 }
 

@@ -99,7 +99,7 @@ i386_init(void)
 	ENV_CREATE(user_pingpong2);
 #else
 	// Touch all you want.
-	ENV_CREATE(user_hello);
+	ENV_CREATE(user_buggyhello);
 #endif // TEST*
 #elif LAB >= 3
 	// Temporary test code specific to LAB 3

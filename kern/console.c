@@ -48,6 +48,7 @@ serial_init(void)
 
 
 /***** Parallel port output code *****/
+// For information on PC parallel port programming, see:
 
 // Stupid I/O delay routine necessitated by historical PC design flaws
 static void
