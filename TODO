@@ -1,5 +1,23 @@
 Post-2004 TODOs:
 
+- Consider changing 'gmake handin' to use something other than 
+  email. Notably, in 2004 we had a bunch of students who, due to
+  misconfigured local sendmail's etc, thought they had succeeded in
+  handing something in when they really hadn't. Also, since they were 
+  sending emails from non-standard accounts (e.g. root@ckehoe.mit.edu) 
+  they weren't really expecting a confirmation / error email.
+  
+  Here are some alternative handin options: 
+  (1) [6.097] Put the tarball in a public place and email us a URL. 
+  (2) [6.170 etc] Set up the 6.828 locker on athena to have a sub-directory 
+      for each user with the right ACL's. Then either init a CVS root for 
+      each student and just use cvs commit/tag for the handin, or
+      'gmake handin' just scp's the handin tarball to this directory. Run
+      a script on amsterdam to collect all the handins from athena instead
+      of having the spool file.
+  (3) [6.824] Give students accounts on PDOS machines and basically do
+      the same thing as (2) above.
+
 - get rid of redundant page_initpp() in kern/pmap.c
 
 - get rid of size parameter to load_icode,
