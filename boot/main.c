@@ -1,5 +1,4 @@
 #if LAB >= 1
-
 #include <inc/x86.h>
 #include <inc/elf.h>
 
@@ -33,93 +32,95 @@
 
 #define  SECTOR_SIZE    512
 
-static u_char *sect = (u_char*)0x10000;	// scratch space
+static uint8_t *sect = (uint8_t*) 0x10000;	// scratch space
 
-void readsect(u_char*, u_int, u_int);
-void readseg(u_int, u_int, u_int);
+void readsect(void*, uint32_t);
+void readseg(uint32_t, uint32_t, uint32_t);
 
 void
 cmain(void)
 {
-	u_int entry, i;
+	uint32_t entry, i;
 	struct Elf *elf;
 	struct Proghdr *ph;
 
 	// read 1st page off disk
-	readsect(sect, 8, 1);
-
-	if(*(u_int*)sect != 0x464C457F)	// \x7F ELF in little endian
-		goto bad;
+	for (i = 0; i < 8; i++)
+		readsect(sect + 512*i, i + 1);
 
 	// look at ELF header - ignores ph flags
-	elf = (struct Elf*)sect;
+	elf = (struct Elf*) sect;
+	if (elf->e_magic != ELF_MAGIC)
+		goto bad;
+
 	entry = elf->e_entry;
-	ph = (struct Proghdr*)(sect+elf->e_phoff);
-	for(i=0; i<elf->e_phnum; i++, ph++)
+	ph = (struct Proghdr*) (sect + elf->e_phoff);
+	for (i = 0; i < elf->e_phnum; i++, ph++)
 		readseg(ph->p_va, ph->p_memsz, ph->p_offset);
 
 	entry &= 0xFFFFFF;
-	((void(*)(void))entry)();
+	((void(*)(void)) entry)();
 	/* DOES NOT RETURN */
 
 bad:
 	outw(0x8A00, 0x8A00);
 	outw(0x8A00, 0x8E00);
-	for(;;);
-	
+	while (1)
+		/* do nothing */;
 }
 
-// read count bytes at offset from kernel into addr dst
-// might copy more than asked
+// Read 'count' bytes at 'offset' from kernel into virtual address 'va'.
+// Might copy more than asked
 void
-readseg(u_int va, u_int count, u_int offset)
+readseg(uint32_t va, uint32_t count, uint32_t offset)
 {
-	u_int i;
+	uint32_t end_va;
 
 	va &= 0xFFFFFF;
+	end_va = va + count;
+	
+	// round down to sector boundary
+	va &= ~511;
 
-	// round down to sector boundary; offset will round later
-	i = va&511;
-	count += i;
-	va -= i;
+	// translate from bytes to sectors, and kernel starts at sector 1
+	offset = (offset / 512) + 1;
 
-	// translate from bytes to sectors
-	offset /= 512;
-	count = (count+511)/512;
-
-	// kernel starts at sector 1
-	offset++;
-
-	// if this is too slow, we could read lots of sectors at a time.
-	// we'd write more to memory than asked, but it doesn't matter --
+	// If this is too slow, we could read lots of sectors at a time.
+	// We'd write more to memory than asked, but it doesn't matter --
 	// we load in increasing order.
-	for(i=0; i<count; i++){
-		readsect((u_char*)va, 1, offset+i);
+	while (va < end_va) {
+		readsect((uint8_t*) va, offset);
 		va += 512;
+		offset++;
 	}
 }
 
 void
-notbusy(void)
+waitdisk(void)
 {
-	while(inb(0x1F7) & 0x80);	// wait for disk not busy
+	// wait for disk reaady
+	while ((inb(0x1F7) & 0xC0) != 0x40)
+		/* do nothing */;
 }
 
 void
-readsect(u_char *dst, u_int count, u_int offset)
+readsect(void *dst, uint32_t offset)
 {
-	notbusy();
+	// wait for disk to be ready
+	waitdisk();
 
-	outb(0x1F2, count);
+	outb(0x1F2, 1);		// count = 1
 	outb(0x1F3, offset);
-	outb(0x1F4, offset>>8);
-	outb(0x1F5, offset>>16);
-	outb(0x1F6, (offset>>24)|0xE0);
+	outb(0x1F4, offset >> 8);
+	outb(0x1F5, offset >> 16);
+	outb(0x1F6, (offset >> 24) | 0xE0);
 	outb(0x1F7, 0x20);	// cmd 0x20 - read sectors
 
-	notbusy();
+	// wait for disk to be ready
+	waitdisk();
 
-	insl(0x1F0, dst, count*512/4);
+	// read a sector
+	insl(0x1F0, dst, 512/4);
 }
 
 #endif /* LAB >= 1 */

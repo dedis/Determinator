@@ -2,18 +2,19 @@
 /*
  * Minimal PIO-based (non-interrupt-driven) IDE driver code.
  * For information about what all this IDE/ATA magic means,
- * see the materials available on the 6.828 reference materials page.
+ * see the materials available on the class references page.
  */
 
 #include "fs.h"
 #include <inc/x86.h>
 
 void
-ide_read(u_int diskno, u_int secno, void *dst, u_int nsecs)
+ide_read(uint32_t diskno, uint32_t secno, void *dst, size_t nsecs)
 {
 	assert(nsecs <= 256);
 
-	while(inb(0x1F7)&0x80);
+	while ((inb(0x1F7) & 0xC0) != 0x40)
+		/* do nothing */;
 
 	outb(0x1F2, nsecs);
 	outb(0x1F3, secno & 0xFF);
@@ -22,17 +23,20 @@ ide_read(u_int diskno, u_int secno, void *dst, u_int nsecs)
 	outb(0x1F6, 0xE0 | ((diskno&1)<<4) | ((secno>>24)&0x0F));
 	outb(0x1F7, 0x20);	// CMD 0x20 means read sector
 
-	while(inb(0x1F7)&0x80);
-
-	insl(0x1F0, dst, nsecs*BY2SECT/4);
+	for (; nsecs > 0; nsecs--, dst += SECTSIZE) {
+		while ((inb(0x1F7) & 0xC0) != 0x40)
+			/* do nothing */;
+		insl(0x1F0, dst, SECTSIZE/4);
+	}
 }
 
 void
-ide_write(u_int diskno, u_int secno, void *src, u_int nsecs)
+ide_write(uint32_t diskno, uint32_t secno, const void *src, size_t nsecs)
 {
 	assert(nsecs <= 256);
 
-	while(inb(0x1F7)&0x80);
+	while ((inb(0x1F7) & 0xC0) != 0x40)
+		/* do nothing */;
 
 	outb(0x1F2, nsecs);
 	outb(0x1F3, secno & 0xFF);
@@ -41,9 +45,11 @@ ide_write(u_int diskno, u_int secno, void *src, u_int nsecs)
 	outb(0x1F6, 0xE0 | ((diskno&1)<<4) | ((secno>>24)&0x0F));
 	outb(0x1F7, 0x30);	// CMD 0x30 means write sector
 
-	while(inb(0x1F7)&0x80);
-
-	outsl(0x1F0, src, nsecs*BY2SECT/4);
+	for (; nsecs > 0; nsecs--, src += SECTSIZE) {
+		while ((inb(0x1F7) & 0xC0) != 0x40)
+			/* do nothing */;
+		outsl(0x1F0, src, SECTSIZE/4);
+	}
 }
 
 #endif
