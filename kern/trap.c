@@ -266,6 +266,7 @@ page_fault_handler(struct Trapframe *tf)
 			env_destroy(curenv);
 		}
 	}
+#endif	// SOL >= 3
 
 #if SOL >= 4
 	// See if the environment has installed a user page fault handler.
@@ -326,11 +327,6 @@ page_fault_handler(struct Trapframe *tf)
 	print_trapframe(tf);
 	env_destroy(curenv);
 #endif	// not SOL >= 4
-#else	// not SOL >= 3
-	// Fill this in
-	print_trapframe(tf);
-	panic("page fault");
-#endif	// not SOL >= 3
 }
 
 #endif /* LAB >= 3 */
