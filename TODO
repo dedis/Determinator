@@ -26,6 +26,9 @@ Post-2004 TODOs:
   and also to make sure studently has properly TRUP()d
   the trapframe pointer passed to sys_set_trapframe().
 
+- put back "Then implement the ipc_recv and ipc_send functions in lib/ipc.c."
+  in Exercise 11 of lab 4.
+
 After this year's class is over (fall 2003), we should:
 
 - merge lab1, currently in the x86boot directory,

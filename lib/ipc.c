@@ -11,7 +11,7 @@
 void
 ipc_send(u_int whom, u_int val, u_int srcva, u_int perm)
 {
-#if LAB >= 4
+#if SOL >= 4
 	int r;
 
 	while ((r=sys_ipc_can_send(whom, val, srcva, perm)) == -E_IPC_NOT_RECV)
@@ -32,7 +32,7 @@ ipc_send(u_int whom, u_int val, u_int srcva, u_int perm)
 u_int
 ipc_recv(u_int *whom, u_int dstva, u_int *perm)
 {
-#if LAB >= 4
+#if SOL >= 4
 	sys_ipc_recv(dstva);
 	if (whom)
 		*whom = env->env_ipc_from;
