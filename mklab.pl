@@ -21,28 +21,49 @@ sub dofile {
 	open(OUTFILE, ">$tmpfilename") or die "Can't open $tmpfilename";
 
 	my $level = $labno*2+$sols;
+	#print "Processing $filename, level $level\n";
+
 	my $lines = 0;
-	my @pass;
-	unshift (@pass, 200);
-	while (<$INFILE>) {
-		if (m|///LAB(\d+)|) {
-			if ($level >= $pass[0]) {
+	my @pass = ();
+	while (<INFILE>) {
+		if (m|[#]?///LAB(\d+)|) {
+			if ($#pass < 0 || $level >= $pass[0]) {
 				unshift (@pass, $1*2);
 			} else {
 				unshift (@pass, $pass[0]);
 			}
-		} elsif (m|///SOL(\d+)|) {
-			if ($level >= $pass[0]) {
+			#print "$_: @pass\n";
+		} elsif (m|[#]?///SOL(\d+)|) {
+			if ($#pass < 0 || $level >= $pass[0]) {
 				unshift (@pass, $1*2+1);
 			} else {
 				unshift (@pass, $pass[0]);
 			}
-		} elsif (m|///END|) {
-			shift (@pass);
-		} elsif ($level >= $pass[0]) {
+			#print "$_: @pass\n";
+		} elsif (m|[#]?///ELSE|) {
+			if ($#pass < 0 || $level >= $pass[0]
+					|| $pass[0] == $pass[1]) {
+				$pass[0] = 200;
+			} else {
+				$pass[0] = $level;
+			}
+			#print "$_: @pass\n";
+		} elsif (m|[#]?///END|) {
+			if ($#pass >= 0) {
+				shift (@pass);
+			} else {
+				print "Warning: unmatched ///END in $filename\n";
+			}
+			#print "$_: @pass\n";
+		} elsif ($#pass < 0 || $level >= $pass[0]) {
+			#print "$#pass--$pass[0]--$_";
 			print OUTFILE $_;
 			$lines++;
 		}
+	}
+
+	if ($#pass >= 0) {
+		print "Warning: unmatched ///LAB or ///SOL in $filename\n";
 	}
 
 	close INFILE;
@@ -82,7 +103,7 @@ if ($sols == 0) {
 mkdir($outdir, 0777) or die "Can't create subdirectory $outdir";
 
 # Populate the output directory
-foreach $i (1 .. $#ARGV) {
+foreach $i (0 .. $#ARGV) {
 	dofile($ARGV[$i]);
 }
 

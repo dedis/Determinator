@@ -1,4 +1,4 @@
-///BEGIN 2
+///LAB2
 /*
  * Copyright (C) 1997 Massachusetts Institute of Technology 
  *
@@ -62,6 +62,7 @@ mc146818_write(void *sc, u_int reg, u_int datum)
 }
 
 
+///LAB3
 void
 clock_init()
 {
@@ -73,5 +74,6 @@ clock_init()
   irq_setmask_8259A (irq_mask_8259A & 0xfffa);
   printf ("  unmasked timer interrupt\n");
 }
+///END
 
 ///END

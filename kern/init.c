@@ -1,4 +1,4 @@
-///BEGIN 2
+///LAB2
 /*
  * Copyright (C) 1997 Massachusetts Institute of Technology 
  *
@@ -47,7 +47,7 @@
 ///END
 
 
-///BEGIN 2
+///LAB2
 void
 i386_init (void)
 {
@@ -57,7 +57,7 @@ i386_init (void)
   i386_vm_init ();
   ppage_init ();
 
-///BEGIN 2
+///LAB2
 #if 1
   {
     extern void ppage_check ();
@@ -67,15 +67,15 @@ i386_init (void)
 ///END
 
 ///END
-///BEGIN 3
+///LAB3
   idt_init ();
   pic_init ();
   clock_init ();
-///BEGIN 6
+///LAB6
   kbd_init ();
 ///END
   env_init ();
-///BEGIN 4
+///LAB4
 #if 0
 ///END
   {
@@ -83,12 +83,12 @@ i386_init (void)
     extern u_char spin_end;
     env_create (&spin_start, &spin_end - &spin_start);
   }
-///BEGIN 4
+///LAB4
 #endif
 ///END
 
 #if 0
-///BEGIN 5
+///LAB5
   {
     /* the binary for the user prog */
     extern u_char binary_user_simple_simple_start[];
@@ -108,7 +108,7 @@ i386_init (void)
 
   yield ();
 ///END  
-///BEGIN 2
+///LAB2
   panic ("init.c: i386_init() yield returned");
 }
 

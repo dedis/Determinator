@@ -1,4 +1,4 @@
-///BEGIN 3
+///LAB3
 #include <kern/env.h>
 #include <kern/pmap.h>
 #include <kern/picirq.h>
@@ -15,7 +15,7 @@ clock ()
 void
 yield (void)
 {
-///BEGIN 5
+///LAB5
   /* marks current position in the round-robin sweep */
   static int sched_idx = 0;
   int start = sched_idx;

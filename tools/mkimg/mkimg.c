@@ -1,4 +1,4 @@
-///BEGIN 4
+///LAB4
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

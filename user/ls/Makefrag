@@ -1,4 +1,4 @@
-#///BEGIN 4
+#///LAB4
 
 OBJDIRS += user/ls
 CLEAN_FILES += user/ls/ls

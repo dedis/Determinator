@@ -1,4 +1,4 @@
-///BEGIN 4
+///LAB4
 #include <inc/asm.h>
 #include <inc/mmu.h>
 
@@ -15,7 +15,7 @@ args_exist:
 	call _exit
 1:      jmp 1b
 	
-///BEGIN 6
+///LAB6
 
 // On entry there a trap frame is on the stack: 
 //   [ 5 spare words ]
@@ -33,7 +33,7 @@ _asm_pgfault_handler:
 	call _pgfault_handler
 // copy trap time eip and eflags to trap time stack
 	
-///BEGIN 6
+///LAB6
 	movl 8(%esp),%eax    // EAX <- trap time ESP
 	movl 16(%esp),%ecx   // ECX <- trap time EIP
 	movl %ecx, -4(%eax)  // *(trap time esp - 4) = trap time eip
@@ -42,14 +42,14 @@ _asm_pgfault_handler:
 ///END
 // restore caller saves
 
-///BEGIN 6
+///LAB6
 	movl 20(%esp),%eax
 	movl 24(%esp),%edx
 	movl 28(%esp),%ecx
 ///END
 // load esp with trap time stack - 8
 
-///BEGIN 6
+///LAB6
 	subl $8,8(%esp)
 	movl 8(%esp),%esp
 ///END

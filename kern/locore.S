@@ -1,4 +1,4 @@
-#///BEGIN 2	
+#///LAB2	
 /*
  * Copyright (C) 1997 Massachusetts Institute of Technology 
  *
@@ -100,7 +100,7 @@ start:
 	ljmp	$CODE_SEL,$relocated		# reload CS
 relocated:
 	movl	$0x0,%ebp			# And nuke frame pointer
-#///BEGIN 200	
+#///LAB200	
 	# XXX use sizeof(.)
 #///END	
         # Leave a few words on the stack for a user utf trap frame 
@@ -120,7 +120,7 @@ relocated:
 	call	_i386_init
 	
 #///END 2
-#///BEGIN 3
+#///LAB3
 	
 ###################################################################
 # exceptions/interrupts
@@ -133,7 +133,7 @@ relocated:
 #define IDTFNC(name,num)      ENTRY(name)           pushl $(num); jmp _alltraps
 #define IDTFNC_NOEC(name,num) ENTRY(name) pushl $0; pushl $(num); jmp _alltraps 
 
-#///BEGIN 4
+#///LAB4
 
 /* CPU traps */
 IDTFNC_NOEC(Xdivide, T_DIVIDE)

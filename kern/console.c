@@ -1,4 +1,3 @@
-///BEGIN 2
 
 /*
  * Copyright (C) 1997 Massachusetts Institute of Technology 
@@ -91,6 +90,31 @@ static unsigned addr_6845;
 static unsigned short *crt_buf;
 static short crt_pos;
 
+
+/* Output to alternate parallel port console */
+static void
+delay(int n)
+{
+	int i;
+
+	for(i=0; i<n; i++)
+		inb(0x84);
+}
+
+static void
+lptputc(int c)
+{
+	int i;
+
+	for(i=0; !(inb(0x378+1)&0x80) && i<12800; i++)
+		delay(1);
+	outb(0x378+0, c);
+	outb(0x378+2, 0x08|0x01);
+	outb(0x378+2, 0x08);
+}
+
+
+/* Normal CGA-based console output */
 void
 cninit (void)
 {
@@ -123,6 +147,8 @@ cninit (void)
 void
 cnputc(short int c)
 {
+  lptputc(c);
+
   /* if no attribute given, then use black on white */
   if (!(c & ~0xff)) c |= 0x0700;
 
@@ -149,10 +175,11 @@ cnputc(short int c)
     break;
   }
 
-///BEGIN 3
+///SOL2
+  // What is the purpose of this?
+///ELSE
   /* scroll if necessary */
 ///END
-  // What is the purpose of this?
   if (crt_pos >= CRT_SIZE) {
     int i;
     bcopy (crt_buf + CRT_COLS, crt_buf, CRT_SIZE << 1);
@@ -167,20 +194,14 @@ cnputc(short int c)
   outb(addr_6845, 15);
   outb(addr_6845+1, crt_pos);
 }
-///END
 
 
 
-
-
-///BEGIN 2
-
-
-
+///LAB6
 
 
 /*
- *  Scan codes from NetBSD.
+ *  Keyboard scan codes from NetBSD.
  */
 #define	SCROLL		0x0001	/* stop output */
 #define	NUM		0x0002	/* numeric shift  cursors vs. numeric */
@@ -335,15 +356,6 @@ static Scan_def scan_codes[] = {
 static volatile u_char ack, nak;
 static u_char lock_state;
 
-static inline void
-kbd_delay (void)
-{
-  inb(0x84);
-  inb(0x84);
-  inb(0x84);
-  inb(0x84);
-}
-
 
 
 /*
@@ -357,7 +369,7 @@ sget (void)
   static u_char capchar[2];
 
 top:
-  kbd_delay ();
+  delay ();
   dt = inb(KBDATAP);
 
   switch (dt) {
@@ -500,6 +512,7 @@ loop:
 }
 
 
+
 static char kbd_buf[512];
 u_int kbd_first;
 u_int kbd_last;
@@ -531,6 +544,4 @@ kbd_init (void)
   irq_setmask_8259A (irq_mask_8259A & 0xfffd);
   printf ("  unmasked keyboard interrupts\n");
 }
-
-
 ///END

@@ -1,4 +1,4 @@
-///BEGIN 3
+///LAB1
 #include <inc/asm.h>
 #include <inc/mmu.h>
 	

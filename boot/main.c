@@ -1,3 +1,4 @@
+///LAB1
 /*
  *
  * N.B.  NOTE THAT THIS IS THE BOOT LOADER, NOT THE KERNEL.
@@ -8,11 +9,11 @@
 #include <inc/x86.h>
 
 /**********************************************************************
- * This a dirt simply boot loader, whose sole job is to boot
+ * This a dirt simple boot loader, whose sole job is to boot
  * an a.out kernel image.
  *
  * DISK LAYOUT
- *  * This program (bootloader.S and main.c) is the bootloader.  It should
+ *  * This program (boot.S and main.c) is the bootloader.  It should
  *    be stored in the first sector of the disk.
  * 
  *  * The 2nd sector onward holds the kernel image.
@@ -104,4 +105,3 @@ read_sector (int sector, char *destination)
   insl (0x1f0, destination, SECTOR_SIZE / 4);
 }
 ///END
-

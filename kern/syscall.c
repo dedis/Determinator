@@ -1,4 +1,4 @@
-///BEGIN 4
+///LAB4
 /*
  * Copyright (C) 1997 Massachusetts Institute of Technology 
  *
@@ -42,7 +42,7 @@
 #include <kern/console.h>
 #include <kern/printf.h>
 
-///BEGIN 200
+///LAB200
 u_int (*sctab[MAX_SYSCALL + 1])() = {
   [SYS_getenvid] = (void *) sys_getenvid,
   [SYS_cputu] = (void *) sys_cputu,
@@ -65,14 +65,14 @@ u_int (*sctab[MAX_SYSCALL + 1])() = {
 
 // Dispatches to the correct kernel function, passing the arguments.
 
-///BEGIN 200
+///LAB200
 #if 0
 ///END
 int
 dispatch_syscall (u_int sn, u_int a1, u_int a2, u_int a3)
 {
 }
-///BEGIN 200
+///LAB200
 #endif
 
 int
@@ -105,14 +105,14 @@ sys_cputu (u_int value)
 void
 sys_cputs (char *s)
 {
-///BEGIN 5
+///LAB5
 #if 0
 ///END
   printf ("%s", s);
-///BEGIN 5
+///LAB5
 #endif
 ///END
-///BEGIN 5
+///LAB5
   page_fault_mode = PFM_KILL;
   printf ("%s", trup (s));
   page_fault_mode = PFM_NONE;
@@ -155,7 +155,7 @@ sys_env_destroy ()
 int
 sys_env_alloc (u_int inherit, u_int initial_esp)
 {
-///BEGIN 5
+///LAB5
   struct Env *e;
   int r;
 
@@ -181,7 +181,7 @@ sys_env_alloc (u_int inherit, u_int initial_esp)
 void
 sys_ipc_unblock ()
 {
-///BEGIN 5
+///LAB5
   //printf ("sys_ipc_unblock: old blocked %u\n", curenv->env_ipc_blocked);
   curenv->env_ipc_blocked = 0;
 ///END
@@ -204,7 +204,7 @@ sys_ipc_unblock ()
 int
 sys_ipc_send (u_int envid, u_int value)
 {
-///BEGIN 5
+///LAB5
   struct Env *e;
   int r;
 
@@ -306,7 +306,7 @@ sys_set_env_status (u_int envid, u_int status)
 int
 sys_mod_perms (u_int va, u_int add, u_int del)
 {
-///BEGIN 5
+///LAB5
   Pde pde = vpd[PDENO(va)];
   if (!(pde & PG_P))
     return -E_INVAL;
@@ -345,7 +345,7 @@ sys_mod_perms (u_int va, u_int add, u_int del)
 int
 sys_mem_alloc (u_int envid, u_int va, u_int perm)
 {
-///BEGIN 5
+///LAB5
   struct Env *env;
   struct Ppage *pp;
   int r;
@@ -397,7 +397,7 @@ sys_mem_alloc (u_int envid, u_int va, u_int perm)
 int
 sys_mem_remap (u_int srcva, u_int envid, u_int va, u_int perm)
 {
-///BEGIN 5
+///LAB5
   Pte pte;
   int r;
   struct Env *env;
@@ -442,7 +442,7 @@ sys_mem_remap (u_int srcva, u_int envid, u_int va, u_int perm)
 int
 sys_mem_unmap (u_int envid, u_int va)
 {
-///BEGIN 5
+///LAB5
   struct Env *env;
   int r;
 

@@ -1,4 +1,4 @@
-///BEGIN 3
+///LAB3
 #include <inc/mmu.h>
 #include <kern/pmap.h>
 #include <kern/trap.h>
@@ -27,7 +27,7 @@ void
 idt_init ()
 {
   extern struct seg_desc gdt[];
-///BEGIN 4
+///LAB4
   extern void
     Xdivide,Xdebug,Xnmi,Xbrkpt,Xoflow,Xbound,
     Xillop,Xdevice,Xdblflt,Xtss,Xsegnp,Xstack,
@@ -86,7 +86,7 @@ idt_init ()
   // Setup a TSS so that we get the right stack when we trap to the kernel.
   ts.ts_esp0 = KSTACKTOP;
   ts.ts_ss0 = GD_KD;
-///BEGIN 200	
+///LAB200	
   ts.ts_cr3 = p0cr3_boot; // XXX delete these?
   ts.ts_iomb = 0xdfff;
 ///END	
@@ -130,11 +130,11 @@ trap (struct Trapframe *tf)
     printf ("*");
 #endif
 
-///BEGIN 4
+///LAB4
 #if 0
 ///END
   print_trapframe (tf);
-///BEGIN 4
+///LAB4
 #endif
 ///END
 
@@ -142,7 +142,7 @@ trap (struct Trapframe *tf)
     page_fault_handler (tf);
   }
   else if (tf->tf_trapno == T_SYSCALL) {
-///BEGIN 5
+///LAB5
     /* tf_eax - # of system call
      * tf_edx - 1st argument (if any)
      * tf_ecx - 2nd argument (if any)
@@ -155,11 +155,11 @@ trap (struct Trapframe *tf)
   }
   else if (tf->tf_trapno == IRQ_OFFSET) {
     // irq 0 -- clock interrupt
-///BEGIN 4
+///LAB4
     yield ();
 ///END
   }
-///BEGIN 6
+///LAB6
   else if (tf->tf_trapno == IRQ_OFFSET + 1) {
     kbd_intr ();
   }
@@ -176,7 +176,7 @@ trap (struct Trapframe *tf)
     // the user process or the kernel has a bug..
     print_trapframe (tf);
     panic ("That does it (Unhandled trap).");
-///BEGIN 4
+///LAB4
     if (tf->tf_cs == GD_KT)
       panic ("That does it (Unhandled trap in kernel).");
     else
@@ -184,11 +184,11 @@ trap (struct Trapframe *tf)
 ///END
   }
 
-///BEGIN 4
+///LAB4
 #if 0
 ///END
   panic ("in lab3 don't continue..");
-///BEGIN 4
+///LAB4
 #endif
 ///END
 
@@ -214,7 +214,7 @@ page_fault_handler (struct Trapframe *tf)
     printf ("   esp = 0x%x, ss = 0x%x\n", tf->tf_esp, 0xffff & tf->tf_ss);
 #endif
 
-///BEGIN 200
+///LAB200
   if (tf->tf_err & FEC_U) {
     if (curenv->env_id == 0)
       panic ("Unexpected page fault in idle environment");

@@ -1,4 +1,4 @@
-///BEGIN 3
+///LAB3
 
 #ifndef _KERN_SYSCALL_H_
 #define _KERN_SYSCALL_H_
@@ -7,11 +7,11 @@
 
 // These prototypes are private to the kernel.
 
-///BEGIN 200
+///LAB200
 #if 0
 ///END
 int dispatch_syscall (u_int, u_int, u_int, u_int);
-///BEGIN 200
+///LAB200
 #endif
 int dispatch_syscall (u_int, u_int, u_int, u_int, u_int);
 ///END

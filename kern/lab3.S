@@ -1,4 +1,4 @@
-#///BEGIN 3	
+#///LAB3	
 #include <inc/mmu.h>
 
 .global _div0_start

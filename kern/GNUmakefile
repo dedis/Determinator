@@ -1,4 +1,4 @@
-#///BEGIN 1
+#///LAB1
 TOP = ..
 include $(TOP)/ARCH
 

@@ -1,4 +1,3 @@
-#///BEGIN 1
 TOP = .
 
 # Cross-compiler osclass toolchain
@@ -31,8 +30,8 @@ all:
 # Include Makefrags for subdirectories
 include kern/Makefrag
 include boot/Makefrag
-include user/Makefrag
-include tools/mkimg/Makefrag
+-include user/Makefrag
+-include tools/mkimg/Makefrag
 
 
 # Eliminate default suffix rules
@@ -76,11 +75,11 @@ handin:
 -include .deps
 
 
-#///BEGIN 200
+#///LAB200
 
 # Find all potentially exportable files
-LAB_PATS := Makefrag *.c *.h
-LAB_DIRS := inc $(OBJDIRS)
+LAB_PATS := Makefrag *.c *.h *.S
+LAB_DIRS := inc user $(OBJDIRS)
 LAB_FILES := GNUmakefile .bochsrc mergedep.pl \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
@@ -89,11 +88,13 @@ LAB_FILES := GNUmakefile .bochsrc mergedep.pl \
 # It's important that these aren't just called 'lab%' and 'sol%',
 # because that causes 'lab%' to match 'kern/lab3.S' and delete it - argh!
 export-lab%:
-	rm -rf $@
+	rm -rf lab$*
 	$(PERL) mklab.pl $* 0 $(LAB_FILES)
+	cp -R bios lab$*/
 export-sol%:
-	rm -rf $@
+	rm -rf sol$*
 	$(PERL) mklab.pl $* 1 $(LAB_FILES)
+	cp -R bios sol$*/
 
 # Distribute the BIOS images Bochs needs with the lab trees
 # in order to avoid absolute pathname dependencies in .bochsrc.
@@ -102,9 +103,5 @@ bios:
 bios/%: /usr/local/share/bochs/bios/% bios
 	cp $< $@
 all: bios/BIOS-bochs-latest bios/VGABIOS-elpin-2.40
-
-
-#///END
-
 
 #///END

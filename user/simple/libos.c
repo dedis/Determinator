@@ -1,4 +1,4 @@
-///BEGIN 4
+///LAB4
 
 #include <inc/stdarg.h>
 #include "libos.h"
@@ -10,7 +10,7 @@
 //
 struct Env *__env = 0;
 
-///BEGIN 200
+///LAB200
 /* XXX zero the BSS ??
 
  * The -N in the LDFLAGS in GNUmakefile.global instructs the linker to
@@ -153,7 +153,7 @@ xbcopy (const void *src, void *dst, size_t len)
 void
 handle_cow_fault (u_int va, Pte pte)
 {
-///BEGIN 5
+///LAB5
 
 #define COW_TEMP_PG  10*NBPD
   u_int ret;
@@ -207,7 +207,7 @@ pgfault_handler (u_int va, u_int err, u_int esp, u_int eflags, u_int eip)
 
 
 
-///BEGIN 5
+///LAB5
   /* copy-on-write fault */
   if ((vpd[PDENO(va)] & (PG_P|PG_U)) == (PG_P|PG_U)) {
     Pte pte = vpt[PGNO(va)];
@@ -234,7 +234,7 @@ pgfault_handler (u_int va, u_int err, u_int esp, u_int eflags, u_int eip)
 void
 ipc_send (u_int target_envid, u_int value)
 {
-///BEGIN 5
+///LAB5
   int ret;
 #if 0
   print ("IPC_SEND value ", value, ",");
@@ -271,7 +271,7 @@ ipc_send (u_int target_envid, u_int value)
 u_int
 ipc_read (u_int *from_envid)
 {
-///BEGIN 5
+///LAB5
   u_int value;
 
   /* spin until ipc is blocked, then there is data ready */
@@ -346,7 +346,7 @@ dump_va_space ()
 int
 fork (void)
 {
-///BEGIN 5
+///LAB5
   u_int va, j, ret;
   int child_envid = sys_env_alloc (1, 0);
   if (child_envid == 0) {
@@ -547,7 +547,7 @@ spawn (void (*child_fn) (void))
 
 
 
-///BEGIN 200
+///LAB200
 #if 0
 ///END
 void
@@ -568,7 +568,7 @@ setup_xstack ()
   sys_set_pgfault_handler ((u_int)&asm_pgfault_handler, UXSTACKTOP);
 #endif
 }
-///BEGIN 200
+///LAB200
 #endif
 
 
@@ -602,14 +602,14 @@ exercise2 (void)
     sys_cputs (" *** ERROR: expected 2049\n");
 
 
-///BEGIN 200
+///LAB200
 #if 0
 ///END
   // now test bad sys_call number
   ret = sys_call (100, 0, 0, 0);
   if (ret != -E_INVAL)
     sys_cputs (" *** ERROR: expected -E_INVAL for bad syscall number\n");
-///BEGIN 200
+///LAB200
 #endif
 ///END
 
@@ -618,7 +618,7 @@ exercise2 (void)
     ;
 }
 
-///BEGIN 200
+///LAB200
 #if 0
 ///END
 void
@@ -634,7 +634,7 @@ exercise3 (void)
     pingpong_loop ("1st init process");
   }
 }
-///BEGIN 200
+///LAB200
 #endif
 ///END
 
@@ -762,7 +762,7 @@ __main (int argc, char *argv[])
   }
 
 
-///BEGIN 200
+///LAB200
 #if 0
 ///END
   exercise2 ();
@@ -777,13 +777,13 @@ __main (int argc, char *argv[])
   //exercise5_test5 ();
 
   //// run these lines for exercise 6
-///BEGIN 200
+///LAB200
 #else
 ///END
   setup_xstack ();
   //exec ("simple", "hi", "a", "b", "c", "dddd", "eeeeeeeeeeeeeee", NULL);
   //exit ();
-///BEGIN 200
+///LAB200
 #endif
 ///END
 }

@@ -1,4 +1,4 @@
-///BEGIN 2
+///LAB2
 /*
  * Copyright (C) 1997 Massachusetts Institute of Technology 
  *
@@ -37,9 +37,9 @@
 
 #include <inc/x86.h>
 #include <inc/mmu.h>
+#include <inc/error.h>
 #include <kern/env.h>
 #include <kern/pmap.h>
-#include <kern/syscall.h>
 #include <kern/sched.h>
 #include <kern/printf.h>
 
@@ -47,7 +47,7 @@ struct Env *__envs = NULL;		/* All environments */
 static struct Env_list env_free_list;	/* Free list */
 struct Env *curenv = NULL;	        /* the current env */
 ///END
-///BEGIN 3
+///LAB3
 
 //
 // Calculates the envid for env e.  
@@ -93,7 +93,7 @@ load_aout (struct Env* e, u_char *binary, u_int size)
   // Hint: 
   //  Use ppage_alloc, ppage_insert, pp2va and e->env_pgdir
 
-///BEGIN 4
+///LAB4
   int i, r;
   struct Ppage *pp;
 
@@ -129,7 +129,7 @@ load_aout (struct Env* e, u_char *binary, u_int size)
 void
 env_init (void)
 {
-///BEGIN 4
+///LAB4
   int i;
   LIST_INIT (&env_free_list);
   for (i = NENV - 1; i >= 0; i--) {
@@ -158,7 +158,7 @@ env_setup_vm (struct Env *e)
 
   int i, r;
   struct Ppage *pp1 = NULL;
-///BEGIN 4
+///LAB4
 #if 0
   struct Ppage *pp2 = NULL;
 #endif
@@ -174,7 +174,7 @@ env_setup_vm (struct Env *e)
   //    - Do not make any calls to ppage_alloc 
   //    - Note: pp_refcnt is not maintained for physical pages mapped above UTOP.
 
-///BEGIN 4
+///LAB4
   e->env_cr3 = pp2pa (pp1);
   e->env_pgdir = pp2va (pp1);
   bzero (e->env_pgdir, NBPG);
@@ -227,17 +227,17 @@ env_alloc (struct Env **new, u_int parent_id)
   // You also need to set tf_eip to the correct value.
   // Hint: see load_aout
 
-///BEGIN 4
+///LAB4
   e->env_tf.tf_eip = UTEXT + 0x20; // right past a.out header
 ///END
-///BEGIN 4
+///LAB4
   e->env_tf.tf_eflags = FL_IF; // interrupts enabled
 ///END
-///BEGIN 4
+///LAB4
 #if 0
 ///END
   e->env_tf.tf_eflags = 0;
-///BEGIN 4
+///LAB4
 #endif
 ///END
 
@@ -264,7 +264,7 @@ env_alloc (struct Env **new, u_int parent_id)
 void
 env_create (u_char *binary, int size)
 {
-////BEGIN 4
+////LAB4
   int r;
   struct Env *e;
   if ((r = env_alloc (&e, 0)) < 0)
@@ -280,7 +280,7 @@ env_create (u_char *binary, int size)
 void
 env_free (struct Env *e)
 {
-///BEGIN 4
+///LAB4
   Pte *pt;
   u_int pdeno, pteno;
 
@@ -358,7 +358,7 @@ env_run (struct Env *e)
   // Hint: Skip step 1 until exercise 4.  You don't
   // need it for exercise 1, and in exercise 4 you'll better
   // understand what you need to do.
-///BEGIN 4
+///LAB4
   // save register state of currently executing env
   if (curenv)
     curenv->env_tf = *utf;

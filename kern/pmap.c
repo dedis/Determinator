@@ -1,4 +1,4 @@
-///BEGIN 2
+///LAB2
 /*
  * Copyright (C) 1997 Massachusetts Institute of Technology 
  *
@@ -37,9 +37,9 @@
 
 #include <inc/x86.h>
 #include <inc/mmu.h>
+#include <inc/error.h>
 #include <kern/pmap.h>
 #include <kern/env.h>
-#include <kern/syscall.h>
 #include <kern/sched.h>
 #include <kern/printf.h>
 #include <kern/kclock.h>
@@ -58,7 +58,7 @@ long extmemsize;                /* Amount of extended memory (in bytes) */
 
 static struct Ppage_list free_list;	/* Free list of physical pages */
 
-///BEGIN 3
+///SOL2
 static u_int cpuid_features = 0; // We don't detect CPU type right now.
 ///END
 
@@ -91,7 +91,7 @@ struct pseudo_desc gdt_pd =
 };
 
 
-///BEGIN 3
+///SOL2
 //
 // Allocate fixed space in physical memory.  *pt will be set to a page
 // table containing the space allocated, so that the space can be
@@ -333,7 +333,7 @@ i386_vm_init ()
   u_int cr0;
   int i;
   extern char bootstacktop;
-///BEGIN 3
+///SOL2
   // XXX get rid of these? and ptspace_alloc?
   Pte *ppage_upt;		/* Pt for read-only ppage structures */
   Pte *env_upt;			/* Pt for read-only and envs */
@@ -362,13 +362,10 @@ i386_vm_init ()
   p0pgdir_boot[PDENO(UVPT)] = (Pde)kva2pa(p0pgdir_boot)|PG_U|PG_P;
 
 
-///BEGIN 3
-#if 0
-///END
+///SOL2
+///ELSE
   printf ("\n");
   panic ("i386_vm_init: This function is not finished\n");
-///BEGIN 3
-#endif
 ///END
 
   //////////////////////////////////////////////////////////////////////
@@ -385,7 +382,7 @@ i386_vm_init ()
   //
   // Your code goes here:
 
-///BEGIN 3
+///SOL2
   bzero ((void *)freemem, NBPG);
   kstkpt = (void *)freemem;
   freemem += NBPG;
@@ -411,7 +408,7 @@ i386_vm_init ()
   // Step 3: insert the page tables into the page directory
   // your code goes here: 
 
-///BEGIN 3
+///SOL2
   if (cpuid_features & 0x8) {
     // use 4MB mappings
     lcr4 (rcr4() | CR4_PSE);
@@ -445,7 +442,7 @@ i386_vm_init ()
   // your code goes here: 
 
 
-///BEGIN 3
+///SOL2
   printf("nppage %ld, Ppage_sizeof %u\n", nppage, (u_int)sizeof(struct Ppage));
   ppages = ptspace_alloc (&ppage_upt, nppage * sizeof(struct Ppage));
   p0pgdir_boot[PDENO(UPPAGES)]  = kva2pa(ppage_upt) | PG_U | PG_P;
@@ -466,7 +463,7 @@ i386_vm_init ()
   // Step 5: insert the page table into p0pgdir_boot
   // your code goes here: 
 
-///BEGIN 3
+///SOL2
   __envs = ptspace_alloc (&env_upt, NENV * sizeof (struct Env));
   p0pgdir_boot[PDENO(UENVS)]    = kva2pa(env_upt) | PG_U | PG_P;
 ///END
@@ -518,51 +515,13 @@ i386_vm_init ()
 
 
 
-
-///BEGIN 200
-#if 0
-///END
-
-// XXX
-#if 0
 //  
 // Initialize ppage structure and memory free list.
 //
 void
 ppage_init (void)
 {
-  // The exaple code here marks all pages as free.
-  // However this is not truly the case.  What memory is free?
-  //  1) Mark page 0 as in use (for good luck) 
-  //  2) Mark the rest of base memory as free.
-  //  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM) => mark it as in use
-  //     So that it can never be allocated.      
-  //  4) Then extended memory (ie. >= EXTPHYSMEM):
-  //     ==> some of it's in use some is free. Where is the kernel?
-  //     Which pages are used for page tables and other data structures?    
-  //
-  // Change the code to reflect this.
-  int i;
-  LIST_INIT (&free_list);
-  for (i = 0; i < nppage; i++) {
-    ppages[i].pp_refcnt = 0;
-    LIST_INSERT_HEAD(&free_list, &ppages[i], pp_link);
-  }
-}
-#endif
-///BEGIN 200
-#endif
-///END
-
-
-///BEGIN 3
-
-//  
-// Initialize ppage structure and memory free list.
-//
-void
-ppage_init (void)
-{
+///SOL2
   int i;
   LIST_INIT (&free_list);
 
@@ -581,8 +540,27 @@ ppage_init (void)
     if (!inuse)
       LIST_INSERT_HEAD(&free_list, &ppages[i], pp_link);
   }
-}
+///ELSE
+  // The exaple code here marks all pages as free.
+  // However this is not truly the case.  What memory is free?
+  //  1) Mark page 0 as in use (for good luck) 
+  //  2) Mark the rest of base memory as free.
+  //  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM) => mark it as in use
+  //     So that it can never be allocated.      
+  //  4) Then extended memory (ie. >= EXTPHYSMEM):
+  //     ==> some of it's in use some is free. Where is the kernel?
+  //     Which pages are used for page tables and other data structures?    
+  //
+  // Change the code to reflect this.
+  int i;
+  LIST_INIT (&free_list);
+  for (i = 0; i < nppage; i++) {
+    ppages[i].pp_refcnt = 0;
+    LIST_INSERT_HEAD(&free_list, &ppages[i], pp_link);
+  }
 ///END
+}
+
 
 
 // ----------------------------------------------------------------------
@@ -641,7 +619,7 @@ void
 ppage_free (struct Ppage *pp)
 {
   // Fill this function in
-///BEGIN 3
+///SOL2
   if (pp->pp_refcnt) {
     warn ("ppage_free: attempt to free mapped page");
     return;		/* be conservative and assume page is still used */
@@ -668,7 +646,7 @@ int
 ppage_alloc (struct Ppage **pp)
 {
   // Fill this function in
-///BEGIN 3
+///SOL2
 
   *pp = LIST_FIRST (&free_list);
   if (*pp) {
@@ -709,7 +687,7 @@ void
 ppage_remove (Pde *pgdir, u_int va) 
 {
   // Fill this function in
-///BEGIN 3
+///SOL2
 
   struct Ppage *pp;
   Pte *ptep;
@@ -762,7 +740,7 @@ int
 ppage_insert (Pde *pgdir, struct Ppage *pp, u_int va, u_int perm) 
 {
   // Fill this function in
-///BEGIN 3
+///SOL2
   Pte *ptep;
   int r;
 

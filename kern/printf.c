@@ -1,4 +1,4 @@
-///BEGIN 2
+///LAB2
 /*
  * Copyright (C) 1997 Massachusetts Institute of Technology 
  *
