@@ -71,7 +71,6 @@ load_aout(struct Env* e, u_char *binary, u_int size)
 					PTE_P|PTE_W|PTE_U)) < 0)
 			panic("load_aout: could not map page. Errno %d\n", r);
 	}
-	
 
 	/* Give it a stack */
 	if ((r = page_alloc(&pp)) < 0)

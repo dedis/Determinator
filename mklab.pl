@@ -20,32 +20,29 @@ sub dofile {
 	open(INFILE, "<$filename") or die "Can't open $filename";
 	open(OUTFILE, ">$tmpfilename") or die "Can't open $tmpfilename";
 
-	my $level = $labno*2+$sols;
-	#print "Processing $filename, level $level\n";
-
 	my $lines = 0;
 	my @pass = ();
 	while (<INFILE>) {
 		if (m|[#]?///LAB(\d+)|) {
-			if ($#pass < 0 || $level >= $pass[0]) {
-				unshift (@pass, $1*2);
+			if ($#pass < 0 || $pass[0]) {
+				unshift (@pass, $labno >= $1);
 			} else {
 				unshift (@pass, $pass[0]);
 			}
 			#print "$_: @pass\n";
 		} elsif (m|[#]?///SOL(\d+)|) {
-			if ($#pass < 0 || $level >= $pass[0]) {
-				unshift (@pass, $1*2+1);
+			if ($#pass < 0 || $pass[0]) {
+				unshift (@pass, $solno >= $1);
 			} else {
 				unshift (@pass, $pass[0]);
 			}
 			#print "$_: @pass\n";
 		} elsif (m|[#]?///ELSE|) {
-			if ($#pass < 0 || $level >= $pass[0]
-					|| $pass[0] == $pass[1]) {
-				$pass[0] = 200;
+			if ($#pass < 0 || $pass[0] ||
+					($#pass >= 1 && !$pass[1])) {
+				$pass[0] = 0;
 			} else {
-				$pass[0] = $level;
+				$pass[0] = 1;
 			}
 			#print "$_: @pass\n";
 		} elsif (m|[#]?///END|) {
@@ -55,7 +52,7 @@ sub dofile {
 				print "Warning: unmatched ///END in $filename\n";
 			}
 			#print "$_: @pass\n";
-		} elsif ($#pass < 0 || $level >= $pass[0]) {
+		} elsif ($#pass < 0 || $pass[0]) {
 			#print "$#pass--$pass[0]--$_";
 			print OUTFILE $_;
 			$lines++;
@@ -95,8 +92,10 @@ if ($labno < 1 || ($sols ne "0" && $sols ne "1")) {
 
 if ($sols == 0) {
 	$outdir = "lab$labno";
+	$solno = 0;
 } else {
 	$outdir = "sol$labno";
+	$solno = $labno;
 }
 
 # Blow away the old output directory and create a new one
