@@ -1,5 +1,6 @@
-#if LAB >= 4
-// User-level page fault handler.  We use an assembly wrapper around a C function.
+#if LAB >= 3
+// User-level page fault handler.
+// We use an assembly wrapper around a C function.
 // The assembly wrapper is in entry.S.
 
 #include <inc/lib.h>
@@ -20,12 +21,13 @@ set_pgfault_handler(void (*fn)(u_int va, u_int err))
 	int r;
 
 	if (_pgfault_handler == 0) {
-#if SOL >= 4
+#if SOL >= 3
 		// map exception stack
 		if ((r=sys_mem_alloc(0, UXSTACKTOP-BY2PG, PTE_P|PTE_U|PTE_W)) < 0)
 			panic("allocating exception stack: %e", r);
+
 		// install assembly handler with operating system
-		sys_set_pgfault_handler(0, (u_int)_asm_pgfault_handler, UXSTACKTOP);
+		sys_set_pgfault_handler(0, (u_int)_asm_pgfault_handler);
 #else
 		// Your code here:
 		// map one page of exception stack with top at UXSTACKTOP

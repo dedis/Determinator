@@ -5,14 +5,14 @@
 /* The run time clock is hard-wired to IRQ8. */
 
 #include <inc/x86.h>
-#if LAB >= 3
+#if LAB >= 4
 #include <inc/stdio.h>
 #include <inc/isareg.h>
 #include <inc/timerreg.h>
 #endif
 
 #include <kern/kclock.h>
-#if LAB >= 3
+#if LAB >= 4
 #include <kern/picirq.h>
 #endif
 
@@ -32,7 +32,7 @@ mc146818_write(void *sc, u_int reg, u_int datum)
 }
 
 
-#if LAB >= 3	// when we actually start needing the timers
+#if LAB >= 4	// when we actually start needing the timers
 void
 kclock_init(void)
 {
@@ -44,6 +44,6 @@ kclock_init(void)
 	irq_setmask_8259A (irq_mask_8259A & ~(1<<0));
 	printf("	unmasked timer interrupt\n");
 }
-#endif /* LAB >= 3 */
+#endif /* LAB >= 4 */
 
 #endif /* LAB >= 2 */

@@ -15,12 +15,15 @@
 #include <kern/env.h>
 #include <kern/trap.h>
 #include <kern/sched.h>
+#if LAB >= 4
 #include <kern/picirq.h>
-#endif
-#endif
+#endif	// LAB >= 4
+#endif	// LAB >= 3
+#endif	// LAB >= 2
 
 #if LAB >= 2	// ...then leave this code out.
 #elif LAB >= 1
+// Test the stack backtrace function (lab 1 only)
 void
 test_backtrace(int x)
 {
@@ -54,7 +57,7 @@ i386_init(void)
 #endif /* !ENV_CLASS_NYU */
 
 #if LAB >= 2
-	// Lab 2 initialization functions
+	// Lab 2 memory management initialization functions
 	i386_detect_memory();
 	i386_vm_init();
 	page_init();
@@ -62,11 +65,15 @@ i386_init(void)
 #endif
 
 #if LAB >= 3
-	// Lab 3 initialization functions
+	// Lab 3 user environment initialization functions
+	env_init();
 	idt_init();
+#endif
+
+#if LAB >= 4
+	// Lab 4 multitasking initialization functions
 	pic_init();
 	kclock_init();
-	env_init();
 #endif
 
 #if LAB >= 6
@@ -124,13 +131,9 @@ i386_init(void)
 #if defined(TEST)
 	// Don't touch -- used by grading script!
 	ENV_CREATE(TEST)
-#elif defined(TEST_ALICEBOB)
-	// Don't touch -- used by grading script!
-	ENV_CREATE(alice);
-	ENV_CREATE(bob);
 #else
 	// Touch all you want.
-	ENV_CREATE(spin);
+	ENV_CREATE(user_hello);
 #endif // TEST*
 #endif // LAB5, LAB4, LAB3
 
@@ -139,12 +142,15 @@ i386_init(void)
 	kbd_intr();
 
 #endif
+
 #if LAB >= 3
+	// Schedule and run the first user environment!
 	sched_yield();
 #endif
 
 #if LAB >= 2
 #else
+	// Test the stack backtrace function (lab 1 only)
 	test_backtrace(5);
 #endif
 
@@ -162,8 +168,7 @@ static const char *panicstr;
 
 /*
  * Panic is called on unresolvable fatal errors.
- * It prints "panic: mesg", and then enters an infinite loop.
- * If executing on Bochs, drop into the debugger rather than chew CPU.
+ * It prints "panic: mesg", and then enters the kernel monitor.
  */
 void
 _panic(const char *file, int line, const char *fmt,...)
@@ -181,10 +186,9 @@ _panic(const char *file, int line, const char *fmt,...)
 	va_end(ap);
 
 dead:
-	/* break into Bochs debugger */
-	bochs();
-
-	for(;;);
+	/* break into the kernel monitor */
+	while (1)
+		monitor(NULL);
 }
 
 /* like panic, but don't */

@@ -1,5 +1,5 @@
-#if LAB >= 5
-#elif LAB >= 4
+#if LAB >= 4
+#elif LAB >= 3
 // test bad pointer for user-level fault handler
 // this is going to fault in the fault handler accessing eip (always!)
 // so eventually the kernel kills it (PFM_KILL) because
@@ -10,7 +10,7 @@
 void
 umain(void)
 {
-	sys_set_pgfault_handler(0, 0xDeadBeef, USTACKTOP);
+	sys_set_pgfault_handler(0, 0xDeadBeef);
 	*(int*)0 = 0;
 }
 #endif

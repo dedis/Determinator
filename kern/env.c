@@ -16,7 +16,7 @@
 #endif
 
 struct Env *envs = NULL;		// All environments
-struct Env *curenv = NULL;	        // the current env
+struct Env *curenv = NULL;	        // The current env
 
 static struct Env_list env_free_list;	// Free list
 
@@ -91,9 +91,11 @@ env_init(void)
 
 //
 // Initializes the kernel virtual memory layout for environment e.
-//
-// Allocates a page directory and initializes it.  Sets
-// e->env_cr3 and e->env_pgdir accordingly.
+// Allocates a page directory and initializes
+// the kernel portion of the new environment's address space.
+// Also sets e->env_cr3 and e->env_pgdir accordingly.
+// We do NOT (yet) map anything into the user portion
+// of the environment's virtual address space.
 //
 // RETURNS
 //   0 -- on sucess
@@ -102,8 +104,6 @@ env_init(void)
 static int
 env_setup_vm(struct Env *e)
 {
-	// Hint:
-
 	int i, r;
 	struct Page *p = NULL;
 
@@ -113,10 +113,11 @@ env_setup_vm(struct Env *e)
 
 	// Hint:
 	//    - The VA space of all envs is identical above UTOP
-	//      (except at VPT and UVPT) 
-	//    - Use boot_pgdir
-	//    - Do not make any calls to page_alloc 
-	//    - Note: pp_ref is not maintained for physical pages mapped above UTOP.
+	//      (except at VPT and UVPT).
+	//    - Use boot_pgdir as a template.
+	//    - You do not need to make any more calls to page_alloc.
+	//    - Note: pp_ref is not maintained
+	//	for physical pages mapped above UTOP.
 
 #if SOL >= 3
 	e->env_cr3 = page2pa(p);
@@ -153,28 +154,49 @@ env_alloc(struct Env **new, u_int parent_id)
 	if (!(e = LIST_FIRST(&env_free_list)))
 		return -E_NO_FREE_ENV;
 
+	// Allocate and set up the page directory for this environment.
 	if ((r = env_setup_vm(e)) < 0)
 		return r;
 
+	// Generate an env_id for this environment,
+	// and set the basic status variables.
 	e->env_id = mkenvid(e);
 	e->env_parent_id = parent_id;
 	e->env_status = ENV_RUNNABLE;
 
-	// Set initial values of registers
-	//  (lower 2 bits of the seg regs is the RPL -- 3 means user process)
+	// Clear out all the saved register state,
+	// to prevent the register values
+	// of a prior environment inhabiting this Env structure
+	// from "leaking" into our new environment.
+	memset(&e->env_tf, 0, sizeof(e->env_tf));
+
+	// Set up appropriate initial values for the segment registers.
+	// GD_UD is the user data segment selector in the GDT, and 
+	// GD_UT is the user text segment selector (see inc/pmap.h).
+	// The low 2 bits of each segment register
+	// contains the Requestor Privilege Level (RPL);
+	// 3 means user mode.
 	e->env_tf.tf_ds = GD_UD | 3;
 	e->env_tf.tf_es = GD_UD | 3;
 	e->env_tf.tf_ss = GD_UD | 3;
 	e->env_tf.tf_esp = USTACKTOP;
 	e->env_tf.tf_cs = GD_UT | 3;
-	// You also need to set tf_eip to the correct value.
+
+#if SOL >= 4
+	// Enable interrupts while in user mode.
+	e->env_tf.tf_eflags = FL_IF; // interrupts enabled
+#endif
+
+	// You also need to set tf_eip to the correct value at some point.
 	// Hint: see load_icode
 
-#if SOL >= 3
-	e->env_tf.tf_eflags = FL_IF; // interrupts enabled
-#else
-	e->env_tf.tf_eflags = 0;
+	// Clear the page fault handler until user installs one.
+	e->env_pgfault_handler = 0;
+
+#if LAB >= 4
+	e->env_ipc_recving = 0;
 #endif
+
 #if LAB >= 5
 	// If this is the file server (e==&envs[1]) give it I/O privileges.
 #if SOL >= 5
@@ -184,11 +206,6 @@ env_alloc(struct Env **new, u_int parent_id)
 	//   (your code here)
 #endif
 #endif
-	e->env_ipc_recving = 0;
-
-
-	e->env_pgfault_handler = 0;
-	e->env_xstacktop = 0;
 
 	// commit the allocation
 	LIST_REMOVE(e, env_link);
@@ -202,31 +219,44 @@ env_alloc(struct Env **new, u_int parent_id)
 	return 0;
 }
 
-// Map a segment at address va of size len bytes, rounded up to page size.
-// Initialize the segment with src.
-// Panic if it fails.
+// Allocate and map all required pages into an env's address space
+// to cover virtual addresses va through va+len-1 inclusive,
+// and initialize these pages so the range va through va+len-1
+// contains the data from src to src+len-1 (in the kernel's address space).
+// Make all mappings read/write and user-accessible.
+// Panic if any allocation attempt fails.
+//
+// Warning: Neither va nor len are necessarily page-aligned!
+// You may assume, however, that nothing is already mapped
+// in the pages touched by the specified virtual address range.
 static void
 map_segment(struct Env *e, u_int va, u_int len, u_char *src)
 {
 #if SOL >= 3
 	int r;
-	u_int i;
 	struct Page *p;
+	u_int endva, copylen;
 
-	if (va&(BY2PG-1)) {
-		i = va & (BY2PG-1);
-		va -= i;
-		len += i;
-		src -= i;
-	}
-
-	for (i = 0; i < len; i += BY2PG) {
+	while (len > 0) {
+		// Allocate and map a page covering virtual address va.
 		if ((r = page_alloc(&p)) < 0)
 			panic("map_segment: could not alloc page: %e\n", r);
-		// printf("copy page %x to %x\n", src+i, va+i);
-		memcpy((void*)page2kva(p), src+i, MIN(BY2PG, len-i));
-		if ((r = page_insert(e->env_pgdir, p, va+i, PTE_P|PTE_W|PTE_U)) < 0)
+		if ((r = page_insert(e->env_pgdir, p, va, PTE_P|PTE_W|PTE_U))
+				< 0)
 			panic("map_segment: could not insert page: %e\n", r);
+
+		// Copy data from src into (the appropriate part of) this page,
+		// up to 'len' bytes or to the end of the current page.
+		endva = (va + BY2PG) & ~(BY2PG-1);
+		if (endva > va+len)
+			endva = va+len;
+		copylen = endva-va;
+		memcpy((void*)page2kva(p) + PGOFF(va), src, copylen);
+
+		// Move on to the next page.
+		va += copylen;
+		src += copylen;
+		len -= copylen;
 	}	
 #else
 	// Your code here.
@@ -282,8 +312,8 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 		panic("load_icode: could not map page: %e\n", r);
 #else /* not SOL >= 3 */
 	// Hint: 
-	//  Use map_segment for loading the program segments.  Only use
-	//  segments with ph->p_type == ELF_PROG_LOAD.
+	//  Use map_segment() for loading the program segments.
+	//  Only use segments with ph->p_type == ELF_PROG_LOAD.
 	//  For mapping the stack, use page_alloc, page_insert, and
 	//  e->env_pgdir.
 	//  You must figure out which permissions you'll need for the
@@ -312,7 +342,6 @@ env_create(u_char *binary, int size)
 void
 env_free(struct Env *e)
 {
-#if LAB >= 4
 	Pte *pt;
 	u_int pdeno, pteno, pa;
 
@@ -323,37 +352,45 @@ env_free(struct Env *e)
 	printf("[%08x] free env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
 #endif
 
-	// Flush all pages
+	// Flush all mapped pages in the user portion of the address space
 	static_assert(UTOP%PDMAP == 0);
 	for (pdeno = 0; pdeno < PDX(UTOP); pdeno++) {
+
+		// only look at mapped page tables
 		if (!(e->env_pgdir[pdeno] & PTE_P))
 			continue;
+
+		// find the pa and va of the page table
 		pa = PTE_ADDR(e->env_pgdir[pdeno]);
 		pt = (Pte*)KADDR(pa);
-		for (pteno = 0; pteno <= PTX(~0); pteno++)
+
+		// unmap all PTEs in this page table
+		for (pteno = 0; pteno <= PTX(~0); pteno++) {
 			if (pt[pteno] & PTE_P)
-				page_remove(e->env_pgdir, (pdeno << PDSHIFT) | (pteno << PGSHIFT));
+				page_remove(e->env_pgdir,
+					(pdeno << PDSHIFT) |
+					(pteno << PGSHIFT));
+		}
+
+		// free the page table itself
 		e->env_pgdir[pdeno] = 0;
 		page_decref(pa2page(pa));
 	}
+
+	// free the page directory
 	pa = e->env_cr3;
 	e->env_pgdir = 0;
 	e->env_cr3 = 0;
 	page_decref(pa2page(pa));
 
-#else /* not LAB >= 4 */
-	// For lab 3, env_free() doesn't really do
-	// anything (except leak memory).  We'll fix
-	// this in later labs.
-#endif /* not LAB >= 4 */
-
+	// return the environment to the free list
 	e->env_status = ENV_FREE;
 	LIST_INSERT_HEAD(&env_free_list, e, env_link);
 }
 
 //
 // Frees env e.  And schedules a new env
-// if e is the current env.
+// if e was the current env.
 //
 void
 env_destroy(struct Env *e) 
@@ -396,23 +433,35 @@ void
 env_run(struct Env *e)
 {
 #if SOL >= 3
-	// save register state of currently executing env
+#if SOL >= 4
+	// save the register state of the previously executing environment
 	if (curenv)
 		curenv->env_tf = *UTF;
+#endif // SOL >= 4
+
+	// keep track of which environment we're currently running
 	curenv = e;
+
 	// restore e's address space
 	lcr3(e->env_cr3);
+
 	// restore e's register state
+#if LAB >= 6
 	e->env_runs++;
+#endif
 	env_pop_tf(&e->env_tf);
 #else /* not SOL >= 3 */
-	// step 1: save register state of curenv
-	// step 2: set curenv
-	// step 3: use lcr3
-	// step 4: use env_pop_tf()
+	// step 1: save the register state of old curenv.
+	//	(Copy it from where trapentry.S saves it on the kernel stack
+	//	into the trapframe portion of curenv.)
+	// step 2: set curenv to the new environment to be run.
+	// step 3: use lcr3 to switch to the new environment's address space.
+	// step 4: use env_pop_tf() to restore the new environment's registers
+	//	and drop into user mode in the new environment.
 
-	// Hint: Skip step 1 until exercise 4.  You don't
-	// need it for exercise 1, and in exercise 4 you'll better
+	// Hint: You may skip step 1 until Part 2,
+	// where you start handling exceptions and system calls.
+	// You don't need it for Part 1, and in Part 2 you'll better
 	// understand what you need to do.
 #endif /* not SOL >= 3 */
 }

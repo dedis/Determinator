@@ -6,7 +6,9 @@
 #include <inc/pmap.h>
 #include <inc/trap.h>
 
+#if LAB >= 4
 #include <kern/picirq.h>
+#endif
 
 
 ###################################################################
@@ -42,7 +44,9 @@ IDTFNC     (Xpgflt,  T_PGFLT)
 IDTFNC_NOEC(Xfperr,  T_FPERR)
 IDTFNC     (Xalign,  T_ALIGN)
 IDTFNC_NOEC(Xmchk,   T_MCHK)
-/* the device interrupts */
+
+#if SOL >= 4
+/* the external device interrupts */
 IDTFNC_NOEC(Xirq0,   IRQ_OFFSET+0)
 IDTFNC_NOEC(Xirq1,   IRQ_OFFSET+1)
 IDTFNC_NOEC(Xirq2,   IRQ_OFFSET+2)
@@ -59,10 +63,11 @@ IDTFNC_NOEC(Xirq12,  IRQ_OFFSET+12)
 IDTFNC_NOEC(Xirq13,  IRQ_OFFSET+13)
 IDTFNC_NOEC(Xirq14,  IRQ_OFFSET+14)
 IDTFNC_NOEC(Xirq15,  IRQ_OFFSET+15)
-#if SOL >= 4
+#endif
+
 /* system call entry point */
 IDTFNC_NOEC(Xsyscall, T_SYSCALL)
-#endif
+
 /* default handler -- not for any specific trap */
 IDTFNC     (Xdefault, T_DEFAULT)
 
@@ -87,25 +92,4 @@ _alltraps:
 	iret			# go back..
 #endif // SOL >= 3
 
-#if SOL >= 3
-#elif LAB >= 4
-#else
-.globl _clock_interrupt
-_clock_interrupt:
-	pushl	%eax		# push caller-saves
-	pushl	%ecx		#  (clock() might trash these)
-	pushl	%edx		#
-	pushl   %ds		# load kernel seg regs 
-	pushl	%es		#  saving the current contents 
-	movl $GD_KD,%eax	
-	movw %ax,%ds
-	movw %ax,%es
-	call	_clock		# call C handler
-	popl	%es		# restore seg regs
-	popl	%ds
-	popl	%edx
-	popl	%ecx
-	popl	%eax
-	iret			# return to whence we came..	
-#endif // LAB3 only, without solution
 #endif // LAB >= 3

@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 3
 #include <inc/mmu.h>
 #include <inc/pmap.h>
 
@@ -14,6 +14,10 @@ fsipcbuf:
 fdtab:
 	.space BY2PG
 #endif
+
+
+// Define the global symbols 'envs', 'pages', 'vpt', and 'vpd'
+// so that they can be used in C as if they were ordinary global arrays.
 	.globl envs
 	.set envs, UENVS
 	.globl pages
@@ -23,6 +27,9 @@ fdtab:
 	.globl vpd
 	.set vpd, (UVPT+(UVPT>>12)*4)
 
+
+// Entrypoint - this is where the kernel (or our parent environment)
+// starts us running when we are initially loaded into a new environment.
 .text
 .globl _start
 _start:
@@ -54,19 +61,34 @@ args_exist:
 _pgfault_handler:
 	.long 0
 
-// On entry there is a trap frame on the stack:
+
+// Page fault handler entrypoint -
+// this is where we ask the kernel
+// (by calling sys_set_pgfault_handler)
+// to redirect us to whenever we cause a page fault in user space.
+//
+// When a page fault actually occurs, 
+// the kernel switches our ESP to point to the user exception stack
+// if we're not already on the user exception stack,
+// and then it pushes the following minimal trap frame
+// onto our user exception stack:
+//
 //	[ 5 spare words ]
 //	trap-time eip
 //	trap-time eflags
 //	trap-time esp
 //	trap-time errcode
 //	trap-time va		<-- %esp
+//
+// We then have to save additional callee-saved registers
+// and call up to the appropriate page fault handler in C code,
+// pointed to by the global variable '_pgfault_handler' declared above.
 
 .text
 .globl _asm_pgfault_handler
 _asm_pgfault_handler:
 	// save the caller-save registers
-#if SOL >= 4
+#if SOL >= 3
 	movl %eax, 28(%esp)
 	movl %ecx, 24(%esp)
 	movl %edx, 20(%esp)
@@ -79,7 +101,7 @@ _asm_pgfault_handler:
 	call *%eax
 
 	// push trap-time eip, eflags onto trap-time stack
-#if SOL >= 4
+#if SOL >= 3
 	movl 8(%esp), %eax
 	subl $8, %eax
 	movl %eax, 8(%esp)
@@ -93,7 +115,7 @@ _asm_pgfault_handler:
 #endif
 
 	// restore the caller-save registers
-#if SOL >= 4
+#if SOL >= 3
 	movl 20(%esp), %edx
 	movl 24(%esp), %ecx
 	movl 28(%esp), %eax
@@ -102,17 +124,17 @@ _asm_pgfault_handler:
 #endif
 
 	// switch to the trap-time stack 
-#if SOL >= 4
+#if SOL >= 3
 	movl 8(%esp), %esp
 #else
 	//	(your code here)
 #endif
 
 	// restore eflags and eip from the stack
-#if SOL >= 4
+#if SOL >= 3
 	popf
 	ret
 #else
 	//	(your code here)
 #endif
-#endif // LAB >= 4
+#endif // LAB >= 3

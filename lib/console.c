@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 3
 
 #include <inc/string.h>
 #include <inc/lib.h>
@@ -40,14 +40,7 @@ getchar(void)
 		return -E_EOF;
 	return c;
 #else	// not LAB >= 6
-	int c;
-
-	// System call to read a character from the console.
-	// The system call doesn't wait for a character,
-	// but getchar() is normally expected to.
-	while ((c = sys_cgetc()) == 0)
-		sys_yield();
-	return c;
+	return sys_cgetc();
 #endif	// not LAB >= 6
 }
 
@@ -155,4 +148,4 @@ cons_stat(struct Fd *fd, struct Stat *stat)
 }
 
 #endif	// LAB >= 6
-#endif	// LAB >= 4
+#endif	// LAB >= 3

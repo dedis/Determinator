@@ -7,7 +7,7 @@
 #include <inc/assert.h>
 
 #include <kern/console.h>
-#if LAB >= 3
+#if LAB >= 4
 #include <kern/picirq.h>
 #endif
 
@@ -40,7 +40,7 @@ serial_intr(void)
 void
 serial_init(void)
 {
-#if LAB >= 3
+#if LAB >= 4
 	irq_setmask_8259A(irq_mask_8259A & ~(1<<4));	
 #endif
 }
@@ -286,7 +286,7 @@ kbd_intr(void)
 void
 kbd_init(void)
 {
-#if LAB >= 3
+#if LAB >= 4
 	// Drain the kbd buffer so that Bochs generates interrupts.
 	kbd_intr();
 	irq_setmask_8259A(irq_mask_8259A & ~(1<<1));

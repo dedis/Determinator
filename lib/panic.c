@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 3
 
 #include <inc/lib.h>
 
@@ -30,4 +30,4 @@ _panic(const char *file, int line, const char *fmt,...)
 	for(;;);
 }
 
-#endif // LAB >= 4
+#endif // LAB >= 3

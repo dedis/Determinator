@@ -32,7 +32,6 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/picirq.c \
 			kern/trap.c \
 			kern/trapentry.S \
-			kern/lab3.S \
 			kern/sched.c \
 			kern/syscall.c \
 			lib/printf.c \
@@ -60,30 +59,32 @@ else
 ifdef LAB4
 # Binary program images to embed within the kernel.
 KERN_BINFILES := \
-	user/buggyhello \
-	user/exit \
-	user/fairness \
-	user/fault \
-	user/faultalloc \
-	user/faultallocbad \
-	user/faultbadhandler \
-	user/faultbadstack \
-	user/faultdie \
-	user/faultevilhandler \
-	user/faultevilstack \
-	user/faultgoodstack \
-	user/hello \
 	user/idle \
+	user/fairness \
 	user/pingpong \
 	user/pingpong1 \
 	user/pingpong2 \
 	user/pingpongs \
 	user/primes
 else
+ifdef LAB3
+KERN_BINFILES := \
+	user/hello \
+	user/buggyhello \
+	user/exit \
+	user/fault \
+	user/faultdie \
+	user/faultalloc \
+	user/faultallocbad \
+	user/faultbadhandler \
+	user/faultevilhandler
+else
 KERN_BINFILES := 
-endif
-endif
-endif
+endif	# not LAB3
+endif	# not LAB4
+endif	# not LAB5
+endif	# not LAB6
+
 
 KERN_BINFILES := $(addprefix $(OBJDIR)/, $(KERN_BINFILES))
 

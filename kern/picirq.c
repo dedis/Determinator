@@ -1,4 +1,4 @@
-#if LAB >= 3
+#if LAB >= 4
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/assert.h>

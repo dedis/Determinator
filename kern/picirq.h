@@ -1,4 +1,4 @@
-#if LAB >= 3
+#if LAB >= 4
 /* See COPYRIGHT for copyright information. */
 
 #ifndef _PICIRQ_H_
@@ -24,4 +24,4 @@ void irq_setmask_8259A (u_short mask);
 #endif // !__ASSEMBLER__
 
 #endif // _PICIRQ_H_
-#endif // LAB >= 3
+#endif // LAB >= 4

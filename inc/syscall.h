@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 3
 #ifndef _SYSCALL_H_
 #define _SYSCALL_H_
 
@@ -8,24 +8,26 @@
 /* system call numbers */
 enum
 {
-	SYS_getenvid	= 0,
-	SYS_cputs,
+	SYS_cputs	= 0,
 	SYS_cgetc,
-	SYS_yield,
+	SYS_panic,
+	SYS_getenvid,
 	SYS_env_destroy,
-	SYS_env_alloc,
-	SYS_ipc_can_send,
-	SYS_ipc_recv,
 	SYS_set_pgfault_handler,
-	SYS_set_env_status,
 	SYS_mem_alloc,
 	SYS_mem_map,
 	SYS_mem_unmap,
+#if LAB >= 4
+	SYS_env_alloc,
 	SYS_set_trapframe,
-	SYS_panic,
+	SYS_set_status,
+	SYS_yield,
+	SYS_ipc_can_send,
+	SYS_ipc_recv,
+#endif	// LAB >= 4
 
 	NSYSCALLS,
 };
 
 #endif /* !_SYSCALL_H_ */
-#endif /* LAB >= 4 */
+#endif /* LAB >= 3 */

@@ -4,9 +4,8 @@ OBJDIRS += lib
 
 LIB_SRCFILES :=		\
 			lib/console.c \
-			lib/fork.c \
-			lib/ipc.c \
-			lib/libos.c \
+			lib/libmain.c \
+			lib/exit.c \
 			lib/panic.c \
 			lib/pgfault.c \
 			lib/printf.c \
@@ -16,22 +15,28 @@ LIB_SRCFILES :=		\
 			lib/string.c \
 			lib/syscall.c
 
+ifdef LAB4
+LIB_SRCFILES :=		$(LIB_SRCFILES) \
+			lib/fork.c \
+			lib/ipc.c
+endif
+
 ifdef LAB5
-LIB_SRCFILES :=		\
+LIB_SRCFILES :=		$(LIB_SRCFILES) \
 			lib/fd.c \
 			lib/file.c \
 			lib/fprintf.c \
 			lib/fsipc.c \
 			lib/pageref.c \
-			lib/spawn.c \
-			$(LIB_SRCFILES)
+			lib/spawn.c
+			
 endif
 
 ifdef LAB6
-LIB_SRCFILES :=		\
+LIB_SRCFILES :=		$(LIB_SRCFILES) \
 			lib/pipe.c \
-			lib/wait.c \
-			$(LIB_SRCFILES)
+			lib/wait.c
+			
 endif
 
 

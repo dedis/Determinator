@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 3
 // System call stubs.
 
 #include <inc/syscall.h>
@@ -47,9 +47,9 @@ sys_cgetc(void)
 }
 
 void
-sys_yield(void)
+sys_panic(char *msg)
 {
-	syscall(SYS_yield, 0, 0, 0, 0, 0);
+	syscall(SYS_panic, (u_int)msg, 0, 0, 0, 0);
 }
 
 int
@@ -65,32 +65,10 @@ sys_getenvid(void)
 }
 
 int
-sys_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm)
+sys_set_pgfault_handler(u_int envid, u_int a1)
 {
-#if LAB >= 5
-	return syscall(SYS_ipc_can_send, envid, value, srcva, perm, 0);
-#else
-	// Your code here.
-	panic("sys_ipc_can_send not implemented");
-#endif
-}
-
-void
-sys_ipc_recv(u_int dstva)
-{
-#if LAB >= 5
-	syscall(SYS_ipc_recv, dstva, 0, 0, 0, 0);
-#else
-	// Your code here.
-	panic("sys_ipc_recv not implemented");
-#endif
-}
-
-int
-sys_set_pgfault_handler(u_int envid, u_int a1, u_int a2)
-{
-#if SOL >= 4
-	return syscall(SYS_set_pgfault_handler, envid, a1, a2, 0, 0);
+#if SOL >= 3
+	return syscall(SYS_set_pgfault_handler, envid, a1, 0, 0, 0);
 #else
 	// Your code here.
 	panic("sys_set_pgfault_handler not implemented");
@@ -100,7 +78,7 @@ sys_set_pgfault_handler(u_int envid, u_int a1, u_int a2)
 int
 sys_mem_alloc(u_int envid, u_int va, u_int perm)
 {
-#if SOL >= 4
+#if SOL >= 3
 	return syscall(SYS_mem_alloc, envid, va, perm, 0, 0);
 #else
 	// Your code here.
@@ -111,7 +89,7 @@ sys_mem_alloc(u_int envid, u_int va, u_int perm)
 int
 sys_mem_map(u_int srcenv, u_int srcva, u_int dstenv, u_int dstva, u_int perm)
 {
-#if SOL >= 4
+#if SOL >= 3
 	return syscall(SYS_mem_map, srcenv, srcva, dstenv, dstva, perm);
 #else
 	// Your code here.
@@ -122,7 +100,7 @@ sys_mem_map(u_int srcenv, u_int srcva, u_int dstenv, u_int dstva, u_int perm)
 int
 sys_mem_unmap(u_int envid, u_int va)
 {
-#if SOL >= 4
+#if SOL >= 3
 	return syscall(SYS_mem_unmap, envid, va, 0, 0, 0);
 #else
 	// Your code here.
@@ -130,31 +108,38 @@ sys_mem_unmap(u_int envid, u_int va)
 #endif
 }
 
+#if SOL >= 4
 // sys_env_alloc is inlined in lib.h
 
-int
-sys_set_env_status(u_int envid, u_int status)
-{
-#if SOL >= 4
-	return syscall(SYS_set_env_status, envid, status, 0, 0, 0);
-#else
-	// Your code here.
-	panic("sys_set_env_status not implemented");
-#endif
-}
-
-#if LAB >= 5
 int
 sys_set_trapframe(u_int envid, struct Trapframe *tf)
 {
 	return syscall(SYS_set_trapframe, envid, (u_int)tf, 0, 0, 0);
 }
 
-void
-sys_panic(char *msg)
+int
+sys_set_status(u_int envid, u_int status)
 {
-	syscall(SYS_panic, (u_int)msg, 0, 0, 0, 0);
+	return syscall(SYS_set_status, envid, status, 0, 0, 0);
 }
 
-#endif	// LAB >= 5
-#endif	// LAB >= 4
+void
+sys_yield(void)
+{
+	syscall(SYS_yield, 0, 0, 0, 0, 0);
+}
+
+int
+sys_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm)
+{
+	return syscall(SYS_ipc_can_send, envid, value, srcva, perm, 0);
+}
+
+void
+sys_ipc_recv(u_int dstva)
+{
+	syscall(SYS_ipc_recv, dstva, 0, 0, 0, 0);
+}
+#endif	// SOL >= 4
+
+#endif	// LAB >= 3

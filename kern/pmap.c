@@ -133,9 +133,9 @@ alloc(u_int n, u_int align, int clear)
 // walk the 2-level page table structure to find
 // the Pte for virtual address va.  Return a pointer to it.
 //
-// If there is no such directory page:
+// If there is no such page table page:
 //	- if create == 0, return 0.
-//	- otherwise allocate a new directory page and install it.
+//	- otherwise allocate a new page table and install it.
 //
 // This function is abstracting away the 2-level nature of
 // the page directory for us by allocating new page tables
@@ -262,26 +262,22 @@ i386_vm_init(void)
 	// Your code goes here: 
 #if SOL >= 2
 	n = npage*sizeof(struct Page);
-	pages = alloc(n, BY2PG, 1);
+	pages = alloc(n, BY2PG, 1 /* clear it */);
 	boot_map_segment(pgdir, UPAGES, n, PADDR(pages), PTE_U);
 #endif
 
-#if LAB >= 3
+#if SOL >= 3
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
-	// You must allocate this array yourself.
 	// Map this array read-only by the user at virtual address UENVS
 	// (ie. perm = PTE_U | PTE_P)
 	// Permissions:
 	//    - envs itself -- kernel RW, user NONE
 	//    - the image of envs mapped at UENVS  -- kernel R, user R
-	// Your code goes here: 
-#if SOL >= 3
 	n = NENV*sizeof(struct Env);
-	envs = alloc(n, BY2PG, 1);
+	envs = alloc(n, BY2PG, 1 /* clear it */);
 	boot_map_segment(pgdir, UENVS, n, PADDR(envs), PTE_U);
 #endif	// SOL >= 3
-#endif	// LAB >= 3
 
 	check_boot_pgdir();
 

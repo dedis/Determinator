@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 3
 
 // Main public header file for our user-land support library,
 // whose code lives in the lib directory.
@@ -26,21 +26,12 @@
 
 #define USED(x) (void)(x)
 
-// ipc.c
-void	ipc_send(u_int whom, u_int val, u_int srcva, u_int perm);
-u_int	ipc_recv(u_int *whom, u_int dstva, u_int *perm);
-
 // libos.c or entry.S
 extern char *binaryname;
 extern struct Env *env;
 extern struct Env envs[NENV];
 extern struct Page pages[];
 void	exit(void);
-
-// fork.c
-#define	PTE_LIBRARY	0x400
-int	fork(void);
-int	sfork(void);	// Challenge!
 
 // pgfault.c
 void	set_pgfault_handler(void(*)(u_int va, u_int err));
@@ -51,21 +42,20 @@ char *	readline(const char *buf);
 // syscall.c
 void	sys_cputs(char*);
 int	sys_cgetc(void);
-// int	sys_env_alloc(void);
-int	sys_env_destroy(u_int);
+void	sys_panic(char*);
 u_int	sys_getenvid(void);
-int	sys_ipc_can_send(u_int, u_int, u_int, u_int);
-void	sys_ipc_recv(u_int);
-int	sys_set_env_status(u_int, u_int);
-int	sys_set_pgfault_handler(u_int, u_int, u_int);
-void	sys_yield(void);
+int	sys_env_destroy(u_int);
+int	sys_set_pgfault_handler(u_int, u_int);
 int	sys_mem_alloc(u_int, u_int, u_int);
 int	sys_mem_map(u_int, u_int, u_int, u_int, u_int);
 int	sys_mem_unmap(u_int, u_int);
-#if LAB >= 5
+#if LAB >= 4
+// int	sys_env_alloc(void);
 int	sys_set_trapframe(u_int, struct Trapframe*);
-void	sys_panic(char*);
-#endif
+int	sys_set_status(u_int, u_int);
+void	sys_yield(void);
+int	sys_ipc_can_send(u_int, u_int, u_int, u_int);
+void	sys_ipc_recv(u_int);
 
 // This must be inlined.  
 // Exercise for reader: why?
@@ -81,6 +71,16 @@ sys_env_alloc(void)
 	);
 	return ret;
 }
+
+// ipc.c
+void	ipc_send(u_int whom, u_int val, u_int srcva, u_int perm);
+u_int	ipc_recv(u_int *whom, u_int dstva, u_int *perm);
+
+// fork.c
+#define	PTE_LIBRARY	0x400
+int	fork(void);
+int	sfork(void);	// Challenge!
+#endif	// LAB >= 4
 
 #if LAB >= 5
 // fd.c
@@ -120,8 +120,8 @@ int	pageref(void*);
 // spawn.c
 int	spawn(char*, char**);
 int	spawnl(char*, char*, ...);
-
 #endif  // LAB >= 5
+
 #if LAB >= 6
 // console.c
 void	putchar(int c);
@@ -149,4 +149,4 @@ void	wait(u_int);
 #define O_MKDIR		0x0800		/* create directory, not regular file */
 
 #endif	// not _INC_LIB_H_
-#endif	// LAB >= 4
+#endif	// LAB >= 3

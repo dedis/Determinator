@@ -1,19 +1,19 @@
-#if LAB >= 4
+#if LAB >= 3
 // Called from entry.S to get us going.
-// Entry.S took care of defining envs, pages, vpd, and vpt.
+// entry.S already took care of defining envs, pages, vpd, and vpt.
 
 #include <inc/lib.h>
 
 extern void umain(int, char**);
 
 struct Env *env;
-char *binaryname = "NAME_UNKNOWN";
+char *binaryname = "(PROGRAM NAME UNKNOWN)";
 
 void
 libmain(int argc, char **argv)
 {
 	// set env to point at our env structure in envs[].
-#if SOL >= 4
+#if SOL >= 3
 	env = &envs[ENVX(sys_getenvid())];
 #else
 	env = 0;	// Your code here.
@@ -30,13 +30,4 @@ libmain(int argc, char **argv)
 	exit();
 }
 
-void
-exit(void)
-{
-#if LAB >= 5
-	close_all();
-#endif
-	sys_env_destroy(0);
-}
-
-#endif
+#endif	// LAB >= 3

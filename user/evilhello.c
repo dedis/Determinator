@@ -1,5 +1,5 @@
-#if LAB >= 5
-#elif LAB >= 4
+#if LAB >= 4
+#elif LAB >= 3
 // evil hello world -- kernel pointer passed to kernel
 // kernel should destroy user environment in response
 

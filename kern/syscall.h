@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 3
 
 #ifndef _KERN_SYSCALL_H_
 #define _KERN_SYSCALL_H_
@@ -8,4 +8,4 @@
 int syscall(u_int num, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5);
 
 #endif /* !_KERN_SYSCALL_H_ */
-#endif /* LAB >= 4 */
+#endif /* LAB >= 3 */

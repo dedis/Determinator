@@ -13,13 +13,13 @@ else
 -include .gccsetup
 endif
 
-#if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 ifdef LAB
 SETTINGLAB := true
 else
--include .oldlab
+-include .labsetup
 endif
 
+#if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 #
 # Anything in an #if LAB >= 999 always gets cut out by mklab.pl on export,
 # and thus is for the internal instructor/TA project tree only.
@@ -132,34 +132,24 @@ endif
 
 labsetup:
 	rm -rf obj
-	echo >.oldlab "LAB=$(LAB)"
-	echo >>.oldlab "SOL=$(SOL)"
-	echo >>.oldlab "LAB1=true"
-ifeq ($(LAB), 2)
-	echo >>.oldlab "LAB2=true"
-endif
-ifeq ($(LAB), 3)
-	echo >>.oldlab "LAB2=true"
-	echo >>.oldlab "LAB3=true"
-endif
-ifeq ($(LAB), 4)
-	echo >>.oldlab "LAB2=true"
-	echo >>.oldlab "LAB3=true"
-	echo >>.oldlab "LAB4=true"
-endif
-ifeq ($(LAB), 5)
-	echo >>.oldlab "LAB2=true"
-	echo >>.oldlab "LAB3=true"
-	echo >>.oldlab "LAB4=true"
-	echo >>.oldlab "LAB5=true"
-endif
-ifeq ($(LAB), 6)
-	echo >>.oldlab "LAB2=true"
-	echo >>.oldlab "LAB3=true"
-	echo >>.oldlab "LAB4=true"
-	echo >>.oldlab "LAB5=true"
-	echo >>.oldlab "LAB6=true"
-endif
+	echo >.labsetup "LAB=$(LAB)"
+	echo >>.labsetup "SOL=$(SOL)"
+	echo >>.labsetup "LAB1=true"
+ifneq ($(LAB), 1)
+	echo >>.labsetup "LAB2=true"
+ifneq ($(LAB), 2)
+	echo >>.labsetup "LAB3=true"
+ifneq ($(LAB), 3)
+	echo >>.labsetup "LAB4=true"
+ifneq ($(LAB), 4)
+	echo >>.labsetup "LAB5=true"
+ifneq ($(LAB), 5)
+	echo >>.labsetup "LAB6=true"
+endif	# LAB != 5
+endif	# LAB != 4
+endif	# LAB != 3
+endif	# LAB != 2
+endif	# LAB != 1
 
 ifndef LAB5
 all: $(OBJDIR)/fs/fs.img
@@ -168,9 +158,9 @@ $(OBJDIR)/fs/fs.img:
 	touch $@
 endif
 
-clean: deloldlab
-deloldlab:
-	rm -f .oldlab
+clean: clean-labsetup
+clean-labsetup:
+	rm -f .labsetup
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
 # Include Makefrags for subdirectories
@@ -179,7 +169,7 @@ include kern/Makefrag
 #if LAB >= 3
 include lib/Makefrag
 #endif
-#if LAB >= 4
+#if LAB >= 3
 include user/Makefrag
 #endif
 #if LAB >= 5
@@ -217,17 +207,17 @@ export-lab%: $(BIOS_FILES)
 	rm -rf lab$*
 	num=`echo $$(($*-$(LABADJUST)))`; \
 		$(MKLABENV) $(PERL) mklab.pl $$num 0 lab$* $(LAB_FILES)
-	# cp -R bios lab$*/
+	echo >lab$*/.labsetup "LAB=$*"
 export-sol%: $(BIOS_FILES)
 	rm -rf sol$*
 	num=`echo $$(($*-$(LABADJUST)))`; \
 		$(MKLABENV) $(PERL) mklab.pl $$num $$num sol$* $(LAB_FILES)
-	# cp -R bios sol$*/
+	echo >sol$*/.labsetup "LAB=$*"
 export-prep%: $(BIOS_FILES)
 	rm -rf prep$*
 	num=`echo $$(($*-$(LABADJUST)))`;
 		$(MKLABENV) $(PERL) mklab.pl $num `expr $num - 1` prep$* $(LAB_FILES)
-	# cp -R bios prep$*/
+	echo >prep$*/.labsetup "LAB=$*"
 
 %.c: $(OBJDIR)
 lab%.tar.gz: $(BIOS_FILES)
@@ -265,7 +255,7 @@ grade:
 #ifdef ENV_HANDIN_COPY
 HANDIN_CMD = tar cf - . | gzip > ~class/handin/lab2/$$USER/lab2.tar.gz
 #else
-HANDIN_CMD = tar cf - . | gzip | uuencode handin.tar.gz | mail 6.828-handin@pdos.lcs.mit.edu
+HANDIN_CMD = tar cf - . | gzip | uuencode lab$(LAB).tar.gz | mail 6.828-handin@pdos.lcs.mit.edu
 #endif
 handin: clean
 	$(HANDIN_CMD)

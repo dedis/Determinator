@@ -20,7 +20,7 @@ int envid2env(u_int envid, struct Env **penv, int checkperm);
 void env_run(struct Env *e);
 void env_pop_tf(struct Trapframe *tf);
 
-#if LAB >= 4
+#if LAB >= 3
 // for the grading script
 #define ENV_CREATE2(x, y) \
 { \
@@ -34,18 +34,6 @@ void env_pop_tf(struct Trapframe *tf);
 		_binary_obj_##x##_size[]; \
 	env_create(_binary_obj_##x##_start, \
 		(int)_binary_obj_##x##_size); \
-}
-#elif LAB >= 3
-#define ENV_CREATE2(x) \
-{ \
-	extern u_char x[], y[]; \
-	env_create(x, y-x); \
-}
-
-#define ENV_CREATE(x) \
-{ \
-	extern u_char x##_start[], x##_end[]; \
-	env_create(x##_start, x##_end - x##_start); \
 }
 #endif
 
