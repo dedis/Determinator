@@ -23,6 +23,9 @@
 #include <inc/fd.h>
 #include <inc/args.h>
 #endif
+#if LAB >= 6
+#include <inc/malloc.h>
+#endif
 
 #define USED(x) (void)(x)
 
