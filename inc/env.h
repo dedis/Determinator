@@ -14,7 +14,7 @@
 
 /* Values of env_status in struct Env */
 #define ENV_FREE	0
-#define ENV_OK		1
+#define ENV_RUNNABLE		1
 #define ENV_NOTRUNNABLE	2
 
 struct Env {

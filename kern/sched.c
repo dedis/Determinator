@@ -32,7 +32,7 @@ sched_yield(void)
 
 	// idle env must always be runnable
 ///END
-	assert(envs[0].env_status == ENV_OK);
+	assert(envs[0].env_status == ENV_RUNNABLE);
 	env_run(&envs[0]);
 }
 ///END

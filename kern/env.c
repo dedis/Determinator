@@ -135,6 +135,7 @@ env_setup_vm(struct Env *e)
 	// Allocate a page for the page directory
 	if ((r = page_alloc(&p)) < 0)
 		return r;
+
 	// Hint:
 	//    - The VA space of all envs is identical above UTOP
 	//      (except at VPT and UVPT) 
@@ -182,7 +183,7 @@ env_alloc(struct Env **new, u_int parent_id)
 
 	e->env_id = mkenvid(e);
 	e->env_parent_id = parent_id;
-	e->env_status = ENV_OK;
+	e->env_status = ENV_RUNNABLE;
 
 	// Set initial values of registers
 	//  (lower 2 bits of the seg regs is the RPL -- 3 means user process)
