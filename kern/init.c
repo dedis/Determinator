@@ -47,7 +47,11 @@ i386_init(void)
 	// Can't call printf until after we do this!
 	cons_init();
 
+#ifndef ENV_CLASS_NYU
 	printf("6828 decimal is %o octal!\n", 6828);
+#else /* !ENV_CLASS_NYU */
+	printf("480 decimal is %o octal!\n", 480);
+#endif /* !ENV_CLASS_NYU */
 
 #if LAB >= 2
 	// Lab 2 initialization functions

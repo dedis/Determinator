@@ -7,8 +7,6 @@
 #
 OBJDIR := obj
 
-LABADJUST = 0
-
 ifdef GCCPREFIX
 SETTINGGCCPREFIX := true
 else
@@ -40,6 +38,9 @@ endif
 DEFS	:= $(DEFS) -DLAB=$(LAB) -DSOL=$(SOL)
 #
 #endif // LAB >= 999		##### Begin Instructor/TA-Only Stuff #####
+
+LABADJUST := 0
+-include .classconfig
 
 TOP = .
 
@@ -215,17 +216,17 @@ BIOS_FILES := bios/BIOS-bochs-latest bios/VGABIOS-lgpl-latest
 export-lab%: $(BIOS_FILES)
 	rm -rf lab$*
 	num=`echo $$(($*-$(LABADJUST)))`; \
-		$(PERL) mklab.pl $$num 0 lab$* $(LAB_FILES)
+		$(MKLABENV) $(PERL) mklab.pl $$num 0 lab$* $(LAB_FILES)
 	# cp -R bios lab$*/
 export-sol%: $(BIOS_FILES)
 	rm -rf sol$*
 	num=`echo $$(($*-$(LABADJUST)))`; \
-		$(PERL) mklab.pl $$num $$num sol$* $(LAB_FILES)
+		$(MKLABENV) $(PERL) mklab.pl $$num $$num sol$* $(LAB_FILES)
 	# cp -R bios sol$*/
 export-prep%: $(BIOS_FILES)
 	rm -rf prep$*
 	num=`echo $$(($*-$(LABADJUST)))`;
-		$(PERL) mklab.pl $num `expr $num - 1` prep$* $(LAB_FILES)
+		$(MKLABENV) $(PERL) mklab.pl $num `expr $num - 1` prep$* $(LAB_FILES)
 	# cp -R bios prep$*/
 
 %.c: $(OBJDIR)
@@ -261,9 +262,13 @@ grade:
 	gmake all
 	sh grade.sh
 
+#ifdef ENV_HANDIN_COPY
+HANDIN_CMD = tar cf - . | gzip > ~class/handin/lab2/$$USER/lab2.tar.gz
+#else
+HANDIN_CMD = tar cf - . | gzip | uuencode handin.tar.gz | mail 6.828-handin@pdos.lcs.mit.edu
+#endif
 handin: clean
-	-rm -f handin5.tgz
-	tar cf - . | gzip | uuencode handin.tar.gz | mail 6.828-handin@pdos.lcs.mit.edu
+	$(HANDIN_CMD)
 
 # For test runs
 run-%:

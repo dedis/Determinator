@@ -683,7 +683,11 @@ score=0
 
 # echo -n "Printf: "
 	awk 'BEGIN{printf("Printf: ");}' </dev/null
+#ifdef ENV_CLASS_NYU
+	if grep "480 decimal is 740 octal!" bochs.out >/dev/null
+#else /* !ENV_CLASS_NYU */
 	if grep "6828 decimal is 15254 octal!" bochs.out >/dev/null
+#endif /* !ENV_CLASS_NYU */
 	then
 		score=`echo 20+$score | bc`
 		echo OK

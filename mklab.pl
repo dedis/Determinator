@@ -49,6 +49,15 @@ sub dofile {
 			$stack{$depth}->{'anytrue'} |= $cond;
 			$emit = 0;
 			$lastgood = $line;
+                }
+		elsif (m:^[#]?(ifdef|ifndef)\s+ENV_(\w+):) {
+			   $cond = defined ($ENV{$2}) && $ENV{$2};
+			   $cond = !$cond if $1 eq "ifndef";
+			   $stack{++$depth} = { 'anytrue' => $cond,
+						'isours' => 1 };
+			   $stack{$depth}->{'emit'} = ($stack{$depth-1}->{'emit'} && $cond);
+			   $emit = 0;
+			   $lastgood = $line;
 		} elsif (m:^([#]if|ifdef|ifndef|ifeq|ifneq):) {
 			# Other conditions we just pass through
 			++$depth;
