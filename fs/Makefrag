@@ -28,6 +28,8 @@ fs/fs.img: fs/motd fs/newmotd fs/fsformat user/init
 	dd if=/dev/zero of=fs/fs.img bs=4096 count=1024 2>/dev/null
 	./fs/fsformat fs/fs.img fs/motd fs/newmotd user/init
 
+all: fs/fs.img
+
 .PRECIOUS: fs/%
 
 #endif

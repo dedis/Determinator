@@ -61,7 +61,7 @@ sys_getenvid(void)
 int
 sys_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm)
 {
-#if SOL >= 4
+#if LAB >= 5
 	return syscall(SYS_ipc_can_send, envid, value, srcva, perm, 0);
 #else
 	// Your code here.
@@ -72,7 +72,7 @@ sys_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm)
 void
 sys_ipc_recv(u_int dstva)
 {
-#if SOL >= 4
+#if LAB >= 5
 	syscall(SYS_ipc_recv, dstva, 0, 0, 0, 0);
 #else
 	// Your code here.

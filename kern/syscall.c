@@ -61,7 +61,7 @@ sys_env_destroy(u_int envid)
 static void
 sys_ipc_recv(u_int dstva)
 {
-#if SOL >= 4
+#if LAB >= 5
 	if(curenv->env_ipc_recving)
 		panic("already recving!");
 
@@ -101,7 +101,7 @@ sys_ipc_recv(u_int dstva)
 static int
 sys_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm)
 {
-#if SOL >= 4
+#if LAB >= 5
 	int r;
 	struct Env *e;
 	struct Page *p;
