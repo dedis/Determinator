@@ -16,7 +16,6 @@ void env_create (u_char *binary, int size);
 void env_destroy (struct Env *e);
 
 struct Env *envid2env (u_int envid, int *error);
-void load_aout (struct Env* e, u_char *binary, u_int size);
 void env_run (struct Env *e);
 void env_pop_tf (struct Trapframe *tf);
 

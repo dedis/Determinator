@@ -57,7 +57,7 @@ envid2env(u_int envid, int *error)
 // Ignore the a.out header -- assume the binary is the given size,
 // begins at UTEXT+0x20, doesn't need its bss cleared, and so on.
 //
-void
+static void
 load_icode(struct Env *e, u_char *binary, u_int size)
 {
 ///SOL3
@@ -232,7 +232,7 @@ env_create(u_char *binary, int size)
 	struct Env *e;
 	if ((r = env_alloc(&e, 0)) < 0)
 		panic("env_create: could not allocate env.  Error %d\n", r);
-	load_aout(e, binary, size);
+	load_icode(e, binary, size);
 ////END
 }
 
