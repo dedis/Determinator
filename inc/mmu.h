@@ -63,13 +63,13 @@
 #define PTE_PS		0x080	// Page Size
 #define PTE_MBZ		0x180	// Bits must be zero
 #define PTE_AVAIL	0xe00	// Available for software use
-// There's no good reason to use this.
+// There's no good reason to use this.  Use PTE_USER.
 // #define PTE_FLAGS	0xfff	// All flags
 
 #define PTE_USER	0xe07	// All flags that can be used in system calls
 
 // address in page table entry
-#define PTE_ADDR(pte)	((u_long)(pte)&~PTE_FLAGS)
+#define PTE_ADDR(pte)	((u_long)(pte)&~0xFFF)
 
 /*
  * The PG_USER bits are not used by the kernel and they are

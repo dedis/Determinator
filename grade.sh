@@ -15,7 +15,7 @@ fi
 #if LAB >= 4
 
 pts=5
-
+timeout=30
 runtest() {
 	perl -e "print '$1: '"
 	rm -f kern/init.o kern/kernel kern/bochs.img fs/fs.img
@@ -29,7 +29,7 @@ runtest() {
 		exit 1
 	fi
 	(
-		ulimit -t 40
+		ulimit -t $timeout
 		(echo c; echo die; echo quit) |
 			bochs-nogui 'parport1: enabled=1, file="bochs.out"'
 	) >$out 2>$err
@@ -137,14 +137,26 @@ runtest1 -tag 'fd sharing' testfdsharing \
 	'read in parent succeeded' \
 	'read in child succeeded' 
 
-# 20 points - run-testpipe
-pts=20
+# 10 points - run-testpipe
+pts=10
 runtest1 -tag 'pipe' testpipe \
 	'pipe read closed properly' \
 	'pipe write closed properly' \
 
+# 10 points - run-primespipe
+pts=10
+timeout=120
+echo 'The primes test has up to 2 minutes to complete.  Be patient.'
+runtest1 -tag 'primes' primespipe \
+	! 1 2 3 ! 4 5 ! 6 7 ! 8 ! 9 \
+	! 10 11 ! 12 13 ! 14 ! 15 ! 16 17 ! 18 19 \
+	! 20 ! 21 ! 22 23 ! 24 ! 25 ! 26 ! 27 ! 28 29 \
+	! 30 31 ! 32 ! 33 ! 34 ! 35 ! 36 37 ! 38 ! 39 \
+	541 1009 1097
+
 # 30 points - run-testshell
 pts=30
+timeout=60
 runtest1 -tag 'shell' testshell \
 	'shell ran correctly' \
 
