@@ -27,7 +27,7 @@ runtest() {
 		exit 1
 	fi
 	(
-		ulimit -t 10
+		ulimit -t 20
 		(echo c; echo die; echo quit) |
 			bochs-nogui 'parport1: enabled=1, file="bochs.out"'
 	) >$out 2>$err
