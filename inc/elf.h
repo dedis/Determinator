@@ -21,7 +21,10 @@ struct Elf {
 	u_short e_shstrndx;
 };
 
+// Values for Proghdr.p_type
 #define ELF_PROG_LOAD 1
+
+// Flag bit masks for Proghdr.p_flags
 #define ELF_PROG_FLAG_EXEC 1
 #define ELF_PROG_FLAG_WRITE 2
 #define ELF_PROG_FLAG_READ 4

@@ -436,7 +436,10 @@ dir_lookup(struct File *dir, char *name, struct File **file)
 	void *blk;
 	struct File *f;
 
-	// search dir for name
+	// Search dir for name.
+	// We maintain the invariant that the size of a directory-file
+	// is always a multiple of the file system's block size.
+	assert((dir->f_size % BY2BLK) == 0);
 	nblock = dir->f_size / BY2BLK;
 	for (i=0; i<nblock; i++) {
 		if ((r=file_get_block(dir, i, &blk)) < 0)
@@ -461,6 +464,7 @@ dir_alloc_file(struct File *dir, struct File **file)
 	void *blk;
 	struct File *f;
 
+	assert((dir->f_size % BY2BLK) == 0);
 	nblock = dir->f_size / BY2BLK;
 	for (i=0; i<nblock; i++) {
 		if ((r=file_get_block(dir, i, &blk)) < 0)

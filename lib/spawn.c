@@ -241,53 +241,40 @@ error:
 	//   - Call the init_stack() function above to set up
 	//     the initial stack page for the child environment.
 	//
-	//   - Map the program's segments that are of p_type
-	//     ELF_PROG_LOAD.  Use read_map() and map the pages it returns
-	//     directly into the child so that multiple instances of the
-	//     same program will share the same copy of the program text.
-	//     Be sure to map the program text read-only in the child.
-	//     Read_map is like read but returns a pointer to the data in
-	//     *blk rather than copying the data into another buffer.
+	//   - Map all of the program's segments that are of p_type
+	//     ELF_PROG_LOAD into the new environment's address space.
+	//     Use the p_flags field in the Proghdr for each segment
+	//     to determine how to map the segment:
 	//
-	//   - Set up the child process's data segment.  For each page,
-	//     allocate a page in the parent temporarily at TMPPAGE,
-	//     read() the appropriate block of the file into that page,
-	//     and then insert that page mapping into the child.
-	//     Look at init_stack() for inspiration.
-	//     Be sure you understand why you can't use read_map() here.
+	//	* If the ELF flags do not include ELF_PROG_FLAG_WRITE,
+	//	  then the segment contains text and read-only data.
+	//	  Use read_map() to read the contents of this segment,
+	//	  and map the pages it returns directly into the child
+	//        so that multiple instances of the same program
+	//	  will share the same copy of the program text.
+	//        Be sure to map the program text read-only in the child.
+	//        Read_map is like read but returns a pointer to the data in
+	//        *blk rather than copying the data into another buffer.
 	//
-	//   - Set up the child process's bss segment.
-	//     All you need to do here is sys_mem_alloc() the pages
-	//     directly into the child's address space, because
-	//     sys_mem_alloc() automatically zeroes the pages it allocates.
+	//	* If the ELF segment flags DO include ELF_PROG_FLAG_WRITE,
+	//	  then the segment contains read/write data and bss.
+	//	  As with load_icode() in Lab 3, such an ELF segment
+	//	  occupies p_memsz bytes in memory, but only the FIRST
+	//	  p_filesz bytes of the segment are actually loaded
+	//	  from the executable file - you must clear the rest to zero.
+	//        For each page to be mapped for a read/write segment,
+	//        allocate a page in the parent temporarily at TMPPAGE,
+	//        read() the appropriate portion of the file into that page
+	//	  and/or use memset() to zero non-loaded portions,
+	//        and then insert the page mapping into the child.
+	//        Look at init_stack() for inspiration.
+	//        Be sure you understand why you can't use read_map() here.
 	//
-	//     The bss will start page aligned (since it picks up where the
-	//     data segment left off), but it's length may not be a multiple
-	//     of the page size, so it may not end on a page boundary.
-	//     Be sure to map the last page.  (It's okay to map the whole last page
-	//     even though the program will only need part of it.)
-	//
-	//     The bss is not read from the binary file.  It is simply 
-	//     allocated as zeroed memory.
-	//
-	//     XXX delete this whole section? XXX
-	//     The exact location of the bss is a bit confusing, because
-	//     the linker lies to the loader about where it is.  
-	//     For example, in the copy of user/init that we have (yours
-	//     will depend on the size of your implementation of open and close),
-	//     i386-jos-elf-nm claims that the bss starts at 0x8067c0
-	//     and ends at 0x807f40 (file offsets 0x67c0 to 0x7f40).
-	//     However, since this is not page aligned,
-	//     it lies to the loader, inserting some extra zeros at the end
-	//     of the data section to page-align the end, and then claims
-	//     that the data (which starts at 0x2000) is 0x5000 long, ending
-	//     at 0x7000, and that the bss is 0xf40 long, making it run from
-	//     0x7000 to 0x7f40.  This has the same effect as far as the
-	//     loading of the program.  Offsets 0x8067c0 to 0x807f40 
-	//     end up being filled with zeros, but they come from different
-	//     places -- the ones in the 0x806 page come from the binary file
-	//     as part of the data segment, but the ones in the 0x807 page
-	//     are just fresh zeroed pages not read from anywhere.
+	//     Note: None of the segment addresses or lengths above
+	//     are guaranteed to be page-aligned, so you must deal with
+	//     these non-page-aligned values appropriately.
+	//     The ELF linker does, however, guarantee that no two segments
+	//     will overlap on the same page.
 	//
 	//   - Use the new sys_set_trapframe() call to set up the
 	//     correct initial eip and esp register values in the child.
