@@ -46,16 +46,17 @@ endif
 # Pass the LAB and SOL values to the C compiler.
 DEFS	:= $(DEFS) -DLAB=$(LAB) -DSOL=$(SOL)
 #
-#endif // LAB >= 999		##### Begin Instructor/TA-Only Stuff #####
+#endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
 TOP = .
 
 # Cross-compiler jos toolchain
-# Users of 32-bit x86 ELF platforms can leave GCCPREFIX empty,
-# so that they can use the native compilers for their systems.
-# People on other systems (e.g., x86-64 or Mac OS X) will need
-# to install an i386-jos-elf tool chain and set GCCPREFIX
-# by doing
+#
+# This Makefile will automatically use the cross-compiler toolchain
+# installed as 'i386-jos-elf-*', if one exists.  If the host tools ('gcc',
+# 'objdump', and so forth) compile for a 32-bit x86 ELF target, that will
+# be detected as well.  If you have the right compiler toolchain installed
+# using a different name, set GCCPREFIX explicitly by doing
 #
 #	make 'GCCPREFIX=i386-jos-elf-' gccsetup
 #
@@ -305,7 +306,7 @@ patch patch.diff:
 	echo "*** Can't find '../lab$(LAB).tar.gz'.  Download it" 1>&2; \
 	echo "*** into my parent directory and try again." 1>&2; \
 	echo "***" 1>&2; false)
-	gzcat ../lab$(LAB).tar.gz | tar xf -
+	(gzcat ../lab$(LAB).tar.gz 2>/dev/null || zcat ../lab$(LAB).tar.gz) | tar xf -
 	@pkgdate=`grep PACKAGEDATE lab$(LAB)/conf/lab.mk | sed 's/.*=//'`; \
 	test "$(PACKAGEDATE)" = "$$pkgdate" || (echo "***" 1>&2; \
 	echo "*** The ../lab$(LAB).tar.gz tarball was created on $$pkgdate," 1>&2; \
