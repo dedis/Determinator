@@ -176,12 +176,12 @@ spawn(char *prog, char **argv)
 		return r;
 	fd = r;
 
-	// Read a.out header
+	// Read elf header
 	elf = (struct Elf*)hdr;
 	if (read(fd, hdr, sizeof(hdr)) != sizeof(hdr)
 			|| elf->e_magic != ELF_MAGIC) {
 		close(fd);
-printf("elf magic %08x want %08x\n", elf->e_magic, ELF_MAGIC);
+		printf("elf magic %08x want %08x\n", elf->e_magic, ELF_MAGIC);
 		return -E_NOT_EXEC;
 	}
 
@@ -234,85 +234,67 @@ error:
 #else /* not SOL >= 5 */
 	// Insert your code, following approximately this procedure:
 	//
-	//	- Open the program file and read the a.out header (see inc/aout.h).
+	//   - Open the program file and read the elf header (see inc/elf.h).
 	//
-	//	- Use sys_env_alloc() to create a new environment.
+	//   - Use sys_env_alloc() to create a new environment.
 	//
-	//	- Call the init_stack() function above to set up
-	//	  the initial stack page for the child environment.
+	//   - Call the init_stack() function above to set up
+	//     the initial stack page for the child environment.
 	//
-	//	- Map the program's text segment, from file offset 0
-	//	  up to (but not including) file offset 0x20+aout.a_text, starting at
-	//	  virtual address UTEXT in the child (0x20 is the size of the a.out header).
-	//	  Use read_map() and map the pages it returns directly
-	//	  into the child so that multiple instances of the
-	//	  same program will share the same copy of the program text.
-	//	  Be sure to map the program text read-only in the child.
-	//	  Read_map is like read but returns a pointer to the data
-	//	  in *blk rather than copying the data into another buffer.
+	//   - Map the program's segments that are of p_type
+	//     ELF_PROG_LOAD.  Use read_map() and map the pages it returns
+	//     directly into the child so that multiple instances of the
+	//     same program will share the same copy of the program text.
+	//     Be sure to map the program text read-only in the child.
+	//     Read_map is like read but returns a pointer to the data in
+	//     *blk rather than copying the data into another buffer.
 	//
-	//	  The text segment will end on a page boundary.
-	//	  That is, (0x20+aout.a_text) % BY2PG == 0.
+	//   - Set up the child process's data segment.  For each page,
+	//     allocate a page in the parent temporarily at TMPPAGE,
+	//     read() the appropriate block of the file into that page,
+	//     and then insert that page mapping into the child.
+	//     Look at init_stack() for inspiration.
+	//     Be sure you understand why you can't use read_map() here.
 	//
-	//	- Set up the child process's data segment.  For each page,
-	//	  allocate a page in the parent temporarily at TMPPAGE,
-	//	  read() the appropriate block of the file into that page,
-	//	  and then insert that page mapping into the child.
-	//	  Look at init_stack() for inspiration.
-	//	  Be sure you understand why you can't use read_map() here.
+	//   - Set up the child process's bss segment.
+	//     All you need to do here is sys_mem_alloc() the pages
+	//     directly into the child's address space, because
+	//     sys_mem_alloc() automatically zeroes the pages it allocates.
 	//
-	//	  The data segment starts where the text segment left off,
-	//	  so it starts on a page boundary.  The data size will always be a multiple
-	//	  of the page size, so it will end on a page boundary too.
-	//	  The data comes from the aout.a_data bytes in the file starting
-	//	  at offset (0x20+aout.a_text).
+	//     The bss will start page aligned (since it picks up where the
+	//     data segment left off), but it's length may not be a multiple
+	//     of the page size, so it may not end on a page boundary.
+	//     Be sure to map the last page.  (It's okay to map the whole last page
+	//     even though the program will only need part of it.)
 	//
-	//	- Set up the child process's bss segment.
-	//	  All you need to do here is sys_mem_alloc() the pages
-	//	  directly into the child's address space, because
-	//	  sys_mem_alloc() automatically zeroes the pages it allocates.
+	//     The bss is not read from the binary file.  It is simply 
+	//     allocated as zeroed memory.
 	//
-	//	  The bss will start page aligned (since it picks up where the
-	//	  data segment left off), but it's length may not be a multiple
-	//	  of the page size, so it may not end on a page boundary.
-	//	  Be sure to map the last page.  (It's okay to map the whole last page
-	//	  even though the program will only need part of it.)
+	//     XXX delete this whole section? XXX
+	//     The exact location of the bss is a bit confusing, because
+	//     the linker lies to the loader about where it is.  
+	//     For example, in the copy of user/init that we have (yours
+	//     will depend on the size of your implementation of open and close),
+	//     i386-jos-elf-nm claims that the bss starts at 0x8067c0
+	//     and ends at 0x807f40 (file offsets 0x67c0 to 0x7f40).
+	//     However, since this is not page aligned,
+	//     it lies to the loader, inserting some extra zeros at the end
+	//     of the data section to page-align the end, and then claims
+	//     that the data (which starts at 0x2000) is 0x5000 long, ending
+	//     at 0x7000, and that the bss is 0xf40 long, making it run from
+	//     0x7000 to 0x7f40.  This has the same effect as far as the
+	//     loading of the program.  Offsets 0x8067c0 to 0x807f40 
+	//     end up being filled with zeros, but they come from different
+	//     places -- the ones in the 0x806 page come from the binary file
+	//     as part of the data segment, but the ones in the 0x807 page
+	//     are just fresh zeroed pages not read from anywhere.
 	//
-	//	  The bss is not read from the binary file.  It is simply 
-	//	  allocated as zeroed memory.  There are bits in the file at
-	//	  offset 0x20+aout.a_text+aout.a_data, but they are not the
-	//	  bss.  They are the symbol table, which is only for debuggers.
-	//	  Do not use them.
+	//   - Use the new sys_set_trapframe() call to set up the
+	//     correct initial eip and esp register values in the child.
+	//     You can use envs[ENVX(child)].env_tf as a template trapframe
+	//     in order to get the initial segment registers and such.
 	//
-	//	  The exact location of the bss is a bit confusing, because
-	//	  the linker lies to the loader about where it is.  
-	//	  For example, in the copy of user/init that we have (yours
-	//	  will depend on the size of your implementation of open and close),
-	//	  i386-osclass-aout-nm claims that the bss starts at 0x8067c0
-	//	  and ends at 0x807f40 (file offsets 0x67c0 to 0x7f40).
-	//	  However, since this is not page aligned,
-	//	  it lies to the loader, inserting some extra zeros at the end
-	//	  of the data section to page-align the end, and then claims
-	//	  that the data (which starts at 0x2000) is 0x5000 long, ending
-	//	  at 0x7000, and that the bss is 0xf40 long, making it run from
-	//	  0x7000 to 0x7f40.  This has the same effect as far as the
-	//	  loading of the program.  Offsets 0x8067c0 to 0x807f40 
-	//	  end up being filled with zeros, but they come from different
-	//	  places -- the ones in the 0x806 page come from the binary file
-	//	  as part of the data segment, but the ones in the 0x807 page
-	//	  are just fresh zeroed pages not read from anywhere.
-	//
-	//	  If you are confused by the last paragraph, don't worry too much.
-	//	  Just remember that the symbol table, should you choose to look at it,
-	//	  is not likely to match what's in the a.out header.  Use the a.out
-	//	  header alone.
-	// 
-	//	- Use the new sys_set_trapframe() call to set up the
-	//	  correct initial eip and esp register values in the child.
-	//	  You can use envs[ENVX(child)].env_tf as a template trapframe
-	//	  in order to get the initial segment registers and such.
-	//
-	//	- Start the child process running with sys_set_env_status().
+	//   - Start the child process running with sys_set_env_status().
 	//
 	panic("spawn unimplemented!");
 #endif /* not SOL >= 5 */

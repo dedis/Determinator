@@ -237,12 +237,10 @@ map_segment(struct Env *e, u_int va, u_int len, u_char *src)
 //
 // Set up the the initial stack and program binary for a user process.
 //
-// This function loads the complete binary image, including a.out header,
+// This function loads the complete binary image, including elf header,
 // into the environment's user memory starting at virtual address UTEXT,
 // and maps one page for the program's initial stack
 // at virtual address USTACKTOP - BY2PG.
-// Since the a.out header from the binary is mapped at virtual address UTEXT,
-// the actual program text starts at virtual address UTEXT+0x20.
 //
 // This function does not allocate or clear the bss of the loaded program,
 // and all mappings are read/write including those of the text segment.
@@ -258,7 +256,7 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 
 	// Check magic number on binary
 	elf = (struct Elf*)binary;
-	if (*(u_int*)elf != *(u_int*)"\x7F\x45\x4C\x46")
+	if (elf->e_magic != ELF_MAGIC)
 		panic("load_icode: not an ELF binary");
 
 	// Record entry for binary.
@@ -270,7 +268,11 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 	for (i = 0; i < elf->e_phnum; i++, ph++) {
 		if(ph->p_type != ELF_PROG_LOAD)
 			continue;
-		map_segment(e, ph->p_va, ph->p_memsz, binary+ph->p_offset);	
+		if(ph->p_va + ph->p_memsz < ph->p_va)
+			panic("load_icode: overflow in elf header segment");
+		if(ph->p_va + ph->p_memsz >= UTOP)
+			panic("load_icode: icode wants to be loaded above UTOP");
+		map_segment(e, ph->p_va, ph->p_memsz, binary+ph->p_offset);
 	}
 
 	// Give environment a stack
@@ -281,16 +283,17 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 		panic("load_icode: could not map page: %e\n", r);
 #else /* not SOL >= 3 */
 	// Hint: 
-	//  Use page_alloc, page_insert, page2kva and e->env_pgdir
-	//  You must figure out which permissions you'll need
-	//  for the different mappings you create.
-	//  Remember that the binary image is an a.out format image,
-	//  which contains both text and data. XXX THIS IS WRONG
+	//  Use map_segment for loading the program segments.  Only use
+	//  segments with ph->p_type == ELF_PROG_LOAD.
+	//  For mapping the stack, use page_alloc, page_insert, and
+	//  e->env_pgdir.
+	//  You must figure out which permissions you'll need for the
+	//  different mappings you create.
 #endif /* not SOL >= 3 */
 }
 
 //
-// Allocates a new env and loads the a.out binary into it.
+// Allocates a new env and loads the elf binary into it.
 //  - new env's parent env id is 0
 void
 env_create(u_char *binary, int size)

@@ -1,15 +1,11 @@
 #if LAB >= 1
-/*
- *
- * N.B.  NOTE THAT THIS IS THE BOOT LOADER, NOT THE KERNEL.
- * YOU DO NOT NEED TO LOOK AT THIS FILE FOR THE ASSIGNMENT.
- */
+
 #include <inc/x86.h>
 #include <inc/elf.h>
 
 /**********************************************************************
  * This a dirt simple boot loader, whose sole job is to boot
- * an a.out kernel image from the first IDE hard disk.
+ * an elf kernel image from the first IDE hard disk.
  *
  * DISK LAYOUT
  *  * This program(boot.S and main.c) is the bootloader.  It should
@@ -17,7 +13,7 @@
  * 
  *  * The 2nd sector onward holds the kernel image.
  *	
- *  * The kernel image may be in a.out or ELF format.
+ *  * The kernel image must be in ELF format.
  *
  * BOOT UP STEPS	
  *  * when the CPU boots it loads the BIOS into memory and executes it
