@@ -449,12 +449,14 @@ page_init(void)
 #else /* not SOL >= 2 */
 	// The exaple code here marks all pages as free.
 	// However this is not truly the case.  What memory is free?
-	//  1) Mark page 0 as in use(for good luck) 
+	//  1) Mark page 0 as in use.
+	//     This way we preserve the real-mode IDT and BIOS structures
+	//     in case we ever need them.  (Currently we don't, but...)
 	//  2) Mark the rest of base memory as free.
-	//  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM) => mark it as in use
-	//     So that it can never be allocated.      
+	//  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM):
+	//     Mark it as in use so that it can never be allocated.      
 	//  4) Then extended memory(ie. >= EXTPHYSMEM):
-	//     ==> some of it's in use some is free. Where is the kernel?
+	//     Some of it is in use, some is free. Where is the kernel?
 	//     Which pages are used for page tables and other data structures?    
 	//
 	// Change the code to reflect this.
