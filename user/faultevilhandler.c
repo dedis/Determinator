@@ -7,7 +7,7 @@
 void
 umain(void)
 {
-	sys_mem_alloc(0, UXSTACKTOP-BY2PG, PTE_P|PTE_U|PTE_W);
+	sys_mem_alloc(0, UXSTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W);
 	sys_set_pgfault_entry(0, 0xF0100020);
 	*(int*)0 = 0;
 }

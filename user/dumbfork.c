@@ -29,14 +29,14 @@ duppage(u_int dstenv, u_int addr)
 	int r;
 	u_char *tmp;
 
-	tmp = (u_char*)(UTEXT-BY2PG);	// should be available!
+	tmp = (u_char*)(UTEXT-PGSIZE);	// should be available!
 
 	// This is NOT what you should do in your fork.
 	if ((r=sys_mem_alloc(dstenv, addr, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_mem_alloc: %e", r);
 	if ((r=sys_mem_map(dstenv, addr, 0, (u_int)tmp, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_mem_map: %e", r);
-	memcpy(tmp, (u_char*)addr, BY2PG);
+	memcpy(tmp, (u_char*)addr, PGSIZE);
 	if ((r=sys_mem_unmap(0, (u_int)tmp)) < 0)
 		panic("sys_mem_unmap: %e", r);
 }
@@ -67,11 +67,11 @@ dumbfork(void)
 	// We're the parent.
 	// Eagerly copy our entire address space into the child.
 	// This is NOT what you should do in your fork implementation.
-	for (addr=UTEXT; addr<(u_int)end; addr+=BY2PG)
+	for (addr=UTEXT; addr<(u_int)end; addr+=PGSIZE)
 		duppage(envid, addr);
 
 	// Also copy the stack we are currently running on.
-	duppage(envid, ROUNDDOWN((u_int)&addr, BY2PG));
+	duppage(envid, ROUNDDOWN((u_int)&addr, PGSIZE));
 
 	// Start the child environment running
 	// (at the point above where the register state was copied).
