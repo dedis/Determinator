@@ -98,6 +98,8 @@ static void check_boot_pgdir(void);
 //
 // If we're out of memory, alloc should panic.
 // It's too early to run out of memory.
+// This function may ONLY be used during initialization,
+// before the page_free_list has been set up.
 // 
 static void *
 alloc(u_int n, u_int align, int clear)
@@ -147,6 +149,8 @@ alloc(u_int n, u_int align, int clear)
 // as needed.
 // 
 // Boot_pgdir_walk cannot fail.  It's too early to fail.
+// This function may ONLY be used during initialization,
+// before the page_free_list has been set up.
 // 
 static Pte*
 boot_pgdir_walk(Pde *pgdir, u_long va, int create)
@@ -178,6 +182,9 @@ boot_pgdir_walk(Pde *pgdir, u_long va, int create)
 // Map [va, va+size) of virtual address space to physical [pa, pa+size)
 // in the page table rooted at pgdir.  Size is a multiple of BY2PG.
 // Use permission bits perm|PTE_P for the entries.
+//
+// This function may ONLY be used during initialization,
+// before the page_free_list has been set up.
 //
 static void
 boot_map_segment(Pde *pgdir, u_long va, u_long size, u_long pa, int perm)
@@ -419,6 +426,9 @@ static void page_initpp(struct Page *pp);
 
 //  
 // Initialize page structure and memory free list.
+// After this point will ONLY use the functions below
+// to allocate and deallocate physical memory via the page_free_list,
+// and NEVER use alloc() or the related boot-time functions above.
 //
 void
 page_init(void)
