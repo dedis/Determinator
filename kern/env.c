@@ -38,8 +38,9 @@ mkenvid(struct Env *e)
 // Converts an envid to an env pointer.
 //
 // RETURNS
-//   env pointer -- on success and sets *error = 0
-//   NULL -- on failure, and sets *error = the error number
+//   0 on success, -error on error.
+//   on success, sets *penv to the environment
+//   on error, sets *penv to NULL.
 //
 int
 envid2env(u_int envid, struct Env **penv, int checkperm)
