@@ -14,6 +14,8 @@ ipc_send(envid_t whom, uint32_t val, void *srcva, int perm)
 #if SOL >= 4
 	int r;
 
+	if (!srcva)
+		srcva = (void*) UTOP;
 	while ((r=sys_ipc_try_send(whom, val, srcva, perm)) == -E_IPC_NOT_RECV)
 		sys_yield();
 	if(r == 0)
@@ -33,6 +35,8 @@ uint32_t
 ipc_recv(envid_t *whom, void *dstva, int *perm)
 {
 #if SOL >= 4
+	if (!dstva)
+		dstva = (void*) UTOP;
 	sys_ipc_recv(dstva);
 	if (whom)
 		*whom = env->env_ipc_from;

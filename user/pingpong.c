@@ -15,7 +15,7 @@ umain(void)
 		ipc_send(who, 0, 0, 0);
 	}
 
-	for (;;) {
+	while (1) {
 		i = ipc_recv(&who, 0, 0);
 		printf("%x got %d from %x\n", sys_getenvid(), i, who);
 		if (i == 10)

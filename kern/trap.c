@@ -1,22 +1,23 @@
 #if LAB >= 3
-
 #include <inc/mmu.h>
 #include <inc/x86.h>
 #include <inc/assert.h>
 
 #include <kern/pmap.h>
 #include <kern/trap.h>
-#include <kern/env.h>
 #include <kern/console.h>
-#include <kern/syscall.h>
 #include <kern/monitor.h>
+#if LAB >= 3
+#include <kern/env.h>
+#include <kern/syscall.h>
+#endif
 #if LAB >= 4
 #include <kern/sched.h>
 #include <kern/kclock.h>
 #include <kern/picirq.h>
 #endif
 
-u_int page_fault_mode = PFM_NONE;
+int page_fault_mode = PFM_NONE;
 static struct Taskstate ts;
 
 /* Interrupt descriptor table.  (Must be built at run time because
@@ -125,16 +126,18 @@ idt_init(void)
 	// Use DPL=3 here because system calls are explicitly invoked
 	// by the user process (with "int $T_SYSCALL").
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, &Xsyscall, 3);
-#endif /* SOL >= 3 */
+#else	// not SOL >= 3
+	
+	// LAB 3: Your code here.
+#endif	// SOL >= 3
 
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
 	ts.ts_esp0 = KSTACKTOP;
 	ts.ts_ss0 = GD_KD;
 
-	// Love to put this code in the initialization of gdt,
-	// but the compiler generates an error incorrectly.
-	gdt[GD_TSS >> 3] = SEG16(STS_T32A, (u_long) (&ts),
+	// Initialize the TSS field of the gdt.
+	gdt[GD_TSS >> 3] = SEG16(STS_T32A, (uint32_t) (&ts),
 					sizeof(struct Taskstate), 0);
 	gdt[GD_TSS >> 3].sd_s = 0;
 
@@ -172,9 +175,7 @@ print_trapframe(struct Trapframe *tf)
 void
 trap(struct Trapframe *tf)
 {
-	// print_trapframe(tf);
-
-	// Handle processor exceptions
+	// Handle processor exceptions.
 #if SOL >= 3
 	if (tf->tf_trapno == T_PGFLT) {
 		page_fault_handler(tf);
@@ -192,42 +193,51 @@ trap(struct Trapframe *tf)
 		);
 		return;
 	}
+#else	// SOL >= 3
+	// LAB 3: Your code here.
+#endif	// SOL >= 3
+	
 	if (tf->tf_trapno == T_BRKPT) {
 		// Invoke the kernel monitor.
 		monitor(tf);
 		return;
 	}
-#else
-	// Your code here.
-#endif
 
 #if LAB >= 4
-	// Handle external interrupts
-	if (tf->tf_trapno == IRQ_OFFSET+0) {
+#if SOL >= 4
+	// New in Lab 4: Handle external interrupts
+	if (tf->tf_trapno == IRQ_OFFSET + 0) {
 		// irq 0 -- clock interrupt
 		sched_yield();
 	}
 #if SOL >= 6
-	if (tf->tf_trapno == IRQ_OFFSET+1) {
+	if (tf->tf_trapno == IRQ_OFFSET + 1) {
 		kbd_intr();
 		return;
 	}
-#endif
-	if (tf->tf_trapno == IRQ_OFFSET+4) {
+#endif	// SOL >= 6
+	if (tf->tf_trapno == IRQ_OFFSET + 4) {
 		serial_intr();
 		return;
 	}
-	if (IRQ_OFFSET <= tf->tf_trapno 
-			&& tf->tf_trapno < IRQ_OFFSET+MAX_IRQS) {
-		// just ingore spurious interrupts
-		printf("spurious interrupt on irq %d\n",
-			tf->tf_trapno - IRQ_OFFSET);
+	if (tf->tf_trapno >= IRQ_OFFSET && tf->tf_trapno < IRQ_OFFSET + MAX_IRQS) {
+		// just ignore spurious interrupts
+		printf("spurious interrupt on irq %d\n", tf->tf_trapno - IRQ_OFFSET);
 		print_trapframe(tf);
 		return;
 	}
-#endif // LAB >= 4
+#else	// SOL >= 4
+	// Handle clock and serial interrupts.
+	// LAB 4: Your code here.
+#if LAB >= 5
 
-	// the user process or the kernel has a bug.
+	// Handle keyboard interrupts.
+	// LAB 5: Your code here.
+#endif	// LAB >= 5
+#endif	// SOL >= 4
+#endif	// LAB >= 4
+
+	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
 	if (tf->tf_cs == GD_KT)
 		panic("unhandled trap in kernel");
@@ -241,9 +251,9 @@ trap(struct Trapframe *tf)
 void
 page_fault_handler(struct Trapframe *tf)
 {
-	u_int fault_va;
+	uint32_t fault_va;
 #if SOL >= 4
-	u_int *tos, d;
+	uint32_t *tos, d;
 #endif
 
 	// Read processor's CR2 register to find the faulting address
@@ -258,7 +268,7 @@ page_fault_handler(struct Trapframe *tf)
 		case PFM_NONE:
 			print_trapframe(tf);
 			panic("page fault");
-	
+
 		case PFM_KILL:
 			printf("[%08x] PFM_KILL va %08x ip %08x\n", 
 				curenv->env_id, fault_va, tf->tf_eip);
@@ -266,6 +276,11 @@ page_fault_handler(struct Trapframe *tf)
 			env_destroy(curenv);
 		}
 	}
+#else
+	// Handle kernel-mode page faults based on the current value of
+	// 'page_fault_mode' (which is either PFM_NONE or PFM_KILL).
+	
+	// LAB 3: Your code here.
 #endif	// SOL >= 3
 
 #if SOL >= 4
@@ -283,14 +298,14 @@ page_fault_handler(struct Trapframe *tf)
 		// The user's ESP is ALREADY in the user exception stack area,
 		// so push the new frame on the exception stack,
 		// preserving the existing exception stack contents.
-		tos = (u_int*)tf->tf_esp;
+		tos = (uint32_t*) tf->tf_esp;
 	} else {
 		// The user's ESP is NOT in the user exception stack area,
 		// so it's presumably pointing to a normal user stack
 		// and the user exception stack is not in use.
 		// Therefore, switch the user's ESP onto the exception stack
 		// and push the new frame at the top of the exception stack.
-		tos = (u_int*)UXSTACKTOP;
+		tos = (uint32_t*) UXSTACKTOP;
 	}
 
 	// If any of the following writes causes a recursive page fault,
@@ -315,13 +330,33 @@ page_fault_handler(struct Trapframe *tf)
 	*--tos = fault_va;
 
 	// set user registers so that env_run switches to fault handler
-	tf->tf_esp = (u_int)tos;
+	tf->tf_esp = (uintptr_t) tos;
 	tf->tf_eip = curenv->env_pgfault_upcall;
 	page_fault_mode = PFM_NONE;
 
 	env_run(curenv);
 #else	// not SOL >= 4
-	// User-mode exception - destroy the environment.
+	// We've already handled kernel-mode exceptions, so if we get here,
+	// the page fault happened in user mode.
+
+	// Call the environment's page fault upcall, if one exists.  Set up a
+	// page fault stack frame on the user exception stack (below
+	// UXSTACKTOP), then branch to curenv->env_pgfault_upcall.
+	//
+	// The page fault upcall might cause another page fault, in which case
+	// we branch to the page fault upcall recursively, pushing another
+	// page fault stack frame on top of the user exception stack.  If
+	// there's no page fault upcall, the environment didn't allocate a
+	// page for its exception stack, or the exception stack overflows,
+	// then destroy the environment that caused the fault.
+	//
+	// Hint:
+	//   page_fault_mode and env_run() are useful here.
+	//   How should you modify 'tf'?
+	
+	// LAB 4: Your code here.
+
+	// Destroy the environment that caused the fault.
 	printf("[%08x] user fault va %08x ip %08x\n",
 		curenv->env_id, fault_va, tf->tf_eip);
 	print_trapframe(tf);

@@ -17,14 +17,12 @@
 /* The kernel's interrupt descriptor table */
 extern struct Gatedesc idt[];
 
-/*
- * Page fault modes inside kernel.
- */
-#define PFM_NONE 0x0    // No page faults expected: must be a kernel bug.
-			// On fault, panic.
-#define PFM_KILL 0x1    // On fault, kill user process.
+// Page fault modes inside kernel.
+#define PFM_NONE	0	// No page faults expected: must be
+				// a kernel bug.  On fault, panic.
+#define PFM_KILL	1	// On fault, kill user process.
 
-extern uint32_t page_fault_mode;
+extern int page_fault_mode;
 
 
 void idt_init(void);
