@@ -219,9 +219,9 @@ i386_vm_init(void)
 
 	//////////////////////////////////////////////////////////////////////
 	// Map the kernel stack (symbol name "bootstack"):
-	//   [KSTACKTOP-BY2PDE, KSTACKTOP)  -- the complete VA range of the stack
+	//   [KSTACKTOP-PDMAP, KSTACKTOP)  -- the complete VA range of the stack
 	//     * [KSTACKTOP-KSTKSIZE, KSTACKTOP) -- backed by physical memory
-	//     * [KSTACKTOP-BY2PDE, KSTACKTOP-KSTKSIZE) -- not backed => faults
+	//     * [KSTACKTOP-PDMAP, KSTACKTOP-KSTKSIZE) -- not backed => faults
 	//   Permissions: kernel RW, user NONE
 	// Your code goes here:
 ///SOL2
@@ -699,8 +699,8 @@ page_check(void)
 	assert(va2pa(boot_pgdir, BY2PG) == page2pa(pp2));
 	assert(pp2->pp_ref == 1);
 
-	// should not be able to map at BY2PDE because need free page for page table
-	assert(page_insert(boot_pgdir, pp0, BY2PDE, 0) < 0);
+	// should not be able to map at PDMAP because need free page for page table
+	assert(page_insert(boot_pgdir, pp0, PDMAP, 0) < 0);
 
 	// insert pp1 at BY2PG (replacing pp2)
 	assert(page_insert(boot_pgdir, pp1, BY2PG, 0) == 0);

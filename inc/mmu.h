@@ -38,8 +38,9 @@
 #define BY2PG		4096		/* bytes to a page */
 #define PGSHIFT		12		/* log(BY2PG) */
 
-#define BY2PDE		(4*1024*1024)	/* bytes mapped by a page directory entry */
-#define PDSHIFT		22		/* log2(BY2PDE) */
+/* PDMAP is a crummy name, but I can't think of a better one.  -rsc */
+#define PDMAP		(4*1024*1024)	/* bytes mapped by a page directory entry */
+#define PDSHIFT		22		/* log2(PDMAP) */
 
 
 /* At IOPHYSMEM (640K) there is a 384K hole for I/O.  From the kernel,
@@ -312,17 +313,17 @@ struct Pseudodesc {
  *                     |  Physical Memory             | RW/--
  *                     |                              | RW/--
  *    KERNBASE ----->  +------------------------------+
- *                     |  Kernel Virtual Page Table   | RW/--    BY2PDE
+ *                     |  Kernel Virtual Page Table   | RW/--    PDMAP
  *    VPT,KSTACKTOP--> +------------------------------+                 --+
  *                     |        Kernel Stack          | RW/--  KSTKSIZE   |
- *                     | - - - - - - - - - - - - - - -|                 BY2PDE
+ *                     | - - - - - - - - - - - - - - -|                 PDMAP
  *                     |       Invalid memory         | --/--             |
  *    ULIM     ------> +------------------------------+                 --+
- *                     |      R/O User VPT            | R-/R-    BY2PDE
+ *                     |      R/O User VPT            | R-/R-    PDMAP
  *    UVPT      ---->  +------------------------------+
- *                     |        R/O PAGES             | R-/R-    BY2PDE
+ *                     |        R/O PAGES             | R-/R-    PDMAP
  *    UPAGES    ---->  +------------------------------+
- *                     |        R/O ENVS              | R-/R-    BY2PDE
+ *                     |        R/O ENVS              | R-/R-    PDMAP
  * UTOP,UENVS -------> +------------------------------+
  * UXSTACKTOP -/       |      user exception stack    | RW/RW   BY2PG  
  *                     +------------------------------+
@@ -339,7 +340,7 @@ struct Pseudodesc {
  *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
  *                     |                              |
  *    UTEXT ------->   +------------------------------+
- *                     |                              |  2 * BY2PDE
+ *                     |                              |  2 * PDMAP
  *    0 ------------>  +------------------------------+
  */
 
@@ -352,10 +353,10 @@ struct Pseudodesc {
  * the PD itself, thereby turning the PD into a page table which
  * maps all PTEs over the last 4 Megs of the virtual address space.
  */
-#define VPT (KERNBASE - BY2PDE)
+#define VPT (KERNBASE - PDMAP)
 #define KSTACKTOP VPT
 #define KSTKSIZE (8 * BY2PG)   		/* size of a kernel stack */
-#define ULIM (KSTACKTOP - BY2PDE) 
+#define ULIM (KSTACKTOP - PDMAP) 
 
 /*
  * User read-only mappings! Anything below here til UTOP are readonly to user.
@@ -363,11 +364,11 @@ struct Pseudodesc {
  */
 
 /* Same as VPT but read-only for users */
-#define UVPT (ULIM - BY2PDE)
+#define UVPT (ULIM - PDMAP)
 /* Read-only copies of all ppage structures */
-#define UPAGES (UVPT - BY2PDE)
+#define UPAGES (UVPT - PDMAP)
 /* Read only copy of the global env structures */
-#define UENVS (UPAGES - BY2PDE)
+#define UENVS (UPAGES - PDMAP)
 
 /*
  * Top of user VM. User can manipulate VA from UTOP-1 and down!
@@ -376,7 +377,7 @@ struct Pseudodesc {
 #define UXSTACKTOP (UTOP)           /* one page user exception stack */
 /* leave top page invalid to guard against exception stack overflow */ 
 #define USTACKTOP (UTOP - 2*BY2PG)   /* top of the normal user stack */
-#define UTEXT (2*BY2PDE)
+#define UTEXT (2*PDMAP)
 
 /*
  * Page fault modes inside kernel.
@@ -428,7 +429,7 @@ extern u_long npage;
 
 /*
  * The page directory entry corresponding to the virtual address range
- * from VPT to (VPT+BY2PDE) points to the page directory itself
+ * from VPT to (VPT+PDMAP) points to the page directory itself
  * (treating it as a page table as well as a page directory).  One
  * result of treating the page directory as a page table is that all
  * PTE's can be accessed through a "virtual page table" at virtual

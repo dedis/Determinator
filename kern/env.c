@@ -144,7 +144,7 @@ env_setup_vm(struct Env *e)
 	bzero(e->env_pgdir, BY2PG);
 
 	/* The VA space of all envs is identical above UTOP...*/
-	static_assert(UTOP % BY2PDE == 0);
+	static_assert(UTOP % PDMAP == 0);
 	for (i = PDX(UTOP); i <= PDX(~0); i++)
 		e->env_pgdir[i] = boot_pgdir[i];
 
@@ -241,7 +241,7 @@ env_free(struct Env *e)
 	Pte *pt;
 	u_int pdeno, pteno;
 
-	static_assert( (UTOP % BY2PDE) == 0);
+	static_assert( (UTOP % PDMAP) == 0);
 	/* Flush all pages */
 	for (pdeno = 0; pdeno < PDX(UTOP); pdeno++) {
 		if (!(e->env_pgdir[pdeno] & PTE_P))

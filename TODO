@@ -1,0 +1,9 @@
+After this year's class is over (fall 2003), we should:
+
+- merge lab1, currently in the x86boot directory,
+  properly into ossrc for consistency.
+
+- rename PDMAP in inc/mmu.h to something more meaningful
+  and consistent with the name of BY2PG...
+  Maybe BY2PG => PGBYTES, and PDMAP => PDBYTES?
+
