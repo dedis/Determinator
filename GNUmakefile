@@ -42,6 +42,7 @@ AR	:= i386-osclass-aout-ar
 LD	:= i386-osclass-aout-ld
 OBJCOPY	:= i386-osclass-aout-objcopy
 OBJDUMP	:= i386-osclass-aout-objdump
+NM	:= i386-osclass-aout-nm
 
 # Native commands
 NCC	:= gcc $(CC_VER) -pipe
@@ -66,7 +67,12 @@ all:
 
 # Eliminate default suffix rules
 .SUFFIXES:
-                                                                                
+
+# Delete target files if there is an error (or make is interrupted)
+.DELETE_ON_ERROR:
+
+# make it so that no intermediate .o files are ever deleted
+.SECONDARY:
 
 # Rules for building regular object files
 $(OBJDIR)/%.o: %.c
@@ -218,9 +224,6 @@ all: $(BIOS_FILES)
 
 bochs: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 	bochs-nogui
-
-kernel.asm: kern/kernel
-	$(OBJDUMP) -S --adjust-vma=0xf00ff000 kern/kernel >kernel.asm
 
 # For deleting the build
 clean:

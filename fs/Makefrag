@@ -1,7 +1,4 @@
 ifdef LAB5
-CLEAN_FILES += \
-	fs/fs \
-	fs/fsformat \
 
 OBJDIRS += fs
 
@@ -11,25 +8,17 @@ FSOFILES := \
 	$(OBJDIR)/fs/serv.o \
 	$(OBJDIR)/fs/test.o \
 
-FSIMGFILES := \
-	fs/lorem \
-	fs/newmotd \
-	fs/motd \
-	fs/out \
-	fs/script \
-	fs/testshell.key \
-	fs/testshell.out \
-	fs/testshell.sh \
+USERAPPS := \
 	$(OBJDIR)/user/cat \
 	$(OBJDIR)/user/echo \
 	$(OBJDIR)/user/init \
 	$(OBJDIR)/user/ls \
 	$(OBJDIR)/user/lsfd \
 	$(OBJDIR)/user/num \
-	$(OBJDIR)/user/primes \
+	$(OBJDIR)/user/primes
 
 ifdef LAB6
-FSIMGFILES := \
+USERAPPS := \
 	$(OBJDIR)/user/primespipe \
 	$(OBJDIR)/user/sh \
 	$(OBJDIR)/user/testfdsharing \
@@ -37,8 +26,30 @@ FSIMGFILES := \
 	$(OBJDIR)/user/testpipe \
 	$(OBJDIR)/user/testptelibrary \
 	$(OBJDIR)/user/testshell \
-	$(FSIMGFILES)
+	$(USERAPPS)
 endif
+
+FSIMGTXTFILES := \
+	fs/lorem \
+	fs/newmotd \
+	fs/motd \
+	fs/out \
+	fs/script \
+	fs/testshell.key \
+	fs/testshell.out \
+	fs/testshell.sh
+
+#if LAB >= 999
+
+$(OBJDIR)/fs/%: fs/%
+	@echo Doing weird move of fs/txt files for staff only build
+	@perl mklab.pl $(LAB) $(SOL) $(OBJDIR) $^
+
+FSIMGTXTFILES := $(addprefix $(OBJDIR)/, $(FSIMGTXTFILES))
+
+#endif
+
+FSIMGFILES := $(FSIMGTXTFILES) $(USERAPPS)
 
 $(OBJDIR)/fs/fs: $(FSOFILES) $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libuser.a
 	@echo ld $@
@@ -65,6 +76,8 @@ $(OBJDIR)/fs/fs.img: $(OBJDIR)/fs/fsformat $(FSIMGFILES)
 
 all: $(OBJDIR)/fs/fs.img
 
-.PRECIOUS: fs/%
+#all: $(addsuffix .sym, $(USERAPPS))
+
+#all: $(addsuffix .asm, $(USERAPPS))
 
 endif

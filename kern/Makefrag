@@ -6,7 +6,6 @@
 #
 
 OBJDIRS += kern
-CLEAN_FILES += kern/kernel kern/bochs.img
 
 KERN_LDFLAGS := $(LDFLAGS) -Ttext F0100020 -nostdlib
 
@@ -86,52 +85,14 @@ endif
 endif
 endif
 
-ifdef UNDEF
-KERN_BINFILES := \
-	user/init \
-	user/idle \
-	user/evilhello \
-	user/exit \
-	user/fairness \
-	user/fault \
-	user/faultalloc \
-	user/faultallocbad \
-	user/faultbadhandler \
-	user/faultbadstack \
-	user/faultdie \
-	user/faultevilhandler \
-	user/faultevilstack \
-	user/faultgoodstack \
-	user/hello \
-	user/icode \
-	user/pipereadeof \
-	user/pipewriteeof \
-	user/primes \
-	user/primespipe \
-	user/testfdsharing \
-	user/testfsipc \
-	user/testkbd \
-	user/testpipe \
-	user/testpiperace \
-	user/testpiperace2 \
-	user/testptelibrary \
-	user/testshell \
-	user/writemotd \
-	fs/fs \
-	KERN_BINFILES
-endif
-
-KERN_BINFILES := $(foreach file, $(KERN_BINFILES), \
-			$(shell test -f $(file).c && echo $(OBJDIR)/$(file)))
+KERN_BINFILES := $(addprefix $(OBJDIR)/, $(KERN_BINFILES))
 
 # How to build the kernel itself
 $(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
 	@echo ld $@
 	@$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) -b binary $(KERN_BINFILES)
-	@i386-osclass-aout-nm $(OBJDIR)/kern/kernel \
-		| sort >$(OBJDIR)/kern/kernel.sym
-	@i386-osclass-aout-objdump -S --adjust-vma=0xfffffffff00ff000 \
-		$@ >$@.asm
+	@$(OBJDUMP) -S --adjust-vma=0xf00ff000 $@ > $@.asm
+	@$(NM) -n $@ > $@.sym
 
 # How to build the Bochs disk image
 $(OBJDIR)/kern/bochs.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/boot

@@ -6,7 +6,6 @@
 #
 
 OBJDIRS += boot
-CLEAN_FILES += boot/boot boot/boot.out
 
 BOOT_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o
 
