@@ -21,7 +21,7 @@ We have the following conventions in our code:
   There are a few grandfathered exceptions: assert, panic,
   static_assert, offsetof.
 
-* Pointer types have spaces: (u_short *) not (u_short*).
+* Pointer types have spaces: (uint16_t *) not (uint16_t*).
 
 * Multi-word names are lower_case_with_underscores.
 
