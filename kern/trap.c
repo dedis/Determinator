@@ -188,10 +188,11 @@ trap(struct Trapframe *tf)
 void
 page_fault_handler(struct Trapframe *tf)
 {
-	u_int va;
+	u_int fault_va;
 	u_int *tos, d;
 
-	va = rcr2();
+	// Read processor's CR2 register to find the faulting address
+	fault_va = rcr2();
 
 #if SOL >= 4
 	if ((tf->tf_cs & 3) == 0) {
@@ -204,14 +205,14 @@ page_fault_handler(struct Trapframe *tf)
 	
 		case PFM_KILL:
 			printf("[%08x] PFM_KILL va %08x ip %08x\n", 
-				curenv->env_id, va, tf->tf_eip);
+				curenv->env_id, fault_va, tf->tf_eip);
 			env_destroy(curenv);
 		}
 	}
 
 	if (curenv->env_pgfault_handler == 0) {
 		printf("[%08x] user fault va %08x ip %08x\n",
-			curenv->env_id, va, tf->tf_eip);
+			curenv->env_id, fault_va, tf->tf_eip);
 		env_destroy(curenv);
 	}
 
@@ -237,7 +238,7 @@ page_fault_handler(struct Trapframe *tf)
 	*--tos = tf->tf_eflags;
 	*--tos = tf->tf_esp;
 	*--tos = tf->tf_err;
-	*--tos = va;
+	*--tos = fault_va;
 
 	// set user registers so that env_run switches to fault handler
 	tf->tf_esp = (u_int)tos;
