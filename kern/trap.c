@@ -132,13 +132,6 @@ print_trapframe(struct Trapframe *tf)
 void
 trap(struct Trapframe *tf)
 {
-#if 0
-	if (tf->tf_trapno == 32)
-		printf(".");
-	else if (tf->tf_trapno == 33)
-		printf("*");
-#endif
-
 #if SOL >= 3
 	if (tf->tf_trapno == IRQ_OFFSET) {
 		// irq 0 -- clock interrupt
@@ -178,8 +171,10 @@ trap(struct Trapframe *tf)
 #if SOL >= 3
 		if (tf->tf_cs == GD_KT)
 			panic("unhandled trap in kernel");
-		else
+		else {
+			print_trapframe(tf);
 			env_destroy(curenv);
+		}
 #else
 		print_trapframe(tf);
 		panic("unhandled trap");

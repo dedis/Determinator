@@ -37,7 +37,7 @@ _pgfault_rd_nopage_end:
 .global _pgfault_rd_noperms_start
 _pgfault_rd_noperms_start:
 	.space 0x20  # pretend there is an a.out header here	
-	movl 0xfffffff0, %eax
+	movl 0xf0100020, %eax
 .global _pgfault_rd_noperms_end
 _pgfault_rd_noperms_end:
 
@@ -51,7 +51,7 @@ _pgfault_wr_nopage_end:
 .global _pgfault_wr_noperms_start
 _pgfault_wr_noperms_start:
 	.space 0x20  # pretend there is an a.out header here	
-	movl %eax, 0xfffffff0
+	movl %eax, 0xf0100020
 .global _pgfault_wr_noperms_end
 _pgfault_wr_noperms_end:
 
