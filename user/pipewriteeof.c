@@ -6,6 +6,8 @@ umain(void)
 {
 	int i, p[2];
 
+	argv0 = "pipewriteeof";
+
 	if ((i=pipe(p)) < 0)
 		panic("pipe: %e", i);
 

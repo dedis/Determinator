@@ -5,6 +5,7 @@
 #include <inc/env.h>
 #include <inc/pmap.h>
 #include <inc/syscall.h>
+#include <inc/args.h>
 
 // ipc.c
 void	ipc_send(u_int whom, u_int val, u_int srcva, u_int perm);

@@ -7,6 +7,8 @@ umain(void)
 	char buf[100];
 	int i, p[2];
 
+	argv0 = "pipereadeof";
+
 	if ((i=pipe(p)) < 0)
 		panic("pipe: %e", i);
 

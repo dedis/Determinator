@@ -162,23 +162,34 @@ char buf[1024];
 void
 usage(void)
 {
-	printf("usage: sh [command-file]\n");
+	printf("usage: sh [-i] [command-file]\n");
 	exit();
 }
 
 void
 umain(int argc, char **argv)
 {
-	int r;
+	int r, interactive;
 
-	if(argc > 2)
+	interactive = '?';
+	ARGBEGIN{
+	case 'i':
+		interactive = 1;
+		break;
+	default:
 		usage();
-	if(argc == 2){
+	}ARGEND
+
+	if(argc > 1)
+		usage();
+	if(argc == 1){
 		close(0);
 		if ((r = open(argv[1], O_RDONLY)) < 0)
 			panic("open %s: %e", r);
 		assert(r==0);
 	}
+	if(interactive == '?')
+		interactive = isconsole(0);
 	for(;;){
 		readline(buf, sizeof buf);
 		runcmd(buf);

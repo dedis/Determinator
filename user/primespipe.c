@@ -53,6 +53,8 @@ umain(void)
 {
 	int i, id, p[2];
 
+	argv0 = "primespipe";
+
 	if ((i=pipe(p)) < 0)
 		panic("pipe: %e", i);
 
