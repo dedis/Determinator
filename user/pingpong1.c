@@ -5,6 +5,9 @@
 
 #include "lib.h"
 
+#include <inc/string.h>
+
+
 int dumbfork(void);
 
 void
@@ -44,7 +47,7 @@ duppage(u_int dstenv, u_int addr)
 		panic("sys_mem_alloc: %e", r);
 	if ((r=sys_mem_map(dstenv, addr, 0, (u_int)tmp, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_mem_map: %e", r);
-	bcopy((u_char*)addr, tmp, BY2PG);
+	memcpy(tmp, (u_char*)addr, BY2PG);
 	if ((r=sys_mem_unmap(0, (u_int)tmp)) < 0)
 		panic("sys_mem_unmap: %e", r);
 }

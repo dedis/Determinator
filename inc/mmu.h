@@ -425,9 +425,6 @@ struct Pseudodesc {
 	(pa) + KERNBASE;					\
 })
 
-void bcopy(const void *, void *, size_t);
-void bzero(void *, size_t);
-
 extern char bootstacktop[], bootstack[];
 
 extern u_long npage;

@@ -3,6 +3,9 @@
 
 #include "lib.h"
 
+#include <inc/string.h>
+
+
 #define debug 0
 
 #define PTE_COW		0x800
@@ -30,7 +33,7 @@ pgfault(u_int va, u_int err)
 	// copy page
 	if ((r=sys_mem_alloc(0, (u_int)tmp, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_mem_alloc: %e", r);
-	bcopy((u_char*)ROUNDDOWN(va, BY2PG), tmp, BY2PG);
+	memcpy(tmp, (u_char*)ROUNDDOWN(va, BY2PG), BY2PG);
 
 	// remap over faulting page
 	if ((r=sys_mem_map(0, (u_int)tmp, 0, va, PTE_P|PTE_U|PTE_W)) < 0)

@@ -202,7 +202,7 @@ sys_mem_alloc(u_int envid, u_int va, u_int perm)
 		page_free(p);
 		return r;
 	}
-	bzero((void*)page2kva(p), BY2PG);
+	memset((void*)page2kva(p), 0, BY2PG);
 	return 0;
 #else
 	// Your code here.

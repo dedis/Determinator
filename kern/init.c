@@ -1,6 +1,7 @@
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/asm.h>
+#include <inc/string.h>
 #if LAB >= 3
 #include <kern/trap.h>
 #endif
@@ -113,10 +114,11 @@ i386_init(void)
 }
 
 
-// like bcopy(but doesn't handle overlapping src/dst)
-void
-bcopy(const void *src, void *dst, size_t len)
+// copy a memory block (doesn't handle overlapping src/dst)
+void *
+memcpy(void *dst, const void *src, size_t len)
 {
+	void *orig_dst = dst;
 	void *max;
 
 	max = dst + len;
@@ -126,20 +128,31 @@ bcopy(const void *src, void *dst, size_t len)
 	// finish remaining 0-3 bytes
 	while (dst < max)
 		*(char *)dst++ = *(char *)src++;
+
+	return orig_dst;
 }
 
-void
-bzero(void *b, size_t len)
+void *
+memset(void *b, int c, size_t len)
 {
+	void *orig = b;
 	void *max;
 
+	c &= 0xff;
+	c |= c << 8;
+	c |= c << 16;
+
 	max = b + len;
+
 	// zero machine words while possible
 	while (b + 3 < max)
-		*(int *)b++ = 0;
+		*(int *)b++ = c;
+
 	// finish remaining 0-3 bytes
 	while (b < max)
-		*(char *)b++ = 0;
+		*(char *)b++ = c;
+
+	return orig;
 }
 
 // Ignore from here on down.  The functions below here are never

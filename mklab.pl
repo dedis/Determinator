@@ -1,16 +1,16 @@
 #!/usr/bin/perl
 #
 # Generate lab/solution hand-out trees from master ossrc tree.
-# Usage: mklab.pl lab# flag files
+# Usage: mklab.pl lab# sol# outdir files
 # - lab# is the lab number: 1, 2, 3, etc.
-# - flag is 0 for the handout tree, 1 for the solution tree for that lab.
+# - sol# is the solution set number: 1, 2, 3, etc.
+# - outdir is the name of the directory into which to export the tree.
 # - files is the complete set of source files to (potentially) copy.
 #
 # Blocks of text demarked with ///LABn and ///END are included
 # only if the lab number is greater than or equal to 'n'.
 # Blocks of text demarked with ///SOLn and ///END are included
-# only if the lab number is greater than 'n',
-# or if the lab number is equal to 'n' and the solutions flag is 1.
+# only if the solution set number is greater than or equal to 'n'.
 #
 
 sub dofile {

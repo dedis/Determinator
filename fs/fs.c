@@ -1,4 +1,7 @@
 #if LAB >= 5
+
+#include <inc/string.h>
+
 #include "fs.h"
 
 struct Super *super;
@@ -284,7 +287,7 @@ check_write_block(void)
 
 	// back up super block
 	read_block(0, 0, 0);
-	bcopy((char*)diskaddr(1), (char*)diskaddr(0), BY2PG);
+	memcpy((char*)diskaddr(0), (char*)diskaddr(1), BY2PG);
 
 	// smash it 
 	strcpy((char*)diskaddr(1), "OOPS!\n");
@@ -301,7 +304,7 @@ check_write_block(void)
 	assert(strcmp((char*)diskaddr(1), "OOPS!\n") == 0);
 
 	// fix it
-	bcopy((char*)diskaddr(0), (char*)diskaddr(1), BY2PG);
+	memcpy((char*)diskaddr(1), (char*)diskaddr(0), BY2PG);
 	write_block(1);
 	super = (struct Super*)diskaddr(1);
 
@@ -517,7 +520,7 @@ walk_path(char *path, struct File **pdir, struct File **pfile, char *lastelem)
 			path++;
 		if (path - p >= MAXNAMELEN)
 			return -E_BAD_PATH;
-		bcopy(p, name, path - p);
+		memcpy(name, p, path - p);
 		name[path - p] = '\0';
 		path = skip_slash(path);
 

@@ -38,11 +38,10 @@ _fdtab:
 	movl $(_end), %eax
 	subl $(_edata), %eax
 	pushl %eax
+	pushl $0
 	pushl $(_edata)
-	call _bzero
-
-	// IMPORTANT BUG FIX FOR LAB 5 -- COPY THIS NEXT LINE!
-	addl $8, %esp
+	call _memset
+	addl $12, %esp
 
 args_exist:
 	call _libmain

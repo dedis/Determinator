@@ -3,6 +3,8 @@
 #include <inc/x86.h>
 #include <inc/mmu.h>
 #include <inc/kbdreg.h>
+#include <inc/string.h>
+
 #include <kern/pmap.h>
 #include <kern/console.h>
 #include <kern/printf.h>
@@ -161,7 +163,7 @@ cga_putc(int c)
 #endif
 	if (crt_pos >= CRT_SIZE) {
 		int i;
-		bcopy(crt_buf + CRT_COLS, crt_buf, CRT_SIZE << 1);
+		memcpy(crt_buf, crt_buf + CRT_COLS, CRT_SIZE << 1);
 		for (i = CRT_SIZE - CRT_COLS; i < CRT_SIZE; i++)
 			crt_buf[i] = 0x0700 | ' ';
 		crt_pos -= CRT_COLS;

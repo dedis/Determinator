@@ -33,8 +33,8 @@ strchr(const char *s, char c)
 	return 0;
 }
 
-void
-bzero(void *v, u_int n)
+void *
+memset(void *v, int c, size_t n)
 {
 	char *p;
 	int m;
@@ -42,11 +42,13 @@ bzero(void *v, u_int n)
 	p = v;
 	m = n;
 	while (--m >= 0)
-		*p++ = 0;
+		*p++ = c;
+
+	return v;
 }
 
-void
-bcopy(const void *src, void *dst, u_int n)
+void *
+memcpy(void *dst, const void *src, size_t n)
 {
 	const char *s;
 	char *d;
@@ -57,6 +59,8 @@ bcopy(const void *src, void *dst, u_int n)
 	m = n;
 	while (--m >= 0)
 		*d++ = *s++;
+
+	return dst;
 }
 
 int

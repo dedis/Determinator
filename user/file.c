@@ -1,6 +1,9 @@
 #if LAB >= 5
-#include "lib.h"
+
 #include <inc/fs.h>
+#include <inc/string.h>
+
+#include "lib.h"
 
 #define debug 0
 
@@ -74,7 +77,7 @@ file_close(struct Fd *fd)
 }
 
 // Read 'n' bytes from 'fd' at the current seek position into 'buf'.
-// Since files are memory-mapped, this amounts to a bcopy()
+// Since files are memory-mapped, this amounts to a memcpy()
 // surrounded by a little red tape to handle the file size and seek pointer.
 static int
 file_read(struct Fd *fd, void *buf, u_int n, u_int offset)
@@ -92,7 +95,7 @@ file_read(struct Fd *fd, void *buf, u_int n, u_int offset)
 		n = size - offset;
 
 	// read the data by copying from the file mapping
-	bcopy((char*)fd2data(fd)+offset, buf, n);
+	memcpy(buf, (char*)fd2data(fd)+offset, n);
 	return n;
 }
 
@@ -140,7 +143,7 @@ file_write(struct Fd *fd, const void *buf, u_int n, u_int offset)
 	}
 
 	// write the data
-	bcopy(buf, (char*)fd2data(fd)+offset, n);
+	memcpy((char*)fd2data(fd)+offset, buf, n);
 	return n;
 }
 

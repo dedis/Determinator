@@ -4,6 +4,7 @@
 #include <inc/x86.h>
 #include <inc/mmu.h>
 #include <inc/error.h>
+#include <inc/string.h>
 #include <kern/pmap.h>
 #include <kern/env.h>
 #include <kern/printf.h>
@@ -119,7 +120,7 @@ alloc(u_int n, u_int align, int clear)
 	v = (void*)freemem;
 	freemem += n;
 	if (clear)
-		bzero(v, n);
+		memset(v, 0, n);
 	return v;
 #endif /* SOL >= 2 */
 }
@@ -466,7 +467,7 @@ page_init(void)
 static void
 page_initpp(struct Page *pp)
 {
-	bzero(pp, sizeof(*pp));
+	memset(pp, 0, sizeof(*pp));
 }
 
 //
@@ -565,7 +566,7 @@ pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte)
 		pgtab = (Pte*)page2kva(pp);
 
 		// Make sure all those PTE_P bits are zero.
-		bzero(pgtab, BY2PG);
+		memset(pgtab, 0, BY2PG);
 
 		// The permissions here are overly generous, but they can
 		// be further restricted by the permissions in the page table 

@@ -4,6 +4,8 @@
 #include <inc/x86.h>
 #include <inc/mmu.h>
 #include <inc/error.h>
+#include <inc/string.h>
+
 #include <kern/env.h>
 #include <kern/pmap.h>
 #if LAB >= 3
@@ -119,7 +121,7 @@ env_setup_vm(struct Env *e)
 #if SOL >= 3
 	e->env_cr3 = page2pa(p);
 	e->env_pgdir = (Pde*)page2kva(p);
-	bzero(e->env_pgdir, BY2PG);
+	memset(e->env_pgdir, 0, BY2PG);
 
 	// The VA space of all envs is identical above UTOP...
 	static_assert(UTOP % PDMAP == 0);
@@ -225,7 +227,7 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 	for (i = 0; i < size; i += BY2PG) {
 		if ((r = page_alloc(&p)) < 0)
 			panic("load_icode: could not alloc page: %e\n", r);
-		bcopy(&binary[i], (void*)page2kva(p), MIN(BY2PG, size - i));
+		memcpy((void*)page2kva(p), &binary[i], MIN(BY2PG, size - i));
 		if ((r = page_insert(e->env_pgdir, p, UTEXT + i,
 					PTE_P|PTE_W|PTE_U)) < 0)
 			panic("load_icode: could not map page. Errno %d\n", r);

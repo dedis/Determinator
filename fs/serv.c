@@ -4,8 +4,11 @@
  * serves IPC requests from other environments.
  */
 
-#include "fs.h"
 #include <inc/x86.h>
+#include <inc/string.h>
+
+#include "fs.h"
+
 
 #define debug 0
 
@@ -56,7 +59,7 @@ open_alloc(struct Open **o)
 		case 1:
 			opentab[i].o_fileid += MAXOPEN;
 			*o = &opentab[i];
-			bzero((void*)opentab[i].o_ff, BY2PG);
+			memset((void*)opentab[i].o_ff, 0, BY2PG);
 			return (*o)->o_fileid;
 		}
 	}
@@ -93,7 +96,7 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	struct Open *o;
 
 	// Copy in the path, making sure it's null-terminated
-	bcopy(rq->req_path, path, MAXPATHLEN);
+	memcpy(path, rq->req_path, MAXPATHLEN);
 	path[MAXPATHLEN-1] = 0;
 
 	// Find a file id.
@@ -220,7 +223,7 @@ serve_remove(u_int envid, struct Fsreq_remove *rq)
 	int rc;
 
 	// Copy in the path, making sure it's null-terminated
-	bcopy(rq->req_path, path, MAXPATHLEN);
+	memcpy(path, rq->req_path, MAXPATHLEN);
 	path[MAXPATHLEN-1] = 0;
 
 	// Delete the specified file

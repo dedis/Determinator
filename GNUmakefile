@@ -17,7 +17,9 @@ PERL	:= perl
 # Compiler flags
 # Note that -O2 is required for the boot loader to fit within 512 bytes;
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
-DEFS	:=
+#if LAB >= 999
+DEFS	:= $(DEFS) -DLAB=$(LAB) -DSOL=$(SOL)
+#endif
 CFLAGS	:= $(CFLAGS) $(DEFS) -O2 -fno-builtin -I$(TOP) -MD -MP -Wall -Wno-format -ggdb
 
 # Linker flags for user programs
@@ -50,10 +52,10 @@ include fs/Makefrag
 # Rules for building regular object files
 %.o: %.c
 	@echo cc $<
-	@$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
 %.o: %.S
 	@echo as $<
-	@$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
 
 
 # For embedding one program in another
@@ -81,6 +83,19 @@ CLEAN_FILES += bios lab? sol?
 # Fake targets to export the student lab handout and solution trees.
 # It's important that these aren't just called 'lab%' and 'sol%',
 # because that causes 'lab%' to match 'kern/lab3.S' and delete it - argh!
+#
+# - lab% is the tree we hand out to students when each lab is assigned;
+#	subsequent lab handouts include more lab code but no solution code.
+#
+# - sol% is the solution tree we hand out when a lab is fully graded;
+#	it includes all lab code and solution code up to that lab number %.
+#
+# - prep% is the tree we use internally to get something equivalent to
+#	what the students are supposed to start with just before lab %:
+#	it contains all lab code up to % and all solution code up to %-1.
+#
+# In general, only sol% and prep% trees are supposed to compile directly.
+#
 export-lab%: $(BIOS_FILES)
 	rm -rf lab$*
 	$(PERL) mklab.pl $* 0 lab$* $(LAB_FILES)
@@ -97,6 +112,12 @@ export-prep%: $(BIOS_FILES)
 lab%.tar.gz: $(BIOS_FILES)
 	gmake export-lab$*
 	tar cf - lab$* | gzip > lab$*.tar.gz
+
+build-sol%: export-sol%
+	cd sol$*; make
+
+build-prep%: export-prep%
+	cd prep$*; make
 
 # Distribute the BIOS images Bochs needs with the lab trees
 # in order to avoid absolute pathname dependencies in .bochsrc.

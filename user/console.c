@@ -1,4 +1,7 @@
 #if LAB >= 6
+
+#include <inc/string.h>
+
 #include "lib.h"
 
 static int cons_read(struct Fd*, void*, u_int, u_int);
@@ -76,7 +79,7 @@ cons_write(struct Fd *fd, const void *vbuf, u_int n, u_int offset)
 		m = n - tot;
 		if (m > sizeof buf-1)
 			m = sizeof buf-1;
-		bcopy((char*)vbuf+tot, buf, m);
+		memcpy(buf, (char*)vbuf+tot, m);
 		buf[m] = 0;
 		sys_cputs(buf);
 	}

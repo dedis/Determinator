@@ -1,6 +1,10 @@
 #if LAB >= 5
-#include "fs.h"
+
 #include <inc/x86.h>
+#include <inc/string.h>
+
+#include "fs.h"
+
 
 int
 strecmp(char *a, char *b)
@@ -25,7 +29,7 @@ fs_test(void)
 	if ((r=sys_mem_alloc(0, BY2PG, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_mem_alloc: %e", r);
 	bits = (u_int*)BY2PG;
-	bcopy(bitmap, bits, BY2PG);
+	memcpy(bits, bitmap, BY2PG);
 	// allocate block
 	if ((r = alloc_block()) < 0)
 		panic("alloc_block: %e", r);
