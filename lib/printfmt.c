@@ -62,7 +62,7 @@ printnum(void (*putch)(int, void*), void *putdat,
 // Get an int of various possible sizes from a varargs list,
 // depending on the lflag parameter.
 static unsigned long long
-getint(va_list *ap, int lflag)
+getuint(va_list *ap, int lflag)
 {
 	if (lflag >= 2)
 		return va_arg(*ap, unsigned long long);
@@ -72,10 +72,23 @@ getint(va_list *ap, int lflag)
 		return va_arg(*ap, unsigned int);
 }
 
+// Same as getuint but signed - can't use getuint
+// because of sign extension
+static long long
+getint(va_list *ap, int lflag)
+{
+	if (lflag >= 2)
+		return va_arg(*ap, long long);
+	else if (lflag)
+		return va_arg(*ap, long);
+	else
+		return va_arg(*ap, int);
+}
+	
+
 
 // Main function to format and print a string.
-void
-printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...);
+void printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...);
 
 void
 vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
@@ -164,14 +177,14 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		// unsigned decimal
 		case 'u':
-			num = getint(&ap, lflag);
+			num = getuint(&ap, lflag);
 			base = 10;
 			goto number;
 
 		// (unsigned) octal
 		case 'o':
 #if SOL >= 1
-			num = getint(&ap, lflag);
+			num = getuint(&ap, lflag);
 			base = 8;
 			goto number;
 #else
@@ -193,7 +206,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		// (unsigned) hexadecimal
 		case 'x':
-			num = getint(&ap, lflag);
+			num = getuint(&ap, lflag);
 			base = 16;
 		number:
 			printnum(putch, putdat, num, base, width, padc);
