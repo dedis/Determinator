@@ -95,14 +95,14 @@ all:
 
 # Rules for building regular object files
 $(OBJDIR)/%.o: %.c
-	@echo cc $<
+#	@echo cc $<
 	@mkdir -p $(@D)
-	@$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
+	$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/%.o: %.S
+#	@echo as $<
 	@mkdir -p $(@D)
-	@echo as $<
-	@$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
+	$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
 
 
 # Setup a prefix for the GCC tools if we're cross-compiling.
@@ -244,7 +244,7 @@ grade:
 	sh grade.sh
 
 #ifdef ENV_HANDIN_COPY
-HANDIN_CMD = tar cf - . | gzip > ~class/handin/lab2/$$USER/lab2.tar.gz
+HANDIN_CMD = tar cf - . | gzip > ~class/handin/lab3/$$USER/lab3.tar.gz
 #else
 HANDIN_CMD = tar cf - . | gzip | uuencode lab$(LAB).tar.gz | mail 6.828-handin@pdos.lcs.mit.edu
 #endif

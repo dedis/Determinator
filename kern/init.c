@@ -147,8 +147,10 @@ i386_init(void)
 	// Schedule and run the first user environment!
 	sched_yield();
 #else
+#if LAB >= 3
 	// We only have one user environment for now, so just run it.
 	env_run(&envs[0]);
+#endif
 #endif
 
 #if LAB >= 2

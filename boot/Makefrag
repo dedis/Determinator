@@ -10,13 +10,11 @@ OBJDIRS += boot
 BOOT_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o
 
 $(OBJDIR)/boot/main.o: boot/main.c
-	@echo cc $<
-	@$(CC) -nostdinc $(CFLAGS) -Os -c -o $(OBJDIR)/boot/main.o boot/main.c
+	$(CC) -nostdinc $(CFLAGS) -Os -c -o $(OBJDIR)/boot/main.o boot/main.c
 
 $(OBJDIR)/boot/boot: $(BOOT_OBJS)
-	@echo ld boot/boot
-	@$(LD) -N -e start -Ttext 0x7C00 -o $@.out $^
-	@$(OBJDUMP) -S $@.out >$@.asm
-	@$(OBJCOPY) -S -O binary $@.out $@
-	@perl boot/sign.pl $(OBJDIR)/boot/boot
+	$(LD) -N -e start -Ttext 0x7C00 -o $@.out $^
+	$(OBJDUMP) -S $@.out >$@.asm
+	$(OBJCOPY) -S -O binary $@.out $@
+	perl boot/sign.pl $(OBJDIR)/boot/boot
 
