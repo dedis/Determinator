@@ -8,7 +8,7 @@ strlen(const char *s)
 {
 	int n;
 
-	for(n=0; *s; s++)
+	for (n=0; *s; s++)
 		n++;
 	return n;
 }
@@ -19,7 +19,7 @@ strcpy(char *dst, const char *src)
 	char *ret;
 
 	ret = dst;
-	while((*dst++ = *src++) != 0)
+	while ((*dst++ = *src++) != 0)
 		;
 	return ret;
 }
@@ -32,7 +32,7 @@ bzero(void *v, u_int n)
 
 	p = v;
 	m = n;
-	while(--m >= 0)
+	while (--m >= 0)
 		*p++ = 0;
 }
 
@@ -46,8 +46,20 @@ bcopy(const void *src, void *dst, u_int n)
 	s = src;
 	d = dst;
 	m = n;
-	while(--m >= 0)
+	while (--m >= 0)
 		*d++ = *s++;
+}
+
+int
+strcmp(const char *p, const char *q)
+{
+	while (*p && *p == *q)
+		p++, q++;
+	if ((u_int)*p < (u_int)*q)
+		return -1;
+	if ((u_int)*p > (u_int)*q)
+		return 1;
+	return 0;
 }
 
 #endif

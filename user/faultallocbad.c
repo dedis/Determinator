@@ -1,4 +1,5 @@
-#if LAB >= 4
+#if LAB >= 5
+#elif LAB >= 4
 // test user-level fault handler -- alloc pages to fix faults
 // doesn't work because we sys_cputs instead of printf (exercise: why?)
 

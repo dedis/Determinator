@@ -16,7 +16,7 @@ fi
 
 runtest() {
 	perl -e "print '$1: '"
-	rm -f kern/init.o
+	rm -f kern/init.o kern/kernel kern/bochs.img
 	if $verbose
 	then
 		perl -e "print 'gmake $2... '"
@@ -106,7 +106,7 @@ runtest1 evilhello \
 	'.00001001. free env 00001001'
 
 runtest1 fault \
-	'.00001001. user fault va 00000000 ip 0080008b' \
+	'.00001001. user fault va 00000000 ip 008.....' \
 	'.00001001. free env 00001001'
 
 runtest1 faultdie \
@@ -128,7 +128,7 @@ runtest1 faultallocbad \
 	'.00001001. free env 00001001' 
 
 runtest1 faultbadhandler \
-	'.00001001. PFM_KILL va eebfcffc ip f01.....' \
+	'.00001001. PFM_KILL va eebfcf.. ip f01.....' \
 	'.00001001. free env 00001001'
 
 runtest1 faultbadstack \
@@ -141,7 +141,7 @@ runtest1 faultgoodstack \
 	'.00001001. free env 00001001' 
 
 runtest1 faultevilhandler \
-	'.00001001. PFM_KILL va eebfcffc ip f01.....' \
+	'.00001001. PFM_KILL va eebfcf.. ip f01.....' \
 	'.00001001. free env 00001001'
 
 runtest1 faultevilstack \

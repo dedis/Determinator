@@ -22,7 +22,7 @@ libmain(int argc, char **argv)
 	umain(argc, argv);
 
 	// exit gracefully
-	sys_env_destroy();
+	sys_env_destroy(0);
 }
 
 #endif

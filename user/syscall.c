@@ -46,10 +46,10 @@ sys_yield(void)
 	syscall(SYS_yield, 0, 0, 0, 0, 0);
 }
 
-void
-sys_env_destroy(void)
+int
+sys_env_destroy(u_int envid)
 {
-	syscall(SYS_env_destroy, 0, 0, 0, 0, 0);
+	return syscall(SYS_env_destroy, envid, 0, 0, 0, 0);
 }
 
 u_int
@@ -137,4 +137,18 @@ sys_set_env_status(u_int envid, u_int status)
 #endif
 }
 
+#if LAB >= 5
+int
+sys_set_trapframe(u_int envid, struct Trapframe *tf)
+{
+	return syscall(SYS_set_trapframe, envid, (u_int)tf, 0, 0, 0);
+}
+
+void
+sys_panic(char *msg)
+{
+	syscall(SYS_panic, (u_int)msg, 0, 0, 0, 0);
+}
+
+#endif
 #endif

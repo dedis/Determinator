@@ -20,6 +20,8 @@ enum
 	SYS_mem_alloc,
 	SYS_mem_map,
 	SYS_mem_unmap,
+	SYS_set_trapframe,
+	SYS_panic,
 
 	NSYSCALLS,
 };

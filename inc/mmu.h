@@ -65,6 +65,8 @@
 #define PTE_AVAIL	0xe00	// Available for software use
 #define PTE_FLAGS	0xfff	// All flags
 
+#define PTE_USER	0xe07	// All flags that can be used in system calls
+
 // address in page table entry
 #define PTE_ADDR(pte)	((u_long)(pte)&~PTE_FLAGS)
 
@@ -350,10 +352,16 @@ struct Pseudodesc {
 #define	KERNBASE	0xf0000000	// start of kernel virtual space
 
 /*
+<<<<<<< mmu.h
+ * Virtual page table.  Entry PDX[VPT] in the PD contains a pointer to
+ * the PD itself, thereby turning the PD into a page table which
+ * maps all PTEs over the that 4 Meg block of the virtual address space.
+=======
  * Virtual page table.  Entry PDX[VPT] in the PD contains a pointer to
  * the page directory itself, thereby turning the PD into a page table,
  * which maps all the PTEs containing the page mappings for the entire
  * virtual address space, into that 4 Meg region starting at VPT.
+>>>>>>> 1.14
  */
 #define VPT (KERNBASE - PDMAP)
 #define KSTACKTOP VPT

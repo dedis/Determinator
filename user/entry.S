@@ -2,6 +2,13 @@
 #include <inc/mmu.h>
 
 .data
+#if LAB >= 5
+	.p2align	PGSHIFT
+	.globl		_fsipcbuf
+_fsipcbuf:
+	.space		BY2PG
+
+#endif
 	.globl _envs
 	.set _envs, UENVS
 	.globl _pages

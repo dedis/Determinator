@@ -1,4 +1,5 @@
-#if LAB >= 4
+#if LAB >= 5
+#elif LAB >= 4
 // Ping-pong a counter between two processes.
 // Only need to start one of these -- splits into two with fork.
 

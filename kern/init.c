@@ -36,7 +36,25 @@ i386_init(void)
 	env_init();
 #endif
 
-#if LAB >= 4
+#if LAB >= 5
+	// Should always have an idle process as first one.
+	ENV_CREATE(user_idle);
+
+	// Start fs with I/O privileges
+	ENV_CREATE(fs_fs);
+	envs[1].env_tf.tf_eflags |= FL_IOPL0|FL_IOPL1;
+
+	// Start init
+#if defined(TEST)
+	// Don't touch -- used by grading script!
+	ENV_CREATE2(TEST, TESTSIZE);
+#else
+	// Touch all you want.
+	// ENV_CREATE(user_writemotd);
+	ENV_CREATE(user_icode);
+#endif
+
+#elif LAB >= 4
 	// Should always have an idle process as first one.
 	ENV_CREATE(user_idle);
 
@@ -64,7 +82,7 @@ i386_init(void)
 	// Touch all you want.
 	ENV_CREATE(spin);
 #endif // TEST*
-#endif // LAB4, LAB3
+#endif // LAB5, LAB4, LAB3
 
 #if LAB >= 3
 	sched_yield();

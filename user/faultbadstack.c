@@ -1,4 +1,5 @@
-#if LAB >= 4
+#if LAB >= 5
+#elif LAB >= 4
 // test bad stack for user-level fault handler
 
 #include "lib.h"

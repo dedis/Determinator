@@ -14,13 +14,19 @@
 				// the maximum allowed
 #define E_IPC_NOT_RECV  6	// Attempt to send to env that is not recving.
 
+#if LAB >= 5
+// File system error codes -- only seen in user-level
+#define	E_NO_DISK	7	// No free space left on disk
+#define E_MAX_OPEN	8	// Too many files are open
+#define E_NOT_FOUND	9 	// File or block not found
+#define E_BAD_PATH	10	// Bad path
+#define E_FILE_EXISTS	11	// File already exists
+#define E_NOT_EXEC	12	// File not a valid executable
+
+#define MAXERROR 12
+#else
 #define MAXERROR 6
-
-
-// File system error codes
-#define E_NO_SPACE	100	// No free space left on disk
-#define E_MAX_OPEN	101	// Open-file limit reached
-
+#endif
 
 #endif // _ERROR_H_
 #endif // LAB >= 2

@@ -55,12 +55,16 @@ KERN_BINFILES := \
 	user/faultevilstack \
 	user/faultgoodstack \
 	user/hello \
+	user/icode \
 	user/idle \
+	user/init \
 	user/pingpong \
 	user/pingpong1 \
 	user/pingpong2 \
 	user/pingpongs \
 	user/primes \
+	user/writemotd \
+	fs/fs \
 
 KERN_BINFILES := $(foreach file, $(KERN_BINFILES), \
 			$(shell test -f $(file).c && echo $(file)))
@@ -69,7 +73,6 @@ KERN_BINFILES := $(foreach file, $(KERN_BINFILES), \
 kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
 	@echo ld $@
 	@$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) -b binary $(KERN_BINFILES)
-
 
 # How to build the Bochs disk image
 kern/bochs.img: kern/kernel boot/boot

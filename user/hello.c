@@ -1,4 +1,5 @@
-#if LAB >= 4
+#if LAB >= 5
+#elif LAB >= 4
 // hello, world
 
 #include "lib.h"

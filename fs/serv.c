@@ -1,12 +1,12 @@
 #if LAB >= 5
 /*
  * File system server main loop -
- * accepts and services IPC requests from other environments.
+ * serves IPC requests from other environments.
  */
 
-#include "lib.h"
 #include "fs.h"
 
+#define debug 0
 
 struct Open {
 	struct File *file;	/* mapped descriptor for open file */
@@ -17,26 +17,24 @@ struct Open {
 /* Max number of open files in the file system at once */
 #define MAXOPEN	1024
 
-struct Open *opentab[MAXOPEN];
-
+struct Open opentab[MAXOPEN];
 
 /* Virtual address at which to receive page mappings
  * containing client requests. */
 #define REQVA	0x0ffff000
 
 
-// Service an "open" request from a client.
 void
-serve_open(u_int envid, struct fsrq_open *rq)
+serve_open(u_int envid, struct Fsreq_open *rq)
 {
-#if SOL >= 5
 	u_char path[MAXPATHLEN];
 	struct File *f;
 	int fileid;
 	int rc;
 
+	if (debug) printf("serve_open %08x %s 0x%x\n", envid, rq->req_path, rq->req_omode);
 	// Copy in the path, making sure it's null-terminated
-	memcpy(path, rq->path, MAXPATHLEN-1);
+	bcopy(rq->req_path, path, MAXPATHLEN);
 	path[MAXPATHLEN-1] = 0;
 
 	// Find an available open-file table entry
@@ -57,24 +55,26 @@ serve_open(u_int envid, struct fsrq_open *rq)
 	// Fill out the open-table entry we just allocated
 	opentab[fileid].file = f;
 	opentab[fileid].envid = envid;
-	opentab[fileid].mode = rq->mode;
-	rc = fileid;
+	opentab[fileid].mode = rq->req_omode;
+	rc = 0;
+
+	rq->req_size = f->size;
+	rq->req_fileid = fileid;
 
 	out:
 	ipc_send(envid, rc, 0, 0);
-#endif /* SOL >= 5 */
 }
 
-// Service a "map" request from a client.
 void
-serve_map(u_int envid, struct fsrq_map *rq)
+serve_map(u_int envid, struct Fsreq_map *rq)
 {
-#if SOL >= 5
-	int fileid = rq->fileid;
+	int fileid = rq->req_fileid;
 	struct Open *o = &opentab[fileid];
 	void *blk;
 	int perm;
 	int rc;
+
+	if (debug) printf("serve_map %08x %08x %08x\n", envid, rq->req_fileid, rq->req_offset);
 
 	// Validate fileid passed by user
 	if (fileid < 0 || fileid >= MAXOPEN ||
@@ -84,7 +84,7 @@ serve_map(u_int envid, struct fsrq_map *rq)
 	}
 
 	// Locate and read (if necessary) the appropriate block/page.
-	rc = file_getblk(o->file, VPN(rq->ofs), &blk);
+	rc = file_get_block(o->file, rq->req_offset/BY2BLK, &blk);
 	if (rc < 0)
 		goto out;
 
@@ -93,22 +93,21 @@ serve_map(u_int envid, struct fsrq_map *rq)
 	perm = PTE_U | PTE_P;
 	if ((o->mode & O_ACCMODE) != O_RDONLY)
 		perm |= PTE_W;
-	ipc_send(envid, 0, blk, perm);
+	ipc_send(envid, 0, (u_int)blk, perm);
 	return;
 
 	out:
 	ipc_send(envid, rc, 0, 0);
-#endif /* SOL >= 5 */
 }
 
-// Service a "resize" request from a client.
 void
-serve_resize(u_int envid, struct fsrq_resize *rq)
+serve_set_size(u_int envid, struct Fsreq_set_size *rq)
 {
-#if SOL >= 5
-	int fileid = rq->fileid;
+	int fileid = rq->req_fileid;
 	struct Open *o = &opentab[fileid];
 	int rc;
+
+	if (debug) printf("serve_set_size %08x %08x %08x\n", envid, rq->req_fileid, rq->req_size);
 
 	// Validate fileid passed by user
 	if (fileid < 0 || fileid >= MAXOPEN ||
@@ -118,28 +117,27 @@ serve_resize(u_int envid, struct fsrq_resize *rq)
 	}
 
 	// Resize the file as requested
-	rc = file_resize(o->file, rq->newsize);
+	rc = file_set_size(o->file, rq->req_size);
 
 	// Reply to the client
 	out:
 	ipc_send(envid, rc, 0, 0);
-#endif /* SOL >= 5 */
 }
 
-// Service a "close" request from a client.
 void
-serve_close(u_int envid, struct fsrq_close *rq)
+serve_close(u_int envid, struct Fsreq_close *rq)
 {
-#if SOL >= 5
-	int fileid = rq->fileid;
+	int fileid = rq->req_fileid;
 	struct Open *o = &opentab[fileid];
 	int rc;
+
+	if (debug) printf("serve_close %08x %08x\n", envid, rq->req_fileid);
 
 	// Validate fileid passed by user
 	if (fileid < 0 || fileid >= MAXOPEN ||
 	    o->file == 0 || o->envid != envid) {
 		rc = E_INVAL;
-		goto err;
+		goto out;
 	}
 
 	// Close the file and clear the open table entry
@@ -148,35 +146,70 @@ serve_close(u_int envid, struct fsrq_close *rq)
 	rc = 0;
 
 	// Reply to the client
-	out:
+out:
 	ipc_send(envid, rc, 0, 0);
-#endif /* SOL >= 5 */
-}
-
-// Service a "delete" request from the client
-void serve_delete(void)
-{
-#if SOL >= 5
-	u_char path[MAXPATHLEN];
-	int rc;
-
-	// Copy in the path, making sure it's null-terminated
-	memcpy(path, rq->path, MAXPATHLEN-1);
-	path[MAXPATHLEN-1] = 0;
-
-	// Delete the specified file
-	rc = file_delete(path);
-	ipc_send(envid, rc, 0, 0);
-#endif /* SOL >= 5 */
 }
 
 void
-serve_requests(void)
+serve_remove(u_int envid, struct Fsreq_remove *rq)
+{
+	u_char path[MAXPATHLEN];
+	int rc;
+
+	if (debug) printf("serve_map %08x %s\n", envid, rq->req_path);
+
+	// Copy in the path, making sure it's null-terminated
+	bcopy(rq->req_path, path, MAXPATHLEN);
+	path[MAXPATHLEN-1] = 0;
+
+	// Delete the specified file
+	rc = file_remove(path);
+	ipc_send(envid, rc, 0, 0);
+}
+
+void
+serve_dirty(u_int envid, struct Fsreq_dirty *rq)
+{
+	int rc;
+	u_int fileid = rq->req_fileid;
+	struct Open *o = &opentab[fileid];
+
+	if (debug) printf("serve_dirty %08x %08x %08x\n", envid, rq->req_fileid, rq->req_offset);
+
+	// Validate fileid passed by user
+	
+	if (fileid < 0 || fileid >= MAXOPEN ||
+	    o->file == 0 || o->envid != envid) {
+		rc = E_INVAL;
+		goto out;
+	}
+
+	// Resize the file as requested
+	rc = file_dirty(o->file, rq->req_offset);
+
+	// Reply to the client
+	out:
+	ipc_send(envid, rc, 0, 0);
+}
+
+void
+serve_sync(u_int envid)
+{
+	fs_sync();
+	ipc_send(envid, 0, 0, 0);
+}
+
+void
+serve(void)
 {
 	u_int req, whom, perm;
 
-	while (1) {
+	for(;;) {
+		perm = 0;
 		req = ipc_recv(&whom, REQVA, &perm);
+		if (debug)
+			printf("fs req %d from %08x [page %08x: %s]\n",
+				req, whom, vpt[VPN(REQVA)], REQVA);
 
 		/* All requests must contain an argument page */
 		if (!(perm & PTE_P)) {
@@ -186,48 +219,40 @@ serve_requests(void)
 		}
 
 		switch (req) {
-		case FSRQ_OPEN:
-			serve_open(whom, (struct fsrq_open*)REQVA);
+		case FSREQ_OPEN:
+			serve_open(whom, (struct Fsreq_open*)REQVA);
 			break;
-		case FSRQ_MAP:
-			serve_close(whom, (struct fsrq_map*)REQVA);
+		case FSREQ_MAP:
+			serve_map(whom, (struct Fsreq_map*)REQVA);
 			break;
-		case FSRQ_RESIZE:
-			serve_close(whom, (struct fsrq_resize*)REQVA);
+		case FSREQ_SET_SIZE:
+			serve_set_size(whom, (struct Fsreq_set_size*)REQVA);
 			break;
-		case FSRQ_CLOSE:
-			serve_close(whom, (struct fsrq_close*)REQVA);
+		case FSREQ_CLOSE:
+			serve_close(whom, (struct Fsreq_close*)REQVA);
 			break;
-		case FSRQ_DELETE:
-			serve_close(whom, (struct fsrq_delete*)REQVA);
+		case FSREQ_DIRTY:
+			serve_dirty(whom, (struct Fsreq_dirty*)REQVA);
+			break;
+		case FSREQ_REMOVE:
+			serve_remove(whom, (struct Fsreq_remove*)REQVA);
+			break;
+		case FSREQ_SYNC:
+			serve_sync(whom);
 			break;
 		default:
 			printf("Invalid request code %d from %08x\n", whom, req);
 			break;
 		}
+		sys_mem_unmap(0, REQVA);
 	}
 }
 
 void
 umain(void)
 {
-	int child;
-
-	assert(DIRENT_SIZE >= sizeof(struct File));
-
-	read_super();
-	read_bitmap();
-
-	/* Fork off a client to use the file system */
-	child = fork();
-	if (child < 0)
-		panic("can't fork first child environment");
-	if (child == 0) {
-		/* we're the child */
-		panic("XXX exec");
-	}
-
-	serve_requests();
+	fs_init();
+	serve();
 }
 
-#endif /* LAB >= 5 */
+#endif

@@ -1,4 +1,5 @@
-#if LAB >= 4
+#if LAB >= 5
+#elif LAB >= 4
 // test evil pointer for user-level fault handler
 
 #include "lib.h"

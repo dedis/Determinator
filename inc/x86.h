@@ -85,6 +85,15 @@ outsw(int port, const void *addr, int cnt)
 }
 
 static __inline void
+outsl(int port, const void *addr, int cnt)
+{
+	__asm __volatile("cld\n\trepne\n\toutsl"		:
+			 "=S" (addr), "=c" (cnt)		:
+			 "d" (port), "0" (addr), "1" (cnt)	:
+			 "cc");
+}
+
+static __inline void
 outl(int port, u_int32_t data)
 {
 	__asm __volatile("outl %0,%w1" : : "a" (data), "d" (port));

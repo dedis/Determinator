@@ -13,19 +13,27 @@ CLEAN_FILES += \
 	user/faultevilstack \
 	user/faultgoodstack \
 	user/hello \
+	user/icode \
 	user/idle \
+	user/init \
 	user/pingpong \
 	user/pingpong1 \
 	user/pingpong2 \
 	user/pingpongs \
 	user/primes \
+	user/writemotd \
+
+OBJDIRS += user
 
 USERLIB := \
+	user/file.o \
 	user/fork.o \
+	user/fsipc.o \
 	user/ipc.o \
 	user/libos.o \
 	user/pgfault.o \
 	user/printf.o \
+	user/spawn.o \
 	user/string.o \
 	user/syscall.o \
 

@@ -42,7 +42,11 @@ sys_yield(void)
 static void
 sys_env_destroy(void)
 {
+#if LAB >= 5
+	// printf("[%08x] exiting gracefully\n", curenv->env_id);
+#else
 	printf("[%08x] exiting gracefully\n", curenv->env_id);
+#endif
 	env_destroy(curenv);
 }
 
@@ -306,6 +310,43 @@ sys_set_env_status(u_int envid, u_int status)
 #endif
 }
 
+#if LAB >= 5
+// Set envid's trap frame to tf.
+//
+// Returns 0 on success, < 0 on error.
+//
+// Return -E_INVAL if the environment cannot be manipulated.
+static int
+sys_set_trapframe(u_int envid, struct Trapframe *tf)
+{
+	int r;
+	struct Env *e;
+	struct Trapframe ltf;
+
+	page_fault_mode = PFM_KILL;
+	ltf = *TRUP(tf);
+	page_fault_mode = PFM_NONE;
+
+	ltf.tf_eflags |= FL_IF;
+	ltf.tf_cs |= 3;
+
+	if ((r=envid2env(envid, &e, 1)) < 0)
+		return r;
+	if (e == curenv)
+		*UTF = ltf;
+	else
+		e->env_tf = ltf;
+	return 0;
+}
+
+static void
+sys_panic(char *msg)
+{
+	// no page_fault_mode -- we are trying to panic!
+	panic("%s", TRUP(msg));
+}
+
+#endif
 // Dispatches to the correct kernel function, passing the arguments.
 int
 syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
@@ -342,6 +383,13 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 		return sys_mem_map(a1, a2, a3, a4, a5);
 	case SYS_mem_unmap:
 		return sys_mem_unmap(a1, a2);
+#if SOL >= 5
+	case SYS_set_trapframe:
+		return sys_set_trapframe(a1, (struct Trapframe*)a2);
+	case SYS_panic:
+		sys_panic((char*)a1);
+		panic("sys_panic!");
+#endif
 	default:
 		return -E_INVAL;
 	}

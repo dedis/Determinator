@@ -1,4 +1,5 @@
-#if LAB >= 4
+#if LAB >= 5
+#elif LAB >= 4
 // test user-level fault handler -- just exit when we fault
 
 #include "lib.h"

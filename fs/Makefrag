@@ -1,0 +1,31 @@
+#if LAB >= 5
+CLEAN_FILES += \
+	fs/fs \
+
+OBJDIRS += fs
+
+FSOFILES := \
+	fs/ide.o \
+	fs/fs.o \
+	fs/serv.o \
+
+fs/fs:	user/entry.o $(FSOFILES) $(USERLIB)
+	@echo ld $@
+	@$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib $^
+
+fs/fs.asm: fs/fs
+	$(OBJDUMP) --adjust-vma=0x7ff000 -S $^ >$@
+
+fs/%.o:	fs/fs.h user/lib.h
+
+# How to build the file system image
+fs/fsformat: fs/fsformat.c
+	gcc -I. -o fs/fsformat fs/fsformat.c
+
+fs/fs.img: fs/motd fs/newmotd fs/fsformat user/init
+	dd if=/dev/zero of=fs/fs.img bs=4096 count=1024
+	./fs/fsformat fs/fs.img fs/motd fs/newmotd user/init
+
+.PRECIOUS: fs/%
+
+#endif

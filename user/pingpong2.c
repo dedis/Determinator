@@ -1,4 +1,5 @@
-#if LAB >= 4
+#if LAB >= 5
+#elif LAB >= 4
 // Ping-pong a counter between two processes.
 // Start two instances of this program as envs 1 and 2
 // (user/idle is env 0).

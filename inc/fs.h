@@ -20,28 +20,28 @@
 #define MAXPATHLEN	1024
 
 /* Number of (direct) block pointers in a File descriptor */
-#define NFILEBLOCKS	10
+#define NDIRECT		10
+#define NINDIRECT	(BY2BLK/4)
+
+#define MAXFILESIZE	(NINDIRECT*BY2BLK)
 
 struct File {
 	u_char name[MAXNAMELEN];	/* filename */
 	u_int size;			/* file size in bytes */
 	u_int type;			/* file type */
-	u_int block[NFILEBLOCKS];	/* direct block pointers */
-	u_int bindir;			/* pointer to (single) indirect block */
+	u_int direct[NDIRECT];
+	u_int indirect;
 
 	/* The remaining fields are only valid in memory, not on disk. */
-	u_int nopen;			/* number of current opens */
-	void *pages[NFILEBLOCKS];	/* in-memory pages */
-	void **pindir;			/* pointer to indirect page table */
+	u_int ref;			/* number of current opens */
+	struct File *dir;
 };
 
-/* Amount of space reserved for each entry in a directory:
- * DIRENT_SIZE >= sizeof(struct File), and is a power of two */
-#define DIRENT_SIZE	128
+#define FILE2BLK	(BY2BLK/sizeof(struct File))
 
 /* File types */
-#define FT_REG		0	/* Regular file */
-#define FT_DIR		1	/* Directory */
+#define FTYPE_REG		0	/* Regular file */
+#define FTYPE_DIR		1	/* Directory */
 
 
 /*** File system super-block (both in-memory and on-disk) ***/
@@ -57,35 +57,44 @@ struct Super {
 
 /*** Definitions for requests from clients to file system ***/
 
-#define FSRQ_OPEN	1
-#define FSRQ_MAP	2
-#define FSRQ_RESIZE	3
-#define FSRQ_CLOSE	4
-#define FSRQ_DELETE	6
+#define FSREQ_OPEN	1
+#define FSREQ_MAP	2
+#define FSREQ_SET_SIZE	3
+#define FSREQ_CLOSE	4
+#define FSREQ_DIRTY	5
+#define FSREQ_REMOVE	6
+#define FSREQ_SYNC	7
 
-struct fsrq_open {
-	u_char path[MAXPATHLEN];
-	int mode;
+
+struct Fsreq_open {
+	char req_path[MAXPATHLEN];
+	u_int req_omode;
+	u_int req_fileid;
+	u_int req_size;
 };
 
-struct fsrq_close {
-	int fileid;
+struct Fsreq_map {
+	int req_fileid;
+	u_int req_offset;
 };
 
-struct fsrq_resize {
-	int fileid;
-	u_int newsize;
+struct Fsreq_set_size {
+	int req_fileid;
+	u_int req_size;
 };
 
-struct fsrq_map {
-	int fileid;
-	u_int ofs;
+struct Fsreq_close {
+	int req_fileid;
 };
 
-struct fsrq_delete {
-	u_char path[MAXPATHLEN];
+struct Fsreq_dirty {
+	int req_fileid;
+	u_int req_offset;
 };
 
+struct Fsreq_remove {
+	u_char req_path[MAXPATHLEN];
+};
 
 #endif /* _FS_H_ */
-#endif /* LAB >= 5 */
+#endif

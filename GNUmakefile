@@ -18,7 +18,7 @@ PERL	:= perl
 # Note that -O2 is required for the boot loader to fit within 512 bytes;
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 DEFS	:=
-CFLAGS	:= $(CFLAGS) $(DEFS) -O2 -fno-builtin -I$(TOP) -MD -MP -Wall -ggdb
+CFLAGS	:= $(CFLAGS) $(DEFS) -O2 -fno-builtin -I$(TOP) -MD -MP -Wall -Wno-format -ggdb
 
 # Linker flags for user programs
 ULDFLAGS := -Ttext 0x800020
@@ -38,6 +38,9 @@ include kern/Makefrag
 include boot/Makefrag
 #if LAB >= 4
 include user/Makefrag
+#endif
+#if LAB >= 5
+include fs/Makefrag
 #endif
 
 # Eliminate default suffix rules
@@ -65,8 +68,9 @@ include user/Makefrag
 #if LAB >= 999
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S
-LAB_DIRS := inc user $(OBJDIRS)
+LAB_DIRS := inc $(OBJDIRS)
 LAB_FILES := CODING GNUmakefile .bochsrc mergedep.pl grade.sh boot/sign.pl \
+	fs/motd fs/newmotd \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
 BIOS_FILES := bios/BIOS-bochs-latest bios/VGABIOS-elpin-2.40
@@ -102,7 +106,7 @@ bios/%: /usr/local/share/bochs/% bios
 all: $(BIOS_FILES)
 #endif
 
-bochs: kern/bochs.img
+bochs: kern/bochs.img fs/fs.img
 	bochs-nogui
 
 kernel.asm: kern/kernel
