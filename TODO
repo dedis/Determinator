@@ -8,7 +8,11 @@ Post-2004 TODOs:
 - get rid of -Ttext 0x800020 for user programs
   (and maybe UTEXT #define?)
 
-- rename alloc() to boot_alloc() in kern/pmap.c.
+- also, link kernel for 0xF0100000 instead of 0xF0100020
+  (no need to reserve space for a non-existent a.out header)
+
+- rename alloc() to boot_alloc() in kern/pmap.c
+  to clarify that it's one of the boot-time init functions.
 
 - get rid of unnecessary GATE macro in inc/mmu.h?
 
