@@ -29,6 +29,16 @@ else
 	echo WRONG
 fi
 
-echo "Score: $score/40"
+# echo -n "Printf: "
+awk 'BEGIN{printf("Printf: ");}'
+if grep "6828 decimal is 15254 octal!" bochs.out >/dev/null
+then
+	score=`echo 10+$score | bc`
+	echo OK
+else
+	echo WRONG
+fi
+
+echo "Score: $score/50"
 #///END
 

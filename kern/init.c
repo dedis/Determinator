@@ -18,6 +18,9 @@ i386_init(void)
 {
 	// can't call printf until after cons_init()
 	cons_init();
+
+	printf("6828 decimal is %o octal!\n", 6828);
+
 	i386_detect_memory();
 	i386_vm_init();
 	page_init();
