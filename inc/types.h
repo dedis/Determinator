@@ -9,13 +9,12 @@
 #endif /* !NULL */
 
 typedef __signed char              int8_t;
-typedef unsigned char            u_int8_t;
 typedef short                     int16_t;
-typedef unsigned short          u_int16_t;
+typedef unsigned short           uint16_t;
 typedef int                       int32_t;
-typedef unsigned int            u_int32_t;
+typedef unsigned int             uint32_t;
 typedef long long                 int64_t;
-typedef unsigned long long      u_int64_t;
+typedef unsigned long long       uint64_t;
 
 typedef int32_t                 register_t;
 
@@ -24,7 +23,7 @@ typedef	unsigned short	u_short;
 typedef	unsigned int	u_int;
 typedef	unsigned long	u_long;
 
-typedef u_int32_t        size_t;
+typedef uint32_t        size_t;
 
 
 #define MIN(_a, _b)	\
@@ -43,5 +42,10 @@ typedef u_int32_t        size_t;
 #define ROUND(a, n)	(((((u_long)(a))+(n)-1)) & ~((n)-1))
 #define ROUNDDOWN(a, n)	(((u_long)(a)) & ~((n)-1))
 
+// u_intXX_t versions are here for backwards compatibility
+typedef unsigned char            u_int8_t;
+typedef unsigned short          u_int16_t;
+typedef unsigned int            u_int32_t;
+typedef unsigned long long      u_int64_t;
 
 #endif /* !_INC_TYPES_H_ */

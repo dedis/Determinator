@@ -3,10 +3,10 @@
 
 #include <inc/types.h>
 
-static __inline u_int8_t
+static __inline uint8_t
 inb(int port)
 {
-	u_int8_t data;
+	uint8_t data;
 	__asm __volatile("inb %w1,%0" : "=a" (data) : "d" (port));
 	return data;
 }
@@ -20,10 +20,10 @@ insb(int port, void *addr, int cnt)
 			 "memory", "cc");
 }
 
-static __inline u_int16_t
+static __inline uint16_t
 inw(int port)
 {
-	u_int16_t data;
+	uint16_t data;
 	__asm __volatile("inw %w1,%0" : "=a" (data) : "d" (port));
 	return data;
 }
@@ -37,10 +37,10 @@ insw(int port, void *addr, int cnt)
 			 "memory", "cc");
 }
 
-static __inline u_int32_t
+static __inline uint32_t
 inl(int port)
 {
-	u_int32_t data;
+	uint32_t data;
 	__asm __volatile("inl %w1,%0" : "=a" (data) : "d" (port));
 	return data;
 }
@@ -55,7 +55,7 @@ insl(int port, void *addr, int cnt)
 }
 
 static __inline void
-outb(int port, u_int8_t data)
+outb(int port, uint8_t data)
 {
 	__asm __volatile("outb %0,%w1" : : "a" (data), "d" (port));
 }
@@ -70,7 +70,7 @@ outsb(int port, const void *addr, int cnt)
 }
 
 static __inline void
-outw(int port, u_int16_t data)
+outw(int port, uint16_t data)
 {
 	__asm __volatile("outw %0,%w1" : : "a" (data), "d" (port));
 }
@@ -94,7 +94,7 @@ outsl(int port, const void *addr, int cnt)
 }
 
 static __inline void
-outl(int port, u_int32_t data)
+outl(int port, uint32_t data)
 {
 	__asm __volatile("outl %0,%w1" : : "a" (data), "d" (port));
 }

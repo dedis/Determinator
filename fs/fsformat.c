@@ -14,13 +14,18 @@
 #include <errno.h>
 
 /* It's too hard to know who has typedefed what. */
+#define int8_t xx_int8_t
+#define int16_t xx_int16_t
+#define int32_t xx_int32_t
+#define int64_t xx_int64_t
+#define uint8_t xx_uint8_t
+#define uint16_t xx_uint16_t
+#define uint32_t xx_uint32_t
+#define uint64_t xx_uint64_t
 #define u_int8_t xx_u_int8_t
 #define u_int16_t xx_u_int16_t
 #define u_int32_t xx_u_int32_t
 #define u_int64_t xx_u_int64_t
-#define int16_t xx_int16_t
-#define int32_t xx_int32_t
-#define int8_t xx_int8_t
 #define u_char xx_u_char
 #define u_short xx_u_short
 #define u_int xx_u_int
@@ -28,7 +33,6 @@
 #define u_quad_t xx_u_quad_t
 #define quad_t xx_quad_t
 #define register_t xx_register_t
-#define int64_t xx_int64_t
 #define size_t xx_size_t
 #define qaddr_t xx_qaddr_t
 
