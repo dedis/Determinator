@@ -3,8 +3,8 @@
 #include <inc/lib.h>
 #include <inc/elf.h>
 
-#define TMPPAGE		(BY2PG)
-#define TMPPAGETOP	(TMPPAGE+BY2PG)
+#define TMPPAGE		(PGSIZE)
+#define TMPPAGETOP	(TMPPAGE+PGSIZE)
 
 // Set up the initial stack page for the new child process with envid 'child',
 // using the arguments array pointed to by 'argv',
@@ -28,7 +28,7 @@ init_stack(u_int child, char **argv, u_int *init_esp)
 		tot += strlen(argv[argc])+1;
 
 	// Make sure everything will fit in the initial stack page
-	if (ROUNDUP(tot, 4)+4*(argc+3) > BY2PG)
+	if (ROUNDUP(tot, 4)+4*(argc+3) > PGSIZE)
 		return -E_NO_MEM;
 
 	// Determine where to place the strings and the args array
@@ -71,7 +71,7 @@ init_stack(u_int child, char **argv, u_int *init_esp)
 	*init_esp = USTACKTOP;	// Change this!
 #endif // not SOL >= 5
 
-	if ((r = sys_mem_map(0, TMPPAGE, child, USTACKTOP-BY2PG, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r = sys_mem_map(0, TMPPAGE, child, USTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
 		goto error;
 	if ((r = sys_mem_unmap(0, TMPPAGE)) < 0)
 		goto error;
@@ -94,8 +94,8 @@ copy_library(u_int child)
 	for (i=0; i<PDX(UTOP); i++) {
 		if ((vpd[i]&PTE_P) == 0)
 			continue;
-		for (j=0; j<PTE2PT; j++) {
-			pn = i*PTE2PT+j;
+		for (j=0; j<NPTENTRIES; j++) {
+			pn = i*NPTENTRIES+j;
 			if ((vpt[pn]&(PTE_P|PTE_LIBRARY)) == (PTE_P|PTE_LIBRARY)) {
 				va = pn<<PGSHIFT;
 				if ((r = sys_mem_map(0, va, child, va, vpt[pn]&PTE_USER)) < 0)
@@ -116,14 +116,14 @@ map_segment(int child, u_int va, u_int memsz,
 
 	//printf("map_segment %x+%x\n", va, memsz);
 
-	if ((i = (va&(BY2PG-1))) != 0) {
+	if ((i = (va&(PGSIZE-1))) != 0) {
 		va -= i;
 		memsz += i;
 		filesz += i;
 		fileoffset -= i;
 	}
 
-	for (i = 0; i < memsz; i+=BY2PG) {
+	for (i = 0; i < memsz; i+=PGSIZE) {
 		if (i >= filesz) {
 			// allocate a blank page
 			if ((r = sys_mem_alloc(child, va+i, perm)) < 0)
@@ -136,7 +136,7 @@ map_segment(int child, u_int va, u_int memsz,
 					return r;
 				if ((r = seek(fd, fileoffset+i)) < 0)
 					return r;
-				if ((r = read(fd, (void*)TMPPAGE, MIN(BY2PG, filesz-i))) < 0)
+				if ((r = read(fd, (void*)TMPPAGE, MIN(PGSIZE, filesz-i))) < 0)
 					return r;
 				if ((r = sys_mem_map(0, TMPPAGE, child, va+i, perm)) < 0)
 					panic("spawn: sys_mem_map data: %e", r);

@@ -279,7 +279,7 @@ page_fault_handler(struct Trapframe *tf)
 
 	// Decide where to push our exception stack frame.
 	d = UXSTACKTOP - tf->tf_esp;
-	if (d < BY2PG) {
+	if (d < PGSIZE) {
 		// The user's ESP is ALREADY in the user exception stack area,
 		// so push the new frame on the exception stack,
 		// preserving the existing exception stack contents.

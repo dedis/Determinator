@@ -33,7 +33,7 @@ isfree(void *v, int n)
 	u_int va;
 
 	va = (u_int)v;
-	for(va=(u_int)v; n>0; va+=BY2PG, n-=BY2PG)
+	for(va=(u_int)v; n>0; va+=PGSIZE, n-=PGSIZE)
 		if(va >= (u_int)mend || ((vpd[PDX(va)]&PTE_P) && (vpt[VPN(va)]&PTE_P)))
 			return 0;
 	return 1;
@@ -55,14 +55,14 @@ malloc(u_int n)
 	if(n >= MAXMALLOC)
 		return 0;
 
-	if((u_int)mptr % BY2PG){
+	if((u_int)mptr % PGSIZE){
 		/*
 		 * we're in the middle of a partially
 		 * allocated page - can we add this chunk?
 		 * the +4 below is for the ref count.
 		 */
-		ref = (u_int*)(mptr - (u_int)mptr%BY2PG + BY2PG-4);
-		if((u_int)mptr/BY2PG == (u_int)(mptr+n-1+4)/BY2PG){
+		ref = (u_int*)(mptr - (u_int)mptr%PGSIZE + PGSIZE-4);
+		if((u_int)mptr/PGSIZE == (u_int)(mptr+n-1+4)/PGSIZE){
 			(*ref)++;
 			v = mptr;
 			mptr += n;
@@ -72,7 +72,7 @@ malloc(u_int n)
 		 * stop working on this page and move on.
 		 */
 		free(mptr);	/* drop reference to this page */
-		mptr += BY2PG - (u_int)mptr%BY2PG;
+		mptr += PGSIZE - (u_int)mptr%PGSIZE;
 	}
 
 	/*
@@ -85,7 +85,7 @@ malloc(u_int n)
 	for(;;){
 		if(isfree(mptr, n+4))
 			break;
-		mptr += BY2PG;
+		mptr += PGSIZE;
 		if(mptr == mend){
 			mptr = mbegin;
 			if(++nwrap == 2)
@@ -96,10 +96,10 @@ malloc(u_int n)
 	/*
 	 * allocate at mptr - the +4 makes sure we allocate a ref count.
 	 */
-	for(i=0; i<n+4; i+=BY2PG){
-		cont = (i+BY2PG < n+4) ? PTE_CONTINUED : 0;
+	for(i=0; i<n+4; i+=PGSIZE){
+		cont = (i+PGSIZE < n+4) ? PTE_CONTINUED : 0;
 		if(sys_mem_alloc(0, (u_int)mptr+i, PTE_P|PTE_U|PTE_W|cont) < 0){
-			for(; i>=0; i-=BY2PG)
+			for(; i>=0; i-=PGSIZE)
 				sys_mem_unmap(0, (u_int)mptr+i);
 			return 0;	/* out of physical memory */
 		}
@@ -123,11 +123,11 @@ free(void *v)
 
 	c = v;
 	assert(mbegin <= c && c < mend);
-	c -= (u_int)c%BY2PG;
+	c -= (u_int)c%PGSIZE;
 
 	while(vpt[VPN((u_int)c)]&PTE_CONTINUED){
 		sys_mem_unmap(0, (u_int)c);
-		c += BY2PG;
+		c += PGSIZE;
 		assert(mbegin <= c && c < mend);
 	}
 
@@ -135,7 +135,7 @@ free(void *v)
 	 * c is just a piece of this page, so dec the ref count
 	 * and maybe free the page.
 	 */
-	ref = (u_int*)(c+BY2PG-4);
+	ref = (u_int*)(c+PGSIZE-4);
 	if(--(*ref) == 0)
 		sys_mem_unmap(0, (u_int)c);	
 }

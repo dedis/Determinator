@@ -5,7 +5,7 @@
 
 #define debug 0
 
-extern u_char fsipcbuf[BY2PG];		// page-aligned, declared in entry.S
+extern u_char fsipcbuf[PGSIZE];		// page-aligned, declared in entry.S
 
 // Send an IP request to the file server, and wait for a reply.
 // type: request code, passed as the simple integer IPC value.

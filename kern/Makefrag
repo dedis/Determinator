@@ -52,8 +52,6 @@ KERN_BINFILES :=	user/icode \
 			user/testpiperace2 \
 			user/primespipe \
 			user/testshell \
-			user/pingpong \
-			user/primes \
 			fs/fs
 else
 ifdef LAB5

@@ -27,12 +27,12 @@ pgfault(u_int va, u_int err)
 		panic("fault at %x with pte %x from %08x, not copy-on-write",
 			va, vpt[PPN(va)], (&va)[4]);
 
-	tmp = (u_char*)(UTEXT-BY2PG);	// should be available!
+	tmp = (u_char*)(UTEXT-PGSIZE);	// should be available!
 
 	// copy page
 	if ((r=sys_mem_alloc(0, (u_int)tmp, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_mem_alloc: %e", r);
-	memcpy(tmp, (u_char*)ROUNDDOWN(va, BY2PG), BY2PG);
+	memcpy(tmp, (u_char*)ROUNDDOWN(va, PGSIZE), PGSIZE);
 
 	// remap over faulting page
 	if ((r=sys_mem_map(0, (u_int)tmp, 0, va, PTE_P|PTE_U|PTE_W)) < 0)
@@ -48,7 +48,7 @@ pgfault(u_int va, u_int err)
 }
 
 //
-// Map our virtual page pn (address pn*BY2PG) into the target envid
+// Map our virtual page pn (address pn*PGSIZE) into the target envid
 // at the same virtual address.  if the page is writable or copy-on-write,
 // the new mapping must be created copy on write and then our mapping must be
 // marked copy on write as well.  (Exercise: why mark ours copy-on-write again if
@@ -129,8 +129,8 @@ fork(void)
 	for (i=0; i<PDX(UTOP); i++) {
 		if ((vpd[i]&PTE_P) == 0)
 			continue;
-		for (j=0; j<PTE2PT; j++) {
-			pn = i*PTE2PT+j;
+		for (j=0; j<NPTENTRIES; j++) {
+			pn = i*NPTENTRIES+j;
 			if ((vpt[pn]&(PTE_P|PTE_U)) != (PTE_P|PTE_U))
 				continue;
 			if (pn == VPN(UXSTACKTOP-1))
@@ -140,7 +140,7 @@ fork(void)
 	}
 
 	// The child needs to start out with a valid exception stack.
-	if ((r=sys_mem_alloc(envid, UXSTACKTOP-BY2PG, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r=sys_mem_alloc(envid, UXSTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("allocating exception stack: %e", r);
 
 	// Copy the user-mode exception entrypoint.

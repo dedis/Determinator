@@ -6,8 +6,8 @@
 /* IDE disk number to look on for our file system */
 #define DISKNO		1
 
-#define BY2SECT		512	/* Bytes per disk sector */
-#define SECT2BLK	(BY2BLK/BY2SECT)	/* sectors to a block */
+#define SECTSIZE	512	/* Bytes per disk sector */
+#define SECT2BLK	(BY2BLK/SECTSIZE)	/* sectors to a block */
 
 /* Disk block n, when in memory, is mapped into the file system
  * server's address space at DISKMAP+(n*BY2BLK). */
@@ -18,7 +18,7 @@
 
 /* ide.c */
 void ide_read(u_int diskno, u_int secno, void *dst, u_int nsecs);
-void ide_write(u_int diskno, u_int secno, void *src, u_int nsecs);
+void ide_write(u_int diskno, u_int secno, const void *src, u_int nsecs);
 
 /* fs.c */
 int file_open(char *path, struct File **pfile);

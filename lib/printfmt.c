@@ -99,7 +99,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 	int base, lflag, width;
 	char padc;
 
-	for (;;) {
+	while (1) {
 		while ((ch = *(u_char *) fmt++) != '%') {
 			if (ch == '\0')
 				return;

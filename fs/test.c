@@ -26,10 +26,10 @@ fs_test(void)
 	u_int *bits;
 
 	// back up bitmap
-	if ((r=sys_mem_alloc(0, BY2PG, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r=sys_mem_alloc(0, PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_mem_alloc: %e", r);
-	bits = (u_int*)BY2PG;
-	memcpy(bits, bitmap, BY2PG);
+	bits = (u_int*)PGSIZE;
+	memcpy(bits, bitmap, PGSIZE);
 	// allocate block
 	if ((r = alloc_block()) < 0)
 		panic("alloc_block: %e", r);

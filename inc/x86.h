@@ -16,7 +16,7 @@ static __inline void outw(int port, uint16_t data) __attribute__((always_inline)
 static __inline void outsw(int port, const void *addr, int cnt) __attribute__((always_inline));
 static __inline void outsl(int port, const void *addr, int cnt) __attribute__((always_inline));
 static __inline void outl(int port, uint32_t data) __attribute__((always_inline));
-static __inline void invlpg(uint32_t addr) __attribute__((always_inline));
+static __inline void invlpg(void *addr) __attribute__((always_inline));
 static __inline void lidt(void *p) __attribute__((always_inline));
 static __inline void lldt(uint16_t sel) __attribute__((always_inline));
 static __inline void ltr(uint16_t sel) __attribute__((always_inline));
@@ -138,7 +138,7 @@ outl(int port, uint32_t data)
 }
 
 static __inline void 
-invlpg(uint32_t addr)
+invlpg(void *addr)
 { 
 	__asm __volatile("invlpg (%0)" : : "r" (addr) : "memory");
 }  

@@ -43,7 +43,7 @@ mkenvid(struct Env *e)
 //   on error, sets *penv to NULL.
 //
 int
-envid2env(u_int envid, struct Env **penv, int checkperm)
+envid2env(envid_t envid, struct Env **penv, int checkperm)
 {
 	struct Env *e;
 
@@ -136,10 +136,10 @@ env_setup_vm(struct Env *e)
 #if SOL >= 3
 	e->env_cr3 = page2pa(p);
 	e->env_pgdir = (Pde*)page2kva(p);
-	memset(e->env_pgdir, 0, BY2PG);
+	memset(e->env_pgdir, 0, PGSIZE);
 
 	// The VA space of all envs is identical above UTOP...
-	static_assert(UTOP % PDMAP == 0);
+	static_assert(UTOP % PTSIZE == 0);
 	for (i = PDX(UTOP); i <= PDX(~0); i++)
 		e->env_pgdir[i] = boot_pgdir[i];
 
@@ -160,7 +160,7 @@ env_setup_vm(struct Env *e)
 //   <0 -- on failure
 //
 int
-env_alloc(struct Env **new, u_int parent_id)
+env_alloc(struct Env **new, envid_t parent_id)
 {
 	int r;
 	struct Env *e;
@@ -216,7 +216,7 @@ env_alloc(struct Env **new, u_int parent_id)
 	// If this is the file server (e==&envs[1]) give it I/O privileges.
 #if SOL >= 5
 	if (e == &envs[1])
-		e->env_tf.tf_eflags |= FL_IOPL0|FL_IOPL1;
+		e->env_tf.tf_eflags |= FL_IOPL_3;
 #else
 	//   (your code here)
 #endif
@@ -243,12 +243,12 @@ env_alloc(struct Env **new, u_int parent_id)
 // You may assume, however, that nothing is already mapped
 // in the pages touched by the specified virtual address range.
 static void
-map_segment(struct Env *e, u_int va, u_int len)
+map_segment(struct Env *e, void *va, u_int len)
 {
 #if SOL >= 3
 	int r;
 	struct Page *p;
-	u_int endva = va+len;
+	void *endva = (uint8_t*) va + len;
 
 	while (va < endva) {
 
@@ -262,7 +262,7 @@ map_segment(struct Env *e, u_int va, u_int len)
 			panic("map_segment: could not insert page: %e\n", r);
 
 		// Move on to start of next page
-		va = (va + BY2PG) & ~(BY2PG-1);
+		va = ROUNDDOWN(va + PGSIZE, PGSIZE);
 	}	
 #else
 	// Your code here.
@@ -282,7 +282,7 @@ map_segment(struct Env *e, u_int va, u_int len)
 // but not actually present in the ELF file - i.e., the program's bss section.
 //
 // Finally, this function maps one page for the program's initial stack
-// at virtual address USTACKTOP - BY2PG.
+// at virtual address USTACKTOP - PGSIZE.
 //
 static void
 load_icode(struct Env *e, u_char *binary, u_int size)
@@ -315,7 +315,7 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 			panic("load_icode: icode wants to be above UTOP");
 
 		// Map pages for the segment
-		map_segment(e, ph->p_va, ph->p_memsz);
+		map_segment(e, (void*) ph->p_va, ph->p_memsz);
 
 		// Load/clear the segment
 		memcpy((char*)ph->p_va, binary+ph->p_offset, ph->p_filesz);
@@ -324,7 +324,7 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 	}
 
 	// Give environment a stack
-	map_segment(e, USTACKTOP - BY2PG, BY2PG);
+	map_segment(e, (void*) (USTACKTOP - PGSIZE), PGSIZE);
 #else /* not SOL >= 3 */
 	// Hint: 
 	//  Use map_segment() to map memory for each program segment.
@@ -346,7 +346,7 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 // before running the first user-mode environment.
 // The new env's parent env id is set to 0.
 void
-env_create(u_char *binary, int size)
+env_create(uint8_t *binary, size_t size)
 {
 #if SOL >= 3
 	int r;
@@ -374,7 +374,7 @@ env_free(struct Env *e)
 #endif
 
 	// Flush all mapped pages in the user portion of the address space
-	static_assert(UTOP%PDMAP == 0);
+	static_assert(UTOP%PTSIZE == 0);
 	for (pdeno = 0; pdeno < PDX(UTOP); pdeno++) {
 
 		// only look at mapped page tables
@@ -388,9 +388,7 @@ env_free(struct Env *e)
 		// unmap all PTEs in this page table
 		for (pteno = 0; pteno <= PTX(~0); pteno++) {
 			if (pt[pteno] & PTE_P)
-				page_remove(e->env_pgdir,
-					(pdeno << PDSHIFT) |
-					(pteno << PGSHIFT));
+				page_remove(e->env_pgdir, PGADDR(pdeno, pteno, 0));
 		}
 
 		// free the page table itself

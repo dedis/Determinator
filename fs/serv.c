@@ -39,7 +39,7 @@ serve_init(void)
 	for (i=0; i<MAXOPEN; i++) {
 		opentab[i].o_fileid = i;
 		opentab[i].o_ff = (struct Filefd*)va;
-		va += BY2PG;
+		va += PGSIZE;
 	}
 }
 
@@ -59,7 +59,7 @@ open_alloc(struct Open **o)
 		case 1:
 			opentab[i].o_fileid += MAXOPEN;
 			*o = &opentab[i];
-			memset((void*)opentab[i].o_ff, 0, BY2PG);
+			memset((void*)opentab[i].o_ff, 0, PGSIZE);
 			return (*o)->o_fileid;
 		}
 	}

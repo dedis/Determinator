@@ -9,10 +9,10 @@
 	.p2align PGSHIFT
 	.globl fsipcbuf
 fsipcbuf:
-	.space BY2PG
+	.space PGSIZE
 	.globl fdtab
 fdtab:
-	.space BY2PG
+	.space PGSIZE
 #endif
 
 

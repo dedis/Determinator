@@ -3,7 +3,6 @@
 #define _SYSCALL_H_
 
 #include <inc/types.h>
-#include <kern/trap.h>
 
 /* system call numbers */
 enum

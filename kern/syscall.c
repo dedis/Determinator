@@ -114,7 +114,7 @@ sys_mem_alloc(u_int envid, u_int va, u_int perm)
 		page_free(p);
 		return r;
 	}
-	memset((void*)page2kva(p), 0, BY2PG);
+	memset((void*)page2kva(p), 0, PGSIZE);
 	return 0;
 #else
 	// Your code here.
@@ -396,8 +396,8 @@ sys_ipc_recv(u_int dstva)
 
 
 // Dispatches to the correct kernel function, passing the arguments.
-int
-syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
+uint32_t
+syscall(uint32_t sn, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
 {
 	// printf("syscall %d %x %x %x from env %08x\n", sn, a1, a2, a3, curenv->env_id);
 

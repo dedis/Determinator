@@ -27,7 +27,7 @@ set_pgfault_handler(void (*fn)(u_int va, u_int err))
 	if (_pgfault_handler == 0) {
 #if SOL >= 4
 		// map exception stack
-		if ((r=sys_mem_alloc(0, UXSTACKTOP-BY2PG, PTE_P|PTE_U|PTE_W)) < 0)
+		if ((r=sys_mem_alloc(0, UXSTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
 			panic("allocating exception stack: %e", r);
 
 		// register assembly pgfault entrypoint with JOS kernel

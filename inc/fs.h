@@ -9,7 +9,7 @@
 // File nodes (both in-memory and on-disk)
 
 // Bytes per file system block - same as page size
-#define BY2BLK		BY2PG
+#define BY2BLK		PGSIZE
 #define BIT2BLK		(BY2BLK*8)
 
 // Maximum size of a filename (a single path component), including null

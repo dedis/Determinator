@@ -6,10 +6,10 @@
 
 #define MAXFD 32
 #define FILEBASE 0xd0000000
-#define FDTABLE (FILEBASE-PDMAP)
+#define FDTABLE (FILEBASE-PTSIZE)
 
-#define INDEX2FD(i)	(FDTABLE+(i)*BY2PG)
-#define INDEX2DATA(i)	(FILEBASE+(i)*PDMAP)
+#define INDEX2FD(i)	(FDTABLE+(i)*PGSIZE)
+#define INDEX2DATA(i)	(FILEBASE+(i)*PTSIZE)
 
 static struct Dev *devtab[] =
 {
@@ -109,7 +109,7 @@ fd2data(struct Fd *fd)
 int
 fd2num(struct Fd *fd)
 {
-	return ((u_int)fd - FDTABLE)/BY2PG;
+	return ((u_int)fd - FDTABLE)/PGSIZE;
 }
 
 int
@@ -157,7 +157,7 @@ dup(int oldfdnum, int newfdnum)
 		goto err;
 #endif
 	if (vpd[PDX(ova)]) {
-		for (i=0; i<PDMAP; i+=BY2PG) {
+		for (i=0; i<PTSIZE; i+=PGSIZE) {
 			pte = vpt[VPN(ova+i)];
 			if(pte&PTE_P) {
 				// should be no error here -- pd is already allocated
@@ -175,7 +175,7 @@ dup(int oldfdnum, int newfdnum)
 
 err:
 	sys_mem_unmap(0, (u_int)newfd);
-	for (i=0; i<PDMAP; i+=BY2PG)
+	for (i=0; i<PTSIZE; i+=PGSIZE)
 		sys_mem_unmap(0, nva+i);
 	return r;
 }

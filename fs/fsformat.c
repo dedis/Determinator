@@ -5,6 +5,8 @@
  */
 
 #define _BSD_EXTENSION
+#define off_t xxx_off_t
+#define u_long xxx_u_long
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -14,6 +16,8 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#undef u_long
+#undef off_t
 
 /* Prevent inc/types.h, included from inc/fs.h,
  * from attempting to redefine types defined in the host's inttypes.h. */

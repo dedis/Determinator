@@ -287,7 +287,7 @@ check_write_block(void)
 
 	// back up super block
 	read_block(0, 0, 0);
-	memcpy((char*)diskaddr(0), (char*)diskaddr(1), BY2PG);
+	memcpy((char*)diskaddr(0), (char*)diskaddr(1), PGSIZE);
 
 	// smash it 
 	strcpy((char*)diskaddr(1), "OOPS!\n");
@@ -304,7 +304,7 @@ check_write_block(void)
 	assert(strcmp((char*)diskaddr(1), "OOPS!\n") == 0);
 
 	// fix it
-	memcpy((char*)diskaddr(1), (char*)diskaddr(0), BY2PG);
+	memcpy((char*)diskaddr(1), (char*)diskaddr(0), PGSIZE);
 	write_block(1);
 	super = (struct Super*)diskaddr(1);
 
