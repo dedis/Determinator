@@ -224,6 +224,8 @@ ppage_check ()
     LIST_REMOVE (pp, pp_link);
     ppage_free (pp);
   }
+
+  printf("ppage_check() succeeded!\n");
 }
 
 
@@ -286,6 +288,8 @@ check_boot_page_directory ()
     else if (i == PDENO(UENVS)) assert (p0pgdir_boot[i]);
     else assert (p0pgdir_boot[i] == 0);
   }
+
+  printf("check_boot_page_directory() succeeded!\n");
 }
 
 

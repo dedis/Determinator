@@ -60,6 +60,9 @@ clean:
 	rm -rf $(CLEAN_FILES) $(foreach dir,$(OBJDIRS), \
 				$(addprefix $(dir)/,$(CLEAN_PATS)))
 
+grade:
+	sh grade.sh
+
 handin: clean
 	-rm handin.tgz
 	$(TAR) czvf handin5.tgz .
@@ -80,7 +83,7 @@ handin: clean
 # Find all potentially exportable files
 LAB_PATS := Makefrag *.c *.h *.S
 LAB_DIRS := inc user $(OBJDIRS)
-LAB_FILES := GNUmakefile .bochsrc mergedep.pl \
+LAB_FILES := GNUmakefile .bochsrc mergedep.pl grade.sh \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
 
