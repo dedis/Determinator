@@ -15,12 +15,26 @@ vgaromimage: bios/VGABIOS-elpin-2.40
 # Use the parallel port as an alternate console,
 # so that we can run Bochs without the GUI.
 parport1: enabled=1, file="/dev/stdout"
+#parport1: enabled=1, file="/dev/null"
+
+# uncommenting one of the following lines can be used to specify your
+# preferred display.
+
+#display: x
+
+# nogui can still be useful because you can see the output on the
+# parport1 from above
+#display: nogui
+
+# if using "term", you probably want to change the parport output to
+# go to a file or /dev/null
+#display: term
 
 # disk images
 ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
-ata0-master: type=disk, mode=flat, path="./kern/bochs.img", cylinders=200, heads=16, spt=63
+ata0-master: type=disk, mode=flat, path="./obj/kern/bochs.img", cylinders=200, heads=16, spt=63
 #if LAB >= 5
-ata0-slave: type=disk, mode=flat, path="./fs/fs.img", cylinders=200, heads=16, spt=63
+ata0-slave: type=disk, mode=flat, path="./obj/fs/fs.img", cylinders=200, heads=16, spt=63
 #endif
 newharddrivesupport: enabled=1
 
@@ -39,8 +53,18 @@ info: action=ignore
 error: action=report
 panic: action=ask
 
+# this changes how often the screen is refreshed.  Lowering it will
+# make your screen update more often, which will slow down emulation,
+# but will make the display respond faster.  It can also be useful if
+# you machine is panicing and the most recent screen changes are not
+# displayed before it panics.
+
 vga_update_interval: 100000
-ips: 15000000
+
+# changing ips can lead to dramatically different performance.  It
+# also affects how quickly time passes in the emulated machine.
+ips: 1000000 
+
 keyboard_serial_delay: 10
 
 #keyboard_serial_delay: 2
