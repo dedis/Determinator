@@ -1,16 +1,13 @@
 ifdef LAB3
-
 OBJDIRS += lib
 
-LIB_SRCFILES :=		\
-			lib/console.c \
+LIB_SRCFILES :=		lib/console.c \
 			lib/libmain.c \
 			lib/exit.c \
 			lib/panic.c \
 			lib/printf.c \
 			lib/printfmt.c \
 			lib/readline.c \
-			lib/sprintf.c \
 			lib/string.c \
 			lib/syscall.c
 
@@ -30,7 +27,6 @@ LIB_SRCFILES :=		$(LIB_SRCFILES) \
 			lib/fsipc.c \
 			lib/pageref.c \
 			lib/spawn.c
-			
 endif
 
 ifdef LAB6
@@ -38,15 +34,22 @@ LIB_SRCFILES :=		$(LIB_SRCFILES) \
 			lib/malloc.c \
 			lib/pipe.c \
 			lib/wait.c
-			
 endif
 
-LIB_OBJFILES := $(LIB_SRCFILES)
-LIB_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LIB_OBJFILES))
-LIB_OBJFILES := $(patsubst %.S, $(OBJDIR)/%.o, $(LIB_OBJFILES))
+LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_SRCFILES))
+LIB_OBJFILES := $(patsubst lib/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
 
-$(OBJDIR)/lib/libuser.a: $(LIB_OBJFILES)
+$(OBJDIR)/lib/%.o: lib/%.c
+	@echo + cc[USER] $<
+	@mkdir -p $(@D)
+	$(V)$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/lib/%.o: lib/%.S
+	@echo + as[USER] $<
+	@mkdir -p $(@D)
+	$(V)$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/lib/libjos.a: $(LIB_OBJFILES)
 	@echo + ar $@
 	$(V)$(AR) r $@ $(LIB_OBJFILES)
-
 endif

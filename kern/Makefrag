@@ -7,21 +7,18 @@
 
 OBJDIRS += kern
 
-KERN_LDFLAGS := $(LDFLAGS) -Ttext F0100020 -nostdlib
+KERN_LDFLAGS := $(LDFLAGS) -Ttext F0100000 -nostdlib
 
 
 INIT=init
 ENV=env
 PMAP=pmap
 
-## Only build files if they exist.
-##
-## entry.S must be first, so that it's the 
-## first code in the text segment!!!
-##
-## Note that we also snatch the use of a couple handy source files
-## from the lib directory, to avoid gratuitous code duplication.
-##
+# entry.S must be first, so that it's the 
+# first code in the text segment!!!
+#
+# Note that we also snatch the use of a couple handy source files
+# from the lib directory, to avoid gratuitous code duplication.
 KERN_SRCFILES :=	kern/entry.S \
 			kern/$(INIT).c \
 			kern/console.c \
@@ -38,76 +35,71 @@ KERN_SRCFILES :=	kern/entry.S \
 			lib/printfmt.c \
 			lib/readline.c \
 			lib/string.c
-KERN_SRCFILES := $(foreach file, $(KERN_SRCFILES), \
-			$(shell test -f $(file) && echo $(file)))
-KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, \
-			$(patsubst %.S, $(OBJDIR)/%.o, $(KERN_SRCFILES)))
+
+# Only build files if they exist.
+KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
 
 ifdef LAB6
 # Binary program images to embed within the kernel.
-KERN_BINFILES := \
-	user/icode \
-	user/idle \
-	user/pingpong \
-	user/primes \
-	user/testptelibrary \
-	user/testfdsharing \
-	user/testpipe \
-	user/testpiperace \
-	user/testpiperace2 \
-	user/primespipe \
-	user/testshell \
-	user/pingpong \
-	user/primes \
-	fs/fs
+KERN_BINFILES :=	user/icode \
+			user/idle \
+			user/pingpong \
+			user/primes \
+			user/testptelibrary \
+			user/testfdsharing \
+			user/testpipe \
+			user/testpiperace \
+			user/testpiperace2 \
+			user/primespipe \
+			user/testshell \
+			user/pingpong \
+			user/primes \
+			fs/fs
 else
 ifdef LAB5
 # Binary program images to embed within the kernel.
-KERN_BINFILES := \
-	user/idle \
-	user/forktree \
-	user/pingpong \
-	user/primes \
-	user/testfsipc \
-	user/writemotd \
-	user/icode \
-	fs/fs
+KERN_BINFILES :=	user/idle \
+			user/forktree \
+			user/pingpong \
+			user/primes \
+			user/testfsipc \
+			user/writemotd \
+			user/icode \
+			fs/fs
 else
 ifdef LAB4
 # Binary program images to embed within the kernel.
-KERN_BINFILES := \
-	user/idle \
-	user/yield \
-	user/dumbfork \
-	user/faultread \
-	user/faultwrite \
-	user/faultdie \
-	user/faultalloc \
-	user/faultallocbad \
-	user/faultnostack \
-	user/faultbadhandler \
-	user/faultevilhandler \
-	user/forktree \
-	user/spin \
-	user/fairness \
-	user/pingpong \
-	user/pingpongs \
-	user/primes
+KERN_BINFILES :=	user/idle \
+			user/yield \
+			user/dumbfork \
+			user/faultread \
+			user/faultwrite \
+			user/faultdie \
+			user/faultalloc \
+			user/faultallocbad \
+			user/faultnostack \
+			user/faultbadhandler \
+			user/faultevilhandler \
+			user/forktree \
+			user/spin \
+			user/fairness \
+			user/pingpong \
+			user/pingpongs \
+			user/primes
 else
 ifdef LAB3
-KERN_BINFILES := \
-	user/hello \
-	user/buggyhello \
-	user/evilhello \
-	user/testbss \
-	user/divzero \
-	user/breakpoint \
-	user/softint \
-	user/badsegment \
-	user/faultread \
-	user/faultreadkernel \
-	user/faultwrite \
-	user/faultwritekernel
+KERN_BINFILES :=	user/hello \
+			user/buggyhello \
+			user/evilhello \
+			user/testbss \
+			user/divzero \
+			user/breakpoint \
+			user/softint \
+			user/badsegment \
+			user/faultread \
+			user/faultreadkernel \
+			user/faultwrite \
+			user/faultwritekernel
 else
 KERN_BINFILES := 
 endif	# not LAB3
@@ -115,8 +107,27 @@ endif	# not LAB4
 endif	# not LAB5
 endif	# not LAB6
 
+KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))
+KERN_OBJFILES := $(patsubst %.S, $(OBJDIR)/%.o, $(KERN_OBJFILES))
+KERN_OBJFILES := $(patsubst obj/lib/%, obj/kern/%, $(KERN_OBJFILES))
 
-KERN_BINFILES := $(addprefix $(OBJDIR)/, $(KERN_BINFILES))
+KERN_BINFILES := $(patsubst %, $(OBJDIR)/%, $(KERN_BINFILES))
+
+# How to build kernel object files
+$(OBJDIR)/kern/%.o: kern/%.c
+	@echo + cc $<
+	@mkdir -p $(@D)
+	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/kern/%.o: kern/%.S
+	@echo + as $<
+	@mkdir -p $(@D)
+	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/kern/%.o: lib/%.c
+	@echo + cc $<
+	@mkdir -p $(@D)
+	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
 
 # How to build the kernel itself
 $(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
@@ -139,4 +150,4 @@ grub: $(OBJDIR)/jos-grub
 
 $(OBJDIR)/jos-grub: $(OBJDIR)/kern/kernel
 	@echo + oc $@
-	$(V)objcopy --adjust-vma=0x10000000 $^ $@
+	$(V)$(OBJCOPY) --adjust-vma=0x10000000 $^ $@

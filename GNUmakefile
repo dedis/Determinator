@@ -28,6 +28,13 @@ ifndef LABADJUST
 LABADJUST := 0
 endif
 
+#if LAB >= 999
+LABSETUP := labsetup/
+#endif
+ifndef LABSETUP
+LABSETUP := ./
+endif
+
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 #
 # Anything in an #if LAB >= 999 always gets cut out by mklab.pl on export,
@@ -44,7 +51,7 @@ endif
 # substituting the appropriate LAB# and SOL# to control the build.
 #
 # Pass the LAB and SOL values to the C compiler.
-DEFS	:= $(DEFS) -DLAB=$(LAB) -DSOL=$(SOL)
+LABDEFS = -DLAB=$(LAB) -DSOL=$(SOL)
 #
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
@@ -78,7 +85,7 @@ PERL	:= perl
 # Compiler flags
 # Note that -O2 is required for the boot loader to fit within 512 bytes;
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
-CFLAGS	:= $(CFLAGS) $(DEFS) -O2 -fno-builtin -I$(TOP) -MD -Wall -Wno-format -ggdb
+CFLAGS	:= $(CFLAGS) $(DEFS) $(LABDEFS) -O2 -fno-builtin -I$(TOP) -MD -Wall -Wno-format -ggdb
 
 # Linker flags for user programs
 ULDFLAGS := -Ttext 0x800020
@@ -86,10 +93,8 @@ ULDFLAGS := -Ttext 0x800020
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
 
-
 # Make sure that 'all' is the first target
 all:
-
 
 # Eliminate default suffix rules
 .SUFFIXES:
@@ -98,19 +103,12 @@ all:
 .DELETE_ON_ERROR:
 
 # make it so that no intermediate .o files are ever deleted
-.PRECIOUS: %.o $(OBJDIR)/%.o $(OBJDIR)/boot/%.o $(OBJDIR)/fs/%.o \
-	$(OBJDIR)/user/%.o
+.PRECIOUS: %.o $(OBJDIR)/boot/%.o $(OBJDIR)/kern/%.o \
+	$(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/user/%.o
 
-# Rules for building regular object files
-$(OBJDIR)/%.o: %.c
-	@echo + cc $<
-	$(V)mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
+KERN_CFLAGS := $(CFLAGS) -DJOS_KERNEL
+USER_CFLAGS := $(CFLAGS) -DJOS_USER
 
-$(OBJDIR)/%.o: %.S
-	@echo + as $<
-	$(V)mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
 
 # try to infer the correct GCCPREFIX
 conf/gcc.mk:
@@ -144,7 +142,7 @@ endif
 	@echo "Building LAB=$(LAB) SOL=$(SOL)"
 
 labsetup:
-	rm -rf obj
+	rm -rf obj labsetup
 	test -d conf || mkdir conf
 	echo >conf/lab.mk "LAB=$(LAB)"
 	echo >>conf/lab.mk "SOL=$(SOL)"
@@ -165,6 +163,9 @@ endif	# LAB != 3
 endif	# LAB != 2
 endif	# LAB != 1
 
+labsetup/grade.sh: grade.sh mklab.pl
+	$(MKLABENV) $(PERL) mklab.pl $(LAB) 0 labsetup grade.sh
+
 ifndef LAB5
 all: $(OBJDIR)/fs/fs.img
 $(OBJDIR)/fs/fs.img:
@@ -172,7 +173,7 @@ $(OBJDIR)/fs/fs.img:
 	touch $@
 endif
 
-clean: clean-labsetup
+distclean: clean-labsetup
 clean-labsetup:
 	rm -f conf/lab.mk
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
@@ -234,7 +235,6 @@ export-prep%: always
 		$(MKLABENV) $(PERL) mklab.pl $num `expr $num - 1` prep$* $(LAB_FILES)
 	echo >prep$*/conf/lab.mk "LAB=$*"
 
-%.c: $(OBJDIR)
 lab%.tar.gz: always
 	$(MAKE) export-lab$*
 	tar cf - lab$* | gzip > lab$*.tar.gz
@@ -253,33 +253,39 @@ bochs: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 
 # For deleting the build
 clean:
-	rm -rf $(OBJDIR) lab$(LAB).tar.gz
+	rm -rf $(OBJDIR)
 
-grade:
+realclean: clean
+	rm -rf lab$(LAB).tar.gz
+
+distclean: realclean
+	rm -rf conf/gcc.mk
+
+grade: $(LABSETUP)grade.sh
 	$(V)$(MAKE) clean >/dev/null 2>/dev/null
 	$(MAKE) all
-	sh grade.sh
+	sh $(LABSETUP)grade.sh
 
 #ifdef ENV_HANDIN_COPY
 HANDIN_CMD = tar cf - . | gzip > ~class/handin/lab$(LAB)/$$USER/lab$(LAB).tar.gz
 #else
 HANDIN_CMD = tar cf - . | gzip | uuencode lab$(LAB).tar.gz | mail $(HANDIN_EMAIL)
 #endif
-handin: clean
+handin: realclean
 	$(HANDIN_CMD)
-tarball: clean
+tarball: realclean
 	tar cf - `ls -a | grep -v '^\.*$$' | grep -v '^lab$(LAB)\.tar\.gz'` | gzip > lab$(LAB).tar.gz
 
 # For test runs
 run-%:
-	$(V)rm -f $(OBJDIR)/kern/init.o $(OBJDIR)/kern/bochs.img
+	$(V)rm -f $(OBJDIR)/kern/init.o $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
-	bochs-nogui
+	bochs -q 'display_library: nogui'
 
 xrun-%:
-	$(V)rm -f $(OBJDIR)/kern/init.o $(OBJDIR)/kern/bochs.img
+	$(V)rm -f $(OBJDIR)/kern/init.o $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
-	bochs
+	bochs -q
 
 # This magic automatically generates makefile dependencies
 # for header files included from C source files we compile,
@@ -291,34 +297,8 @@ $(OBJDIR)/.deps: $(foreach dir, $(OBJDIRS), $(wildcard $(OBJDIR)/$(dir)/*.d))
 
 -include $(OBJDIR)/.deps
 
-# Create a patch from ../lab$(LAB).tar.gz.
-patch patch.diff:
-	@test -r ../lab$(LAB).tar.gz || (echo "***" 1>&2; \
-	echo "*** Can't find '../lab$(LAB).tar.gz'.  Download it" 1>&2; \
-	echo "*** into my parent directory and try again." 1>&2; \
-	echo "***" 1>&2; false)
-	(gzcat ../lab$(LAB).tar.gz 2>/dev/null || zcat ../lab$(LAB).tar.gz) | tar xf -
-	@pkgdate=`grep PACKAGEDATE lab$(LAB)/conf/lab.mk | sed 's/.*=//'`; \
-	test "$(PACKAGEDATE)" = "$$pkgdate" || (echo "***" 1>&2; \
-	echo "*** The ../lab$(LAB).tar.gz tarball was created on $$pkgdate," 1>&2; \
-	echo "*** but your work directory was expanded from a tarball created" 1>&2; \
-	echo "*** on $(PACKAGEDATE)!  I can't tell the difference" 1>&2; \
-	echo "*** between your changes and the changes between the tarballs," 1>&2; \
-	echo "*** so I won't create an automatic patch." 1>&2; \
-	echo "***" 1>&2; false)
-	@rm -f patch.diff
-	@for f in `cd lab$(LAB) && find . -type f -print`; do \
-	diff -u lab$(LAB)/$$f $$f >>patch.diff || echo "*** $$f differs; appending to patch.diff" 1>&2; done
-	@test -n patch.diff || echo "*** No differences found" 1>&2
-	@rm -rf lab$(LAB)
-
-apply-patch:
-	@test -r patch.diff || (echo "***" 1>&2; \
-	echo "*** No 'patch.diff' file found!  Did you remember to" 1>&2; \
-	echo "*** run 'make patch'?" 1>&2; \
-	echo "***" 1>&2; false)
-	patch -p0 <patch.diff
-
 always:
+	@:
 
-.PHONY: all always patch apply-patch handin tarball grade
+.PHONY: all always \
+	handin tarball clean realclean clean-labsetup distclean grade labsetup
