@@ -105,7 +105,7 @@ env_setup_vm(struct Env *e)
 
 	// The VA space of all envs is identical above UTOP...
 	static_assert(UTOP % PDMAP == 0);
-	for (i = PDX(UTOP); i < PDX(~0); i++)
+	for (i = PDX(UTOP); i <= PDX(~0); i++)
 		e->env_pgdir[i] = boot_pgdir[i];
 
 #endif /* SOL >= 3 */
