@@ -12,6 +12,9 @@ Post-2004 TODOs:
 
 - get rid of unnecessary GATE macro in inc/mmu.h?
 
+- in lab 3, do trap handling before starting user processes?
+  (i.e., test fault handling in the kernel before user space)
+
 After this year's class is over (fall 2003), we should:
 
 - merge lab1, currently in the x86boot directory,
