@@ -60,6 +60,8 @@ ifdef LAB4
 # Binary program images to embed within the kernel.
 KERN_BINFILES := \
 	user/idle \
+	user/yield \
+	user/dumbfork \
 	user/faultdie \
 	user/faultalloc \
 	user/faultallocbad \

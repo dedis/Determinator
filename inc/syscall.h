@@ -13,6 +13,7 @@ enum
 	SYS_getenvid,
 	SYS_env_destroy,
 #if LAB >= 4
+	SYS_yield,
 	SYS_mem_alloc,
 	SYS_mem_map,
 	SYS_mem_unmap,
@@ -20,7 +21,6 @@ enum
 	SYS_set_trapframe,
 	SYS_set_status,
 	SYS_set_pgfault_entry,
-	SYS_yield,
 	SYS_ipc_can_send,
 	SYS_ipc_recv,
 #endif	// LAB >= 4

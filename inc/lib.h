@@ -45,6 +45,7 @@ int	sys_cgetc(void);
 u_int	sys_getenvid(void);
 int	sys_env_destroy(u_int);
 #if LAB >= 4
+void	sys_yield(void);
 int	sys_mem_alloc(u_int, u_int, u_int);
 int	sys_mem_map(u_int, u_int, u_int, u_int, u_int);
 int	sys_mem_unmap(u_int, u_int);
@@ -52,7 +53,6 @@ int	sys_mem_unmap(u_int, u_int);
 int	sys_set_trapframe(u_int, struct Trapframe*);
 int	sys_set_status(u_int, u_int);
 int	sys_set_pgfault_entry(u_int, u_int);
-void	sys_yield(void);
 int	sys_ipc_can_send(u_int, u_int, u_int, u_int);
 void	sys_ipc_recv(u_int);
 

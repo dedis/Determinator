@@ -46,17 +46,29 @@ envid2env(u_int envid, struct Env **penv, int checkperm)
 {
 	struct Env *e;
 
+	// If envid is specified as zero,
+	// just assume the current environment by default.
 	if (envid == 0) {
 		*penv = curenv;
 		return 0;
 	}
 
+	// Look up the Env structure via the index part of the envid,
+	// then check the env_id field in that struct Env
+	// to ensure that the envid is not stale
+	// (i.e., does not refer to a _previous_ environment
+	// that used the same slot in the envs[] array).
 	e = &envs[ENVX(envid)];
 	if (e->env_status == ENV_FREE || e->env_id != envid) {
 		*penv = 0;
 		return -E_BAD_ENV;
 	}
 
+	// Check that the calling environment has legitimate permission
+	// to manipulate the specified environment.
+	// If checkperm is set, the specified environment
+	// must be either the current environment
+	// or an immediate child of the current environment.
 	if (checkperm) {
 #if SOL >= 4
 		if (e != curenv && e->env_parent_id != curenv->env_id) {
@@ -185,7 +197,7 @@ env_alloc(struct Env **new, u_int parent_id)
 
 #if SOL >= 4
 	// Enable interrupts while in user mode.
-	e->env_tf.tf_eflags = FL_IF; // interrupts enabled
+	//e->env_tf.tf_eflags = FL_IF; // interrupts enabled
 #endif
 
 	// You also need to set tf_eip to the correct value at some point.

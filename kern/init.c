@@ -7,7 +7,6 @@
 
 #include <kern/monitor.h>
 #include <kern/console.h>
-#include <kern/bochs.h>
 #if LAB >= 2
 #include <kern/pmap.h>
 #include <kern/kclock.h>

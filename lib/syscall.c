@@ -59,6 +59,12 @@ sys_getenvid(void)
 }
 
 #if SOL >= 4
+void
+sys_yield(void)
+{
+	syscall(SYS_yield, 0, 0, 0, 0, 0);
+}
+
 int
 sys_mem_alloc(u_int envid, u_int va, u_int perm)
 {
@@ -95,12 +101,6 @@ int
 sys_set_pgfault_entry(u_int envid, u_int a1)
 {
 	return syscall(SYS_set_pgfault_entry, envid, a1, 0, 0, 0);
-}
-
-void
-sys_yield(void)
-{
-	syscall(SYS_yield, 0, 0, 0, 0, 0);
 }
 
 int

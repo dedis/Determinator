@@ -9,14 +9,24 @@ umain(void)
 {
 	binaryname = "idle";
 
-#if LAB >= 5
-	// Since we're idling, there's no point in continuing on.
-	// Do some illegal I/O, which should trap back into Bochs.
-	outw(0x8A00, 0x8A00);
-	sys_panic("idle loop can do I/O");
-#else
-	for(;;);
-#endif
+	// Loop forever, simply trying to yield to a different environment.
+	// Instead of busy-waiting like this,
+	// a better way would be to use the processor's HLT instruction
+	// to cause the processor to stop executing until the next interrupt -
+	// doing so allows the processor to conserve power more effectively.
+	for (;;) {
+		sys_yield();
+
+		// Break into the JOS kernel monitor after each sys_yield().
+		// A real, "production" OS of course would NOT do this -
+		// it would just endlessly loop waiting for hardware interrupts
+		// to cause other environments to become runnable.
+		// However, in JOS it is easier for testing and grading
+		// if we invoke the kernel monitor after each iteration,
+		// because the first invocation of the idle environment
+		// usually means everything else has run to completion.
+		breakpoint();
+	}
 }
 
 #endif

@@ -3,6 +3,12 @@
 
 #include <inc/types.h>
 
+static __inline void
+breakpoint(void)
+{
+	__asm __volatile("int3");
+}
+
 static __inline uint8_t
 inb(int port)
 {

@@ -69,6 +69,13 @@ sys_env_destroy(u_int envid)
 }
 
 #if LAB >= 4
+// Deschedule current environment and pick a different one to run.
+static void
+sys_yield(void)
+{
+	sched_yield();
+}
+
 //
 // Allocate a page of memory and map it at 'va' with permission
 // 'perm' in the address space of 'envid'.
@@ -278,13 +285,6 @@ sys_set_pgfault_entry(u_int envid, u_int func)
 #endif
 }
 
-// deschedule current environment
-static void
-sys_yield(void)
-{
-	sched_yield();
-}
-
 // Try to send 'value' to the target env 'envid'.
 // If va != 0, then also send page currently mapped at va,
 // so that receiver gets a duplicate mapping of the same page.
@@ -394,6 +394,9 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 	case SYS_env_destroy:
 		return sys_env_destroy(a1);
 #if SOL >= 4
+	case SYS_yield:
+		sys_yield();
+		return 0;
 	case SYS_mem_alloc:
 		return sys_mem_alloc(a1, a2, a3);
 	case SYS_mem_map:
@@ -408,9 +411,6 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 		return sys_set_status(a1, a2);
 	case SYS_set_pgfault_entry:
 		return sys_set_pgfault_entry(a1, a2);
-	case SYS_yield:
-		sys_yield();
-		return 0;
 	case SYS_ipc_can_send:
 		return sys_ipc_can_send(a1, a2, a3, a4);
 	case SYS_ipc_recv:
