@@ -1,3 +1,4 @@
+#if LAB >= 4
 // Prime sieve.  See http://plan9.bell-labs.com/~rsc/thread.html.
 // The picture halfway down the page and the text surrounding it
 // explain what's going on here.
@@ -50,3 +51,4 @@ umain(void)
 		ipc_send(id, i);
 }
 
+#endif

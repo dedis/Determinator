@@ -1,3 +1,4 @@
+#if LAB >= 4
 // idle loop
 
 #include "lib.h"
@@ -8,4 +9,4 @@ umain(void)
 	for(;;);
 }
 
-
+#endif

@@ -1,3 +1,4 @@
+#if LAB >= 4
 // String routines.  Not hardware optimized, but not shabby.
 
 #include "lib.h"
@@ -49,3 +50,4 @@ bcopy(const void *src, void *dst, u_int n)
 		*d++ = *s++;
 }
 
+#endif

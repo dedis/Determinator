@@ -1,3 +1,4 @@
+#if LAB >= 4
 // User-level page fault handler.  We use an assembly wrapper around a C function.
 // The assembly wrapper is in entry.S.
 
@@ -36,3 +37,4 @@ set_pgfault_handler(void (*fn)(u_int va, u_int err))
 	_pgfault_handler = fn;
 }
 
+#endif

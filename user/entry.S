@@ -1,3 +1,4 @@
+#if LAB >= 4
 #include <inc/mmu.h>
 
 .data
@@ -100,3 +101,4 @@ __asm_pgfault_handler:
 #else
 	//	(your code here)
 #endif
+#endif // LAB >= 4

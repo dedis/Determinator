@@ -1,3 +1,4 @@
+#if LAB >= 4
 // System call stubs.
 
 #include "lib.h"
@@ -8,8 +9,7 @@ syscall(int num, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 {
 	int ret;
 
-	// Generic system call: pass
-	// system call number in AX,
+	// Generic system call: pass system call number in AX,
 	// up to five parameters in DX, CX, BX, DI, SI.
 	// Interrupt kernel with T_SYSCALL.
 	//
@@ -72,55 +72,64 @@ sys_getenvid(void)
 
 // sys_env_alloc is inlined in lib.h
 
-#if SOL >= 4
 int
 sys_ipc_can_send(u_int a1, u_int a2)
 {
+#if SOL >= 4
 	return syscall(SYS_ipc_can_send, a1, a2, 0, 0, 0);
+#else
+	// Your code here.
+#endif
 }
 
 void
 sys_ipc_recv(void)
 {
+#if SOL >= 4
 	syscall(SYS_ipc_recv, 0, 0, 0, 0, 0);
+#else
+	// Your code here.
+#endif
 }
 
 int
 sys_set_pgfault_handler(u_int envid, u_int a1, u_int a2)
 {
+#if SOL >= 4
 	return syscall(SYS_set_pgfault_handler, envid, a1, a2, 0, 0);
+#else
+	// Your code here.
+#endif
 }
 
 int
 sys_mem_alloc(u_int envid, u_int va, u_int perm)
 {
+#if SOL >= 4
 	return syscall(SYS_mem_alloc, envid, va, perm, 0, 0);
+#else
+	// Your code here.
+#endif
 }
 
 int
 sys_mem_map(u_int srcenv, u_int srcva, u_int dstenv, u_int dstva, u_int perm)
 {
+#if SOL >= 4
 	return syscall(SYS_mem_map, srcenv, srcva, dstenv, dstva, perm);
+#else
+	// Your code here.
+#endif
 }
 
 int
 sys_mem_unmap(u_int env, u_int va)
 {
+#if SOL >= 4
 	return syscall(SYS_mem_unmap, env, va, 0, 0, 0);
+#else
+	// Your code here.
+#endif
 }
 
-#else
-
-// Your code here: define 
-//
-//	sys_ipc_can_send
-//	sys_ipc_recv
-//	sys_set_pgfault_handler
-//	sys_mem_alloc
-//	sys_mem_map
-//	sys_mem_unmap
-//
-// See lib.h for prototypes.
-
 #endif
-

@@ -1,3 +1,4 @@
+#if LAB >= 4
 // Called from entry.S to get us going.
 // Entry.S took care of defining envs, pages, vpd, and vpt.
 
@@ -24,3 +25,4 @@ libmain(int argc, char **argv)
 	sys_env_destroy();
 }
 
+#endif

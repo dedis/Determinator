@@ -1,3 +1,4 @@
+#if LAB >= 4
 // Stripped-down printf.  Unlike kernel printf, formats to buffer
 // and then sends buffer in one go with sys_cputs.
 
@@ -320,3 +321,4 @@ printf(const char *fmt, ...)
 	sys_cputs(buf);
 }
 
+#endif

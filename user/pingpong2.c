@@ -1,3 +1,4 @@
+#if LAB >= 4
 // Ping-pong a counter between two processes.
 // Start two instances of this program as envs 1 and 2
 // (user/idle is env 0).
@@ -25,3 +26,4 @@ umain(void)
 			return;
 	}
 }
+#endif

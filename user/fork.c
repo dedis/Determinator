@@ -1,3 +1,4 @@
+#if LAB >= 4
 // implement fork from user space
 
 #include "lib.h"
@@ -140,4 +141,4 @@ fork(void)
 	return envid;
 #endif
 }
-
+#endif

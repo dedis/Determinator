@@ -1,3 +1,4 @@
+#if LAB >= 4
 #include <inc/types.h>
 #include <inc/stdarg.h>
 #include <inc/error.h>
@@ -66,3 +67,4 @@ sys_env_alloc(void)
 	return ret;
 }
 
+#endif

@@ -1,3 +1,4 @@
+#if LAB >= 4
 // test user-level fault handler -- alloc pages to fix faults
 
 #include "lib.h"
@@ -20,3 +21,4 @@ umain(void)
 	printf("%s\n", (char*)0xDeadBeef);
 	printf("%s\n", (char*)0xCafeBffe);
 }
+#endif

@@ -1,3 +1,4 @@
+#if LAB >= 4
 // test user-level fault handler -- just exit when we fault
 
 #include "lib.h"
@@ -15,3 +16,4 @@ umain(void)
 	set_pgfault_handler(handler);
 	*(int*)0xDeadBeef = 0;
 }
+#endif

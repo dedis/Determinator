@@ -1,3 +1,4 @@
+#if LAB >= 4
 // User-level IPC library routines
 
 #include "lib.h"
@@ -35,3 +36,4 @@ ipc_recv(u_int *whom)
 #endif
 }
 
+#endif

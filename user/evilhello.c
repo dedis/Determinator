@@ -1,3 +1,4 @@
+#if LAB >= 4
 // evil hello world -- kernel pointer passed to kernel
 // kernel should destroy user environment in response
 
@@ -10,3 +11,4 @@ umain(void)
 	sys_cputs((char*)0xf0100020);
 }
 
+#endif

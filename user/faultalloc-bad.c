@@ -1,3 +1,4 @@
+#if LAB >= 4
 // test user-level fault handler -- alloc pages to fix faults
 // doesn't work because we sys_cputs instead of printf (exercise: why?)
 
@@ -20,3 +21,4 @@ umain(void)
 	set_pgfault_handler(handler);
 	sys_cputs((char*)0xDeadBeef);
 }
+#endif
