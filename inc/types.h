@@ -1,8 +1,8 @@
 /*	$OpenBSD: types.h,v 1.12 1997/11/30 18:50:18 millert Exp $	*/
 /*	$NetBSD: types.h,v 1.29 1996/11/15 22:48:25 jtc Exp $	*/
 
-#ifndef _SYS_TYPES_H_
-#define _SYS_TYPES_H_
+#ifndef _INC_TYPES_H_
+#define _INC_TYPES_H_
 
 #ifndef NULL
 #define NULL ((void *) 0)
@@ -48,4 +48,4 @@ typedef u_int32_t        size_t;
 #define ROUNDDOWN(a, n)	(((u_long)(a)) & ~((n)-1))
 
 
-#endif /* !_SYS_TYPES_H_ */
+#endif /* !_INC_TYPES_H_ */

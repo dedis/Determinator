@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <errno.h>
+
 /* It's too hard to know who has typedefed what. */
 #define u_int8_t xx_u_int8_t
 #define u_int16_t xx_u_int16_t
@@ -27,6 +28,7 @@
 #define register_t xx_register_t
 #define int64_t xx_int64_t
 #define size_t xx_size_t
+#define qaddr_t xx_qaddr_t
 #include <inc/types.h>
 #include <inc/mmu.h>
 #include <inc/fs.h>
