@@ -161,11 +161,11 @@ lab%.tar.gz: $(BIOS_FILES)
 	tar cf - lab$* | gzip > lab$*.tar.gz
 
 build-lab%: export-lab%
-	cd lab$*; make
+	cd lab$*; gmake
 build-sol%: export-sol%
-	cd sol$*; make
+	cd sol$*; gmake
 build-prep%: export-prep%
-	cd prep$*; make
+	cd prep$*; gmake
 
 # Distribute the BIOS images Bochs needs with the lab trees
 # in order to avoid absolute pathname dependencies in .bochsrc.
