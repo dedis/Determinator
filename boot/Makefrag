@@ -14,5 +14,7 @@ BOOT_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o
 $(OBJDIR)/boot/boot: $(BOOT_OBJS)
 	@echo mk boot/boot
 	@i386-osclass-aout-ld -N -e start -Ttext 0x7C00 -o $@.out $^
+	@i386-osclass-aout-objdump -S --adjust-vma=0x7C00 $@.out >$@.asm
 	@i386-osclass-aout-objcopy -S -O binary $@.out $@
 	@perl boot/sign.pl $(OBJDIR)/boot/boot
+
