@@ -44,7 +44,7 @@ endif
 LIB_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LIB_SRCFILES))
 
 $(OBJDIR)/lib/libuser.a: $(LIB_OBJFILES)
-	@echo ar $@
-	@$(AR) r $@ $(LIB_OBJFILES)
+	@echo + ar $@
+	$(V)$(AR) r $@ $(LIB_OBJFILES)
 
 endif

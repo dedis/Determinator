@@ -43,7 +43,7 @@ FSIMGTXTFILES := \
 
 $(OBJDIR)/fs/%: fs/%
 	@echo Doing weird move of fs/txt files for staff only build
-	@perl mklab.pl $(LAB) $(SOL) $(OBJDIR) $^
+	$(V)perl mklab.pl $(LAB) $(SOL) $(OBJDIR) $^
 
 FSIMGTXTFILES := $(addprefix $(OBJDIR)/, $(FSIMGTXTFILES))
 
@@ -52,22 +52,22 @@ FSIMGTXTFILES := $(addprefix $(OBJDIR)/, $(FSIMGTXTFILES))
 FSIMGFILES := $(FSIMGTXTFILES) $(USERAPPS)
 
 $(OBJDIR)/fs/fs: $(FSOFILES) $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libuser.a
-	@echo ld $@
-	@mkdir -p $(@D)
-	@$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib \
+	@echo + ld $@
+	$(V)mkdir -p $(@D)
+	$(V)$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib \
 		$(OBJDIR)/lib/entry.o $(FSOFILES) \
 		-L$(OBJDIR)/lib -luser $(GCC_LIB)
-	@$(OBJDUMP) -S $@ >$@.asm
+	$(V)$(OBJDUMP) -S $@ >$@.asm
 
 $(OBJDIR)/fs/%.o:	fs/fs.h user/lib.h
 
 # How to build the file system image
 $(OBJDIR)/fs/fsformat: fs/fsformat.c
-	@mkdir -p $(@D)
+	$(V)mkdir -p $(@D)
 	gcc -I. $(DEFS) -o $(OBJDIR)/fs/fsformat fs/fsformat.c
 
 $(OBJDIR)/fs/fs.img: $(OBJDIR)/fs/fsformat $(FSIMGFILES)
-	@mkdir -p $(@D)
+	$(V)mkdir -p $(@D)
 	dd if=/dev/zero of=$(OBJDIR)/fs/fs.img bs=4096 count=1024 2>/dev/null
 	$(OBJDIR)/fs/fsformat $(OBJDIR)/fs/fs.img $(FSIMGFILES)
 
