@@ -350,9 +350,10 @@ struct Pseudodesc {
 #define	KERNBASE	0xf0000000	// start of kernel virtual space
 
 /*
- * Virtual page table.  Entry PDX(VPT) in the PD contains a pointer to
- * the PD itself, thereby turning the PD into a page table which
- * maps all PTEs over that 4 Meg region of the virtual address space.
+ * Virtual page table.  Entry PDX[VPT] in the PD contains a pointer to
+ * the page directory itself, thereby turning the PD into a page table,
+ * which maps all the PTEs containing the page mappings for the entire
+ * virtual address space, into that 4 Meg region starting at VPT.
  */
 #define VPT (KERNBASE - PDMAP)
 #define KSTACKTOP VPT
