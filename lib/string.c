@@ -36,12 +36,12 @@ strcmp(const char *p, const char *q)
 	return 0;
 }
 
-const char*
+char*
 strchr(const char *s, char c)
 {
 	for(; *s; s++)
 		if(*s == c)
-			return s;
+			return (char*)s;
 	return 0;
 }
 
