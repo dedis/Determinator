@@ -1,13 +1,12 @@
 #if LAB >= 3
-
 // Main public header file for our user-land support library,
 // whose code lives in the lib directory.
 // This library is roughly our OS's version of a standard C library,
 // and is intended to be linked into all user-mode applications
 // (NOT the kernel or boot loader).
 
-#ifndef _INC_LIB_H_
-#define _INC_LIB_H_ 1
+#ifndef JOS_INC_LIB_H
+#define JOS_INC_LIB_H 1
 
 #include <inc/types.h>
 #include <inc/stdio.h>
@@ -37,35 +36,35 @@ extern struct Page pages[];
 void	exit(void);
 
 // pgfault.c
-void	set_pgfault_handler(void(*)(u_int va, u_int err));
+void	set_pgfault_handler(void (*handler)(void *addr, uint32_t err));
 
 // readline.c
-char *	readline(const char *buf);
+char*	readline(const char *buf);
 
 // syscall.c
-void	sys_cputs(const char *);
+void	sys_cputs(const char *string);
 int	sys_cgetc(void);
 envid_t	sys_getenvid(void);
 int	sys_env_destroy(envid_t);
 #if LAB >= 4
 void	sys_yield(void);
-int	sys_page_alloc(envid_t, void *, int);
-int	sys_page_map(envid_t, void *, envid_t, void *, int);
-int	sys_page_unmap(envid_t, void*);
-// envid_t sys_exofork(void);
-int	sys_env_set_status(envid_t, int);
-int	sys_env_set_trapframe(envid_t, struct Trapframe*);
-int	sys_env_set_pgfault_upcall(envid_t, uintptr_t);
-int	sys_ipc_try_send(envid_t, uint32_t, void *, int);
-int	sys_ipc_recv(void *);
+static __inline envid_t sys_exofork(void) __attribute__((always_inline));
+int	sys_env_set_status(envid_t env, int status);
+int	sys_env_set_trapframe(envid_t env, struct Trapframe *tf);
+int	sys_env_set_pgfault_upcall(envid_t env, void *upcall);
+int	sys_page_alloc(envid_t env, void *pg, int perm);
+int	sys_page_map(envid_t src_env, void *src_pg,
+		     envid_t dst_env, void *dst_pg, int perm);
+int	sys_page_unmap(envid_t env, void *pg);
+int	sys_ipc_try_send(envid_t to_env, uint32_t value, void *pg, int perm);
+int	sys_ipc_recv(void *rcv_pg);
 
-// This must be inlined.  
-// Exercise for reader: why?
-static inline envid_t
+// This must be inlined.  Exercise for reader: why?
+static __inline envid_t
 sys_exofork(void)
 {
 	envid_t ret;
-	asm volatile("int %2"
+	__asm __volatile("int %2"
 		: "=a" (ret)
 		: "a" (SYS_exofork),
 		  "i" (T_SYSCALL)
@@ -74,68 +73,67 @@ sys_exofork(void)
 }
 
 // ipc.c
-void	ipc_send(envid_t whom, uint32_t val, void *srcva, int perm);
-uint32_t ipc_recv(envid_t *whom, void *dstva, int *perm);
+void	ipc_send(envid_t to_env, uint32_t value, void *pg, int perm);
+uint32_t ipc_recv(envid_t *from_env_store, void *pg, int *perm_store);
 
 // fork.c
-#define	PTE_LIBRARY	0x400
-int	fork(void);
-int	sfork(void);	// Challenge!
+#define	PTE_SHARE	0x400
+envid_t	fork(void);
+envid_t	sfork(void);	// Challenge!
 #endif	// LAB >= 4
 
 #if LAB >= 5
 // fd.c
 int	close(int fd);
-int	read(int fd, void *buf, u_int nbytes);
-int	write(int fd, const void *buf, u_int nbytes);
-int	seek(int fd, u_int offset);
+ssize_t	read(int fd, void *buf, size_t nbytes);
+ssize_t	write(int fd, const void *buf, size_t nbytes);
+int	seek(int fd, off_t offset);
 void	close_all(void);
-int	readn(int fd, void *buf, u_int nbytes);
+ssize_t	readn(int fd, void *buf, size_t nbytes);
 int	dup(int oldfd, int newfd);
-int	fstat(int fd, struct Stat*);
-int	stat(const char *path, struct Stat*);
+int	fstat(int fd, struct Stat *statbuf);
+int	stat(const char *path, struct Stat *statbuf);
 
 // file.c
 int	open(const char *path, int mode);
-int	read_map(int fd, u_int offset, void **blk);
+int	read_map(int fd, off_t offset, void **blk);
 int	delete(const char *path);
-int	ftruncate(int fd, u_int size);
+int	ftruncate(int fd, off_t size);
 int	sync(void);
 
 // fprintf.c
-int	fprintf(int fd, const char*, ...);
+int	fprintf(int fd, const char *format, ...);
 
 // fsipc.c
-int	fsipc_open(const char*, u_int, struct Fd*);
-int	fsipc_map(u_int, u_int, u_int);
-int	fsipc_set_size(u_int, u_int);
-int	fsipc_close(u_int);
-int	fsipc_dirty(u_int, u_int);
-int	fsipc_remove(const char*);
+int	fsipc_open(const char *path, int omode, struct Fd *fd);
+int	fsipc_map(int fileid, off_t offset, void *dst_va);
+int	fsipc_set_size(int fileid, off_t size);
+int	fsipc_close(int fileid);
+int	fsipc_dirty(int fileid, off_t offset);
+int	fsipc_remove(const char *path);
 int	fsipc_sync(void);
-int	fsipc_incref(u_int);
 
 // pageref.c
-int	pageref(void*);
+int	pageref(void *pg);
 
 // spawn.c
-int	spawn(char*, char**);
-int	spawnl(char*, char*, ...);
+int	spawn(const char *program, const char **argv);
+int	spawnl(const char *program, const char *arg0, ...);
 #endif  // LAB >= 5
 
 #if LAB >= 6
 // console.c
 void	putchar(int c);
 int	getchar(void);
-int	iscons(int);
+int	iscons(int fd);
 int	opencons(void);
 
 // pipe.c
-int	pipe(int[2]);
-int	pipeisclosed(int);
+int	pipe(int pipefds[2]);
+int	pipeisclosed(int pipefd);
 
 // wait.c
-void	wait(u_int);
+void	wait(envid_t env);
 #endif  // LAB >= 6
 
 /* File open modes */
@@ -149,5 +147,5 @@ void	wait(u_int);
 #define	O_EXCL		0x0400		/* error if already exists */
 #define O_MKDIR		0x0800		/* create directory, not regular file */
 
-#endif	// not _INC_LIB_H_
+#endif	// !JOS_INC_LIB_H
 #endif	// LAB >= 3

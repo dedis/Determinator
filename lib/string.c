@@ -8,7 +8,7 @@ strlen(const char *s)
 {
 	int n;
 
-	for (n=0; *s; s++)
+	for (n = 0; *s; s++)
 		n++;
 	return n;
 }
@@ -29,9 +29,9 @@ strcmp(const char *p, const char *q)
 {
 	while (*p && *p == *q)
 		p++, q++;
-	if ((u_int)*p < (u_int)*q)
+	if ((unsigned char) *p < (unsigned char) *q)
 		return -1;
-	if ((u_int)*p > (u_int)*q)
+	if ((unsigned char) *p > (unsigned char) *q)
 		return 1;
 	return 0;
 }
@@ -39,9 +39,9 @@ strcmp(const char *p, const char *q)
 char*
 strchr(const char *s, char c)
 {
-	for(; *s; s++)
-		if(*s == c)
-			return (char*)s;
+	for (; *s; s++)
+		if (*s == c)
+			return (char*) s;
 	return 0;
 }
 

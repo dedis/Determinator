@@ -50,7 +50,7 @@ struct Env {
 
 #if LAB >= 4
 	// Exception handling
-	uintptr_t env_pgfault_upcall;	// page fault upcall entry point
+	void *env_pgfault_upcall;	// page fault upcall entry point
 
 	// Lab 4 IPC
 	bool env_ipc_recving;		// env is blocked receiving

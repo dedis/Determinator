@@ -9,7 +9,6 @@
 // that it always go to the console, especially when 
 // debugging the file descriptor code!
 
-
 #include <inc/types.h>
 #include <inc/stdio.h>
 #include <inc/stdarg.h>
@@ -26,6 +25,7 @@ struct printbuf {
 	int cnt;	// total bytes printed so far
 	char buf[256];
 };
+
 
 static void
 putch(int ch, struct printbuf *b)

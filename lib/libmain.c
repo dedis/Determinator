@@ -4,7 +4,7 @@
 
 #include <inc/lib.h>
 
-extern void umain(int, char**);
+extern void umain(int argc, char **argv);
 
 struct Env *env;
 char *binaryname = "(PROGRAM NAME UNKNOWN)";
@@ -16,7 +16,8 @@ libmain(int argc, char **argv)
 #if SOL >= 3
 	env = &envs[ENVX(sys_getenvid())];
 #else
-	env = 0;	// Your code here.
+	// LAB 3: Your code here.
+	env = 0;
 #endif
 
 	// save the name of the program so that panic() can use it

@@ -193,7 +193,7 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 //	-E_BAD_ENV if environment envid doesn't currently exist,
 //		or the caller doesn't have permission to change envid.
 static int
-sys_env_set_pgfault_entry(u_int envid, u_int func)
+sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
 #if SOL >= 4
 	int r;
@@ -488,7 +488,7 @@ syscall(uint32_t sn, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_
 	case SYS_env_set_trapframe:
 		return sys_env_set_trapframe(a1, (struct Trapframe*) a2);
 	case SYS_env_set_pgfault_upcall:
-		return sys_env_set_pgfault_entry(a1, a2);
+		return sys_env_set_pgfault_upcall(a1, (void*) a2);
 	case SYS_yield:
 		sys_yield();
 		return 0;

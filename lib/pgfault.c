@@ -7,41 +7,41 @@
 
 
 // Assembly language pgfault entrypoint defined in lib/pgfaultentry.S.
-extern void _pgfault_entry(void);
+extern void _pgfault_upcall(void);
 
 // Pointer to currently installed C-language pgfault handler.
-void (*_pgfault_handler)(u_int, u_int);
+void (*_pgfault_handler)(void *addr, uint32_t err);
 
 //
 // Set the page fault handler function.
 // If there isn't one yet, _pgfault_handler will be 0.
 // The first time we register a handler, we need to 
-// allocate an exception stack and tell the kernel to
-// call _asm_pgfault_handler on it.
+// allocate an exception stack (one page of memory with its top
+// at UXSTACKTOP), and tell the kernel to call the assembly-language
+// _pgfault_upcall routine when a page fault occurs.
 //
 void
-set_pgfault_handler(void (*fn)(u_int va, u_int err))
+set_pgfault_handler(void (*handler)(void *addr, uint32_t err))
 {
 	int r;
 
 	if (_pgfault_handler == 0) {
 #if SOL >= 4
 		// map exception stack
-		if ((r=sys_page_alloc(0, UXSTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
+		if ((r = sys_page_alloc(0, (void*) (UXSTACKTOP - PGSIZE), PTE_P|PTE_U|PTE_W)) < 0)
 			panic("allocating exception stack: %e", r);
 
 		// register assembly pgfault entrypoint with JOS kernel
-		sys_env_set_pgfault_upcall(0, (u_int)_pgfault_entry);
+		sys_env_set_pgfault_upcall(0, (void*) _pgfault_upcall);
 #else
-		// Your code here:
-		// map one page of exception stack with top at UXSTACKTOP
-		// register assembly pgfault entrypoint with JOS kernel
+		// First time through!
+		// LAB 4: Your code here.
 		panic("set_pgfault_handler not implemented");
 #endif
 	}
 
 	// Save handler pointer for assembly to call.
-	_pgfault_handler = fn;
+	_pgfault_handler = handler;
 }
 
 #endif	// LAB >= 4

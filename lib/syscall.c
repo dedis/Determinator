@@ -7,7 +7,7 @@
 static inline uint32_t
 syscall(int num, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
 {
-	int ret;
+	uint32_t ret;
 
 	// Generic system call: pass system call number in AX,
 	// up to five parameters in DX, CX, BX, DI, SI.
@@ -31,6 +31,7 @@ syscall(int num, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5
 		  "D" (a4),
 		  "S" (a5)
 		: "cc", "memory");
+	
 	return ret;
 }
 
@@ -98,9 +99,9 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 }
 
 int
-sys_env_set_pgfault_upcall(envid_t envid, uintptr_t upcall)
+sys_env_set_pgfault_upcall(envid_t envid, void *upcall)
 {
-	return syscall(SYS_env_set_pgfault_upcall, envid, upcall, 0, 0, 0);
+	return syscall(SYS_env_set_pgfault_upcall, envid, (uint32_t) upcall, 0, 0, 0);
 }
 
 int

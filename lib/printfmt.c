@@ -18,7 +18,7 @@
  * so that -E_NO_MEM and E_NO_MEM are equivalent.
  */
 
-static char *error_string[MAXERROR+1] =
+static char *error_string[MAXERROR + 1] =
 {
 	NULL,
 	"unspecified error",
@@ -59,7 +59,7 @@ printnum(void (*putch)(int, void*), void *putdat,
 	putch("0123456789abcdef"[num % base], putdat);
 }
 
-// Get an int of various possible sizes from a varargs list,
+// Get an unsigned int of various possible sizes from a varargs list,
 // depending on the lflag parameter.
 static unsigned long long
 getuint(va_list *ap, int lflag)
@@ -84,7 +84,6 @@ getint(va_list *ap, int lflag)
 	else
 		return va_arg(*ap, int);
 }
-	
 
 
 // Main function to format and print a string.
@@ -100,7 +99,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 	char padc;
 
 	while (1) {
-		while ((ch = *(u_char *) fmt++) != '%') {
+		while ((ch = *(unsigned char *) fmt++) != '%') {
 			if (ch == '\0')
 				return;
 			putch(ch, putdat);
@@ -111,7 +110,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		width = 0;
 		lflag = 0;
 	reswitch:
-		switch (ch = *(u_char *) fmt++) {
+		switch (ch = *(unsigned char *) fmt++) {
 
 		// flag to pad with 0's instead of spaces
 		case '0':
@@ -149,9 +148,9 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		// error message
 		case 'e':
 			err = va_arg(ap, int);
-			if(err < 0)
+			if (err < 0)
 				err = -err;
-			if(err > MAXERROR || (p = error_string[err]) == NULL)
+			if (err > MAXERROR || (p = error_string[err]) == NULL)
 				printfmt(putch, putdat, "error %d", err);
 			else
 				printfmt(putch, putdat, "%s", p);
@@ -168,7 +167,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		// (signed) decimal
 		case 'd':
 			num = getint(&ap, lflag);
-			if ((long long)num < 0) {
+			if ((long long) num < 0) {
 				putch('-', putdat);
 				num = -(long long) num;
 			}
@@ -200,7 +199,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			putch('0', putdat);
 			putch('x', putdat);
 			num = (unsigned long long)
-				(u_long)va_arg(ap, void *);
+				(uintptr_t) va_arg(ap, void *);
 			base = 16;
 			goto number;
 

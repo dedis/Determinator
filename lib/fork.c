@@ -3,82 +3,104 @@
 
 #include <inc/string.h>
 #include <inc/lib.h>
-
+#if SOL >= 4
 
 #define debug 0
+#endif
 
+// PTE_COW marks copy-on-write page table entries.
+// It is one of the bits explicitly allocated to user processes (PTE_AVAIL).
 #define PTE_COW		0x800
 
 //
 // Custom page fault handler - if faulting page is copy-on-write,
 // map in our own private writable copy.
 //
-
 static void
-pgfault(u_int va, u_int err)
+pgfault(void *addr, uint32_t err)
 {
 	int r;
-	u_char *tmp;
 
 #if SOL >= 4
-	if (debug) printf("fault %08x %08x %d from %08x\n", va, &vpt[VPN(va)], err&7, (&va)[4]);
+	if (debug)
+		printf("fault %08x %08x %d from %08x\n", addr, &vpt[VPN(addr)], err & 7, (&addr)[4]);
 
-	if ((vpt[VPN(va)] & (PTE_P|PTE_U|PTE_W|PTE_COW)) != (PTE_P|PTE_U|PTE_COW))
+	if ((vpt[VPN(addr)] & (PTE_P|PTE_U|PTE_W|PTE_COW)) != (PTE_P|PTE_U|PTE_COW))
 		panic("fault at %x with pte %x from %08x, not copy-on-write",
-			va, vpt[PPN(va)], (&va)[4]);
+			addr, vpt[PPN(addr)], (&addr)[4]);
+#else
+	panic("pgfault not implemented");
 
-	tmp = (u_char*)(UTEXT-PGSIZE);	// should be available!
+	// Check that the faulting access was a write to a copy-on-write
+	// page.  If not, panic.
+	// Hint:
+	//   Use the read-only page table mapping at vpt (see inc/pmap.h).
 
-	// copy page
-	if ((r=sys_page_alloc(0, (void*) tmp, PTE_P|PTE_U|PTE_W)) < 0)
-		panic("sys_mem_alloc: %e", r);
-	memcpy(tmp, (u_char*)ROUNDDOWN(va, PGSIZE), PGSIZE);
+	// LAB 4: Your code here.
+#endif
+
+#if SOL >= 4
+ 	// copy page
+	if ((r = sys_page_alloc(0, (void*) PFTEMP, PTE_P|PTE_U|PTE_W)) < 0)
+		panic("sys_page_alloc: %e", r);
+	memcpy((void*) PFTEMP, ROUNDDOWN(addr, PGSIZE), PGSIZE);
 
 	// remap over faulting page
-	if ((r=sys_page_map(0, (void*) tmp, 0, va, PTE_P|PTE_U|PTE_W)) < 0)
-		panic("sys_mem_map: %e", r);
+	if ((r = sys_page_map(0, (void*) PFTEMP, 0, addr, PTE_P|PTE_U|PTE_W)) < 0)
+		panic("sys_page_map: %e", r);
 
 	// unmap our work space
-	if ((r=sys_page_unmap(0, (void*) tmp)) < 0)
-		panic("sys_mem_unmap: %e", r);
+	if ((r = sys_page_unmap(0, (void*) PFTEMP)) < 0)
+		panic("sys_page_unmap: %e", r);
 #else
-	// Your code here.
+	// Allocate a new page, map it at a temporary location (PFTEMP),
+	// copy the data from the old page to the new page, then move the new
+	// page to the old page's address.
+	// Hint:
+	//   You should make three system calls.
+	//   No need to explicitly delete the old page's mapping.
+	
+	// LAB 4: Your code here.
+	
 	panic("pgfault not implemented");
 #endif
 }
 
 //
 // Map our virtual page pn (address pn*PGSIZE) into the target envid
-// at the same virtual address.  if the page is writable or copy-on-write,
-// the new mapping must be created copy on write and then our mapping must be
-// marked copy on write as well.  (Exercise: why mark ours copy-on-write again if
-// it was already copy-on-write?)
+// at the same virtual address.  If the page is writable or copy-on-write,
+// the new mapping must be created copy-on-write, and then our mapping must be
+// marked copy-on-write as well.  (Exercise: Why mark ours copy-on-write again
+// if it was already copy-on-write?)
+//
+// Returns: 0 on success, < 0 on error.
+// It is also OK to panic on error.
 // 
-static void
-duppage(u_int envid, u_int pn)
+static int
+duppage(envid_t envid, unsigned pn)
 {
 	int r;
-	u_int addr;
-	Pte pte;
+	void *addr;
+	pte_t pte;
 
 #if SOL >= 4
-	addr = pn<<PGSHIFT;
+	addr = (void*) (pn << PGSHIFT);
 	pte = vpt[pn];
 
 #if SOL >= 6
 	// if the page is just read-only or is library-shared, map it directly.
-	if ((pte&(PTE_W|PTE_COW)) == 0 || (pte&PTE_LIBRARY)) {
+	if (!(pte & (PTE_W|PTE_COW)) || (pte & PTE_SHARE)) {
 #else
 	// if the page is just read-only, just map it in.
-	if ((pte&(PTE_W|PTE_COW)) == 0) {
+	if (!(pte & (PTE_W|PTE_COW))) {
 #endif
-		if ((r=sys_page_map(0, addr, envid, addr, pte&PTE_USER)) < 0)
+		if ((r = sys_page_map(0, addr, envid, addr, pte & PTE_USER)) < 0)
 			panic("sys_page_map: %e", r);
-		return;
+		return 0;
 	}
 
-	// The order is VERY important here -- if we swap these and fault on addr
-	// between them, then the child will see all the updates we make
+	// The order is VERY important here -- if we swap these and fault on
+	// addr between them, then the child will see all the updates we make
 	// to that page until it copies it.
 	//
 	// Probably this could only occur for the current stack page,
@@ -91,28 +113,40 @@ duppage(u_int envid, u_int pn)
 	// the first sys_page_map, just in case a page fault has caused
 	// us to copy the page in the interim.
 
-	if ((r=sys_page_map(0, addr, envid, addr, PTE_P|PTE_U|PTE_COW)) < 0)
-		panic("sys_mem_map: %e", r);
-	if ((r=sys_page_map(0, addr, 0, addr, PTE_P|PTE_U|PTE_COW)) < 0)
-		panic("sys_mem_map: %e", r);
+	if ((r = sys_page_map(0, addr, envid, addr, PTE_P|PTE_U|PTE_COW)) < 0)
+		panic("sys_page_map: %e", r);
+	if ((r = sys_page_map(0, addr, 0, addr, PTE_P|PTE_U|PTE_COW)) < 0)
+		panic("sys_page_map: %e", r);
+	return r;
 #else
-	// Your code here.
+	// LAB 4: Your code here.
 	panic("duppage not implemented");
+	return 0;
 #endif
 }
 
 //
-// User-level fork.  Create a child and then copy our address space
-// and page fault handler setup to the child.
+// User-level fork with copy-on-write.
+// Set up our page fault handler appropriately.
+// Create a child.
+// Copy our address space and page fault handler setup to the child.
+// Then mark the child as runnable and return.
 //
-// Hint: use vpd, vpt, and duppage.
-// Hint: remember to fix "env" in the child process!
-// 
-int
+// Returns: child's envid to the parent, 0 to the child, < 0 on error.
+// It is also OK to panic on error.
+//
+// Hint:
+//   Use vpd, vpt, and duppage.
+//   Remember to fix "env" and the user exception stack in the child process
+//   -- and make sure never to mark the current environment's user exception
+//   stack as copy-on-write!
+//
+envid_t
 fork(void)
 {
 #if SOL >= 4
-	int envid, i, j, pn, r;
+	envid_t envid;
+	int pn, end_pn, r;
 
 	set_pgfault_handler(pgfault);
 
@@ -126,35 +160,36 @@ fork(void)
 	}
 
 	// Copy the address space.
-	for (i=0; i<PDX(UTOP); i++) {
-		if ((vpd[i]&PTE_P) == 0)
+	for (pn = 0; pn < VPN(UTOP); ) {
+		if (!(vpd[pn >> 10] & PTE_P)) {
+			pn += NPTENTRIES;
 			continue;
-		for (j=0; j<NPTENTRIES; j++) {
-			pn = i*NPTENTRIES+j;
-			if ((vpt[pn]&(PTE_P|PTE_U)) != (PTE_P|PTE_U))
+		}
+		for (end_pn = pn + NPTENTRIES; pn < end_pn; pn++) {
+			if ((vpt[pn] & (PTE_P|PTE_U)) != (PTE_P|PTE_U))
 				continue;
-			if (pn == VPN(UXSTACKTOP-1))
+			if (pn == VPN(UXSTACKTOP - 1))
 				continue;
 			duppage(envid, pn);
 		}
 	}
 
 	// The child needs to start out with a valid exception stack.
-	if ((r=sys_page_alloc(envid, UXSTACKTOP-PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r = sys_page_alloc(envid, (void*) (UXSTACKTOP - PGSIZE), PTE_P|PTE_U|PTE_W)) < 0)
 		panic("allocating exception stack: %e", r);
 
 	// Copy the user-mode exception entrypoint.
-	if ((r=sys_env_set_pgfault_upcall(envid, env->env_pgfault_upcall)) < 0)
-		panic("sys_set_pgfault_entry: %e", r);
+	if ((r = sys_env_set_pgfault_upcall(envid, env->env_pgfault_upcall)) < 0)
+		panic("sys_env_set_pgfault_upcall: %e", r);
 
 
 	// Okay, the child is ready for life on its own.
-	if ((r=sys_env_set_status(envid, ENV_RUNNABLE)) < 0)
-		panic("sys_set_env_status: %e", r);
+	if ((r = sys_env_set_status(envid, ENV_RUNNABLE)) < 0)
+		panic("sys_env_set_status: %e", r);
 
 	return envid;
 #else
-	// Your code here.
+	// LAB 4: Your code here.
 	panic("fork not implemented");
 #endif
 }

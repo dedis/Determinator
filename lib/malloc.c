@@ -23,46 +23,46 @@ enum
 
 #define PTE_CONTINUED 0x400
 
-static u_char *mbegin = (u_char*)0x08000000;
-static u_char *mend   = (u_char*)0x10000000;
-static u_char *mptr;
+static uint8_t *mbegin = (uint8_t*) 0x08000000;
+static uint8_t *mend   = (uint8_t*) 0x10000000;
+static uint8_t *mptr;
 
 static int
-isfree(void *v, int n)
+isfree(void *v, size_t n)
 {
-	u_int va;
+	uintptr_t va;
 
-	va = (u_int)v;
-	for(va=(u_int)v; n>0; va+=PGSIZE, n-=PGSIZE)
-		if(va >= (u_int)mend || ((vpd[PDX(va)]&PTE_P) && (vpt[VPN(va)]&PTE_P)))
+	for (va = (uintptr_t) v; n > 0; va += PGSIZE, n -= PGSIZE)
+		if (va >= (uintptr_t) mend
+		    || ((vpd[PDX(va)] & PTE_P) && (vpt[VPN(va)] & PTE_P)))
 			return 0;
 	return 1;
 }
 
 void*
-malloc(u_int n)
+malloc(size_t n)
 {
 	int i, cont;
 	int nwrap;
-	u_int *ref;
+	uint32_t *ref;
 	void *v;
 
-	if(mptr == 0)
+	if (mptr == 0)
 		mptr = mbegin;
 
 	n = ROUNDUP(n, 4);
 
-	if(n >= MAXMALLOC)
+	if (n >= MAXMALLOC)
 		return 0;
 
-	if((u_int)mptr % PGSIZE){
+	if ((uintptr_t) mptr % PGSIZE){
 		/*
 		 * we're in the middle of a partially
 		 * allocated page - can we add this chunk?
 		 * the +4 below is for the ref count.
 		 */
-		ref = (u_int*)(mptr - (u_int)mptr%PGSIZE + PGSIZE-4);
-		if((u_int)mptr/PGSIZE == (u_int)(mptr+n-1+4)/PGSIZE){
+		ref = (uint32_t*) (ROUNDUP(mptr, PGSIZE) - 4);
+		if ((uintptr_t) mptr / PGSIZE == (uintptr_t) (mptr + n - 1 + 4) / PGSIZE) {
 			(*ref)++;
 			v = mptr;
 			mptr += n;
@@ -72,7 +72,7 @@ malloc(u_int n)
 		 * stop working on this page and move on.
 		 */
 		free(mptr);	/* drop reference to this page */
-		mptr += PGSIZE - (u_int)mptr%PGSIZE;
+		mptr = ROUNDDOWN(mptr + PGSIZE, PGSIZE);
 	}
 
 	/*
@@ -82,13 +82,13 @@ malloc(u_int n)
 	 * flag the PTE entries instead.
 	 */
 	nwrap = 0;
-	for(;;){
-		if(isfree(mptr, n+4))
+	while (1) {
+		if (isfree(mptr, n + 4))
 			break;
 		mptr += PGSIZE;
-		if(mptr == mend){
+		if (mptr == mend) {
 			mptr = mbegin;
-			if(++nwrap == 2)
+			if (++nwrap == 2)
 				return 0;	/* out of address space */
 		}
 	}
@@ -96,17 +96,17 @@ malloc(u_int n)
 	/*
 	 * allocate at mptr - the +4 makes sure we allocate a ref count.
 	 */
-	for(i=0; i<n+4; i+=PGSIZE){
-		cont = (i+PGSIZE < n+4) ? PTE_CONTINUED : 0;
-		if(sys_mem_alloc(0, (u_int)mptr+i, PTE_P|PTE_U|PTE_W|cont) < 0){
-			for(; i>=0; i-=PGSIZE)
-				sys_mem_unmap(0, (u_int)mptr+i);
+	for (i = 0; i < n + 4; i += PGSIZE){
+		cont = (i + PGSIZE < n + 4) ? PTE_CONTINUED : 0;
+		if (sys_page_alloc(0, mptr + i, PTE_P|PTE_U|PTE_W|cont) < 0){
+			for (; i >= 0; i -= PGSIZE)
+				sys_page_unmap(0, mptr + i);
 			return 0;	/* out of physical memory */
 		}
 	}
 
-	ref = (u_int*)(mptr+i-4);
-	(*ref) = 2;	/* reference for mptr, reference for returned block */
+	ref = (uint32_t*) (mptr + i - 4);
+	*ref = 2;	/* reference for mptr, reference for returned block */
 	v = mptr;
 	mptr += n;
 	return v;
@@ -115,18 +115,17 @@ malloc(u_int n)
 void
 free(void *v)
 {
-	u_char *c;
-	u_int *ref;
+	uint8_t *c;
+	uint32_t *ref;
 
-	if(v == 0)
+	if (v == 0)
 		return;
+	assert(mbegin <= v && v < mend);
 
-	c = v;
-	assert(mbegin <= c && c < mend);
-	c -= (u_int)c%PGSIZE;
+	c = ROUNDDOWN(v, PGSIZE);
 
-	while(vpt[VPN((u_int)c)]&PTE_CONTINUED){
-		sys_mem_unmap(0, (u_int)c);
+	while (vpt[VPN(c)] & PTE_CONTINUED) {
+		sys_page_unmap(0, c);
 		c += PGSIZE;
 		assert(mbegin <= c && c < mend);
 	}
@@ -135,9 +134,9 @@ free(void *v)
 	 * c is just a piece of this page, so dec the ref count
 	 * and maybe free the page.
 	 */
-	ref = (u_int*)(c+PGSIZE-4);
-	if(--(*ref) == 0)
-		sys_mem_unmap(0, (u_int)c);	
+	ref = (uint32_t*) (c + PGSIZE - 4);
+	if (--(*ref) == 0)
+		sys_page_unmap(0, c);	
 }
 
 #endif
