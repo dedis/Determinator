@@ -81,3 +81,7 @@ New TODO items for Fall 2004:
 	we no longer need to reserve the 0x20 for the a.out header
 	since we're now using ELF!
 
+- decide on one of u_int and u_long, and only use it.  Also add some
+	sort of paddr_t and use it for physical addresses.  Maybe do
+	the same thing for virtual addresses.
+
