@@ -1,3 +1,11 @@
+#
+# This makefile system follows the structuring conventions
+# recommended by Peter Miller in his excellent paper:
+#
+#	Recursive Make Considered Harmful
+#	http://aegis.sourceforge.net/auug97.pdf
+#
+
 TOP = .
 
 # Cross-compiler osclass toolchain
