@@ -41,15 +41,15 @@ void mon_help(int argc, char **argv)
 
 void mon_kerninfo(int argc, char **argv)
 {
-	extern char start[], etext[], edata[], end[];
+	extern char _start[], etext[], edata[], end[];
 
 	printf("Special kernel symbols:\n");
-	printf("  start  %08x (virt)  %08x (phys)\n", start, start-KERNBASE);
+	printf("  _start %08x (virt)  %08x (phys)\n", _start, _start-KERNBASE);
 	printf("  etext  %08x (virt)  %08x (phys)\n", etext, etext-KERNBASE);
 	printf("  edata  %08x (virt)  %08x (phys)\n", edata, edata-KERNBASE);
 	printf("  end    %08x (virt)  %08x (phys)\n", end, end-KERNBASE);
 	printf("Kernel executable memory footprint: %dKB\n",
-		(end-start+1023)/1024);
+		(end-_start+1023)/1024);
 }
 
 void mon_backtrace(int argc, char **argv)

@@ -6,6 +6,7 @@
 #include <inc/error.h>
 #include <inc/string.h>
 #include <inc/assert.h>
+#include <inc/elf.h>
 
 #include <kern/env.h>
 #include <kern/pmap.h>
@@ -172,7 +173,6 @@ env_alloc(struct Env **new, u_int parent_id)
 
 #if SOL >= 3
 	e->env_tf.tf_eflags = FL_IF; // interrupts enabled
-	e->env_tf.tf_eip = UTEXT + 0x20; // start right past a.out header
 #else
 	e->env_tf.tf_eflags = 0;
 #endif
@@ -203,6 +203,37 @@ env_alloc(struct Env **new, u_int parent_id)
 	return 0;
 }
 
+// Map a segment at address va of size len bytes, rounded up to page size.
+// Initialize the segment with src.
+// Panic if it fails.
+static void
+map_segment(struct Env *e, u_int va, u_int len, u_char *src)
+{
+#if SOL >= 3
+	int r;
+	u_int i;
+	struct Page *p;
+
+	if (va&(BY2PG-1)) {
+		i = va & (BY2PG-1);
+		va -= i;
+		len += i;
+		src -= i;
+	}
+
+	for (i = 0; i < len; i += BY2PG) {
+		if ((r = page_alloc(&p)) < 0)
+			panic("map_segment: could not alloc page: %e\n", r);
+		// printf("copy page %x to %x\n", src+i, va+i);
+		memcpy((void*)page2kva(p), src+i, MIN(BY2PG, len-i));
+		if ((r = page_insert(e->env_pgdir, p, va+i, PTE_P|PTE_W|PTE_U)) < 0)
+			panic("map_segment: could not insert page: %e\n", r);
+	}	
+#else
+	// Your code here.
+#endif
+}
+
 //
 // Set up the the initial stack and program binary for a user process.
 //
@@ -221,19 +252,28 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 {
 #if SOL >= 3
 	int i, r;
+	struct Elf *elf;
 	struct Page *p;
+	struct Proghdr *ph;
 
-	// Allocate and map physical pages
-	for (i = 0; i < size; i += BY2PG) {
-		if ((r = page_alloc(&p)) < 0)
-			panic("load_icode: could not alloc page: %e\n", r);
-		memcpy((void*)page2kva(p), &binary[i], MIN(BY2PG, size - i));
-		if ((r = page_insert(e->env_pgdir, p, UTEXT + i,
-					PTE_P|PTE_W|PTE_U)) < 0)
-			panic("load_icode: could not map page. Errno %d\n", r);
+	// Check magic number on binary
+	elf = (struct Elf*)binary;
+	if (*(u_int*)elf != *(u_int*)"\x7F\x45\x4C\x46")
+		panic("load_icode: not an ELF binary");
+
+	// Record entry for binary.
+	e->env_tf.tf_eip = elf->e_entry;
+	printf("load_icode: entry is 0x%x\n", e->env_tf.tf_eip);
+
+	// Map segments as directed.
+	ph = (struct Proghdr*)(binary + elf->e_phoff);
+	for (i = 0; i < elf->e_phnum; i++, ph++) {
+		if(ph->p_type != ELF_PROG_LOAD)
+			continue;
+		map_segment(e, ph->p_va, ph->p_memsz, binary+ph->p_offset);	
 	}
 
-	// Give it a stack
+	// Give environment a stack
 	if ((r = page_alloc(&p)) < 0)
 		panic("load_icode: could not alloc page: %e\n", r);
 	if ((r = page_insert(e->env_pgdir, p, USTACKTOP - BY2PG,
@@ -245,7 +285,7 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 	//  You must figure out which permissions you'll need
 	//  for the different mappings you create.
 	//  Remember that the binary image is an a.out format image,
-	//  which contains both text and data.
+	//  which contains both text and data. XXX THIS IS WRONG
 #endif /* not SOL >= 3 */
 }
 

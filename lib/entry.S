@@ -7,25 +7,25 @@
 	// define page-aligned fsipcbuf for fsipc.c
 	// ... and fdtab for file.c
 	.p2align PGSHIFT
-	.globl _fsipcbuf
-_fsipcbuf:
+	.globl fsipcbuf
+fsipcbuf:
 	.space BY2PG
-	.globl _fdtab
-_fdtab:
+	.globl fdtab
+fdtab:
 	.space BY2PG
 #endif
-	.globl _envs
-	.set _envs, UENVS
-	.globl _pages
-	.set _pages, UPAGES
-	.globl _vpt
-	.set _vpt, UVPT
-	.globl _vpd
-	.set _vpd, (UVPT+(UVPT>>12)*4)
+	.globl envs
+	.set envs, UENVS
+	.globl pages
+	.set pages, UPAGES
+	.globl vpt
+	.set vpt, UVPT
+	.globl vpd
+	.set vpd, (UVPT+(UVPT>>12)*4)
 
 .text
-.globl .start
-.start:
+.globl _start
+_start:
 	// push empty argc, argv if none present
 	cmpl $USTACKTOP, %esp
 	jne args_exist
@@ -36,22 +36,22 @@ _fdtab:
 	// since the kernel did not.  This depends on the
 	// bss not extending into a new page, since otherwise
 	// we will page fault and die.
-	movl $(_end), %eax
-	subl $(_edata), %eax
+	movl $(end), %eax
+	subl $(edata), %eax
 	pushl %eax
 	pushl $0
-	pushl $(_edata)
-	call _memset
+	pushl $(edata)
+	call memset
 	addl $12, %esp
 
 args_exist:
-	call _libmain
+	call libmain
 1:      jmp 1b
 
 
 .data
-.globl __pgfault_handler
-__pgfault_handler:
+.globl _pgfault_handler
+_pgfault_handler:
 	.long 0
 
 // On entry there is a trap frame on the stack:
@@ -63,8 +63,8 @@ __pgfault_handler:
 //	trap-time va		<-- %esp
 
 .text
-.globl __asm_pgfault_handler
-__asm_pgfault_handler:
+.globl _asm_pgfault_handler
+_asm_pgfault_handler:
 	// save the caller-save registers
 #if SOL >= 4
 	movl %eax, 28(%esp)
@@ -75,7 +75,7 @@ __asm_pgfault_handler:
 #endif
 
 	// call the C page fault handler
-	movl __pgfault_handler, %eax
+	movl _pgfault_handler, %eax
 	call *%eax
 
 	// push trap-time eip, eflags onto trap-time stack

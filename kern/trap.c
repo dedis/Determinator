@@ -103,7 +103,7 @@ idt_init(void)
 	ltr(GD_TSS);
 
 	// Load the IDT
-	asm volatile("lidt _idt_pd+2");
+	asm volatile("lidt idt_pd+2");
 }
 
 

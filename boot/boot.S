@@ -83,7 +83,7 @@ protcseg:
 		movw	%ax, %gs		# -> GS
 		movw	%ax, %ss		# -> SS: Stack Segment
 	
-		call _cmain			# finish the boot load from C.
+		call cmain			# finish the boot load from C.
 						# cmain() should not return
 spin:		jmp spin			# ..but in case it does, spin
 	

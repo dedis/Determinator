@@ -1,7 +1,7 @@
 #if LAB >= 5
 
-#include <inc/aout.h>
 #include <inc/lib.h>
+#include <inc/elf.h>
 
 #define TMPPAGE		(BY2PG)
 #define TMPPAGETOP	(TMPPAGE+BY2PG)
@@ -104,8 +104,57 @@ copy_library(u_int child)
 		}
 	}
 }
-
 #endif
+
+int
+map_segment(int child, u_int va, u_int memsz, 
+	int fd, u_int filesz, u_int fileoffset, u_int perm)
+{
+#if SOL >= 5
+	int i, r;
+	void *blk;
+
+	printf("map_segment %x+%x\n", va, memsz);
+
+	if ((i = (va&(BY2PG-1))) != 0) {
+		va -= i;
+		memsz += i;
+		filesz += i;
+		fileoffset -= i;
+	}
+
+	for (i = 0; i < memsz; i+=BY2PG) {
+		if (i >= filesz) {
+			// allocate a blank page
+			if ((r = sys_mem_alloc(child, va+i, perm)) < 0)
+				return r;
+		} else {
+			// from file
+			if (perm&PTE_W) {
+				// must make a copy so it can be writable
+				if ((r = sys_mem_alloc(0, TMPPAGE, PTE_P|PTE_U|PTE_W)) < 0)
+					return r;
+				if ((r = seek(fd, fileoffset+i)) < 0)
+					return r;
+				if ((r = read(fd, (void*)TMPPAGE, MIN(BY2PG, filesz-i))) < 0)
+					return r;
+				if ((r = sys_mem_map(0, TMPPAGE, child, va+i, perm)) < 0)
+					panic("spawn: sys_mem_map data: %e", r);
+				sys_mem_unmap(0, TMPPAGE);
+			} else {
+				// can map buffer cache read only
+				if ((r = read_map(fd, fileoffset+i, &blk)) < 0)
+					return r;
+				if ((r = sys_mem_map(0, (u_int)blk, child, va+i, perm)) < 0)
+					panic("spawn: sys_mem_map text: %e", r);
+			}
+		}
+	}
+	return 0;
+#endif
+}
+
+
 // Spawn a child process from a program image loaded from the file system.
 // prog: the pathname of the program to run.
 // argv: pointer to null-terminated array of pointers to strings,
@@ -116,20 +165,23 @@ spawn(char *prog, char **argv)
 {
 #if SOL >= 5
 	int child, fd, i, r;
-	u_int text, data, bss, init_esp;
-	void *blk;
-	struct Aout aout;
+	u_int init_esp;
 	struct Trapframe tf;
+	u_char hdr[512];
+	struct Elf *elf;
+	struct Proghdr *ph;
+	int perm;
 
 	if ((r = open(prog, O_RDONLY)) < 0)
 		return r;
 	fd = r;
 
 	// Read a.out header
-	if (read(fd, &aout, sizeof(aout)) != sizeof(aout)
-			|| aout.a_magic != AOUT_MAGIC) {
+	elf = (struct Elf*)hdr;
+	if (read(fd, hdr, sizeof(hdr)) != sizeof(hdr)
+			|| elf->e_magic != ELF_MAGIC) {
 		close(fd);
-printf("aout magic %08x want %08x\n", aout.a_magic, AOUT_MAGIC);
+printf("elf magic %08x want %08x\n", elf->e_magic, ELF_MAGIC);
 		return -E_NOT_EXEC;
 	}
 
@@ -142,36 +194,20 @@ printf("aout magic %08x want %08x\n", aout.a_magic, AOUT_MAGIC);
 	if ((r = init_stack(child, argv, &init_esp)) < 0)
 		return r;
 
-	// Set up program text, data, bss
-	text = UTEXT;
-	for (i=0; i<aout.a_text; i+=BY2PG) {
-		if ((r = read_map(fd, i, &blk)) < 0)
+	// Set up program segments as defined in ELF header.
+	ph = (struct Proghdr*)(hdr+elf->e_phoff);
+	for (i=0; i<elf->e_phnum; i++, ph++) {
+		if (ph->p_type != ELF_PROG_LOAD)
+			continue;
+		perm = PTE_P|PTE_U;
+		if(ph->p_flags & ELF_PROG_FLAG_WRITE)
+			perm |= PTE_W;
+		if ((r = map_segment(child, ph->p_va, ph->p_memsz, 
+				fd, ph->p_filesz, ph->p_offset, perm)) < 0)
 			goto error;
-		if ((r = sys_mem_map(0, (u_int)blk, child, text+i, PTE_P|PTE_U)) < 0)
-			panic("spawn: sys_mem_map text: %e", r);
 	}
-
-	data = text+i;
-	if ((r = seek(fd, 0x20+aout.a_text)) < 0)
-		goto error;
-	for (i=0; i<aout.a_data; i+=BY2PG) {
-		if ((r = sys_mem_alloc(0, TMPPAGE, PTE_P|PTE_U|PTE_W)) < 0)
-			goto error;
-		if ((r = read(fd, (void*)TMPPAGE, BY2PG)) < 0)
-			goto error;
-		if ((r = sys_mem_map(0, TMPPAGE, child, data+i,
-					PTE_P|PTE_U|PTE_W)) < 0)
-			panic("spawn: sys_mem_map data: %e", r);
-	}
-	sys_mem_unmap(0, TMPPAGE);
 	close(fd);
 	fd = -1;
-
-	bss = data+i;
-	for (i=0; i<aout.a_bss; i+=BY2PG) {
-		if ((r = sys_mem_alloc(child, bss+i, PTE_P|PTE_U|PTE_W)) < 0)
-			goto error;
-	}
 
 #if SOL >= 6
 	// Copy shared library state.
@@ -180,7 +216,7 @@ printf("aout magic %08x want %08x\n", aout.a_magic, AOUT_MAGIC);
 #endif
 	// Set up trap frame.
 	tf = envs[ENVX(child)].env_tf;
-	tf.tf_eip = aout.a_entry;
+	tf.tf_eip = elf->e_entry;
 	tf.tf_esp = init_esp;
 
 	if ((r = sys_set_trapframe(child, &tf)) < 0)

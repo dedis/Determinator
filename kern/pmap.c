@@ -312,7 +312,7 @@ i386_vm_init(void)
 	// (x < 4MB so uses paging pgdir[0])
 
 	// Reload all segment registers.
-	asm volatile("lgdt _gdt_pd+2");
+	asm volatile("lgdt gdt_pd+2");
 	asm volatile("movw %%ax,%%gs" :: "a" (GD_UD|3));
 	asm volatile("movw %%ax,%%fs" :: "a" (GD_UD|3));
 	asm volatile("movw %%ax,%%es" :: "a" (GD_KD));

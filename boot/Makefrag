@@ -9,6 +9,8 @@ OBJDIRS += boot
 
 BOOT_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o
 
+$(OBJDIR)/boot/main.o: boot/main.c
+	$(CC) -nostdinc $(CFLAGS) -Os -c -o $(OBJDIR)/boot/main.o boot/main.c
 
 $(OBJDIR)/boot/boot: $(BOOT_OBJS)
 	@echo ld boot/boot

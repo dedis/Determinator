@@ -5,6 +5,7 @@
  * YOU DO NOT NEED TO LOOK AT THIS FILE FOR THE ASSIGNMENT.
  */
 #include <inc/x86.h>
+#include <inc/elf.h>
 
 /**********************************************************************
  * This a dirt simple boot loader, whose sole job is to boot
@@ -16,6 +17,8 @@
  * 
  *  * The 2nd sector onward holds the kernel image.
  *	
+ *  * The kernel image may be in a.out or ELF format.
+ *
  * BOOT UP STEPS	
  *  * when the CPU boots it loads the BIOS into memory and executes it
  *
@@ -34,71 +37,93 @@
 
 #define  SECTOR_SIZE    512
 
-void read_sector(int sector, char *destination);
+static u_char *sect = (u_char*)0x10000;	// scratch space
 
-struct a_out_hdr {
-	u_long	a_midmag;	/* flags<<26 | mid<<16 | magic */
-	u_long	a_text;		/* text segment size */
-	u_long	a_data;		/* initialized data size */
-	u_long	a_bss;		/* uninitialized data size */
-	u_long	a_syms;		/* symbol table size */
-	u_long	a_entry;	/* entry point */
-	u_long	a_trsize;	/* text relocation size */
-	u_long	a_drsize;	/* data relocation size */
-};
+void readsect(u_char*, u_int, u_int);
+void readseg(u_int, u_int, u_int);
 
 void
 cmain(void)
 {
-	u_int8_t sector[SECTOR_SIZE];
-	struct a_out_hdr *hdr;
-	int i,nsectors;
-	char *dest;
-	u_int32_t kernel_entry_point;
+	u_int entry, i;
+	struct Elf *elf;
+	struct Proghdr *ph;
 
-	// read 2nd sector of disk
-	read_sector(1, sector);
+	// read 1st page off disk
+	readsect(sect, 8, 1);
 
-	// examine the a.out header
-	hdr = (struct a_out_hdr *)sector;
-	kernel_entry_point = hdr->a_entry & 0xffffff;
-	// number of sectors to be read(rounded up)
-	nsectors = sizeof(struct a_out_hdr) + hdr->a_text + hdr->a_data;
-	nsectors = (nsectors + SECTOR_SIZE - 1)/SECTOR_SIZE;
+	if(*(u_int*)sect != 0x464C457F)	// \x7F ELF in little endian
+		goto bad;
 
-	// copy disk sectors into memory
-	dest = (unsigned char *)kernel_entry_point - sizeof(struct a_out_hdr);
-	for (i = 1; i <= nsectors; i++, dest += SECTOR_SIZE)
-		read_sector(i, dest);
+	// look at ELF header - ignores ph flags
+	elf = (struct Elf*)sect;
+	entry = elf->e_entry;
+	ph = (struct Proghdr*)(sect+elf->e_phoff);
+	for(i=0; i<elf->e_phnum; i++, ph++)
+		readseg(ph->p_va, ph->p_memsz, ph->p_offset);
 
-	/* jump to the kernel entry point */
-	asm volatile("jmp *%0" : : "a" (kernel_entry_point));
+	entry &= 0xFFFFFF;
+	((void(*)(void))entry)();
+	/* DOES NOT RETURN */
 
-	/* NOT REACHED */
+bad:
+	outw(0x8A00, 0x8A00);
+	outw(0x8A00, 0x8E00);
+	for(;;);
+	
 }
 
-
-// located below cmain() to prevent code bloat caused by inlining.
-//	(bootloader must fit in a disk sector)
+// read count bytes at offset from kernel into addr dst
+// might copy more than asked
 void
-read_sector(int sector, char *destination)
+readseg(u_int va, u_int count, u_int offset)
 {
-	unsigned char status;
+	u_int i;
 
-	do {
-		status = inb(0x1f7);
-	} while (status & 0x80);
+	va &= 0xFFFFFF;
 
-	outb(0x1f2, 1);		// sector count 
-	outb(0x1f3, (sector >> 0) & 0xff);
-	outb(0x1f4, (sector >> 8) & 0xff);
-	outb(0x1f5, (sector >> 16) & 0xff);
-	outb(0x1f6, 0xe0 | ((sector >> 24) & 0x0f));
-	outb(0x1f7, 0x20);	// CMD 0x20 means read sector
-	do {
-		status = inb(0x1f7);
-	} while (status & 0x80);
+	// round down to sector boundary; offset will round later
+	i = va&511;
+	count += i;
+	va -= i;
 
-	insl(0x1f0, destination, SECTOR_SIZE / 4);
+	// translate from bytes to sectors
+	offset /= 512;
+	count = (count+511)/512;
+
+	// kernel starts at sector 1
+	offset++;
+
+	// if this is too slow, we could read lots of sectors at a time.
+	// we'd write more to memory than asked, but it doesn't matter --
+	// we load in increasing order.
+	for(i=0; i<count; i++){
+		readsect((u_char*)va, 1, offset+i);
+		va += 512;
+	}
 }
+
+void
+notbusy(void)
+{
+	while(inb(0x1F7) & 0x80);	// wait for disk not busy
+}
+
+void
+readsect(u_char *dst, u_int count, u_int offset)
+{
+	notbusy();
+
+	outb(0x1F2, count);
+	outb(0x1F3, offset);
+	outb(0x1F4, offset>>8);
+	outb(0x1F5, offset>>16);
+	outb(0x1F6, (offset>>24)|0xE0);
+	outb(0x1F7, 0x20);	// cmd 0x20 - read sectors
+
+	notbusy();
+
+	insl(0x1F0, dst, count*512/4);
+}
+
 #endif /* LAB >= 1 */

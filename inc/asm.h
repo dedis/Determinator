@@ -7,7 +7,7 @@
  * Entry point for a procedure called from C
  */
 #define ASENTRY(proc) .align 2; .globl proc; .type proc,@function; proc:
-#define ENTRY(proc) ASENTRY(_ ## proc)
+#define ENTRY(proc) ASENTRY(## proc)
 
 /*
  * Align a branch target and fill the gap with NOP's

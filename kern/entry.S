@@ -49,10 +49,10 @@ relocated:
 
         # Leave a few words on the stack for the user trap frame UTF
 	# XXX use sizeof(.)
-	movl	$(_bootstacktop-0x40),%esp	# set the stack pointer 
+	movl	$(bootstacktop-0x40),%esp	# set the stack pointer 
 
 	# now to C code
-	call	_i386_init
+	call	i386_init
 
 	# Should never get here, but in case we do, just spin.
 spin:	jmp	spin
@@ -72,11 +72,11 @@ spin:	jmp	spin
 # boot stack
 ###################################################################
 	.p2align	PGSHIFT		# force page alignment
-	.globl		_bootstack
-_bootstack:
+	.globl		bootstack
+bootstack:
 	.space		KSTKSIZE
-	.globl		_bootstacktop   
-_bootstacktop:
+	.globl		bootstacktop   
+bootstacktop:
 
 ###################################################################
 # setup the GDT	

@@ -78,7 +78,7 @@ _alltraps:
 	movw %ax,%ds		#  kernel
 	movw %ax,%es		#  segments
 	pushl %esp		# pass pointer to this trapframe 
-	call	_trap		#  and call trap
+	call	trap		#  and call trap
 	addl $0x4,%esp		# deallocate arg.
 	popal			# restore
 	popl %es		#  registers

@@ -13,6 +13,13 @@ SETTINGLAB := true
 else
 -include .oldlab
 endif
+
+ifdef GCCPREFIX
+SETTINGGCCPREFIX := true
+else
+-include .gccsetup
+endif
+
 #
 # Anything in an #if LAB >= 999 always gets cut out by mklab.pl on export,
 # and thus is for the internal instructor/TA project tree only.
@@ -35,14 +42,23 @@ DEFS	:= $(DEFS) -DLAB=$(LAB) -DSOL=$(SOL)
 TOP = .
 
 # Cross-compiler osclass toolchain
-CC	:= i386-osclass-aout-gcc -pipe
+# Users of 32-bit x86 ELF platforms can leave GCCPREFIX empty,
+# so that they can use the native compilers for their systems.
+# People on other systems (e.g., x86-64 or Mac OS X) will need
+# to install an i386-elf-osclass tool chain and set GCCPREFIX
+# by doing
+#
+#	make 'GCCPREFIX=i386-elf-osclass' gccsetup
+#
+
+CC	:= $(GCCPREFIX)gcc -pipe
 GCC_LIB := $(shell $(CC) -print-libgcc-file-name)
-AS	:= i386-osclass-aout-as
-AR	:= i386-osclass-aout-ar
-LD	:= i386-osclass-aout-ld
-OBJCOPY	:= i386-osclass-aout-objcopy
-OBJDUMP	:= i386-osclass-aout-objdump
-NM	:= i386-osclass-aout-nm
+AS	:= $(GCCPREFIX)as
+AR	:= $(GCCPREFIX)ar
+LD	:= $(GCCPREFIX)ld
+OBJCOPY	:= $(GCCPREFIX)objcopy
+OBJDUMP	:= $(GCCPREFIX)objdump
+NM	:= $(GCCPREFIX)nm
 
 # Native commands
 NCC	:= gcc $(CC_VER) -pipe
@@ -79,6 +95,7 @@ $(OBJDIR)/%.o: %.c
 	@echo cc $<
 	@mkdir -p $(@D)
 	@$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
+
 $(OBJDIR)/%.o: %.S
 	@mkdir -p $(@D)
 	@echo as $<
@@ -104,6 +121,9 @@ ifdef SETTINGLAB
 	@false
 endif
 	@echo "Building LAB=$(LAB) SOL=$(SOL)"
+
+gccsetup:
+	echo >.gccsetup "GCCPREFIX=$(GCCPREFIX)"
 
 labsetup:
 	rm -rf obj
