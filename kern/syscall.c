@@ -91,8 +91,9 @@ sys_yield(void)
 //
 // Return 0 on success, < 0 on error
 //	- va must be < UTOP
-//	- env may modify its own address space or the address space of its children
-// 
+//	- an environment may modify its own address space or the
+//	  address space of its children
+//
 static int
 sys_mem_alloc(u_int envid, u_int va, u_int perm)
 {
@@ -123,9 +124,9 @@ sys_mem_alloc(u_int envid, u_int va, u_int perm)
 
 // Map the page of memory at 'srcva' in srcid's address space
 // at 'dstva' in dstid's address space with permission 'perm'.
-// Perm has the same restrictions as in sys_mem_alloc.
-// (Probably we should add a restriction that you can't go from
-// non-writable to writable?)
+// Perm has the same restrictions as in sys_mem_alloc, except 
+// that it also must not grant write access to a read-only 
+// page.
 //
 // Return 0 on success, < 0 on error.
 //
@@ -137,6 +138,7 @@ sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm)
 	int r;
 	struct Env *es, *ed;
 	struct Page *p;
+	Pte *ppte;
 
 	if (srcva >= UTOP || dstva >= UTOP)
 		return -E_INVAL;
@@ -144,7 +146,9 @@ sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm)
 		return r;
 	if (((~perm)&(PTE_U|PTE_P)) || (perm&~(PTE_U|PTE_P|PTE_AVAIL|PTE_W)))
 		return -E_INVAL;
-	if ((p = page_lookup(es->env_pgdir, srcva, 0)) == 0)
+	if ((p = page_lookup(es->env_pgdir, srcva, &ppte)) == 0)
+		return -E_INVAL;
+	if ((perm & PTE_W) && !(*ppte & PTE_W))
 		return -E_INVAL;
 	if ((r = page_insert(ed->env_pgdir, p, dstva, perm)) < 0)
 		return r;
@@ -238,6 +242,12 @@ sys_set_trapframe(u_int envid, struct Trapframe *tf)
 	return 0;
 #else
 	// Your code here (in lab 4).
+
+	// HINT:
+	// Should enforce some limits on tf_eflags and tf_cs
+	// The case were envid is the current environment needs 
+	//   to be handled specially.
+
 	panic("sys_set_trapframe not implemented");
 #endif
 }
@@ -306,6 +316,9 @@ sys_set_pgfault_entry(u_int envid, u_int func)
 // If the sender sends a page but the receiver isn't asking for one,
 // then no page mapping is transferred but no error occurs.
 //
+// srcva and perm should have the same restrictions as they had
+// in sys_mem_map.
+//
 // Hint: you will find envid2env() useful.
 static int
 sys_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm)
@@ -356,7 +369,10 @@ sys_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm)
 
 // Block until a value is ready.  Record that you want to receive,
 // mark yourself not runnable, and then give up the CPU.
-static void
+//
+// Again, dstva should have the same restrictions as it had in 
+// sys_mem_map.
+static int
 sys_ipc_recv(u_int dstva)
 {
 #if SOL >= 4
@@ -364,7 +380,7 @@ sys_ipc_recv(u_int dstva)
 		panic("already recving!");
 
 	if (dstva >= UTOP)
-		panic("invalid dstva");
+		return -E_INVAL;
 
 	curenv->env_ipc_recving = 1;
 	curenv->env_ipc_dstva = dstva;
@@ -416,8 +432,7 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 	case SYS_ipc_can_send:
 		return sys_ipc_can_send(a1, a2, a3, a4);
 	case SYS_ipc_recv:
-		sys_ipc_recv(a1);
-		return 0;
+		return sys_ipc_recv(a1);
 #endif	// SOL >= 4
 	default:
 		return -E_INVAL;
