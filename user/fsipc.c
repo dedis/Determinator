@@ -50,7 +50,7 @@ fsipc_open(const char *path, u_int omode, u_int *fileid, u_int *size)
 }
 
 // Make a map-block request to the file server.
-// We send the fileid and the offset of the desired block in the file,
+// We send the fileid and the (byte) offset of the desired block in the file,
 // and the server sends us back a mapping for a page containing that block.
 // Returns 0 on success, < 0 on failure.
 int

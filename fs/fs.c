@@ -171,6 +171,9 @@ block_is_free(u_int blockno)
 void
 free_block(u_int blockno)
 {
+	// Blockno zero is the null pointer of block numbers.
+	if (blockno == 0)
+		panic("attempt to free zero block");
 	bitmap[blockno/32] |= 1<<(blockno%32);
 }
 
@@ -604,7 +607,8 @@ file_create(char *path, struct File **file)
 // figure out the number of blocks required.
 // and then clear the blocks from new_nblocks to old_nblocks.
 // If the new_nblocks is no more than NDIRECT, free the indirect
-// block too.
+// block too.  (Remember to clear the f->f_indirect pointer so
+// you'll know whether it's valid!)
 //
 // Hint: use file_clear_block.
 void
