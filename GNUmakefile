@@ -16,7 +16,7 @@ PERL	:= perl
 # Compiler flags
 # Note that -O2 is required for the boot loader to fit within 512 bytes;
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
-CFLAGS	:= $(CFLAGS) -O2 -fno-builtin -I$(TOP) -MD -MP -Wall
+CFLAGS	:= $(CFLAGS) -O2 -fno-builtin -I$(TOP) -MD -MP -Wall -ggdb
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
@@ -71,12 +71,16 @@ CLEAN_FILES += bios lab? sol?
 # because that causes 'lab%' to match 'kern/lab3.S' and delete it - argh!
 export-lab%: $(BIOS_FILES)
 	rm -rf lab$*
-	$(PERL) mklab.pl $* $* lab$* $(LAB_FILES)
+	$(PERL) mklab.pl $* 0 lab$* $(LAB_FILES)
 	cp -R bios lab$*/
 export-sol%: $(BIOS_FILES)
 	rm -rf sol$*
 	$(PERL) mklab.pl $* $* sol$* $(LAB_FILES)
 	cp -R bios sol$*/
+export-prep%: $(BIOS_FILES)
+	rm -rf prep$*
+	$(PERL) mklab.pl $* `echo -1+$* | bc` prep$* $(LAB_FILES)
+	cp -R bios prep$*/
 
 lab%.tar.gz: $(BIOS_FILES)
 	gmake export-lab$*
