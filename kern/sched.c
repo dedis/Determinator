@@ -1,8 +1,10 @@
 #if LAB >= 3
+
+#include <inc/assert.h>
+
 #include <kern/env.h>
 #include <kern/pmap.h>
 #include <kern/picirq.h>
-#include <kern/printf.h>
 
 #if LAB >= 4
 #else

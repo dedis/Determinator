@@ -3,12 +3,13 @@
 
 #include <inc/x86.h>
 #include <inc/error.h>
+#include <inc/assert.h>
+
 #include <kern/env.h>
 #include <kern/pmap.h>
 #include <kern/trap.h>
 #include <kern/syscall.h>
 #include <kern/console.h>
-#include <kern/printf.h>
 #include <kern/sched.h>
 
 // return the current environment id

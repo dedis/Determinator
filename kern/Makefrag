@@ -28,7 +28,6 @@ KERN_SRCFILES :=	kern/locore.S \
 			kern/console.c \
 			kern/monitor.c \
 			kern/$(PMAP).c \
-			kern/printf.c \
 			kern/$(ENV).c \
 			kern/kclock.c \
 			kern/picirq.c \
@@ -36,8 +35,9 @@ KERN_SRCFILES :=	kern/locore.S \
 			kern/lab3.S \
 			kern/sched.c \
 			kern/syscall.c \
-			lib/string.c \
-			lib/readline.c
+			lib/printf.c \
+			lib/readline.c \
+			lib/string.c
 KERN_SRCFILES := $(foreach file, $(KERN_SRCFILES), \
 			$(shell test -f $(file) && echo $(file)))
 KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, \

@@ -6,6 +6,7 @@ LIB_SRCFILES :=		\
 			lib/fork.c \
 			lib/ipc.c \
 			lib/libos.c \
+			lib/panic.c \
 			lib/pgfault.c \
 			lib/printf.c \
 			lib/readline.c \

@@ -5,9 +5,10 @@
 #include <inc/mmu.h>
 #include <inc/error.h>
 #include <inc/string.h>
+#include <inc/assert.h>
+
 #include <kern/pmap.h>
 #include <kern/env.h>
-#include <kern/printf.h>
 #include <kern/kclock.h>
 
 u_long boot_cr3; /* Physical address of boot time pg dir */

@@ -5,7 +5,7 @@
 
 #include <inc/pmap.h>
 #include <inc/trap.h>
-#include <kern/printf.h>
+#include <inc/assert.h>
 
 extern struct Segdesc gdt[];
 extern struct Pseudodesc gdt_pd;

@@ -13,6 +13,7 @@ int	getchar(void);
 
 // lib/printf.c
 int	printf(const char*, ...);
+int	vprintf(const char*, va_list);
 int	snprintf(char*, int, const char*, ...);
 int	vsnprintf(char*, int, const char*, va_list);
 int	fprintf(int fd, const char*, ...);

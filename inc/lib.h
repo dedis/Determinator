@@ -10,8 +10,11 @@
 #define _INC_LIB_H_ 1
 
 #include <inc/types.h>
+#include <inc/stdio.h>
 #include <inc/stdarg.h>
+#include <inc/string.h>
 #include <inc/error.h>
+#include <inc/assert.h>
 #include <inc/env.h>
 #include <inc/pmap.h>
 #include <inc/syscall.h>
@@ -26,20 +29,6 @@
 // ipc.c
 void	ipc_send(u_int whom, u_int val, u_int srcva, u_int perm);
 u_int	ipc_recv(u_int *whom, u_int dstva, u_int *perm);
-
-// printf.c
-void	_panic(const char*, int, const char*, ...);
-int	printf(const char*, ...);
-int	snprintf(char*, int, const char*, ...);
-int	vsnprintf(char*, int, const char*, va_list);
-void	warn(const char*, ...);
-#define assert(x)	\
-	do {	if (!(x)) panic("assertion failed: %s", #x); } while (0)
-#define	panic(...) _panic(__FILE__, __LINE__, __VA_ARGS__)
-
-// string.c
-void *	memcpy(void *, const void *, size_t);
-void *	memset(void *, int, size_t);
 
 // libos.c or entry.S
 extern struct Env *env;

@@ -1,7 +1,10 @@
 #if LAB >= 3
 /* See COPYRIGHT for copyright information. */
-#include <kern/printf.h>
+
+#include <inc/assert.h>
+
 #include <kern/picirq.h>
+
 
 /* Keep copy of current IRQ mask */
 u_short irq_mask_8259A = 0xFFFF;
@@ -85,4 +88,5 @@ irq_setmask_8259A (u_short mask)
 			printf(" %d", i);
 	printf("\n");
 }
+
 #endif /* LAB >= 3 */

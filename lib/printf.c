@@ -1,68 +1,23 @@
-#if LAB >= 4
-// Stripped-down printf.  Unlike kernel printf, formats to buffer
-// and then sends buffer in one go with sys_cputs.
+#if LAB >= 1
+// Stripped-down implementation of printf
+// and other formatted print functions.
+// This code is used by both the kernel and user programs.
 
-#include <inc/lib.h>
-
-/*
- * Put a number(base <= 16) in a buffer in reverse order; return an
- * optional length and a pointer to the NULL terminated (preceded?)
- * buffer.
- */
-static char *
-printnum(u_int uq, int base, char *buf, int *lenp)
-{				/* A quad in binary, plus NULL. */
-	register char *p;
-
-	p = buf;
-	*buf = 0;
-	do {
-		*++p = "0123456789abcdef"[uq % base];
-	} while (uq /= base);
-	if (lenp)
-		*lenp = p - buf;
-	return(p);
-}
+#include <inc/types.h>
+#include <inc/stdio.h>
+#include <inc/stdarg.h>
+#include <inc/error.h>
 
 /*
  * Scaled down version of printf(3).
  *
- * Three additional formats:
- *
- * The format %b is supported to decode error registers.
- * Its usage is:
- *
- *      printf("reg=%b\n", regval, "<base><arg>*");
- *
- * where <base> is the output base expressed as a control character, e.g.
- * \10 gives octal; \20 gives hex.  Each arg is a sequence of characters,
- * the first of which gives the bit number to be inspected(origin 1), and
- * the next characters(up to a control character, i.e. a character <= 32),
- * give the name of the register.  Thus:
- *
- *      kprintf("reg=%b\n", 3, "\10\2BITTWO\1BITONE\n");
- *
- * would produce output:
- *
- *      reg=3<BITTWO,BITONE>
- *
- * The format %r passes an additional format string and argument list
- * recursively.  Its usage is:
- *
- * fn(char *fmt, ...)
- * {
- *      va_list ap;
- *      va_start(ap, fmt);
- *      printf("prefix: %r: suffix\n", fmt, ap);
- *      va_end(ap);
- * }
- *
  * Space or zero padding and a field width are supported for the numeric
  * formats only. 
  * 
- * The format %e takes an integer error code and prints a string describing the error.
- * The integer may be positive or negative, so that -E_NO_MEM and E_NO_MEM are
- * equivalent.
+ * The special format %e takes an integer error code
+ * and prints a string describing the error.
+ * The integer may be positive or negative,
+ * so that -E_NO_MEM and E_NO_MEM are equivalent.
  */
 
 static char *error_string[MAXERROR+1] =
@@ -85,60 +40,84 @@ static char *error_string[MAXERROR+1] =
 #endif
 };
 
-static u_int
-getint(va_list *ap, int lflag, int qflag)
+/*
+ * Print a number (base <= 16) in reverse order,
+ * using specified putch function and associated pointer putdat.
+ */
+static int
+printnum(int (*putch)(int, void*), void *putdat,
+	 unsigned long long num, unsigned base, int width, int padc)
 {
-	if (lflag)
-		return va_arg(*ap, u_long);
-	else /*if (qflag)
-		return va_arg(*ap, u_quad_t);
-	else*/
-		return va_arg(*ap, u_int);
-}
+	int rc;
 
-static void
-buf_putc(char **pbuf, char *ebuf, int ch)
-{
-	char *buf;
-
-	buf = *pbuf;
-	if(buf >= ebuf){
-		*pbuf = ebuf-1;
-		ebuf[-1] = 0;
-		return;
+	// first recursively print all preceding (more significant) digits
+	if (num >= base) {
+		if ((rc = printnum(putch, putdat, num / base, base,
+					width-1, padc)) < 0)
+			return rc;
+	} else {
+		// print any needed pad characters before first digit
+		while (--width > 0) {
+			if ((rc = putch(padc, putdat)) < 0)
+				return rc;
+		}
 	}
-	*buf++ = ch;
-	*pbuf = buf;
+
+	// then print this (the least significant) digit
+	return putch("0123456789abcdef"[num % base], putdat);
 }
 
-int
-vsnprintf(char *buf, int m, const char *fmt, va_list ap)
+// Get an int of various possible sizes from a varargs list,
+// depending on the lflag parameter.
+static unsigned long long
+getint(va_list *ap, int lflag)
 {
-	char *obuf, *ebuf;
-	register char *p, *q;
-	register int ch, n;
-	u_int uq;
-	int base, lflag, qflag, tmp, width;
-	char padc;
-	char numbuf[sizeof(u_quad_t) * 8 + 1];
+	if (lflag >= 2)
+		return va_arg(*ap, unsigned long long);
+	else if (lflag)
+		return va_arg(*ap, unsigned long);
+	else
+		return va_arg(*ap, unsigned int);
+}
 
-	obuf = buf;
-	ebuf = buf+m;
+
+// Main function to format and print a string.
+#define PUT(ch) \
+	if ((rc = putch((ch), putdat)) < 0) return rc;
+
+static int
+printfmt(int (*putch)(int, void*), void *putdat, const char *fmt, ...);
+
+static int
+vprintfmt(int (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
+{
+	register char *p;
+	register int ch, err;
+	unsigned long long num;
+	int base, lflag, width;
+	char padc;
+	int rc;
+
 	for (;;) {
+		while ((ch = *(u_char *) fmt++) != '%') {
+			if (ch == '\0')
+				return 0;
+			PUT(ch);
+		}
+
+		// Process a %-escape sequence
 		padc = ' ';
 		width = 0;
-		while ((ch = *(u_char *) fmt++) != '%') {
-			buf_putc(&buf, ebuf, ch);
-			if (ch == '\0')
-				return buf-1-obuf;
-		}
 		lflag = 0;
-		qflag = 0;
 	reswitch:
 		switch (ch = *(u_char *) fmt++) {
+
+		// flag to pad with 0's instead of spaces
 		case '0':
 			padc = '0';
 			goto reswitch;
+
+		// width field
 		case '1':
 		case '2':
 		case '3':
@@ -155,179 +134,167 @@ vsnprintf(char *buf, int m, const char *fmt, va_list ap)
 					break;
 			}
 			goto reswitch;
+
+		// long flag (doubled for long long)
 		case 'l':
-			lflag = 1;
-			qflag = 0; /* this should be done better */
+			lflag++;
 			goto reswitch;
-		case 'q':
-			qflag = 1;
-			lflag = 0; /* this should be done better */
-			goto reswitch;
-		case 'b':
-			uq = va_arg(ap, int);
-			p = va_arg(ap, char *);
-			for (q = printnum(uq, *p++, numbuf, NULL); (ch = *q--) != '\0';)
-				buf_putc(&buf, ebuf, ch);
 
-			if (!uq)
-				break;
-
-			for (tmp = 0; (n = *p++) != '\0'; ) {
-				if (uq & (1 << (n - 1))) {
-					buf_putc(&buf, ebuf, tmp ? ',' : '<');
-					for (; (n = *p) > ' '; ++p)
-						buf_putc(&buf, ebuf, n);
-					tmp = 1;
-				}
-				else
-					for (; *p > ' '; ++p)
-						continue;
-			}
-			if (tmp)
-				buf_putc(&buf, ebuf, '>');
-			break;
+		// character
 		case 'c':
-			buf_putc(&buf, ebuf, va_arg(ap, int));
+			PUT(va_arg(ap, int));
 			break;
+
+		// error message
 		case 'e':
-			n = va_arg(ap, int);
-			if(n < 0)
-				n = -n;
-			if(n > MAXERROR || (p = error_string[n]) == NULL)
-				buf += snprintf(buf, ebuf-buf, "error %d", n);
+			err = va_arg(ap, int);
+			if(err < 0)
+				err = -err;
+			if(err > MAXERROR || (p = error_string[err]) == NULL)
+				printfmt(putch, putdat, "error %d", err);
 			else
-				buf += snprintf(buf, ebuf-buf, "%s", p);
+				printfmt(putch, putdat, "%s", p);
 			break;
-		case 'r':
-			p = va_arg(ap, char *);
-			buf += vsnprintf(buf, ebuf-buf, p, va_arg(ap, va_list));
-			break;
+
+		// string
 		case 's':
 			if ((p = va_arg(ap, char *)) == NULL)
 					p = "(null)";
 			while ((ch = *p++) != '\0')
-				buf_putc(&buf, ebuf, ch);
+				PUT(ch);
 			break;
+
+		// (signed) decimal
 		case 'd':
-			uq = getint(&ap, lflag, qflag);
-			/*if (qflag && (quad_t) uq < 0) {
-				buf_putc(&buf, ebuf, '-');
-				uq = -(quad_t) uq;
-			}
-			else*/ if ((long)uq < 0) {
-				buf_putc(&buf, ebuf, '-');
-				uq = -(long) uq;
+			num = getint(&ap, lflag);
+			if ((long long)num < 0) {
+				PUT('-');
+				num = -(long long) num;
 			}
 			base = 10;
 			goto number;
+
+		// unsigned decimal
 		case 'u':
-			uq = getint(&ap, lflag, qflag);
+			num = getint(&ap, lflag);
 			base = 10;
 			goto number;
+
+		// (unsigned) octal
 		case 'o':
-			uq = getint(&ap, lflag, qflag);
+			num = getint(&ap, lflag);
 			base = 8;
 			goto number;
+
+		// pointer
 		case 'p':
-			buf_putc(&buf, ebuf, '0');
-			buf_putc(&buf, ebuf, 'x');
-			uq = (u_long) va_arg(ap, void *);
+			if ((rc = putch('0', putdat)) < 0 ||
+			    (rc = putch('x', putdat)) < 0)
+				return rc;
+			num = (unsigned long long)(register_t)
+							va_arg(ap, void *);
 			base = 16;
 			goto number;
+
+		// (unsigned) hexadecimal
 		case 'x':
-			uq = getint(&ap, lflag, qflag);
+			num = getint(&ap, lflag);
 			base = 16;
 		number:
-			p = printnum(uq, base, numbuf, &tmp);
-			if (width && (width -= tmp) > 0)
-				while (width--)
-					buf_putc(&buf, ebuf, padc);
-			while ((ch = *p--) != '\0')
-				buf_putc(&buf, ebuf, ch);
+			if ((rc = printnum(putch, putdat, num, base,
+						width, padc)) < 0)
+				return rc;
 			break;
+
+		// unrecognized escape sequence - just print it literally
 		default:
-			buf_putc(&buf, ebuf, '%');
-			if (lflag)
-				buf_putc(&buf, ebuf, 'l');
+			PUT('%');
+			while (lflag-- > 0)
+				PUT('l');
 			/* FALLTHROUGH */
+
+		// escaped '%' character
 		case '%':
-			buf_putc(&buf, ebuf, ch);
+			PUT(ch);
 		}
 	}
+}
+#undef PUT
+
+static int
+printfmt(int (*putch)(int, void*), void *putdat, const char *fmt, ...)
+{
+	va_list ap;
+	int rc;
+
+	va_start(ap, fmt);
+	rc = vprintfmt(putch, putdat, fmt, ap);
+	va_end(ap);
+
+	return rc;
+}
+
+struct sprintbuf {
+	char *buf;
+	char *ebuf;
+};
+
+static void
+sprintputc(int ch, struct sprintbuf *b)
+{
+	if (b->buf >= b->ebuf)
+		return;
+	*b->buf++ = ch;
+}
+
+int
+vsnprintf(char *buf, int n, const char *fmt, va_list ap)
+{
+	struct sprintbuf b = {buf, buf+n-1};
+	int rc;
+
+	if (buf == NULL || n < 1)
+		return -E_INVAL;
+
+	// print the string to the buffer
+	rc = vprintfmt((void*)sprintputc, &b, fmt, ap);
+
+	// null terminate the buffer
+	*b.buf = '\0';
+
+	return rc;
 }
 
 int
 snprintf(char *buf, int n, const char *fmt, ...)
 {
-	int m;
 	va_list ap;
+	int rc;
 
 	va_start(ap, fmt);
-	m = vsnprintf(buf, n, fmt, ap);
+	rc = vsnprintf(buf, n, fmt, ap);
 	va_end(ap);
-	return m;
+
+	return rc;
 }
 
-char *argv0;
-
-/*
- * Panic is called on unresolvable fatal errors.
- * It prints "panic: mesg", and then enters an infinite loop.
- * If executing on Bochs, drop into the debugger rather than chew CPU.
- */
-void
-_panic(const char *file, int line, const char *fmt,...)
+int
+vprintf(const char *fmt, va_list ap)
 {
-	va_list ap;
-	char buf[256];
-	int n;
-
-	va_start(ap, fmt);
-
-	n = 0;
-	if (argv0)
-		n += snprintf(buf+n, sizeof buf-n, "%s: ", argv0);
-	n += snprintf(buf+n, sizeof buf-n, "user panic at %s:%d: ", file, line);
-	n += vsnprintf(buf+n, sizeof buf-n, fmt, ap);
-	n += snprintf(buf+n, sizeof buf-n, "\n");
-	va_end(ap);
-	sys_cputs(buf);
-
-	for(;;);
-}
-
-/* like panic, but don't */
-void
-warn(const char *fmt, ...)
-{
-	va_list ap;
-	char buf[256];
-	int n;
-
-	va_start(ap, fmt);
-
-	n = 0;
-	if (argv0)
-		n += snprintf(buf+n, sizeof buf-n, "%s: ", argv0);
-	n += snprintf(buf+n, sizeof buf-n, "warning: ");
-	n += vsnprintf(buf+n, sizeof buf-n, fmt, ap);
-	n += snprintf(buf+n, sizeof buf-n, "\n");
-	va_end(ap);
-	sys_cputs(buf);
+	return vprintfmt((void*)putchar, NULL, fmt, ap);
 }
 
 int
 printf(const char *fmt, ...)
 {
-	char buf[256];
 	va_list ap;
+	int rc;
 
 	va_start(ap, fmt);
-	vsnprintf(buf, sizeof buf, fmt, ap);
+	rc = vprintf(fmt, ap);
 	va_end(ap);
-	sys_cputs(buf);
 
-	return 0;
+	return rc;
 }
 
-#endif
+#endif // LAB >= 1

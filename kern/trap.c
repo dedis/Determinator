@@ -1,11 +1,13 @@
 #if LAB >= 3
+
 #include <inc/mmu.h>
+#include <inc/assert.h>
+
 #include <kern/pmap.h>
 #include <kern/trap.h>
 #include <kern/env.h>
 #include <kern/sched.h>
 #include <kern/console.h>
-#include <kern/printf.h>
 #include <kern/picirq.h>
 #include <kern/kclock.h>
 #if LAB >= 4

@@ -4,7 +4,8 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/mmu.h>
-#include <kern/printf.h>
+#include <inc/assert.h>
+
 #include <kern/console.h>
 #include <kern/monitor.h>
 

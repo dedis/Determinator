@@ -7,9 +7,10 @@
 #include <inc/x86.h>
 #include <inc/isareg.h>
 #include <inc/timerreg.h>
+#include <inc/assert.h>
+
 #include <kern/picirq.h>
 #include <kern/env.h>
-#include <kern/printf.h>
 #include <kern/kclock.h>
 
 

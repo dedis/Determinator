@@ -5,6 +5,7 @@
 #include <inc/mmu.h>
 #include <inc/error.h>
 #include <inc/string.h>
+#include <inc/assert.h>
 
 #include <kern/env.h>
 #include <kern/pmap.h>
@@ -12,7 +13,6 @@
 #include <kern/trap.h>
 #include <kern/sched.h>
 #endif
-#include <kern/printf.h>
 
 struct Env *envs = NULL;		// All environments
 struct Env *curenv = NULL;	        // the current env

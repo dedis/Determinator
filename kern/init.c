@@ -1,7 +1,10 @@
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/asm.h>
+#include <inc/stdio.h>
 #include <inc/string.h>
+#include <inc/assert.h>
+
 #include <kern/monitor.h>
 #if LAB >= 3
 #include <kern/trap.h>
@@ -9,7 +12,6 @@
 #include <kern/pmap.h>
 #include <kern/env.h>
 #include <kern/console.h>
-#include <kern/printf.h>
 #include <kern/picirq.h>
 #include <kern/kclock.h>
 #if LAB >= 3
@@ -125,5 +127,53 @@ i386_init(void)
 	// Drop into the kernel monitor.
 	while (1)
 		monitor(NULL);
+}
+
+
+/*
+ * Variable panicstr contains argument to first call to panic; used as flag
+ * to indicate that the kernel has already called panic.
+ */
+static const char *panicstr;
+
+/*
+ * Panic is called on unresolvable fatal errors.
+ * It prints "panic: mesg", and then enters an infinite loop.
+ * If executing on Bochs, drop into the debugger rather than chew CPU.
+ */
+void
+_panic(const char *file, int line, const char *fmt,...)
+{
+	va_list ap;
+
+	if (panicstr)
+		goto dead;
+	panicstr = fmt;
+
+	va_start(ap, fmt);
+	printf("kernel panic at %s:%d: ", file, line);
+	vprintf(fmt, ap);
+	printf("\n");
+	va_end(ap);
+
+dead:
+	/* break into Bochs debugger */
+	outw(0x8A00, 0x8A00);
+	outw(0x8A00, 0x8AE0);
+
+	for(;;);
+}
+
+/* like panic, but don't */
+void
+_warn(const char *file, int line, const char *fmt,...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	printf("kernel warning at %s:%d: ", file, line);
+	vprintf(fmt, ap);
+	printf("\n");
+	va_end(ap);
 }
 
