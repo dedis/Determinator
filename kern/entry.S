@@ -71,7 +71,7 @@ spin:	jmp	spin
 
 
 ###################################################################	
-# See mmu.h for a complete description of these two symbols.
+# See pmap.h for a complete description of these two symbols.
 ###################################################################
 .data
 	.globl	_vpt

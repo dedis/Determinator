@@ -111,10 +111,10 @@
  * (treating it as a page table as well as a page directory).  One
  * result of treating the page directory as a page table is that all
  * PTE's can be accessed through a "virtual page table" at virtual
- * address VPT (to which vpt is set in locore.S).  A second
+ * address VPT (to which vpt is set in entry.S).  A second
  * consequence is that the contents of the current page directory will
- * always be available at virtual address(VPT+(VPT>>PGSHIFT)) to
- * which vpd is set in locore.S.
+ * always be available at virtual address(VPT+(VPT>>PGSHIFT)), to
+ * which vpd is set in entry.S.
  */
 typedef u_long Pte;
 typedef u_long Pde;
