@@ -175,7 +175,7 @@ env_alloc(struct Env **new, u_int parent_id)
 	int r;
 	struct Env *e;
 
-	if (!(e = LIST_FIRST (&env_free_list)))
+	if (!(e = LIST_FIRST(&env_free_list)))
 		return -E_NO_FREE_ENV;
 
 	if ((r = env_setup_vm(e)) < 0)
@@ -210,7 +210,7 @@ env_alloc(struct Env **new, u_int parent_id)
 	e->env_xstacktop = 0;
 
 	// commit the allocation
-	LIST_REMOVE (e, env_link);
+	LIST_REMOVE(e, env_link);
 	*new = e;
 
 	return 0;
@@ -245,7 +245,7 @@ env_free(struct Env *e)
 	Pte *pt;
 	u_int pdeno, pteno;
 
-	static_assert( (UTOP % PDMAP) == 0);
+	static_assert(UTOP%PDMAP == 0);
 	// Flush all pages
 	for (pdeno = 0; pdeno < PDX(UTOP); pdeno++) {
 		if (!(e->env_pgdir[pdeno] & PTE_P))
@@ -263,7 +263,7 @@ env_free(struct Env *e)
 	// anything(except leak memory).  We'll fix
 	// this in later labs.
 	e->env_status = ENV_FREE;
-	LIST_INSERT_HEAD (&env_free_list, e, env_link);
+	LIST_INSERT_HEAD(&env_free_list, e, env_link);
 }
 
 
@@ -325,7 +325,7 @@ env_run(struct Env *e)
 		curenv->env_tf = *UTF;
 	curenv = e;
 	// switch to e's addressing context
-	lcr3 (e->env_cr3);
+	lcr3(e->env_cr3);
 	// restore e's register state
 	env_pop_tf(&e->env_tf);
 ///END
