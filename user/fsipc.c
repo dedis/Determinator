@@ -6,6 +6,13 @@
 
 extern u_char fsipcbuf[BY2PG];		// page-aligned, declared in entry.S
 
+// Send an IP request to the file server, and wait for a reply.
+// type: request code, passed as the simple integer IPC value.
+// fsreq: page to send containing additional request data, usually fsipcbuf.
+//	  Can be modified by server to return additional response info.
+// dstva: virtual address at which to receive reply page, 0 if none.
+// *perm: permissions of received page.
+// Returns 0 if successful, < 0 on failure.
 static int
 fsipc(u_int type, void *fsreq, u_int dstva, u_int *perm)
 {
@@ -17,6 +24,9 @@ fsipc(u_int type, void *fsreq, u_int dstva, u_int *perm)
 	return ipc_recv(&whom, dstva, perm);
 }
 
+// Send file-open request to the file server.
+// Includes path and omode in request, sets *fileid and *size from reply.
+// Returns 0 on success, < 0 on failure.
 int
 fsipc_open(const char *path, u_int omode, u_int *fileid, u_int *size)
 {
@@ -39,6 +49,10 @@ fsipc_open(const char *path, u_int omode, u_int *fileid, u_int *size)
 	return 0;
 }
 
+// Make a map-block request to the file server.
+// We send the fileid and the offset of the desired block in the file,
+// and the server sends us back a mapping for a page containing that block.
+// Returns 0 on success, < 0 on failure.
 int
 fsipc_map(u_int fileid, u_int offset, u_int dstva)
 {
@@ -56,6 +70,7 @@ fsipc_map(u_int fileid, u_int offset, u_int dstva)
 	return 0;
 }
 
+// Make a set-file-size request to the file server.
 int
 fsipc_set_size(u_int fileid, u_int size)
 {
@@ -67,6 +82,8 @@ fsipc_set_size(u_int fileid, u_int size)
 	return fsipc(FSREQ_SET_SIZE, req, 0, 0);
 }
 
+// Make a file-close request to the file server.
+// After this the fileid is invalid.
 int
 fsipc_close(u_int fileid)
 {
@@ -77,6 +94,7 @@ fsipc_close(u_int fileid)
 	return fsipc(FSREQ_CLOSE, req, 0, 0);
 }
 
+// Ask the file server to mark a particular file block dirty.
 int
 fsipc_dirty(u_int fileid, u_int offset)
 {
@@ -88,6 +106,7 @@ fsipc_dirty(u_int fileid, u_int offset)
 	return fsipc(FSREQ_DIRTY, req, 0, 0);
 }
 
+// Ask the file server to delete a file, given its pathname.
 int
 fsipc_remove(const char *path)
 {
@@ -100,6 +119,8 @@ fsipc_remove(const char *path)
 	return fsipc(FSREQ_REMOVE, req, 0, 0);
 }
 
+// Ask the file server to update the disk
+// by writing any dirty blocks in the buffer cache.
 int
 fsipc_sync(void)
 {
