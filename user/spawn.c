@@ -128,7 +128,7 @@ printf("aout magic %08x want %08x\n", aout.a_magic, AOUT_MAGIC);
 	}
 
 	data = text+i;
-	if ((r = seek(fd, aout.a_text)) < 0)
+	if ((r = seek(fd, 0x20+aout.a_text)) < 0)
 		goto error;
 	for (i=0; i<aout.a_data; i+=BY2PG) {
 		if ((r = sys_mem_alloc(0, TMPPAGE, PTE_P|PTE_U|PTE_W)) < 0)
@@ -168,7 +168,7 @@ error:
 #else /* not SOL >= 5 */
 	// Insert your code, following approximately this procedure:
 	//
-	//	- Open the program file and read the a.out header.
+	//	- Open the program file and read the a.out header (see inc/aout.h).
 	//
 	//	- Use sys_env_alloc() to create a new environment.
 	//
@@ -176,12 +176,17 @@ error:
 	//	  the initial stack page for the child environment.
 	//
 	//	- Map the program's text segment, from file offset 0
-	//	  through file offset aout.a_text-1, starting at
-	//	  virtual address UTEXT in the child.
+	//	  up to (but not including) file offset 0x20+aout.a_text, starting at
+	//	  virtual address UTEXT in the child (0x20 is the size of the a.out header).
 	//	  Use read_map() and map the pages it returns directly
 	//	  into the child so that multiple instances of the
 	//	  same program will share the same copy of the program text.
 	//	  Be sure to map the program text read-only in the child.
+	//	  Read_map is like read but returns a pointer to the data
+	//	  in *blk rather than copying the data into another buffer.
+	//
+	//	  The text segment will end on a page boundary.
+	//	  That is, (0x20+aout.a_text) % BY2PG == 0.
 	//
 	//	- Set up the child process's data segment.  For each page,
 	//	  allocate a page in the parent temporarily at TMPPAGE,
@@ -190,10 +195,22 @@ error:
 	//	  Look at init_stack() for inspiration.
 	//	  Be sure you understand why you can't use read_map() here.
 	//
+	//	  The data segment starts where the text segment left off,
+	//	  so it starts on a page boundary.  The data size will always be a multiple
+	//	  of the page size, so it will end on a page boundary too.
+	//	  The data comes from the aout.a_data bytes in the file starting
+	//	  at offset (0x20+aout.a_text).
+	//
 	//	- Set up the child process's bss segment.
 	//	  All you need to do here is sys_mem_alloc() the pages
 	//	  directly into the child's address space, because
 	//	  sys_mem_alloc() automatically zeroes the pages it allocates.
+	//
+	//	  The bss will start page aligned (since it picks up where the
+	//	  data segment left off), but it's length may not be a multiple
+	//	  of the page size, so it may not end on a page boundary.
+	//	  Be sure to map the last page.  (It's okay to map the whole last page
+	//	  even though the program will only need part of it.)
 	//
 	//	- Use the new sys_set_trapframe() call to set up the
 	//	  correct initial eip and esp register values in the child.
@@ -202,7 +219,6 @@ error:
 	//
 	//	- Start the child process running with sys_set_env_status().
 	//
-	// Set up program text, data, bss
 	panic("spawn unimplemented!");
 #endif /* not SOL >= 5 */
 }

@@ -1,4 +1,4 @@
-#!/bin/sh
+b#!/bin/sh
 
 verbose=false
 
@@ -13,6 +13,8 @@ else
 fi
 
 #if LAB >= 4
+
+pts=5
 
 runtest() {
 	perl -e "print '$1: '"
@@ -83,7 +85,7 @@ continuetest() {
 	done
 	if [ "$okay" = "yes" ]
 	then
-		score=`echo 5+$score | bc`
+		score=`echo $pts+$score | bc`
 		echo OK
 	else
 		echo WRONG
@@ -110,6 +112,9 @@ runtest1() {
 
 #if LAB >= 5
 score=0
+
+rm -f fs/fs.img
+gmake fs/fs.img >$out
 
 runtest1 -tag 'fs i/o' testfsipc \
 	'FS can do I/O' \
@@ -150,8 +155,40 @@ quicktest 'serv_*' \
 
 echo PART A SCORE: $score/55
 
-echo PART B grading script is not available yet.
-echo we will announce when it is ready.
+rm -f fs/fs.img
+gmake fs/fs.img >$out
+
+score=0
+pts=10
+runtest1 -tag 'motd display' writemotd \
+	'OLD MOTD' \
+	'This is /motd, the message of the day.' \
+	'NEW MOTD' \
+	'This is the NEW message of the day!' \
+
+runtest1 -tag 'motd change' writemotd \
+	'OLD MOTD' \
+	'This is the NEW message of the day!' \
+	'NEW MOTD' \
+	! 'This is /motd, the message of the day.' \
+
+rm -f fs/fs.img
+gmake fs/fs.img >$out
+
+pts=25
+runtest1 -tag 'spawn via icode' icode \
+	'icode: read /motd' \
+	'This is /motd, the message of the day.' \
+	'icode: spawn /init' \
+	'/init: running' \
+	'/init: data seems okay' \
+	'icode: exiting' \
+	'/init: bss seems okay' \
+	"/init: args: 'init' 'initarg1' 'initarg2'" \
+	'/init: exiting' \
+
+echo PART B SCORE: $score/45
+
 exit 0
 
 #elif LAB >= 4

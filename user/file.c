@@ -64,8 +64,10 @@ open(const char *path, int mode)
 		return r;
 	fd = r;
 
-	if ((r = fsipc_open(path, mode, &fi->fi_fileid, &fi->fi_size)) < 0)
+	if ((r = fsipc_open(path, mode, &fi->fi_fileid, &fi->fi_size)) < 0) {
+		fi->fi_busy = 0;
 		return r;
+	}
 	for (i=0; i < fi->fi_size; i+=BY2PG)
 		if ((r = fsipc_map(fi->fi_fileid, i, fi->fi_va+i)) < 0) {
 			fi->fi_size = i-BY2PG;

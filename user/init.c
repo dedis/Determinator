@@ -29,7 +29,7 @@ umain(int argc, char **argv)
 
 	printf("/init: running\n");
 
-	want = 0x40795;
+	want = 0xf989e;
 	if ((x=sum((char*)&data, sizeof data)) != want)
 		printf("/init: data is not initialized: got sum %08x wanted %08x\n",
 			x, want);
