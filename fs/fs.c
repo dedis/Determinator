@@ -6,7 +6,6 @@ struct Super *super;
 u_int nbitmap;		// number of bitmap blocks
 u_int *bitmap;		// bitmap blocks mapped in memory
 
-void file_decref(struct File*);
 void file_flush(struct File*);
 int block_is_free(u_int);
 
@@ -340,6 +339,7 @@ file_block_walk(struct File *f, u_int filebno, u_int **ppdiskbno, u_int alloc)
 		}
 		if ((r=read_block(f->f_indirect, &blk, 0)) < 0)
 			return r;
+		assert(blk != 0);
 		ptr = (u_int*)blk + filebno;
 	} else
 		return -E_INVAL;
@@ -513,8 +513,8 @@ walk_path(char *path, struct File **pdir, struct File **pfile, char *lastelem)
 	struct File *dir, *file;
 	int r;
 
-	if (*path != '/')
-		return -E_BAD_PATH;
+	// if (*path != '/')
+	//	return -E_BAD_PATH;
 	path = skip_slash(path);
 	file = &super->s_root;
 	file->f_ref++;
@@ -542,8 +542,6 @@ walk_path(char *path, struct File **pdir, struct File **pfile, char *lastelem)
 			if(r == -E_NOT_FOUND && *path == '\0') {
 				if(pdir)
 					*pdir = dir;
-				else
-					file_decref(dir);
 				if (lastelem)
 					strcpy(lastelem, name);
 				*pfile = 0;
@@ -554,8 +552,6 @@ walk_path(char *path, struct File **pdir, struct File **pfile, char *lastelem)
 
 	if(pdir)
 		*pdir = dir;
-	else
-		file_decref(dir);
 	*pfile = file;
 	return 0;
 }
@@ -583,18 +579,12 @@ file_create(char *path, struct File **file)
 	int r;
 	struct File *dir, *f;
 
-	if ((r = walk_path(path, &dir, &f, name)) == 0) {
-		file_decref(dir);
-		file_decref(f);
+	if ((r = walk_path(path, &dir, &f, name)) == 0)
 		return -E_FILE_EXISTS;
-	}
 	if (r != -E_NOT_FOUND || dir == 0)
 		return r;
-	if (dir_alloc_file(dir, &f) < 0) {
-		file_decref(dir);
+	if (dir_alloc_file(dir, &f) < 0)
 		return r;
-	}
-	file_decref(dir);
 	strcpy(f->f_name, name);
 	*file = f;
 	return 0;
@@ -640,26 +630,9 @@ file_set_size(struct File *f, u_int newsize)
 	if (f->f_size > newsize)
 		file_truncate(f, newsize);
 	f->f_size = newsize;
-	file_flush(f->f_dir);
-	return 0;
-}
-
-void
-file_decref(struct File *f)
-{
-	if (f == 0)
-		panic("file_decref 0");
-
-	if (f == &super->s_root) {
-		write_block(1);
-		return;
-	}
-
-	if (--f->f_ref == 0) {
-		file_flush(f);
+	if (f->f_dir)
 		file_flush(f->f_dir);
-		file_decref(f->f_dir);
-	}
+	return 0;
 }
 
 // Flush the contents of file f out to disk.
@@ -698,11 +671,13 @@ fs_sync(void)
 			write_block(i);
 }
 
-// Close a file (consumes the reference).
+// Close a file.
 void
 file_close(struct File *f)
 {
-	file_decref(f);
+	file_flush(f);
+	if (f->f_dir)
+		file_flush(f->f_dir);
 }
 
 // Remove a file by truncating it and then zeroing the name.
@@ -710,14 +685,16 @@ int
 file_remove(char *path)
 {
 	int r;
-	struct File *file;
+	struct File *f;
 
-	if ((r = walk_path(path, 0, &file, 0)) < 0)
+	if ((r = walk_path(path, 0, &f, 0)) < 0)
 		return r;
 
-	file_truncate(file, 0);
-	file->f_name[0] = '\0';
-	file_decref(file);
+	file_truncate(f, 0);
+	f->f_name[0] = '\0';
+	file_flush(f);
+	if (f->f_dir)
+		file_flush(f->f_dir);
 
 	return 0;
 }

@@ -28,7 +28,7 @@ libmain(int argc, char **argv)
 void
 exit(void)
 {
-	fd_close_all();
+	close_all();
 	sys_env_destroy(0);
 }
 

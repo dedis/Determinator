@@ -642,7 +642,7 @@ page_lookup(Pde *pgdir, u_long va, Pte **ppte)
 	if ((r = pgdir_walk(pgdir, va, 0, &pte)) < 0)
 		panic("pgdir_walk cannot fail now: %e", r);
 
-	if (pte == 0)
+	if (pte == 0 || *pte == 0)
 		return 0;
 	if (ppte)
 		*ppte = pte;

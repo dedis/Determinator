@@ -3,18 +3,21 @@
 
 int flag[256];
 
+void lsdir(char*, char*);
+void ls1(char*, u_int, u_int, char*);
+
 void
 ls(char *path, char *prefix)
 {
 	int r;
-	struct File f;
+	struct Stat st;
 
-	if ((r=stat(path, &f)) < 0)
+	if ((r=stat(path, &st)) < 0)
 		panic("stat %s: %e", path, r);
-	if (f.f_isdir && !flag['d'])
+	if (st.st_isdir && !flag['d'])
 		lsdir(path, prefix);
 	else
-		ls1(0, 0, f.f_size, path);
+		ls1(0, st.st_isdir, st.st_size, path);
 }
 
 void
@@ -24,10 +27,10 @@ lsdir(char *path, char *prefix)
 	struct File f;
 
 	if ((fd = open(path, O_RDONLY)) < 0)
-		panic("open %s: %e", path, r);
-
+		panic("open %s: %e", path, fd);
 	while ((n = readn(fd, &f, sizeof f)) == sizeof f)
-		ls1(prefix, f.f_isdir, f.f_size, f.f_name);
+		if (f.f_name[0])
+			ls1(prefix, f.f_type==FTYPE_DIR, f.f_size, f.f_name);
 	if (n > 0)
 		panic("short read in directory %s", path);
 	if (n < 0)
@@ -35,40 +38,49 @@ lsdir(char *path, char *prefix)
 }
 
 void
-ls1(char *prefix, uint isdir, uint size, char *name)
+ls1(char *prefix, u_int isdir, u_int size, char *name)
 {
+	char *sep;
+
 	if(flag['l'])
-		printf("%11d ");
-	if(prefix)
-		printf("%s/", prefix);
-	printf("%s", name);
+		fprintf(1, "%c %11d ", isdir ? 'd' : '-');
+	if(prefix) {
+		if (prefix[0] && prefix[strlen(prefix)-1] != '/')
+			sep = "/";
+		else
+			sep = "";
+		fprintf(1, "%s%s", prefix, sep);
+	}
+	fprintf(1, "%s", name);
 	if(flag['F'] && isdir)
-		printf("/");
-	printf("\n");
+		fprintf(1, "/");
+	fprintf(1, "\n");
 }
 
 void
 usage(void)
 {
-	print("usage: ls [-dFl] [file...]\n");
+	fprintf(1, "usage: ls [-dFl] [file...]\n");
 	exit();
 }
 
 void
 umain(int argc, char **argv)
 {
+	int i;
+
 	ARGBEGIN{
 	default:
 		usage();
 	case 'd':
 	case 'F':
 	case 'l':
-		flag[ARGC()]++;
+		flag[(u_char)ARGC()]++;
 		break;
 	}ARGEND
 
 	if (argc == 0)
-		ls(".", "");
+		ls("/", "");
 	else {
 		for (i=0; i<argc; i++)
 			ls(argv[i], argv[i]);

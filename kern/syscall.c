@@ -120,8 +120,11 @@ sys_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm)
 			return -E_INVAL;
 
 		p = page_lookup(curenv->env_pgdir, srcva, 0);
-		if (p == 0)
+		if (p == 0) {
+			printf("[%08x] page_lookup %08x failed in sys_ipc_can_send\n",
+				curenv->env_id, srcva);
 			return -E_INVAL;
+		}
 		r = page_insert(e->env_pgdir, p, e->env_ipc_dstva, perm);
 		if (r < 0)
 			return r;
@@ -355,6 +358,12 @@ sys_panic(char *msg)
 	panic("%s", TRUP(msg));
 }
 
+static int
+sys_cgetc(void)
+{
+	return cons_getc();
+}
+
 #endif
 // Dispatches to the correct kernel function, passing the arguments.
 int
@@ -397,6 +406,10 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 	case SYS_panic:
 		sys_panic((char*)a1);
 		panic("sys_panic!");
+#endif
+#if SOL >= 6
+	case SYS_cgetc:
+		return sys_cgetc();
 #endif
 	default:
 		return -E_INVAL;

@@ -267,6 +267,8 @@ snprintf(char *buf, int n, const char *fmt, ...)
 	return m;
 }
 
+char *argv0;
+
 /*
  * Panic is called on unresolvable fatal errors.
  * It prints "panic: mesg", and then enters an infinite loop.

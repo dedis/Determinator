@@ -49,9 +49,9 @@ i386_init(void)
 	ENV_CREATE2(TEST, TESTSIZE);
 #else
 	// Touch all you want.
-	// ENV_CREATE(user_icode);
-	ENV_CREATE(user_pipereadeof);
-	ENV_CREATE(user_pipewriteeof);
+	ENV_CREATE(user_icode);
+	// ENV_CREATE(user_pipereadeof);
+	// ENV_CREATE(user_pipewriteeof);
 #endif
 #elif LAB >= 5
 	// Should always have an idle process as first one.

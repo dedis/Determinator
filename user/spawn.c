@@ -140,12 +140,17 @@ printf("aout magic %08x want %08x\n", aout.a_magic, AOUT_MAGIC);
 			panic("spawn: sys_mem_map data: %e", r);
 	}
 	sys_mem_unmap(0, TMPPAGE);
+	close(fd);
+	fd = -1;
 
 	bss = data+i;
 	for (i=0; i<aout.a_bss; i+=BY2PG) {
 		if ((r = sys_mem_alloc(child, bss+i, PTE_P|PTE_U|PTE_W)) < 0)
 			goto error;
 	}
+
+	// Copy shared library state.
+	copy_library(child);
 
 	// Set up trap frame.
 	tf = envs[ENVX(child)].env_tf;
@@ -158,7 +163,6 @@ printf("aout magic %08x want %08x\n", aout.a_magic, AOUT_MAGIC);
 	if ((r = sys_set_env_status(child, ENV_RUNNABLE)) < 0)
 		panic("sys_set_env_status: %e", r);
 
-	close(fd);
 	return child;
 
 error:

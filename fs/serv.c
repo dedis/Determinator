@@ -6,18 +6,21 @@
 
 #include "fs.h"
 #include <inc/x86.h>
+#include <inc/fd.h>
 
 #define debug 0
 
 struct Open {
 	struct File *o_file;	// mapped descriptor for open file
-	u_int o_envid;		// envid of client
+	u_int o_fileid;		// file id
 	int o_mode;		// open mode
-	int o_ref;		// number of references
+	struct Filefd *o_ff;	// va of filefd page
+	u_int o_fileva;		// va of file page
 };
 
 // Max number of open files in the file system at once
 #define MAXOPEN	1024
+#define FILEVA 0xD0000000
 
 // initialize to force into data section
 struct Open opentab[MAXOPEN] = { { 0, 0, 1 } };
@@ -25,18 +28,40 @@ struct Open opentab[MAXOPEN] = { { 0, 0, 1 } };
 // Virtual address at which to receive page mappings containing client requests.
 #define REQVA	0x0ffff000
 
+void
+serve_init(void)
+{
+	int i;
+	u_int va;
+
+	va = FILEVA;
+	for (i=0; i<MAXOPEN; i++) {
+		opentab[i].o_fileid = i;
+		opentab[i].o_ff = (struct Filefd*)va;
+		va += BY2PG;
+		opentab[i].o_fileva = va;
+		va += BY2PG;
+	}
+}
+
 // Allocate an open file.
 int
 open_alloc(struct Open **o)
 {
-	int fileid;
+	int i, r;
 
 	// Find an available open-file table entry
-	for (fileid = 0; fileid < MAXOPEN; fileid++) {
-		if (opentab[fileid].o_file == 0) {
-			*o = &opentab[fileid];
-			(*o)->o_ref = 1;
-			return fileid;
+	for (i = 0; i < MAXOPEN; i++) {
+		switch (pageref(opentab[i].o_ff)) {
+		case 0:
+			if ((r = sys_mem_alloc(0, (u_int)opentab[i].o_ff, PTE_P|PTE_U|PTE_W)) < 0)
+				return r;
+			/* fall through */
+		case 1:
+			opentab[i].o_fileid += MAXOPEN;
+			*o = &opentab[i];
+			bzero((void*)opentab[i].o_ff, BY2PG);
+			return (*o)->o_fileid;
 		}
 	}
 	return -E_MAX_OPEN;
@@ -44,11 +69,14 @@ open_alloc(struct Open **o)
 
 // Look up an open file for envid.
 int
-open_lookup(u_int envid, u_int fileid, struct Open **o)
+open_lookup(u_int envid, u_int fileid, struct Open **po)
 {
-	if (fileid >= MAXOPEN || opentab[fileid].o_envid != envid)
+	struct Open *o;
+
+	o = &opentab[fileid%MAXOPEN];
+	if (pageref(o->o_ff) == 1 || o->o_fileid != fileid)
 		return -E_INVAL;
-	*o = &opentab[fileid];
+	*po = o;
 	return 0;
 }
 
@@ -63,6 +91,7 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 
 	u_char path[MAXPATHLEN];
 	struct File *f;
+	struct Filefd *ff;
 	int fileid;
 	int r;
 	struct Open *o;
@@ -72,23 +101,37 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 	path[MAXPATHLEN-1] = 0;
 
 	// Find a file id.
-	if ((r = open_alloc(&o)) < 0)
+	if ((r = open_alloc(&o)) < 0) {
+		if (debug) printf("open_alloc failed: %e", r);
 		goto out;
+	}
 	fileid = r;
 
 	// Open the file.
-	if ((r = file_open(path, &f)) < 0)
+	if ((r = file_open(path, &f)) < 0) {
+		if (debug) printf("file_open failed: %e", r);
 		goto out;
+	}
 
+	// Save the file pointer.
 	o->o_file = f;
-	o->o_envid = envid;
+
+	// Double-map the file page to pin it in memory.
+	// Cannot fail since vpd is already allocated (o->o_ff is the even page before this).
+	if ((r = sys_mem_map(0, ROUNDDOWN((u_int)f, BY2PG), 0, o->o_fileva, PTE_P|PTE_U)) < 0)
+		panic("sys_mem_map in serve_open: %e", r);
+
+	// Fill out the Filefd structure
+	ff = (struct Filefd*)o->o_ff;
+	ff->f_file = *f;
+	ff->f_fileid = o->o_fileid;
 	o->o_mode = rq->req_omode;
+	ff->f_fd.fd_omode = o->o_mode;
+	ff->f_fd.fd_dev = devfile.dev_char;
 
-	// Fill out return params and return success
-	r = 0;
-	rq->req_size = f->f_size;
-	rq->req_fileid = fileid;
-
+	if (debug) printf("sending success, page %08x\n", (u_int)o->o_ff);
+	ipc_send(envid, 0, (u_int)o->o_ff, PTE_P|PTE_U|PTE_W|PTE_LIBRARY);
+	return;
 out:
 	ipc_send(envid, r, 0, 0);
 }
@@ -155,12 +198,11 @@ serve_close(u_int envid, struct Fsreq_close *rq)
 
 	if ((r = open_lookup(envid, rq->req_fileid, &o)) < 0)
 		goto out;
-	if (--o->o_ref > 0)
-		goto out;
-
 	file_close(o->o_file);
-	o->o_file = 0;
-	o->o_envid = 0;
+	if (pageref(o->o_ff) == 1) {
+		sys_mem_unmap(0, (u_int)o->o_fileva);
+		o->o_file = 0;
+	}
 	r = 0;
 
 out:
@@ -170,22 +212,6 @@ out:
 	panic("serve_close not implemented");
 #endif
 }
-
-void
-serve_incref(u_int envid, struct Fsreq_incref *rq)
-{
-	if (debug) printf("serve_incref %08x %08x\n", envid, rq->req_fileid);
-
-	struct Open *o;
-	int r;
-
-	if ((r = open_lookup(envid, rq->req_fileid, &o)) < 0)
-		goto out;
-	r = ++o->o_ref;
-
-out:
-	ipc_send(envid, r, 0, 0);
-}	
 		
 void
 serve_remove(u_int envid, struct Fsreq_remove *rq)
@@ -278,9 +304,6 @@ serve(void)
 		case FSREQ_SYNC:
 			serve_sync(whom);
 			break;
-		case FSREQ_INCREF:
-			serve_incref(whom, (struct Fsreq_incref*)REQVA);
-			break;
 		default:
 			printf("Invalid request code %d from %08x\n", whom, req);
 			break;
@@ -299,8 +322,8 @@ umain(void)
 	outw(0x8A00, 0x8A00);
 	printf("FS can do I/O\n");
 
+	serve_init();
 	fs_init();
-
 	fs_test();
 
 	serve();

@@ -24,7 +24,7 @@ umain(int argc, char **argv)
 	if(argc == 1)
 		cat(0, "<stdin>");
 	else for(i=1; i<argc; i++){
-		f = open(argv[i], OREAD);
+		f = open(argv[i], O_RDONLY);
 		if(f < 0)
 			panic("can't open %s: %e", argv[i], f);
 		else{
@@ -32,6 +32,5 @@ umain(int argc, char **argv)
 			close(f);
 		}
 	}
-	exit();
 }
 

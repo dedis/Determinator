@@ -25,26 +25,36 @@ sum(char *s, int n)
 void
 umain(int argc, char **argv)
 {
-	int i, x, want;
+	int i, r, x, want;
 
-	printf("/init: running\n");
+	printf("init: running\n");
 
 	want = 0xf989e;
 	if ((x=sum((char*)&data, sizeof data)) != want)
-		printf("/init: data is not initialized: got sum %08x wanted %08x\n",
+		printf("init: data is not initialized: got sum %08x wanted %08x\n",
 			x, want);
 	else
-		printf("/init: data seems okay\n");
+		printf("init: data seems okay\n");
 	if ((x=sum(bss, sizeof bss)) != 0)
 		printf("bss is not initialized: wanted sum 0 got %08x\n", x);
 	else
-		printf("/init: bss seems okay\n");
+		printf("init: bss seems okay\n");
 
-	printf("/init: args:");
+	printf("init: args:");
 	for (i=0; i<argc; i++)
 		printf(" '%s'", argv[i]);
 	printf("\n");
 
-	printf("/init: exiting\n");
+	printf("init: running sh\n");
+
+	// being run directly from kernel, so no file descriptors open yet
+	close(0);
+	if ((r = opencons()) < 0)
+		panic("opencons: %e", r);
+	if (r != 0)
+		panic("first opencons used fd %d", r);
+	if ((r = dup(0, 1)) < 0)
+		panic("dup: %e", r);
+	spawnl("sh", "sh", (char*)0);
 }
 #endif

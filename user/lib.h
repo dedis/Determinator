@@ -6,6 +6,9 @@
 #include <inc/pmap.h>
 #include <inc/syscall.h>
 #include <inc/args.h>
+#include <inc/fd.h>
+
+#define USED(x) (void)(x)
 
 // ipc.c
 void	ipc_send(u_int whom, u_int val, u_int srcva, u_int perm);
@@ -20,6 +23,7 @@ void	warn(const char*, ...);
 #define assert(x)	\
 	do {	if (!(x)) panic("assertion failed: %s", #x); } while (0)
 #define	panic(...) _panic(__FILE__, __LINE__, __VA_ARGS__)
+int	fprintf(int fd, const char*, ...);
 
 // string.c
 void	bcopy(const void*, void*, u_int);
@@ -36,15 +40,23 @@ extern struct Page pages[];
 void	exit(void);
 
 // fork.c
-#define	PTE_SHARED	0x400
+#define	PTE_LIBRARY	0x400
 int	fork(void);
 int	sfork(void);	// Challenge!
+void	copy_library(u_int);
 
 // wait.c
 void	wait(u_int);
 
+// pageref.c
+int	pageref(void*);
+
 // pgfault.c
 void	set_pgfault_handler(void(*)(u_int va, u_int err));
+
+// console.c
+int	iscons(int);
+int	opencons(void);
 
 // syscall.c
 void	sys_cputs(char*);
@@ -62,6 +74,9 @@ int	sys_mem_unmap(u_int, u_int);
 #if LAB >= 5
 int	sys_set_trapframe(u_int, struct Trapframe*);
 void	sys_panic(char*);
+#endif
+#if LAB >= 6
+int	sys_cgetc(void);
 #endif
 
 // This must be inlined.  
@@ -81,7 +96,7 @@ sys_env_alloc(void)
 
 #if LAB >= 5
 // fsipc.c
-int	fsipc_open(const char*, u_int, u_int*, u_int*);
+int	fsipc_open(const char*, u_int, u_int);
 int	fsipc_map(u_int, u_int, u_int);
 int	fsipc_set_size(u_int, u_int);
 int	fsipc_close(u_int);
@@ -100,12 +115,12 @@ int	seek(int fd, u_int offset);
 int	delete(const char *path);
 int	ftruncate(int fd, u_int size);
 int	sync(void);
-void	fd_close_all(void);
-void	fd_fork_all(void);
+void	close_all(void);
 int	pipe(int[2]);
 int	readn(int fd, void *buf, u_int nbytes);
 int	dup(int oldfd, int newfd);
-
+int	fstat(int fd, struct Stat*);
+int	stat(const char *path, struct Stat*);
 // spawn.c
 int	spawn(char*, char**);
 int	spawnl(char*, char*, ...);

@@ -41,6 +41,9 @@ _fdtab:
 	pushl $(_edata)
 	call _bzero
 
+	// IMPORTANT BUG FIX FOR LAB 6 -- COPY THIS NEXT LINE!
+	addl $8, %esp
+
 args_exist:
 	call _libmain
 1:      jmp 1b

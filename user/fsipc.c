@@ -28,9 +28,9 @@ fsipc(u_int type, void *fsreq, u_int dstva, u_int *perm)
 // Includes path and omode in request, sets *fileid and *size from reply.
 // Returns 0 on success, < 0 on failure.
 int
-fsipc_open(const char *path, u_int omode, u_int *fileid, u_int *size)
+fsipc_open(const char *path, u_int omode, u_int va)
 {
-	int r;
+	u_int perm;
 	struct Fsreq_open *req;
 
 	req = (struct Fsreq_open*)fsipcbuf;
@@ -39,14 +39,7 @@ fsipc_open(const char *path, u_int omode, u_int *fileid, u_int *size)
 	strcpy(req->req_path, path);
 	req->req_omode = omode;
 
-	if ((r = fsipc(FSREQ_OPEN, req, 0, 0)) < 0)
-		return r;
-
-	if (fileid)
-		*fileid = req->req_fileid;
-	if (size)
-		*size = req->req_size;
-	return 0;
+	return fsipc(FSREQ_OPEN, req, va, &perm);
 }
 
 // Make a map-block request to the file server.
@@ -92,17 +85,6 @@ fsipc_close(u_int fileid)
 	req = (struct Fsreq_close*)fsipcbuf;
 	req->req_fileid = fileid;
 	return fsipc(FSREQ_CLOSE, req, 0, 0);
-}
-
-// Increment the reference count on fileid so that it can be shared.
-int
-fsipc_incref(u_int fileid)
-{
-	struct Fsreq_incref *req;
-
-	req = (struct Fsreq_incref*)fsipcbuf;
-	req->req_fileid = fileid;
-	return fsipc(FSREQ_INCREF, req, 0, 0);
 }
 
 // Ask the file server to mark a particular file block dirty.

@@ -1,10 +1,12 @@
-/* simple command line argument parser -- you are not expected to understand this */
+/* simple command line parser from Plan 9 -- you are not expected to understand this */
+/* see http://plan9.bell-labs.com/magic/man2html/2/arg */
 extern char	*argv0;
 
 #define _ARGSET(x) (x)=0
 #define _ARGUSED(x) if(x){}else
 
-#define	ARGBEGIN	for((argv0?0:(argv0=(*argv))),argv++,argc--;\
+#define	ARGBEGIN	for((argv?0:(argv=(void*)&argc)),(argv0?0:(argv0=*argv)),\
+			    argv++,argc--;\
 			    argv[0] && argv[0][0]=='-' && argv[0][1];\
 			    argc--, argv++) {\
 				char *_args, *_argt;\
@@ -23,6 +25,3 @@ extern char	*argv0;
 				(*_argt? _argt: argv[1]? (argc--, *++argv): ((x), abort(), (char*)0)))
 
 #define	ARGC()		_argc
-
-#undef _ARGSET
-#undef _ARGUSED

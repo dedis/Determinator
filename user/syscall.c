@@ -151,4 +151,12 @@ sys_panic(char *msg)
 }
 
 #endif
+#if LAB >= 6
+int
+sys_cgetc(void)
+{
+	return syscall(SYS_cgetc, 0, 0, 0, 0, 0);
+}
+
+#endif
 #endif

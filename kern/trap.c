@@ -160,6 +160,14 @@ trap(struct Trapframe *tf)
 		panic("clock interrupt");
 #endif
 	}
+	if (tf->tf_trapno == IRQ_OFFSET+1) {
+		kbd_intr();
+		return;
+	}
+	if (tf->tf_trapno == IRQ_OFFSET+4) {
+		serial_intr();
+		return;
+	}
 	if (IRQ_OFFSET <= tf->tf_trapno 
 			&& tf->tf_trapno < IRQ_OFFSET+MAX_IRQS) {
 		// just ingore spurious interrupts

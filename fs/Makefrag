@@ -14,9 +14,15 @@ FSOFILES := \
 FSIMGFILES := \
 	fs/motd \
 	fs/newmotd \
+	user/cat \
+	user/echo \
 	user/init \
+	user/ls \
+	user/lsfd \
+	user/num \
 	user/primes \
 	user/primespipe \
+	user/sh \
 
 fs/fs:	user/entry.o $(FSOFILES) $(USERLIB)
 	@echo ld $@

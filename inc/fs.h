@@ -2,10 +2,9 @@
 // See COPYRIGHT for copyright information.
 
 #ifndef _FS_H_
-#define _FS_H_
+#define _FS_H_ 1
 
 #include <inc/types.h>
-
 
 // File nodes (both in-memory and on-disk)
 
@@ -25,6 +24,7 @@
 
 #define MAXFILESIZE	(NINDIRECT*BY2BLK)
 
+#include <inc/fd.h>
 struct File {
 	u_char f_name[MAXNAMELEN];	// filename
 	u_int f_size;			// file size in bytes
@@ -38,6 +38,14 @@ struct File {
 
 	u_char f_pad[256-MAXNAMELEN-4-4-NDIRECT*4-4-4-4];
 };
+
+struct Filefd 
+{
+	struct Fd f_fd;
+	u_int f_fileid;
+	struct File f_file;
+};
+
 
 #define FILE2BLK	(BY2BLK/sizeof(struct File))
 
@@ -66,8 +74,6 @@ struct Super {
 #define FSREQ_DIRTY	5
 #define FSREQ_REMOVE	6
 #define FSREQ_SYNC	7
-#define FSREQ_INCREF	8
-
 
 struct Fsreq_open {
 	char req_path[MAXPATHLEN];
@@ -87,10 +93,6 @@ struct Fsreq_set_size {
 };
 
 struct Fsreq_close {
-	int req_fileid;
-};
-
-struct Fsreq_incref {
 	int req_fileid;
 };
 

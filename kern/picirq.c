@@ -1,15 +1,18 @@
 #if LAB >= 3
 /* See COPYRIGHT for copyright information. */
-
+#include <kern/printf.h>
 #include <kern/picirq.h>
 
 /* Keep copy of current IRQ mask */
-u_short irq_mask_8259A;
+u_short irq_mask_8259A = 0xFFFF;
+static u_int didinit;
 
 /* Initialize the 8259A interrupt controllers. */
 void
 pic_init(void)
 {
+	didinit = 1;
+
 	/*
 	 * ICW1:  0001g0hi
 	 *    g:  0 = edge triggering, 1 = level triggering
@@ -63,14 +66,23 @@ pic_init(void)
 	outb(IO_PIC2, 0x68);               /* OCW3 */
 	outb(IO_PIC2, 0x0a);               /* OCW3 */
 
-	irq_mask_8259A = 0xffff;
+	if (irq_mask_8259A != 0xFFFF)
+		irq_setmask_8259A(irq_mask_8259A);
 }
 
 void
 irq_setmask_8259A (u_short mask)
 {
+	int i;
 	irq_mask_8259A = mask;
+	if (!didinit)
+		return;
 	outb(IO_PIC1+1, (char)mask);
 	outb(IO_PIC2+1, (char)(mask >> 8));
+	printf("enabled interrupts:");
+	for (i=0; i<16; i++)
+		if (~mask & (1<<i))
+			printf(" %d", i);
+	printf("\n");
 }
 #endif /* LAB >= 3 */

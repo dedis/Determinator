@@ -67,7 +67,6 @@ KERN_BINFILES := \
 	user/pipewriteeof \
 	user/primes \
 	user/primespipe \
-	user/sh \
 	user/testfsipc \
 	user/writemotd \
 	fs/fs \

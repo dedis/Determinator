@@ -12,10 +12,10 @@ num(int f, char *s)
 
 	while((n=read(f, &c, 1))>0){
 		if(bol){
-			printf("%5d ", ++line);
+			fprintf(1, "%5d ", ++line);
 			bol = 0;
 		}
-		if((r=write(1, buf, 1))!=1)
+		if((r=write(1, &c, 1))!=1)
 			panic("write error copying %s: %e", s, r);
 		if(c == '\n')
 			bol = 1;
@@ -33,7 +33,7 @@ umain(int argc, char **argv)
 	if(argc == 1)
 		num(0, "<stdin>");
 	else for(i=1; i<argc; i++){
-		f = open(argv[i], OREAD);
+		f = open(argv[i], O_RDONLY);
 		if(f < 0)
 			panic("can't open %s: %e", argv[i], f);
 		else{

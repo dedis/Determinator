@@ -1,6 +1,8 @@
 #if LAB >= 6
 #include "lib.h"
 
+#define debug 0
+
 //
 // get the next token from string s
 // set *p1 to the beginning of the token and
@@ -16,43 +18,57 @@
 int
 _gettoken(char *s, char **p1, char **p2)
 {
+	int t;
+
+	if (s == 0) {
+		if (debug > 1) printf("GETTOKEN NULL\n");
+		return 0;
+	}
+
+	if (debug > 1) printf("GETTOKEN: %s\n", s);
+
+	*p1 = 0;
+	*p2 = 0;
+
 	while(*s == ' ' || *s == '\t' || *s == '\n')
 		*s++ = 0;
-	if(*s == 0)
+	if(*s == 0) {
+		if (debug > 1) printf("EOL\n");
 		return 0;
-	if(*s == '>'){
-		*p1 = s;
-		*s++ = 0;
-		*p2 = s;
-		return '>';
 	}
-	if(*s == '|'){
+	if(*s == '>' || *s == '|'){
+		t = *s;
 		*p1 = s;
 		*s++ = 0;
 		*p2 = s;
-		return '|';
+		if (debug > 1) printf("TOK %c\n", t);
+		return t;
 	}
 	*p1 = s;
 	while(*s && !strchr(" \t\n>|", *s))
 		s++;
 	*p2 = s;
+	if (debug > 1) {
+		t = **p2;
+		**p2 = 0;
+		printf("WORD: %s\n", *p1);
+		**p2 = t;
+	}
 	return 'w';
 }
 
 int
-gettoken(char *s, char **p1, char **p2)
+gettoken(char *s, char **p1)
 {
 	static int c, nc;
 	static char *np1, *np2;
-	static int first = 1;
 
-	if(first){
+	if (s) {
 		nc = _gettoken(s, &np1, &np2);
-		first = 0;
+		return 0;
 	}
 	c = nc;
 	*p1 = np1;
-	*p2 = np2;
 	nc = _gettoken(np2, &np1, &np2);
 	return c;
 }
@@ -62,30 +78,32 @@ void
 runcmd(char *s)
 {
 	char *argv[MAXARGS], *t;
-	int argc, c, r, p[2], fd;
+	int argc, c, i, r, p[2], fd, rightpipe;
 
+	rightpipe = 0;
+	gettoken(s, 0);
 again:
 	argc = 0;
 	for(;;){
-		c = gettoken(s, &t, &s);
+		c = gettoken(0, &t);
 		switch(c){
 		case 0:
 			goto runit;
 		case 'w':
 			if(argc == MAXARGS){
 				printf("too many arguments\n");
-				return;
+				exit();
 			}
 			argv[argc++] = t;
 			break;
 		case '>':
-			if(gettoken(s, &t, &s) != 'w'){
+			if(gettoken(0, &t) != 'w'){
 				printf("syntax error: > not followed by word\n");
-				return;
+				exit();
 			}
 			if ((fd = open(t, O_WRONLY)) < 0) {
 				printf("open %s for write: %e", t, fd);
-				return;
+				exit();
 			}
 			if(fd != 1){
 				dup(fd, 1);
@@ -95,11 +113,12 @@ again:
 		case '|':
 			if((r=pipe(p)) < 0){
 				printf("pipe: %e", r);
-				return;
+				exit();
 			}
+			if (debug) printf("PIPE: %d %d\n", p[0], p[1]);
 			if((r=fork()) < 0){
 				printf("fork: %e", r);
-				return;
+				exit();
 			}
 			if(r == 0){
 				if(p[0] != 0){
@@ -109,6 +128,7 @@ again:
 				close(p[1]);
 				goto again;
 			}else{
+				rightpipe = r;
 				if(p[1] != 1){
 					dup(p[1], 1);
 					close(p[1]);
@@ -121,13 +141,30 @@ again:
 	}
 
 runit:
-	if(argc == 0)
-		return;
-	if((r=spawn(argv[0], argv)) < 0){
-		printf("spawn %s: %e", argv[0], r);
+	if(argc == 0) {
+		if (debug) printf("EMPTY COMMAND\n");
 		return;
 	}
-	wait(r);
+	argv[argc] = 0;
+	if (debug) {
+		printf("[%08x] SPAWN:", env->env_id);
+		for (i=0; argv[i]; i++)
+			printf(" %s", argv[i]);
+		printf("\n");
+	}
+	if ((r = spawn(argv[0], argv)) < 0)
+		printf("spawn %s: %e\n", argv[0], r);
+	close_all();
+	if (r >= 0) {
+		if (debug) printf("[%08x] WAIT %s %08x\n", env->env_id, argv[0], r);
+		wait(r);
+		if (debug) printf("[%08x] wait finished\n", env->env_id);
+	}
+	if (rightpipe) {
+		if (debug) printf("[%08x] WAIT right-pipe %08x\n", env->env_id, rightpipe);
+		wait(rightpipe);
+		if (debug) printf("[%08x] wait finished\n", env->env_id);
+	}
 	exit();
 }
 
@@ -143,8 +180,13 @@ readline(char *buf, u_int n)
 				printf("unexpected eof\n");
 			else
 				printf("read error: %e", r);
-			buf[0] = 0;
-			return;
+			exit();
+		}
+		if(buf[i] == '\b'){
+			if(i >= 2)
+				i -= 2;
+			else
+				i = 0;
 		}
 		if(buf[i] == '\n'){
 			buf[i] = 0;
@@ -189,10 +231,19 @@ umain(int argc, char **argv)
 		assert(r==0);
 	}
 	if(interactive == '?')
-		interactive = isconsole(0);
+		interactive = iscons(0);
 	for(;;){
+		if (interactive)
+			fprintf(1, "$ ");
 		readline(buf, sizeof buf);
-		runcmd(buf);
+		if (debug) printf("LINE: %s\n", buf);
+		if ((r = fork()) < 0)
+			panic("fork: %e", r);
+		if (r == 0) {
+			runcmd(buf);
+			exit();
+		} else
+			wait(r);
 	}
 }
 

@@ -22,6 +22,7 @@ enum
 	SYS_mem_unmap,
 	SYS_set_trapframe,
 	SYS_panic,
+	SYS_cgetc,
 
 	NSYSCALLS,
 };
