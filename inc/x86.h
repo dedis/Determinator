@@ -231,4 +231,13 @@ cpuid(u_int info, u_int *eaxp, u_int *ebxp, u_int *ecxp, u_int *edxp)
 	if (edxp) *edxp = edx;
 }
 
+static __inline long long 
+readtsc(void)
+{
+  long long result;
+  __asm__ volatile ("rdtsc"
+		    : "=A"(result));
+ return result;
+}
+
 #endif /* _X86_H_ */
