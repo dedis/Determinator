@@ -196,6 +196,22 @@ write_eflags(u_int ef)
         __asm __volatile("pushl %0; popfl" : : "r" (ef));
 }
 
+static __inline u_int
+read_ebp(void)
+{
+        u_int   v;
+        __asm __volatile("movl %%ebp,%0" : "=r" (v));
+        return(v);
+}
+
+static __inline u_int
+read_esp(void)
+{
+        u_int   v;
+        __asm __volatile("movl %%esp,%0" : "=r" (v));
+        return(v);
+}
+
 static __inline void
 cpuid(u_int info, u_int *eaxp, u_int *ebxp, u_int *ecxp, u_int *edxp)
 {

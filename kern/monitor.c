@@ -5,6 +5,7 @@
 #include <inc/string.h>
 #include <inc/pmap.h>
 #include <inc/assert.h>
+#include <inc/x86.h>
 
 #include <kern/console.h>
 #include <kern/monitor.h>
@@ -20,6 +21,9 @@ struct Command {
 static struct Command commands[] = {
 	{"help", "display this list of commands", mon_help},
 	{"kerninfo", "display information about the kernel", mon_kerninfo},
+#if SOL >= 1
+	{"backtrace", "display a stack backtrace", mon_backtrace},
+#endif
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -46,6 +50,29 @@ void mon_kerninfo(int argc, char **argv)
 	printf("  end    %08x (virt)  %08x (phys)\n", end, end-KERNBASE);
 	printf("Kernel executable memory footprint: %dKB\n",
 		(end-start+1023)/1024);
+}
+
+void mon_backtrace(int argc, char **argv)
+{
+#if SOL >= 1
+	u_int *ebp = (u_int*)read_ebp();
+	int i;
+
+	printf("Stack backtrace:\n");
+	while (ebp) {
+
+		// print this stack frame
+		printf("  ebp %08x  eip %08x  args", ebp, ebp[1]);
+		for (i = 0; i < 5; i++)
+			printf(" %08x", ebp[2+i]);
+		printf("\n");
+
+		// move to next lower stack frame
+		ebp = (u_int*)ebp[0];
+	}
+#else
+	// Your code here.
+#endif // SOL >= 1
 }
 
 

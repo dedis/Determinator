@@ -19,6 +19,20 @@
 #endif
 #endif
 
+#if LAB >= 2	// ...then leave this code out.
+#elif LAB >= 1
+void
+test_backtrace(int x)
+{
+	printf("entering test_backtrace %d\n", x);
+	if (x > 0)
+		test_backtrace(x-1);
+	else
+		monitor(NULL);
+	printf("leaving test_backtrace %d\n", x);
+}
+#endif
+
 void
 i386_init(void)
 {
@@ -123,6 +137,11 @@ i386_init(void)
 #endif
 #if LAB >= 3
 	sched_yield();
+#endif
+
+#if LAB >= 2
+#else
+	test_backtrace(5);
 #endif
 
 	// Drop into the kernel monitor.
