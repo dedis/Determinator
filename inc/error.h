@@ -14,7 +14,7 @@
 				   the maximum allowed */
 #define E_IPC_BLOCKED   6       /* Attempt to ipc to env blocking ipc's */
 
-#define NERRORS	7
+#define MAXERROR 6
 
 #endif /* _ERROR_H_ */
 ///END
