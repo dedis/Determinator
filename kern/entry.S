@@ -20,12 +20,24 @@
 .set CODE_SEL,0x8		# index of code seg within mygdt
 .set DATA_SEL,0x10		# index of data seg within mygdt
 
+#define MULTIBOOT_PAGE_ALIGN  (1<<0)
+#define MULTIBOOT_MEMORY_INFO (1<<1)
+#define MULTIBOOT_HEADER_MAGIC (0x1BADB002)
+#define MULTIBOOT_HEADER_FLAGS (MULTIBOOT_MEMORY_INFO | MULTIBOOT_PAGE_ALIGN)
+#define CHECKSUM (-(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS))
 
 ###################################################################
 # entry point
 ###################################################################
 
 .text
+
+# The Multiboot header
+.align 4
+.long MULTIBOOT_HEADER_MAGIC
+.long MULTIBOOT_HEADER_FLAGS
+.long CHECKSUM
+
 .globl		_start
 _start:
 	movw	$0x1234,0x472			# warm boot
