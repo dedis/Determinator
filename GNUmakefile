@@ -105,15 +105,6 @@ $(OBJDIR)/%.o: %.S
 	@$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
 
 
-# For embedding one program in another
-%.b.c: %.b
-	rm -f $@
-	$(TOP)/tools/bintoc/bintoc $< $*_bin > $@~ && $(MV) -f $@~ $@
-%.b.s: %.b
-	rm -f $@
-	$(TOP)/tools/bintoc/bintoc -S $< $*_bin > $@~ && $(MV) -f $@~ $@
-
-
 # Setup a prefix for the GCC tools if we're cross-compiling.
 gccsetup:
 	echo >.gccsetup "GCCPREFIX=$(GCCPREFIX)"
