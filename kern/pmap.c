@@ -399,7 +399,7 @@ i386_vm_init ()
 ///END
 
   //////////////////////////////////////////////////////////////////////
-  // Map all of physical memory is mapped at KERNBASE. 
+  // Map all of physical memory at KERNBASE. 
   // Ie.  the VA range [KERNBASE, 2^32 - 1] should map to
   //      the PA range [0, 2^32 - 1 - KERNBASE]   
   // We might not have that many (ie. 2^32 - 1 - KERNBASE)    
