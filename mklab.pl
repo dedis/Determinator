@@ -40,12 +40,15 @@ sub dofile {
 				$stack{++$depth} = { 'anytrue' => 0, 'isours' => 1 };
 			}
 			$stack{$depth}->{'emit'} = ($stack{$depth-1}->{'emit'} && $cond);
+			if ($1 eq "elif") {
+				$stack{$depth}->{'emit'} &= !$stack{$depth}->{'anytrue'};
+			}
 			$stack{$depth}->{'anytrue'} |= $cond;
 			$emit = 0;
 		} elsif (m:^[#]if:) {
 			# Other conditions we just pass through
 			++$depth;
-			$stack{$depth} = { 'isours' => 1, 'emit' => $stack{$depth-1}->{'emit'} };
+			$stack{$depth} = { 'isours' => 0, 'emit' => $stack{$depth-1}->{'emit'} };
 		} elsif (m:^[#]else:) {
 			if ($stack{$depth}->{'isours'}) {
 				$emit = 0;
