@@ -50,13 +50,15 @@ envid2env(u_int envid, int *error)
 }
 
 //
-// Sets up the the stack and program binary for a user process.
-//   This function loads the binary image at virtual address UTEXT,
+// Sets up the the initial stack and program binary for a user process.
+//   This function loads the binary image at virtual address UTEXT
 //   and maps one page for the program's initial stack
 //   at virtual address USTACKTOP - BY2PG.
+// Ignore the a.out header -- assume the binary is the given size,
+// begins at UTEXT+0x20, doesn't need its bss cleared, and so on.
 //
 void
-load_aout(struct Env *e, u_char *binary, u_int size)
+load_icode(struct Env *e, u_char *binary, u_int size)
 {
 ///SOL3
 	int i, r;
@@ -65,19 +67,19 @@ load_aout(struct Env *e, u_char *binary, u_int size)
 	// Allocate and map physical pages
 	for (i = 0; i < size; i += BY2PG) {
 		if ((r = page_alloc(&pp)) < 0)
-			panic("load_aout: could not alloc page. Errno %d\n", r);
+			panic("load_icode: could not alloc page. Errno %d\n", r);
 		bcopy(&binary[i], (void*)page2kva(pp), MIN(BY2PG, size - i));
 		if ((r = page_insert(e->env_pgdir, pp, UTEXT + i,
 					PTE_P|PTE_W|PTE_U)) < 0)
-			panic("load_aout: could not map page. Errno %d\n", r);
+			panic("load_icode: could not map page. Errno %d\n", r);
 	}
 
 	/* Give it a stack */
 	if ((r = page_alloc(&pp)) < 0)
-		panic("load_aout: could not alloc page. Errno %d\n", r);
+		panic("load_icode: could not alloc page. Errno %d\n", r);
 	if ((r = page_insert(e->env_pgdir, pp, USTACKTOP - BY2PG,
 				PTE_P|PTE_W|PTE_U)) < 0)
-		panic("load_aout: could not map page. Errno %d\n", r);
+		panic("load_icode: could not map page. Errno %d\n", r);
 ///ELSE
 	// Hint: 
 	//  Use page_alloc, page_insert, page2kva and e->env_pgdir
@@ -193,7 +195,7 @@ env_alloc(struct Env **new, u_int parent_id)
 	e->env_tf.tf_esp = USTACKTOP;
 	e->env_tf.tf_cs = GD_UT | 3;
 	// You also need to set tf_eip to the correct value.
-	// Hint: see load_aout
+	// Hint: see load_icode
 
 ///SOL3
 	e->env_tf.tf_eip = UTEXT + 0x20; // right past a.out header
