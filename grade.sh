@@ -1,4 +1,4 @@
-b#!/bin/sh
+#!/bin/sh
 
 verbose=false
 
