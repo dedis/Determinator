@@ -1,3 +1,4 @@
+#if LAB >= 2
 /* See COPYRIGHT for copyright information. */
 
 #ifndef _KERN_PMAP_H_
@@ -6,6 +7,40 @@
 #include <inc/pmap.h>
 #include <inc/trap.h>
 #include <inc/assert.h>
+
+
+/* This macro takes a user supplied address and turns it into
+ * something that will cause a fault if it is a kernel address.  ULIM
+ * itself is guaranteed never to contain a valid page.  
+*/
+#define TRUP(_p)   						\
+({								\
+	register typeof((_p)) __m_p = (_p);			\
+	(u_int) __m_p > ULIM ? (typeof(_p)) ULIM : __m_p;	\
+})
+
+// translates from virtual address to physical address
+#define PADDR(kva)						\
+({								\
+	u_long a = (u_long) (kva);				\
+	if (a < KERNBASE)					\
+		panic("PADDR called with invalid kva %08lx", a);\
+	a - KERNBASE;						\
+})
+
+// translates from physical address to kernel virtual address
+#define KADDR(pa)						\
+({								\
+	u_long ppn = PPN(pa);					\
+	if (ppn >= npage)					\
+		panic("KADDR called with invalid pa %08lx", (u_long)pa);\
+	(pa) + KERNBASE;					\
+})
+
+extern char bootstacktop[], bootstack[];
+
+extern u_long npage;
+
 
 extern struct Segdesc gdt[];
 extern struct Pseudodesc gdt_pd;
@@ -55,4 +90,4 @@ page2kva(struct Page *pp)
 int pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte);
 
 #endif /* _KERN_PMAP_H_ */
-
+#endif // LAB >= 2

@@ -1,14 +1,15 @@
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/x86.h>
-#include <inc/mmu.h>
+#include <inc/pmap.h>
 #include <inc/kbdreg.h>
 #include <inc/string.h>
 #include <inc/assert.h>
 
-#include <kern/pmap.h>
 #include <kern/console.h>
+#if LAB >= 3
 #include <kern/picirq.h>
+#endif
 
 
 void cons_intr(int (*proc)(void));

@@ -1,17 +1,16 @@
 #ifndef _BOCHS_H_
 #define _BOCHS_H_ 1
 
-static __inline void
-_bochs_outw(int port, u_int16_t data)
-{
-	__asm __volatile("outw %0,%w1" : : "a" (data), "d" (port));
-}
+#include <inc/x86.h>
 
+// This function performs a magic sequence of I/O operations
+// that makes Bochs break into the debugger
+// (only if we're running under Bochs, of course).
 static inline void
 bochs(void)
 {
-	_bochs_outw(0x8A00, 0x8A00);
-	_bochs_outw(0x8A00, 0x8AE0);
+	outw(0x8A00, 0x8A00);
+	outw(0x8A00, 0x8AE0);
 }
 
 #endif

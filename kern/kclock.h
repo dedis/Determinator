@@ -1,7 +1,8 @@
+#if LAB >= 2	// pmap.c must read NVRAM to detect how much memory we have
 /* See COPYRIGHT for copyright information. */
 
-#ifndef _KCLOCK_H_
-#define _KCLOCK_H_
+#ifndef _KERN_KCLOCK_H_
+#define _KERN_KCLOCK_H_
 
 #define	IO_RTC		0x070		/* RTC port */
 
@@ -27,4 +28,5 @@ u_int mc146818_read(void *sc, u_int reg);
 void mc146818_write(void *sc, u_int reg, u_int datum);
 void kclock_init(void);
 
-#endif
+#endif	// not _KERN_KCLOCK_H_
+#endif	// LAB >= 2

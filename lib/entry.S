@@ -1,5 +1,6 @@
 #if LAB >= 4
 #include <inc/mmu.h>
+#include <inc/pmap.h>
 
 .data
 #if LAB >= 5

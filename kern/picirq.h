@@ -1,3 +1,4 @@
+#if LAB >= 3
 /* See COPYRIGHT for copyright information. */
 
 #ifndef _PICIRQ_H_
@@ -20,6 +21,7 @@ extern u_short irq_mask_8259A;
 void pic_init(void);
 void irq_setmask_8259A (u_short mask);
 
-#endif /* !__ASSEMBLER__ */
+#endif // !__ASSEMBLER__
 
-#endif /* _PICIRQ_H_ */
+#endif // _PICIRQ_H_
+#endif // LAB >= 3

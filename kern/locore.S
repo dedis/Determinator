@@ -3,8 +3,12 @@
 
 #include <inc/asm.h>
 #include <inc/mmu.h>
+#include <inc/pmap.h>
 #include <inc/trap.h>
+
+#if LAB >= 3
 #include <kern/picirq.h>
+#endif
 
 
 ###################################################################

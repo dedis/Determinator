@@ -1,1 +1,3 @@
+#if LAB >= 6
 
+#endif // LAB >= 6

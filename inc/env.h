@@ -1,3 +1,4 @@
+#if LAB >= 2	// pmap.c must allocate array of Env structures
 /* See COPYRIGHT for copyright information. */
 
 #ifndef _ENV_H_
@@ -6,7 +7,7 @@
 #include <inc/types.h>
 #include <inc/queue.h>
 #include <inc/trap.h>
-#include <inc/mmu.h> 
+#include <inc/pmap.h>
 
 #define LOG2NENV	10
 #define NENV		(1<<LOG2NENV)
@@ -42,3 +43,4 @@ struct Env {
 };
 
 #endif // !_ENV_H_
+#endif // LAB >= 3

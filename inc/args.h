@@ -1,3 +1,4 @@
+#if LAB >= 5
 /* simple command line parser from Plan 9 -- you are not expected to understand this */
 /* see http://plan9.bell-labs.com/magic/man2html/2/arg */
 extern char	*argv0;
@@ -25,3 +26,4 @@ extern char	*argv0;
 				(*_argt? _argt: argv[1]? (argc--, *++argv): ((x), abort(), (char*)0)))
 
 #define	ARGC()		_argc
+#endif // LAB >= 5

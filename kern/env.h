@@ -1,3 +1,4 @@
+#if LAB >= 2	// pmap.c must allocate array of Env structures
 /* See COPYRIGHT for copyright information. */
 
 #ifndef _KERN_ENV_H_
@@ -48,4 +49,5 @@ void env_pop_tf(struct Trapframe *tf);
 }
 #endif
 
-#endif /* !_KERN_ENV_H_ */
+#endif // !_KERN_ENV_H_
+#endif // LAB >= 2

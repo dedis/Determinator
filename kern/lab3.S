@@ -2,7 +2,7 @@
 #if LAB >= 4
 #else /* not LAB >= 4 */
 
-#include <inc/mmu.h>
+#include <inc/pmap.h>
 
 .global _div0_start
 _div0_start:

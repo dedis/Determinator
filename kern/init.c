@@ -6,16 +6,17 @@
 #include <inc/assert.h>
 
 #include <kern/monitor.h>
-#if LAB >= 3
-#include <kern/trap.h>
-#endif
-#include <kern/pmap.h>
-#include <kern/env.h>
 #include <kern/console.h>
-#include <kern/picirq.h>
+#include <kern/bochs.h>
+#if LAB >= 2
+#include <kern/pmap.h>
 #include <kern/kclock.h>
 #if LAB >= 3
+#include <kern/env.h>
+#include <kern/trap.h>
 #include <kern/sched.h>
+#include <kern/picirq.h>
+#endif
 #endif
 
 void
@@ -158,8 +159,7 @@ _panic(const char *file, int line, const char *fmt,...)
 
 dead:
 	/* break into Bochs debugger */
-	outw(0x8A00, 0x8A00);
-	outw(0x8A00, 0x8AE0);
+	bochs();
 
 	for(;;);
 }

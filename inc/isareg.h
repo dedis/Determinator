@@ -1,3 +1,4 @@
+#if LAB >= 3
 /* See COPYRIGHT for copyright information. */
 
 /*	$OpenBSD: isareg.h,v 1.2 1997/11/07 08:07:03 niklas Exp $	*/
@@ -125,4 +126,6 @@
 #define	IOM_BEGIN	0x0a0000		/* Start of I/O Memory "hole" */
 #define	IOM_END		0x100000		/* End of I/O Memory "hole" */
 #define	IOM_SIZE	(IOM_END - IOM_BEGIN)
-#endif /* !IOM_BEGIN */
+
+#endif // !IOM_BEGIN
+#endif // LAB >= 3

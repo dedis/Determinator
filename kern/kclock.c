@@ -1,17 +1,19 @@
-#if LAB >= 2
+#if LAB >= 2	// pmap.c must read NVRAM to detect how much memory we have
 /* See COPYRIGHT for copyright information. */
 
 /* The Run Time Clock and other NVRAM access functions that go with it. */
 /* The run time clock is hard-wired to IRQ8. */
 
 #include <inc/x86.h>
+#if LAB >= 3
 #include <inc/isareg.h>
 #include <inc/timerreg.h>
-#include <inc/assert.h>
+#endif
 
-#include <kern/picirq.h>
-#include <kern/env.h>
 #include <kern/kclock.h>
+#if LAB >= 3
+#include <kern/picirq.h>
+#endif
 
 
 u_int
@@ -29,7 +31,7 @@ mc146818_write(void *sc, u_int reg, u_int datum)
 }
 
 
-#if LAB >= 3
+#if LAB >= 3	// when we actually start needing the timers
 void
 kclock_init(void)
 {
