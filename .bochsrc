@@ -9,8 +9,8 @@
 megs: 32
 
 # filename of ROM images
-romimage: file=bios/BIOS-bochs-latest, address=0xf0000
-vgaromimage: bios/VGABIOS-lgpl-latest
+romimage: file=$BXSHARE/BIOS-bochs-latest, address=0xf0000
+vgaromimage: $BXSHARE/VGABIOS-lgpl-latest
 
 # Use the parallel port as an alternate console,
 # so that we can run Bochs without the GUI.
