@@ -1,4 +1,4 @@
-#if LAB >= 2
+#if LAB >= 1
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/stdarg.h>
@@ -293,4 +293,4 @@ printf(const char *fmt,...)
 	va_end(ap);
 	return 0;
 }
-#endif /* LAB >= 2 */
+#endif /* LAB >= 1 */

@@ -1,3 +1,5 @@
+#if LAB >= 4
+
 #include "lib.h"
 
 int
@@ -49,3 +51,4 @@ umain(void)
 	printf("stale fileid is good\n");
 }
 
+#endif

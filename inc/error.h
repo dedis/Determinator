@@ -1,4 +1,4 @@
-#if LAB >= 2
+#if LAB >= 1
 /* See COPYRIGHT for copyright information. */
 
 #ifndef _ERROR_H_
@@ -29,4 +29,4 @@
 #endif
 
 #endif // _ERROR_H_
-#endif // LAB >= 2
+#endif // LAB >= 1

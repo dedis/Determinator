@@ -1,3 +1,5 @@
+#if LAB >= 4
+
 #include "lib.h"
 
 int bol = 1;
@@ -44,3 +46,4 @@ umain(int argc, char **argv)
 	exit();
 }
 
+#endif

@@ -1,3 +1,5 @@
+#if LAB >= 5
+
 /*
  * 6.828 file system format
  */
@@ -402,3 +404,5 @@ main(int argc, char **argv)
 	flushdisk();
 	exit(0);
 }
+
+#endif

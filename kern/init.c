@@ -23,11 +23,13 @@ i386_init(void)
 
 	printf("6828 decimal is %o octal!\n", 6828);
 
+#if LAB >= 2
 	// Lab 2 initialization functions
 	i386_detect_memory();
 	i386_vm_init();
 	page_init();
 	page_check();
+#endif
 
 #if LAB >= 3
 	// Lab 3 initialization functions
@@ -153,32 +155,5 @@ memset(void *b, int c, size_t len)
 		*(char *)b++ = c;
 
 	return orig;
-}
-
-// Ignore from here on down.  The functions below here are never
-// called.  They are just here to get around a linking problem.
-
-void
-abort(void)
-{
-	panic("abort");
-}
-
-void *
-malloc(size_t size)
-{
-	panic("malloc: size %d", size);
-}
-
-void
-free(void *ptr)
-{
-	panic("free: ptr %p", ptr);
-}
-
-int
-atexit(void(*function)(void))
-{
-	panic("atexit: function %p", function);
 }
 

@@ -10,70 +10,45 @@
 #include <kern/printf.h>
 #include <kern/picirq.h>
 
-static unsigned addr_6845;
-static u_short *crt_buf;
-static short crt_pos;
 
-static void lpt_putc(int);
-static void cga_putc(int);
-static void cga_init(void);
-static void kbd_init(void);
-static void serial_init(void);
+void cons_intr(int (*proc)(void));
 
-void
-cons_init(void)
-{
-	cga_init();
-	kbd_init();
-	serial_init();
-}
 
-void
-cons_putc(int c)
-{
-	lpt_putc(c);
-	cga_putc(c);
-}
+/***** Serial I/O code *****/
 
-#define BY2CONS 512
-
-static struct {
-	u_char buf[BY2CONS];
-	u_int rpos;
-	u_int wpos;
-} cons;
-
-void
-cons_intr(int (*proc)(void))
-{
-	int c;
-
-	while ((c = (*proc)()) != -1) {
-		if (c == 0)
-			continue;
-		if (c < 0x80)
-			cons_putc(c);
-		cons.buf[cons.wpos++] = c;
-		if (cons.wpos == BY2CONS)
-			cons.wpos = 0;
-	}
-}
+#define COM1 0x3F8
+#define COMSTATUS 5
+#define   COMDATA 0x01
+#define COMREAD 0
+#define COMWRITE 0
 
 int
-cons_getc(void)
+serial_proc_data(void)
 {
-	int c;
-
-	if (cons.rpos != cons.wpos) {
-		c = cons.buf[cons.rpos++];
-		if (cons.rpos == BY2CONS)
-			cons.rpos = 0;
-		return c;
-	}
-	return 0;
+	if (!(inb(COM1+COMSTATUS) & COMDATA))
+		return -1;
+	return inb(COM1+COMREAD);
 }
 
-/* Output to alternate parallel port console */
+void
+serial_intr(void)
+{
+	cons_intr(serial_proc_data);
+}
+
+void
+serial_init(void)
+{
+#if LAB >= 3
+	irq_setmask_8259A(irq_mask_8259A & ~(1<<4));	
+#endif
+}
+
+
+
+/***** Parallel port output code *****/
+
+// Stupid I/O delay routine necessitated by historical PC design flaws
 static void
 delay(void)
 {
@@ -95,7 +70,15 @@ lpt_putc(int c)
 	outb(0x378+2, 0x08);
 }
 
-/* Normal CGA-based console output */
+
+
+
+/***** Text-mode CGA/VGA display output *****/
+
+static unsigned addr_6845;
+static u_short *crt_buf;
+static short crt_pos;
+
 void
 cga_init(void)
 {
@@ -176,31 +159,9 @@ cga_putc(int c)
 	outb(addr_6845+1, crt_pos);
 }
 
-#define COM1 0x3F8
-#define COMSTATUS 5
-#define   COMDATA 0x01
-#define COMREAD 0
-#define COMWRITE 0
 
-int
-serial_proc_data(void)
-{
-	if (!(inb(COM1+COMSTATUS) & COMDATA))
-		return -1;
-	return inb(COM1+COMREAD);
-}
 
-void
-serial_intr(void)
-{
-	cons_intr(serial_proc_data);
-}
-
-void
-serial_init(void)
-{
-	irq_setmask_8259A(irq_mask_8259A & ~(1<<4));	
-}
+/***** Keyboard input code *****/
 
 #define NO	0
 
@@ -323,7 +284,70 @@ kbd_intr(void)
 void
 kbd_init(void)
 {
+#if LAB >= 3
 	// Drain the kbd buffer so that Bochs generates interrupts.
 	kbd_intr();
 	irq_setmask_8259A(irq_mask_8259A & ~(1<<1));
+#endif
 }
+
+
+
+/***** General device-independent console code *****/
+// Here we manage the console input buffer,
+// where we stash characters received from the keyboard or serial port
+// whenever the corresponding interrupt occurs.
+
+#define BY2CONS 512
+
+static struct {
+	u_char buf[BY2CONS];
+	u_int rpos;
+	u_int wpos;
+} cons;
+
+void
+cons_intr(int (*proc)(void))
+{
+	int c;
+
+	while ((c = (*proc)()) != -1) {
+		if (c == 0)
+			continue;
+		if (c < 0x80)
+			cons_putc(c);
+		cons.buf[cons.wpos++] = c;
+		if (cons.wpos == BY2CONS)
+			cons.wpos = 0;
+	}
+}
+
+int
+cons_getc(void)
+{
+	int c;
+
+	if (cons.rpos != cons.wpos) {
+		c = cons.buf[cons.rpos++];
+		if (cons.rpos == BY2CONS)
+			cons.rpos = 0;
+		return c;
+	}
+	return 0;
+}
+
+void
+cons_putc(int c)
+{
+	lpt_putc(c);
+	cga_putc(c);
+}
+
+void
+cons_init(void)
+{
+	cga_init();
+	kbd_init();
+	serial_init();
+}
+

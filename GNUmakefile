@@ -121,9 +121,10 @@ lab%.tar.gz: $(BIOS_FILES)
 	gmake export-lab$*
 	tar cf - lab$* | gzip > lab$*.tar.gz
 
+build-lab%: export-lab%
+	cd lab$*; make
 build-sol%: export-sol%
 	cd sol$*; make
-
 build-prep%: export-prep%
 	cd prep$*; make
 

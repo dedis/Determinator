@@ -5,7 +5,7 @@ open(SIG, $ARGV[0]) || die "open $ARGV[0]: $!";
 $n = sysread(SIG, $buf, 1000);
 
 if($n > 510){
-	print STDERR "boot block too big\n";
+	print STDERR "boot block too large\n";
 	exit 1;
 }
 

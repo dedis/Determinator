@@ -8,7 +8,7 @@
 
 /**********************************************************************
  * This a dirt simple boot loader, whose sole job is to boot
- * an a.out kernel image.
+ * an a.out kernel image from the first IDE hard disk.
  *
  * DISK LAYOUT
  *  * This program(boot.S and main.c) is the bootloader.  It should

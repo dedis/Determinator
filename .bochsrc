@@ -14,12 +14,13 @@ vgaromimage: bios/VGABIOS-elpin-2.40
 
 # Use the parallel port as an alternate console,
 # so that we can run Bochs without the GUI.
-parport1: enable=1, file="/dev/stdout"
+parport1: enabled=1, file="/dev/stdout"
 
 # disk images
-diskc: file="./kern/bochs.img", cyl=200, heads=16, spt=63
+ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
+ata0-master: type=disk, mode=flat, path="./kern/bochs.img", cylinders=200, heads=16, spt=63
 #if LAB >= 5
-diskd: file="./fs/fs.img", cyl=200, heads=16, spt=63
+ata0-slave: type=disk, mode=flat, path="./fs/fs.img", cylinders=200, heads=16, spt=63
 #endif
 newharddrivesupport: enabled=1
 

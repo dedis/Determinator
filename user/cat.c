@@ -1,3 +1,5 @@
+#if LAB >= 4
+
 #include "lib.h"
 
 char buf[8192];
@@ -34,3 +36,4 @@ umain(int argc, char **argv)
 	}
 }
 
+#endif
