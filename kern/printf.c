@@ -31,7 +31,7 @@ ksprintn(u_quad_t uq, int base, int *lenp)
 /*
  * Scaled down version of printf(3).
  *
- * Two additional formats:
+ * Three additional formats:
  *
  * The format %b is supported to decode error registers.
  * Its usage is:
@@ -62,8 +62,23 @@ ksprintn(u_quad_t uq, int base, int *lenp)
  * }
  *
  * Space or zero padding and a field width are supported for the numeric
- * formats only.
+ * formats only. 
+ * 
+ * The format %e takes an integer error code and prints a string describing the error.
+ * The integer may be positive or negative, so that -E_NO_MEM and E_NO_MEM are
+ * equivalent.
  */
+
+static char *error_string[NERRORS] =
+{
+	NULL,
+	"unspecified error",
+	"bad environment",
+	"invalid parameter",
+	"out of memory",
+	"out of environments",
+	"env is blocking ipc",
+};
 
 static u_quad_t
 getint(va_list *ap, int lflag, int qflag)
@@ -149,6 +164,15 @@ kprintf(const char *fmt, va_list ap)
 			break;
 		case 'c':
 			cons_putc(va_arg(ap, int));
+			break;
+		case 'e':
+			n = va_arg(ap, int);
+			if(n < 0)
+				n = -n;
+			if(n > NERROR || (p = error_string[n]) == NULL)
+				kprintf("error %d", n);
+			else
+				kprintf("%s", p);
 			break;
 		case 'r':
 			p = va_arg(ap, char *);
