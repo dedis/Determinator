@@ -141,14 +141,14 @@ cga_putc(int c)
 		break;
 	}
 
-#if SOL >= 2
-	// What is the purpose of this?
-#else
+#if SOL >= 1
 	/* scroll if necessary */
+#else
+	// What is the purpose of this?
 #endif
 	if (crt_pos >= CRT_SIZE) {
 		int i;
-		memcpy(crt_buf, crt_buf + CRT_COLS, CRT_SIZE << 1);
+		memcpy(crt_buf, crt_buf + CRT_COLS, (CRT_SIZE - CRT_COLS) << 1);
 		for (i = CRT_SIZE - CRT_COLS; i < CRT_SIZE; i++)
 			crt_buf[i] = 0x0700 | ' ';
 		crt_pos -= CRT_COLS;
