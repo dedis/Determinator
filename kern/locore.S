@@ -133,8 +133,10 @@ IDTFNC_NOEC(Xirq12,  IRQ_OFFSET+12)
 IDTFNC_NOEC(Xirq13,  IRQ_OFFSET+13)
 IDTFNC_NOEC(Xirq14,  IRQ_OFFSET+14)
 IDTFNC_NOEC(Xirq15,  IRQ_OFFSET+15)
+#if SOL >= 4
 /* system call entry point */
 IDTFNC_NOEC(Xsyscall, T_SYSCALL)
+#endif
 /* default handler -- not for any specific trap */
 IDTFNC     (Xdefault, T_DEFAULT)
 
