@@ -212,6 +212,35 @@ error:
 	//	  Be sure to map the last page.  (It's okay to map the whole last page
 	//	  even though the program will only need part of it.)
 	//
+	//	  The bss is not read from the binary file.  It is simply 
+	//	  allocated as zeroed memory.  There are bits in the file at
+	//	  offset 0x20+aout.a_text+aout.a_data, but they are not the
+	//	  bss.  They are the symbol table, which is only for debuggers.
+	//	  Do not use them.
+	//
+	//	  The exact location of the bss is a bit confusing, because
+	//	  the linker lies to the loader about where it is.  
+	//	  For example, in the copy of user/init that we have (yours
+	//	  will depend on the size of your implementation of open and close),
+	//	  i386-osclass-aout-nm claims that the bss starts at 0x8067c0
+	//	  and ends at 0x807f40 (file offsets 0x67c0 to 0x7f40).
+	//	  However, since this is not page aligned,
+	//	  it lies to the loader, inserting some extra zeros at the end
+	//	  of the data section to page-align the end, and then claims
+	//	  that the data (which starts at 0x2000) is 0x5000 long, ending
+	//	  at 0x7000, and that the bss is 0xf40 long, making it run from
+	//	  0x7000 to 0x7f40.  This has the same effect as far as the
+	//	  loading of the program.  Offsets 0x8067c0 to 0x807f40 
+	//	  end up being filled with zeros, but they come from different
+	//	  places -- the ones in the 0x806 page come from the binary file
+	//	  as part of the data segment, but the ones in the 0x807 page
+	//	  are just fresh zeroed pages not read from anywhere.
+	//
+	//	  If you are confused by the last paragraph, don't worry too much.
+	//	  Just remember that the symbol table, should you choose to look at it,
+	//	  is not likely to match what's in the a.out header.  Use the a.out
+	//	  header alone.
+	// 
 	//	- Use the new sys_set_trapframe() call to set up the
 	//	  correct initial eip and esp register values in the child.
 	//	  You can use envs[ENVX(child)].env_tf as a template trapframe
