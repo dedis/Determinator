@@ -1,6 +1,5 @@
+#if LAB >= 2
 /* See COPYRIGHT for copyright information. */
-
-///LAB2
 
 #include <inc/stdarg.h>
 #include <inc/types.h>
@@ -198,17 +197,17 @@ kprintf(const char *fmt, va_list ap)
 			base = 10;
 			goto number;
 		case 'o':
-///SOL2
+#if SOL >= 2
 			uq = getint(&ap, lflag, qflag);
 			base = 8;
 			goto number;
-///ELSE
+#else /* not SOL >= 2 */
 			/* Replace this with your code to print in octal. */
 			cons_putc('X');
 			cons_putc('X');
 			cons_putc('X');
 			break;
-///END
+#endif /* not SOL >= 2 */
 		case 'p':
 			cons_putc('0');
 			cons_putc('x');
@@ -294,5 +293,4 @@ printf(const char *fmt,...)
 	va_end(ap);
 	return 0;
 }
-///END
-
+#endif /* LAB >= 2 */

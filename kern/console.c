@@ -95,11 +95,11 @@ cons_putc(short int c)
 		break;
 	}
 
-///SOL2
+#if SOL >= 2
 	// What is the purpose of this?
-///ELSE
+#else
 	/* scroll if necessary */
-///END
+#endif
 	if (crt_pos >= CRT_SIZE) {
 		int i;
 		bcopy(crt_buf + CRT_COLS, crt_buf, CRT_SIZE << 1);

@@ -1,4 +1,4 @@
-#///LAB1
+#if LAB >= 1
 TOP = ..
 include $(TOP)/ARCH
 
@@ -57,4 +57,4 @@ bochs.img: kernel ../tools/bootloader/bootloader.S ../tools/bootloader/main.c
 	dd if=$(TOP)/tools/bootloader/bootloader of=bochs.img~ conv=notrunc
 	dd if=kernel of=bochs.img~ seek=1 conv=notrunc
 	mv bochs.img~ bochs.img
-#///END
+#endif

@@ -1,4 +1,4 @@
-///LAB4
+#if LAB >= 4
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -206,4 +206,4 @@ main (int argc, char **argv)
 
   return (0);
 }
-///END
+#endif /* LAB >= 4 */

@@ -1,4 +1,4 @@
-///LAB1
+#if LAB >= 1
 #include <inc/asm.h>
 #include <inc/mmu.h>
 	
@@ -82,4 +82,4 @@ gdt:
 gdtdesc:
 	.word	0x17			# sizeof(gdt) - 1
 	.long	gdt			# address gdt
-///END
+#endif /* LAB >= 1 */

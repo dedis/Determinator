@@ -1,4 +1,4 @@
-///LAB4 
+#if LAB >= 4 
 #ifndef _LIBOS_H_
 #define _LIBOS_H_
 
@@ -40,4 +40,4 @@ struct a_out_hdr {
 };
 
 #endif /* _LIBOS_H_ */
-///END 
+#endif /* LAB >= 4 */

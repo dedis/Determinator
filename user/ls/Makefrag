@@ -1,4 +1,4 @@
-#///LAB4
+#if LAB >= 4
 
 OBJDIRS += user/ls
 CLEAN_FILES += user/ls/ls
@@ -10,4 +10,4 @@ user/ls/ls: $(USER_LS_OBJS)
 
 all: user/ls/ls
 
-#///END
+#endif /* LAB >= 4 */

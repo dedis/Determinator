@@ -1,4 +1,4 @@
-///LAB1
+#if LAB >= 1
 /*
  *
  * N.B.  NOTE THAT THIS IS THE BOOT LOADER, NOT THE KERNEL.
@@ -101,4 +101,4 @@ read_sector(int sector, char *destination)
 
 	insl(0x1f0, destination, SECTOR_SIZE / 4);
 }
-///END
+#endif /* LAB >= 1 */

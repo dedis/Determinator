@@ -1,4 +1,4 @@
-///LAB2
+#if LAB >= 2
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/x86.h>
@@ -6,14 +6,16 @@
 #include <inc/error.h>
 #include <kern/env.h>
 #include <kern/pmap.h>
+#if LAB >= 3
 #include <kern/trap.h>
 #include <kern/sched.h>
+#endif
 #include <kern/printf.h>
 
 struct Env *envs = NULL;		// All environments
 struct Env *curenv = NULL;	        // the current env
-///END
-///LAB3
+
+#if LAB >= 3
 static struct Env_list env_free_list;	// Free list
 
 //
@@ -57,14 +59,14 @@ envid2env(u_int envid, int *error)
 void
 env_init(void)
 {
-///SOL3
+#if SOL >= 3
 	int i;
 	LIST_INIT (&env_free_list);
 	for (i = NENV - 1; i >= 0; i--) {
 		envs[i].env_status = ENV_FREE;    
 		LIST_INSERT_HEAD (&env_free_list, &envs[i], env_link);
 	}
-///END
+#endif /* SOL >= 3 */
 }
 
 //
@@ -96,7 +98,7 @@ env_setup_vm(struct Env *e)
 	//    - Do not make any calls to page_alloc 
 	//    - Note: pp_refcnt is not maintained for physical pages mapped above UTOP.
 
-///SOL3
+#if SOL >= 3
 	e->env_cr3 = page2pa(p);
 	e->env_pgdir = page2kva(p);
 	bzero(e->env_pgdir, BY2PG);
@@ -106,7 +108,7 @@ env_setup_vm(struct Env *e)
 	for (i = PDX(UTOP); i <= PDX(~0); i++)
 		e->env_pgdir[i] = boot_pgdir[i];
 
-///END
+#endif /* SOL >= 3 */
 
 	// ...except at VPT and UVPT.  These map the env's own page table
 	e->env_pgdir[PDX(VPT)]   = e->env_cr3 | PTE_P | PTE_W;
@@ -148,12 +150,14 @@ env_alloc(struct Env **new, u_int parent_id)
 	// You also need to set tf_eip to the correct value.
 	// Hint: see load_icode
 
-///SOL3
-	e->env_tf.tf_eip = UTEXT + 0x20; // right past a.out header
+#if SOL >= 3
 	e->env_tf.tf_eflags = FL_IF; // interrupts enabled
-///ELSE
+#else
 	e->env_tf.tf_eflags = 0;
-///END
+#endif
+#if SOL >= 4
+	e->env_tf.tf_eip = UTEXT + 0x20; // right past a.out header
+#endif
 
 	e->env_ipc_blocked = 0;
 	e->env_ipc_value = 0;
@@ -180,7 +184,7 @@ env_alloc(struct Env **new, u_int parent_id)
 static void
 load_icode(struct Env *e, u_char *binary, u_int size)
 {
-///SOL3
+#if SOL >= 3
 	int i, r;
 	struct Page *pp;
 
@@ -200,14 +204,14 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 	if ((r = page_insert(e->env_pgdir, pp, USTACKTOP - BY2PG,
 				PTE_P|PTE_W|PTE_U)) < 0)
 		panic("load_icode: could not map page. Errno %d\n", r);
-///ELSE
+#else /* not SOL >= 3 */
 	// Hint: 
 	//  Use page_alloc, page_insert, page2kva and e->env_pgdir
 	//  You must figure out which permissions you'll need
 	//  for the different mappings you create.
 	//  Remember that the binary image is an a.out format image,
 	//  which contains both text and data.
-///END
+#endif /* not SOL >= 3 */
 }
 
 //
@@ -216,13 +220,13 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 void
 env_create(u_char *binary, int size)
 {
-////SOL3
+#if SOL >= 3
 	int r;
 	struct Env *e;
 	if ((r = env_alloc(&e, 0)) < 0)
 		panic("env_create: could not allocate env.  Error %d\n", r);
 	load_icode(e, binary, size);
-////END
+#endif /* not SOL >= 3 */
 }
 
 //
@@ -231,7 +235,7 @@ env_create(u_char *binary, int size)
 void
 env_free(struct Env *e)
 {
-///SOL3
+#if SOL >= 3
 	Pte *pt;
 	u_int pdeno, pteno;
 
@@ -247,11 +251,13 @@ env_free(struct Env *e)
 		page_free(pa2page(PADDR((u_long) pt)));
 	}
 	page_free(pa2page(PADDR((u_long) (e->env_pgdir))));
-///END 
 
+#else /* not SOL >= 3 */
 	// For lab 3, env_free() doesn't really do
 	// anything (except leak memory).  We'll fix
 	// this in later labs.
+#endif /* not SOL >= 3 */
+
 	e->env_status = ENV_FREE;
 	LIST_INSERT_HEAD(&env_free_list, e, env_link);
 }
@@ -308,7 +314,7 @@ env_run(struct Env *e)
 	// Hint: Skip step 1 until exercise 4.  You don't
 	// need it for exercise 1, and in exercise 4 you'll better
 	// understand what you need to do.
-///SOL3
+#if SOL >= 3
 	// save register state of currently executing env
 	if (curenv)
 		curenv->env_tf = *UTF;
@@ -317,8 +323,9 @@ env_run(struct Env *e)
 	lcr3(e->env_cr3);
 	// restore e's register state
 	env_pop_tf(&e->env_tf);
-///END
+#endif /* SOL >= 3 */
 }
 
 
-///END
+#endif /* LAB >= 3 */
+#endif /* LAB >= 2 */

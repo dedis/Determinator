@@ -1,6 +1,6 @@
+#if LAB >= 2
 /* See COPYRIGHT for copyright information. */
 
-///LAB2
 /* The Run Time Clock and other NVRAM access functions that go with it. */
 /* The run time clock is hard-wired to IRQ8. */
 
@@ -28,7 +28,7 @@ mc146818_write(void *sc, u_int reg, u_int datum)
 }
 
 
-///LAB3
+#if LAB >= 3
 void
 kclock_init(void)
 {
@@ -40,6 +40,6 @@ kclock_init(void)
 	irq_setmask_8259A (irq_mask_8259A & 0xfffa);
 	printf("	unmasked timer interrupt\n");
 }
-///END
+#endif /* LAB >= 3 */
 
-///END
+#endif /* LAB >= 2 */

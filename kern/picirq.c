@@ -1,4 +1,4 @@
-///LAB3
+#if LAB >= 3
 /* See COPYRIGHT for copyright information. */
 
 #include <kern/picirq.h>
@@ -73,4 +73,4 @@ irq_setmask_8259A (u_short mask)
 	outb(IO_PIC1+1, (char)mask);
 	outb(IO_PIC2+1, (char)(mask >> 8));
 }
-///END
+#endif /* LAB >= 3 */

@@ -1,4 +1,4 @@
-///LAB4
+#if LAB >= 4
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/x86.h>
@@ -9,7 +9,7 @@
 #include <kern/console.h>
 #include <kern/printf.h>
 
-///LAB200
+#if SOL >= 4
 u_int(*sctab[MAX_SYSCALL + 1])() = {
 	[SYS_getenvid] = (void *) sys_getenvid,
 	[SYS_cputu] = (void *) sys_cputu,
@@ -27,32 +27,23 @@ u_int(*sctab[MAX_SYSCALL + 1])() = {
 	[SYS_mem_remap] = (void *) sys_mem_remap,
 	[SYS_disk_read] = (void *) sys_disk_read
 };
-///END
-
+#endif /* SOL >= 4 */
 
 // Dispatches to the correct kernel function, passing the arguments.
-
-///LAB200
-#if 0
-///END
-int
-dispatch_syscall(u_int sn, u_int a1, u_int a2, u_int a3)
-{
-}
-///LAB200
-#endif
-
 int
 dispatch_syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4)
 {
+#if SOL >= 4
 	if (sn <= MAX_SYSCALL)
 		return sctab[sn] (a1, a2, a3, a4);
 	else {
 		printf("Invalid system call %d\n", sn);
 		return -E_INVAL;
 	}
+#else /* not SOL >= 4 */
+	// Fill in this code
+#endif /* not SOL >= 4 */
 }
-///END
 
 // returns the current environment id
 u_int
@@ -72,18 +63,13 @@ sys_cputu(u_int value)
 void
 sys_cputs(char *s)
 {
-///LAB5
-#if 0
-///END
-	printf("%s", s);
-///LAB5
-#endif
-///END
-///LAB5
+#if SOL >= 4
 	page_fault_mode = PFM_KILL;
-	printf("%s", trup(s));
+	printf("%s", TRUP(s));
 	page_fault_mode = PFM_NONE;
-///END
+#else
+	printf("%s", s);
+#endif
 }
 
 // deschedule current environment
@@ -122,7 +108,7 @@ sys_env_destroy(void)
 int
 sys_env_alloc(u_int inherit, u_int initial_esp)
 {
-///LAB5
+#if SOL >= 4
 	struct Env *e;
 	int r;
 
@@ -140,7 +126,7 @@ sys_env_alloc(u_int inherit, u_int initial_esp)
 		e->env_tf.tf_esp = initial_esp;
 	}
 	return e->env_id;	// return child's envid to parent
-///END
+#endif /* SOL >= 4 */
 }
 
 
@@ -148,10 +134,10 @@ sys_env_alloc(u_int inherit, u_int initial_esp)
 void
 sys_ipc_unblock(void)
 {
-///LAB5
+#if SOL >= 4
 	//printf("sys_ipc_unblock: old blocked %u\n", curenv->env_ipc_blocked);
 	curenv->env_ipc_blocked = 0;
-///END
+#endif /* SOL >= 4 */
 }
 
 // Sends the 'value' to the target env 'envid'.
@@ -171,7 +157,7 @@ sys_ipc_unblock(void)
 int
 sys_ipc_send(u_int envid, u_int value)
 {
-///LAB5
+#if SOL >= 4
 	struct Env *e;
 	int r;
 
@@ -205,7 +191,7 @@ sys_ipc_send(u_int envid, u_int value)
 	// who probably should call yield
 	return 0;
 #endif
-///END
+#endif /* SOL >= 4 */
 }
 
 // Sets the current env's pagefault handler entry point and exception
@@ -273,7 +259,7 @@ sys_set_env_status(u_int envid, u_int status)
 int
 sys_mod_perms(u_int va, u_int add, u_int del)
 {
-///LAB5
+#if SOL >= 4
 	Pde pde = vpd[PDX(va)];
 	if (!(pde & PTE_P))
 		return -E_INVAL;
@@ -285,7 +271,7 @@ sys_mod_perms(u_int va, u_int add, u_int del)
 	vpt[PGNO(va)] &= ~del; // XXX ditto
 	tlb_invalidate(va, curenv->env_pgdir);
 	return 0;
-///END
+#endif /* SOL >= 4 */
 }
 
 //
@@ -312,7 +298,7 @@ sys_mod_perms(u_int va, u_int add, u_int del)
 int
 sys_mem_alloc(u_int envid, u_int va, u_int perm)
 {
-///LAB5
+#if SOL >= 4
 	struct Env *env;
 	struct Page *pp;
 	int r;
@@ -336,7 +322,7 @@ sys_mem_alloc(u_int envid, u_int va, u_int perm)
 		return r;
 	}
 	return 0;
-///END
+#endif /* SOL >= 4 */
 }
 
 
@@ -364,7 +350,7 @@ sys_mem_alloc(u_int envid, u_int va, u_int perm)
 int
 sys_mem_remap(u_int srcva, u_int envid, u_int va, u_int perm)
 {
-///LAB5
+#if SOL >= 4
 	Pte pte;
 	int r;
 	struct Env *env;
@@ -387,7 +373,7 @@ sys_mem_remap(u_int srcva, u_int envid, u_int va, u_int perm)
 
 	// XXX -- check perms
 	return page_insert(env->env_pgdir, &ppages[PGNO(pte)], va, perm);
-///END
+#endif /* SOL >= 4 */
 }
 
 
@@ -409,7 +395,7 @@ sys_mem_remap(u_int srcva, u_int envid, u_int va, u_int perm)
 int
 sys_mem_unmap(u_int envid, u_int va)
 {
-///LAB5
+#if SOL >= 4
 	struct Env *env;
 	int r;
 
@@ -422,7 +408,7 @@ sys_mem_unmap(u_int envid, u_int va)
 
 	page_remove(env->env_pgdir, va);
 	return 0;
-///END
+#endif /* SOL >= 4 */
 }
 
 #define SECTOR_SIZE 512
@@ -470,4 +456,4 @@ sys_disk_read(u_int diskno, u_int blockno, u_int va)
 	return 0;
 }
 
-///END
+#endif /* LAB >= 4 */

@@ -1,5 +1,4 @@
-///LAB3
-
+#if LAB >= 4
 #ifndef _SYSCALL_H_
 #define _SYSCALL_H_
 
@@ -97,4 +96,4 @@ sys_set_pgfault_handler(u_int a1, u_int a2)
 
 #endif /* INLINE_SYSCALLS */
 #endif /* !_SYSCALL_H_ */
-///END
+#endif /* LAB >= 4 */

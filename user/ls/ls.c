@@ -1,4 +1,4 @@
-///LAB4
+#if LAB >= 4
 
 #include "../simple/libos.h"
 
@@ -16,4 +16,4 @@ umain (int argc, char *argv[])
 
 }
 
-///END
+#endif /* LAB >= 4 */

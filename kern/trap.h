@@ -1,4 +1,4 @@
-///LAB3
+#if LAB >= 3
 /* See COPYRIGHT for copyright information. */
 
 #ifndef _KERN_TRAP_H_
@@ -18,4 +18,4 @@ void backtrace(struct Trapframe *);
 extern u_int page_fault_mode;
 
 #endif /* _KERN_TRAP_H_ */
-///END
+#endif /* LAB >= 3 */

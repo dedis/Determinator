@@ -1,4 +1,4 @@
-#///LAB1
+#if LAB >= 1
 #
 # Makefile fragment for 6.828 kernel.
 # This is NOT a complete makefile;
@@ -57,4 +57,4 @@ kern/bochs.img: kern/kernel boot/boot
 
 all: kern/bochs.img
 
-#///END
+#endif

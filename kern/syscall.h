@@ -1,4 +1,4 @@
-///LAB3
+#if LAB >= 4
 
 #ifndef _KERN_SYSCALL_H_
 #define _KERN_SYSCALL_H_
@@ -7,14 +7,7 @@
 
 // These prototypes are private to the kernel.
 
-///LAB200
-#if 0
-///END
-int dispatch_syscall (u_int, u_int, u_int, u_int);
-///LAB200
-#endif
 int dispatch_syscall (u_int, u_int, u_int, u_int, u_int);
-///END
 u_int sys_getenvid ();
 void sys_cputu (u_int);
 void sys_cputs (char *);
@@ -33,4 +26,4 @@ int sys_disk_read (u_int, u_int, u_int);
 
 
 #endif /* !_KERN_SYSCALL_H_ */
-///END
+#endif /* LAB >= 4 */

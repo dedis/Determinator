@@ -1,4 +1,4 @@
-#///LAB4
+#if LAB >= 4 */
 
 OBJDIRS += user/simple
 CLEAN_FILES += user/simple/simple
@@ -8,4 +8,4 @@ SIMPLE_OBJS := $(addprefix user/simple/, entry.o libos.o simple.o)
 user/simple/simple: $(SIMPLE_OBJS)
 	$(LD) -o $@ $(LDFLAGS) -nostdlib $^
 
-#///END
+#endif /* LAB >= 4 */

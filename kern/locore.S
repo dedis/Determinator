@@ -1,6 +1,5 @@
+#if LAB >= 2	
 /* See COPYRIGHT for copyright information. */
-
-#///LAB2	
 
 #include <inc/asm.h>
 #include <inc/mmu.h>
@@ -66,10 +65,9 @@ start:
 	ljmp	$CODE_SEL,$relocated		# reload CS
 relocated:
 	movl	$0x0,%ebp			# And nuke frame pointer
-#///LAB200	
-	# XXX use sizeof(.)
-#///END	
+
         # Leave a few words on the stack for the user trap frame UTF
+	# XXX use sizeof(.)
 	movl	$(_bootstacktop-0x40),%esp	# set the stack pointer 
 
 	/* Zero the BSS */
@@ -85,8 +83,7 @@ relocated:
 	# now to C code
 	call	_i386_init
 	
-#///END 2
-#///LAB3
+#if LAB >= 3
 	
 ###################################################################
 # exceptions/interrupts
@@ -99,7 +96,7 @@ relocated:
 #define IDTFNC(name,num)      ENTRY(name)           pushl $(num); jmp _alltraps
 #define IDTFNC_NOEC(name,num) ENTRY(name) pushl $0; pushl $(num); jmp _alltraps 
 
-#///LAB4
+#if SOL >= 3
 
 /* CPU traps */
 IDTFNC_NOEC(Xdivide, T_DIVIDE)
@@ -160,7 +157,7 @@ _alltraps:
 	popl %ds		#
 	addl $0x8,%esp		# skip trapno and errcode
 	iret			# go back..
-#///END 4
+#endif /* SOL >= 3 */
 
 
 .globl _clock_interrupt
@@ -180,4 +177,5 @@ _clock_interrupt:
 	popl	%ecx
 	popl	%eax
 	iret			# return to whence we came..	
-#///END
+#endif /* LAB >= 3 */
+#endif /* LAB >= 2 */

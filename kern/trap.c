@@ -1,14 +1,16 @@
-///LAB3
+#if LAB >= 3
 #include <inc/mmu.h>
 #include <kern/pmap.h>
 #include <kern/trap.h>
 #include <kern/env.h>
-#include <kern/syscall.h>
 #include <kern/sched.h>
 #include <kern/console.h>
 #include <kern/printf.h>
 #include <kern/picirq.h>
 #include <kern/kclock.h>
+#if LAB >= 4
+#include <kern/syscall.h>
+#endif
 
 u_int page_fault_mode = PFM_NONE;
 static struct Taskstate ts;
@@ -27,7 +29,7 @@ void
 idt_init(void)
 {
 	extern struct Segdesc gdt[];
-///LAB4
+#if LAB >= 4
 	extern void
 		Xdivide,Xdebug,Xnmi,Xbrkpt,Xoflow,Xbound,
 		Xillop,Xdevice,Xdblflt,Xtss,Xsegnp,Xstack,
@@ -81,15 +83,11 @@ idt_init(void)
 	// by the user process(at priv level 3)
 	setgate(idt[T_SYSCALL], 0, GD_KT, &Xsyscall, 3);
 
-///END
+#endif /* LAB >= 4 */
 
 	// Setup a TSS so that we get the right stack when we trap to the kernel.
 	ts.ts_esp0 = KSTACKTOP;
 	ts.ts_ss0 = GD_KD;
-///LAB200	
-	ts.ts_cr3 = p0cr3_boot; // XXX delete these?
-	ts.ts_iomb = 0xdfff;
-///END	
 
 	// Love to put this code in the initialization of gdt, but
 	// the compiler generates an error incorrectly.
@@ -137,11 +135,17 @@ trap(struct Trapframe *tf)
 
 	/* print_trapframe(tf); */
 
+	if (tf->tf_trapno == IRQ_OFFSET) {
+		// irq 0 -- clock interrupt
+#if SOL >= 3
+		sched_yield();
+#endif
+	}
+#if LAB >= 4
 	if (tf->tf_trapno == T_PGFLT) {
 		page_fault_handler(tf);
 	}
 	else if (tf->tf_trapno == T_SYSCALL) {
-///LAB5
 		/* tf_eax - # of system call
 		 * tf_edx - 1st argument(if any)
 		 * tf_ecx - 2nd argument(if any)
@@ -150,19 +154,13 @@ trap(struct Trapframe *tf)
 		 */
 		tf->tf_eax = dispatch_syscall(tf->tf_eax, tf->tf_edx, tf->tf_ecx, 
 							   tf->tf_ebx, tf->tf_esi);
-///END
 	}
-	else if (tf->tf_trapno == IRQ_OFFSET) {
-		// irq 0 -- clock interrupt
-///LAB4
-		sched_yield();
-///END
-	}
-///LAB6
+#endif /* not LAB >= 4 */
+#if LAB >= 6
 	else if (tf->tf_trapno == IRQ_OFFSET + 1) {
 		kbd_intr();
 	}
-///END
+#endif
 	else if (tf->tf_trapno >= IRQ_OFFSET && 
 					 tf->tf_trapno < IRQ_OFFSET + MAX_IRQS) {
 		// just ignore spurious interrupts
@@ -173,38 +171,38 @@ trap(struct Trapframe *tf)
 		printf(" eflags = 0x%x\n", tf->tf_eflags);
 	} else {
 		// the user process or the kernel has a bug..
-///LAB4
+#if LAB >= 4
 		if (tf->tf_cs == GD_KT)
 			panic("unhandled trap in kernel");
 		else
 			env_destroy(curenv);
-///ELSE
+#else
 		print_trapframe(tf);
 		panic("unhandled trap");
-///END
+#endif
 	}
 }
 
 
+#if LAB >= 4
 void
 page_fault_handler(struct Trapframe *tf)
 {
-
 	u_int va = rcr2 ();
 #if 0
 	u_int env_id = curenv ? curenv->env_id : -1;
 	printf("%%%% [0x%x] Page fault(code 0x%x) for VA 0x%x(env 0x%x)\n"
-					"   eip = 0x%x, cs = 0x%x, eflags = 0x%x(pte 0x%x)\n",
-					tf->tf_trapno, 0xffff & tf->tf_err, va, env_id,
-					tf->tf_eip, 0xffff & tf->tf_cs, tf->tf_eflags, 
-					vpd[PDX(va)] & PG_P ? vpt[PGNO(va)] : -1);
+		"   eip = 0x%x, cs = 0x%x, eflags = 0x%x(pte 0x%x)\n",
+		tf->tf_trapno, 0xffff & tf->tf_err, va, env_id,
+		tf->tf_eip, 0xffff & tf->tf_cs, tf->tf_eflags, 
+		vpd[PDX(va)] & PG_P ? vpt[PGNO(va)] : -1);
 
 	/* Only traps from user mode push %ss:%esp */
 	if (tf->tf_err & FEC_U)
 		printf("   esp = 0x%x, ss = 0x%x\n", tf->tf_esp, 0xffff & tf->tf_ss);
 #endif
+#if SOL >= 4
 
-///LAB200
 	if (tf->tf_err & FEC_U) {
 		if (curenv->env_id == 0)
 			panic("Unexpected page fault in idle environment");
@@ -249,10 +247,13 @@ page_fault_handler(struct Trapframe *tf)
 	} else {
 		panic("Unexpected kernel page fault");
 	}
-///END
+#else /* not SOL >= 4 */
+	// Fill this in
+#endif /* not SOL >= 4 */
 }
+#endif /* LAB >= 4 */
 
 // 4491726
 
 
-///END 3
+#endif /* LAB >= 3 */

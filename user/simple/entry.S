@@ -1,4 +1,4 @@
-///LAB4
+#if LAB >= 4
 #include <inc/asm.h>
 #include <inc/mmu.h>
 
@@ -15,7 +15,7 @@ args_exist:
 	call _exit
 1:      jmp 1b
 	
-///LAB6
+#if SOL >= 4
 
 // On entry there a trap frame is on the stack: 
 //   [ 5 spare words ]
@@ -33,29 +33,23 @@ _asm_pgfault_handler:
 	call _pgfault_handler
 // copy trap time eip and eflags to trap time stack
 	
-///LAB6
 	movl 8(%esp),%eax    // EAX <- trap time ESP
 	movl 16(%esp),%ecx   // ECX <- trap time EIP
 	movl %ecx, -4(%eax)  // *(trap time esp - 4) = trap time eip
 	movl 12(%esp),%ecx   // EBX <- trap time EFLAGS
 	movl %ecx, -8(%eax)  // *(trap time esp - 8) = trap time eflags
-///END
 // restore caller saves
 
-///LAB6
 	movl 20(%esp),%eax
 	movl 24(%esp),%edx
 	movl 28(%esp),%ecx
-///END
 // load esp with trap time stack - 8
 
-///LAB6
 	subl $8,8(%esp)
 	movl 8(%esp),%esp
-///END
 // eflags and eip are waiting us there
 	popf
 	ret
-///END
+#endif /* SOL >= 4 */
 
-///END
+#endif /* LAB >= 4 */

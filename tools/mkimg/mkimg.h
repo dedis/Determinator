@@ -1,4 +1,4 @@
-///LAB4
+#if LAB >= 4
 #ifndef __MKIMG_H__
 #define __MKIMG_H__
 
@@ -9,4 +9,4 @@ struct toc_entry {
 };
 
 #endif /* __MKIMG_H__ */
-///END
+#endif /* LAB >= 4 */

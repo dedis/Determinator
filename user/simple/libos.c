@@ -1,4 +1,4 @@
-///LAB4
+#if LAB >= 4
 
 #include <inc/stdarg.h>
 #include "libos.h"
@@ -10,7 +10,7 @@
 //
 struct Env *__env = 0;
 
-///LAB200
+#if LAB >= 200 /* XXX */
 /* XXX zero the BSS ??
 
  * The -N in the LDFLAGS in GNUmakefile.global instructs the linker to
@@ -45,7 +45,7 @@ struct Env *__env = 0;
  * Or we could demand allocate the BSS in the user page fault handler.
  * Though, on startup, bzero (&edata, PGROUNDUP(&edata))
  */
-///END
+#endif /* LAB >= XXX */
 
 
 extern void asm_pgfault_handler ();
@@ -153,7 +153,7 @@ xbcopy (const void *src, void *dst, size_t len)
 void
 handle_cow_fault (u_int va, Pte pte)
 {
-///LAB5
+#if SOL >= 4 */
 
 #define COW_TEMP_PG  10*NBPD
   u_int ret;
@@ -190,7 +190,9 @@ handle_cow_fault (u_int va, Pte pte)
     if (sys_mem_unmap (0, COW_TEMP_PG) < 0)
       xpanic ("couldn't unmap temp cow page, va ", va, "\n");
   }
-///END
+#else /* not SOL >= 4 */
+	// Fill this in
+#endif
 }
 
 void
@@ -205,9 +207,7 @@ pgfault_handler (u_int va, u_int err, u_int esp, u_int eflags, u_int eip)
   printx (", eip ", eip, "]\n"); 
 #endif
 
-
-
-///LAB5
+#if SOL >= 4 */
   /* copy-on-write fault */
   if ((vpd[PDX(va)] & (PG_P|PG_U)) == (PG_P|PG_U)) {
     Pte pte = vpt[PGNO(va)];
@@ -222,7 +222,9 @@ pgfault_handler (u_int va, u_int err, u_int esp, u_int eflags, u_int eip)
     printx (" eip ", eip, ".  Exiting.\n");
     exit ();
   }
-///END
+#else /* not SOL >= 4 */
+	// Fill this in
+#endif
 }
 
 
@@ -234,7 +236,7 @@ pgfault_handler (u_int va, u_int err, u_int esp, u_int eflags, u_int eip)
 void
 ipc_send (u_int target_envid, u_int value)
 {
-///LAB5
+#if SOL >= 4
   int ret;
 #if 0
   print ("IPC_SEND value ", value, ",");
@@ -249,7 +251,9 @@ ipc_send (u_int target_envid, u_int value)
     goto again;
   } else if (ret < 0)
     xpanic ("sys_ipc_send failed, ret ", ret, "\n");
-///END
+#else /* not SOL >= 4 */
+	// Fill this in
+#endif /* not SOL >= 4 */
 }
 
 
@@ -271,7 +275,7 @@ ipc_send (u_int target_envid, u_int value)
 u_int
 ipc_read (u_int *from_envid)
 {
-///LAB5
+#if SOL >= 4
   u_int value;
 
   /* spin until ipc is blocked, then there is data ready */
@@ -288,7 +292,9 @@ ipc_read (u_int *from_envid)
 #endif
   sys_ipc_unblock ();  
   return value;
-///END
+#else /* not SOL >= 4 */
+	// Fill this in
+#endif
 }
 
 // an example of vpt[] and vpd[] 
@@ -346,7 +352,7 @@ dump_va_space ()
 int
 fork (void)
 {
-///LAB5
+#if SOL >= 4
   u_int va, j, ret;
   int child_envid = sys_env_alloc (1, 0);
   if (child_envid == 0) {
@@ -390,7 +396,9 @@ fork (void)
   if (ret < 0)
     xpanic ("sys_set_env_status: ", ret, "\n");
   return child_envid;
-///END
+#else /* not SOL >= 4 */
+	// Fill this in
+#endif /* not SOL >= 4 */
 }
 
 #define READ_TEMP_PG  (11*NBPD)
@@ -547,46 +555,25 @@ spawn (void (*child_fn) (void))
 
 
 
-///LAB200
-#if 0
-///END
 void
 setup_xstack ()
 {
-  sys_cputs ("setup_xstack: commented out until sys_mem_alloc is implemented\n");
-  while (1)
-    ;
-
-#if 0
-  int ret;
-  // allocate exception stack
-  ret = sys_mem_alloc (0, UXSTACKTOP - NBPG, PG_P|PG_U|PG_W);
-  if (ret < 0)
-    xpanic ("Couldn't alloc exception stack, ret ", ret, "\n");
-  
-  // setup pgfault handler
-  sys_set_pgfault_handler ((u_int)&asm_pgfault_handler, UXSTACKTOP);
-#endif
-}
-///LAB200
+#if SOL >= 4
+#else
+	sys_cputs("setup_xstack: disabled until sys_mem_alloc implemented\n");
+	while (1)
+		;
 #endif
 
-
-void
-setup_xstack ()
-{
-  int ret;
-  // allocate exception stack
-  ret = sys_mem_alloc (0, UXSTACKTOP - NBPG, PG_P|PG_U|PG_W);
-  if (ret < 0)
-    xpanic ("Couldn't alloc exception stack, ret ", ret, "\n");
+	int ret;
+	// allocate exception stack
+	ret = sys_mem_alloc (0, UXSTACKTOP - NBPG, PG_P|PG_U|PG_W);
+	if (ret < 0)
+		xpanic ("Couldn't alloc exception stack, ret ", ret, "\n");
   
-  // setup pgfault handler
-  sys_set_pgfault_handler ((u_int)&asm_pgfault_handler, UXSTACKTOP);
+	// setup pgfault handler
+	sys_set_pgfault_handler ((u_int)&asm_pgfault_handler, UXSTACKTOP);
 }
-///END
-
-
 
 
 void
@@ -601,26 +588,15 @@ exercise2 (void)
   if (envid != 2049)
     sys_cputs (" *** ERROR: expected 2049\n");
 
-
-///LAB200
-#if 0
-///END
   // now test bad sys_call number
   ret = sys_call (100, 0, 0, 0);
   if (ret != -E_INVAL)
     sys_cputs (" *** ERROR: expected -E_INVAL for bad syscall number\n");
-///LAB200
-#endif
-///END
-
 
   while (1)
     ;
 }
 
-///LAB200
-#if 0
-///END
 void
 exercise3 (void)
 {
@@ -634,9 +610,6 @@ exercise3 (void)
     pingpong_loop ("1st init process");
   }
 }
-///LAB200
-#endif
-///END
 
 void
 exercise4_test1 (void)
@@ -761,10 +734,7 @@ __main (int argc, char *argv[])
     }
   }
 
-
-///LAB200
-#if 0
-///END
+  // XXX figure out what to do here...
   exercise2 ();
   //exercise3 ();
   //exercise4_test1 ();
@@ -777,16 +747,11 @@ __main (int argc, char *argv[])
   //exercise5_test5 ();
 
   //// run these lines for exercise 6
-///LAB200
-#else
-///END
   setup_xstack ();
+
   //exec ("simple", "hi", "a", "b", "c", "dddd", "eeeeeeeeeeeeeee", NULL);
   //exit ();
-///LAB200
-#endif
-///END
 }
 
 
-///END
+#endif /* LAB >= 4 */

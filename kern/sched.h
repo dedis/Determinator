@@ -1,4 +1,4 @@
-///LAB3
+#if LAB >= 3
 /* See COPYRIGHT for copyright information. */
 
 #ifndef __SCHED_H__
@@ -9,4 +9,4 @@ void sched_yield(void);
 void sched_intr(int); 
 
 #endif /* __SCHED_H__ */
-///END
+#endif /* LAB >= 3 */

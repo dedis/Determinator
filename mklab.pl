@@ -23,44 +23,81 @@ sub dofile {
 	my $lines = 0;
 	my @pass = ();
 	while (<INFILE>) {
-		if (m|[#]?///LAB(\d+)|) {
-			if ($#pass < 0 || $pass[0]) {
+
+		my $line = $_;
+		my $enabled = ($#pass < 0 || $pass[0]);
+		my $doprint = $enabled;
+
+		if (m|^[#]if\s+LAB\s*[>][=]\s*(\d+)|) {
+
+			# Collapse "#if LAB >= N" blocks
+			$doprint = 0;
+			if ($enabled) {
 				unshift (@pass, $labno >= $1);
 			} else {
 				unshift (@pass, $pass[0]);
 			}
-			#print "$_: @pass\n";
-		} elsif (m|[#]?///SOL(\d+)|) {
-			if ($#pass < 0 || $pass[0]) {
+
+		} elsif (m|^[#]if\s+SOL\s*[>][=]\s*(\d+)|) {
+
+			# Collapse "#if SOL >= N" blocks
+			$doprint = 0;
+			if ($enabled) {
 				unshift (@pass, $solno >= $1);
 			} else {
 				unshift (@pass, $pass[0]);
 			}
-			#print "$_: @pass\n";
-		} elsif (m|[#]?///ELSE|) {
-			if ($#pass < 0 || $pass[0] ||
-					($#pass >= 1 && !$pass[1])) {
-				$pass[0] = 0;
+
+		} elsif (m|^[#]if|) {
+
+			# Do not collapse other types of ifdefs,
+			# but keep track of them to preserve proper nesting.
+			if ($enabled) {
+				unshift (@pass, 2);
 			} else {
-				$pass[0] = 1;
+				unshift (@pass, $pass[0]);
 			}
-			#print "$_: @pass\n";
-		} elsif (m|[#]?///END|) {
+
+		} elsif (m|^[#]else|) {
+
+			if ($#pass >= 1 && $pass[0] == 2) {
+				# Not an ifdef we're collapsing - do nothing.
+			} elsif ($enabled) {
+				# Output was enabled, so disable it
+				$pass[0] = 0;
+				$doprint = 0;
+			} elsif ($#pass >= 1 && !$pass[1]) {
+				# Output was disabled by enclosing ifdef,
+				# so keep it disabled.
+				$pass[0] = 0;
+				$doprint = 0;
+			} else {
+				# Output was disabled by current ifdef,
+				# so enable it now
+				$pass[0] = 1;
+				$doprint = 0;
+			}
+
+		} elsif (m|^[#]endif|) {
 			if ($#pass >= 0) {
+				if ($pass[0] < 2) {
+					$doprint = 0;
+				}
 				shift (@pass);
 			} else {
-				print "Warning: unmatched ///END in $filename\n";
+				print "Warning: unmatched #endif in $filename\n";
 			}
-			#print "$_: @pass\n";
-		} elsif ($#pass < 0 || $pass[0]) {
-			#print "$#pass--$pass[0]--$_";
-			print OUTFILE $_;
+		}
+
+		# Copy the line to the output file if appropriate
+		if ($doprint) {
+			print OUTFILE $line;
 			$lines++;
 		}
 	}
 
 	if ($#pass >= 0) {
-		print "Warning: unmatched ///LAB or ///SOL in $filename\n";
+		print "Warning: unmatched #if/#ifdef in $filename\n";
 	}
 
 	close INFILE;

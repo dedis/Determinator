@@ -7,3 +7,9 @@ After this year's class is over (fall 2003), we should:
   and consistent with the name of BY2PG...
   Maybe BY2PG => PGBYTES, and PDMAP => PDBYTES?
 
+- clean up pp->ref_count protocol -
+  e.g., have page_alloc increment the ref_count
+  rather than leaving the caller to do it?
+
+- Clean up #include blocks at the beginning of header files,
+  so that conditional "#if LAB >= N" ones are at the end.

@@ -1,4 +1,4 @@
-#///LAB4
+#if LAB >= 4
 
 OBJDIRS += tools/mkimg
 CLEAN_FILES += tools/mkimg/mkimg
@@ -8,4 +8,4 @@ tools/mkimg/mkimg: tools/mkimg/mkimg.c
 
 all: tools/mkimg/mkimg
 
-#///END
+#endif /* LAB >= 4 */

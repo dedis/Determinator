@@ -1,17 +1,19 @@
+#if LAB >= 2
 /* See COPYRIGHT for copyright information. */
 
-///LAB2
 #include <inc/asm.h>
+#if LAB >= 3
 #include <kern/trap.h>
+#endif
 #include <kern/pmap.h>
 #include <kern/env.h>
 #include <kern/console.h>
 #include <kern/printf.h>
 #include <kern/picirq.h>
 #include <kern/kclock.h>
-///LAB3
+#if LAB >= 3
 #include <kern/sched.h>
-///END
+#endif
 
 void
 i386_init(void)
@@ -21,30 +23,30 @@ i386_init(void)
 
 	printf("6828 decimal is %o octal!\n", 6828);
 
+	// Lab 2 initialization functions
 	i386_detect_memory();
 	i386_vm_init();
 	page_init();
 	page_check();
-///LAB3
 
+#if LAB >= 3
+	// Lab 3 initialization functions
 	idt_init();
 	pic_init();
 	kclock_init();
 	env_init();
-///LAB4
-#if 0
-///END
+
+#if LAB >= 4
+#else
+	// Temporary test code specific to LAB 3
 	{
 		extern u_char spin_start;
 		extern u_char spin_end;
 		env_create(&spin_start, &spin_end - &spin_start);
 	}
-///LAB4
 #endif
-///END
 
-#if 0
-///LAB5
+#if SOL >= 4
 	{
 		/* the binary for the user prog */
 		extern u_char binary_user_simple_simple_start[];
@@ -59,11 +61,10 @@ i386_init(void)
 		env_create(binary_user_simple_simple_start,
 								(u_int)binary_user_simple_simple_size);
 	}
-///END
-#endif
+#endif /* SOL >= 4 */
 
 	sched_yield();
-///END
+#endif /* LAB >= 3 */
 
 	panic("init.c: end of i386_init() reached!");
 }
@@ -124,4 +125,5 @@ atexit(void(*function)(void))
 {
 	panic("atexit: function %p", function);
 }
-///END
+
+#endif /* LAB >= 2 */

@@ -1,6 +1,6 @@
+#if LAB >= 2
 /* See COPYRIGHT for copyright information. */
 
-///LAB2
 #ifndef _ERROR_H_
 #define _ERROR_H_
 
@@ -17,4 +17,4 @@
 #define MAXERROR 6
 
 #endif /* _ERROR_H_ */
-///END
+#endif /* LAB >= 2 */

@@ -1,4 +1,4 @@
-#///LAB1
+#if LAB >= 1
 #
 # Makefile fragment for 6.828 kernel.
 # This is NOT a complete makefile;
@@ -17,4 +17,4 @@ boot/boot: $(BOOT_OBJS)
 	i386-osclass-aout-objcopy -S -O binary $@.out $@
 
 
-#///END
+#endif

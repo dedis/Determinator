@@ -18,9 +18,9 @@ parport1: enable=1, file="/dev/stdout"
 
 # disk images
 diskc: file="./kern/bochs.img", cyl=200, heads=16, spt=63
-///LAB6
+#if LAB >= 6
 diskd: file="./user/bochs.img", cyl=200, heads=16, spt=63
-///END
+#endif
 newharddrivesupport: enabled=1
 
 # choose the boot disk.

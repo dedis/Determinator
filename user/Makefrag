@@ -1,4 +1,4 @@
-#///LAB4
+#if LAB >= 4
 
 USER_SUBDIRS := kenv0 simple ls
 CLEAN_FILES += user/bochs.img
@@ -16,4 +16,4 @@ user/bochs.img: $(foreach sub,$(USER_SUBDIRS),user/$(sub)/$(sub)) \
 
 all: user/bochs.img
 
-#///END
+#endif

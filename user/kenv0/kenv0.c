@@ -1,4 +1,4 @@
-///LAB4
+#if LAB >= 4
 #include <kern/syscall.h>
 
 void
@@ -7,4 +7,4 @@ __main (void)
   while (1) 
     ;
 }
-///END
+#endif /* LAB >= 4 */

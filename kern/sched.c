@@ -1,4 +1,5 @@
-///LAB3
+#if LAB >= 3
+
 #include <kern/env.h>
 #include <kern/pmap.h>
 #include <kern/picirq.h>
@@ -15,7 +16,7 @@ clock(void)
 void
 sched_yield(void)
 {
-///LAB5
+#if LAB >= 5
 	// marks current position in the round-robin sweep
 	static int sched_idx = 0;
 	int start = sched_idx;
@@ -31,8 +32,9 @@ sched_yield(void)
 	} while (start != sched_idx);
 
 	// idle env must always be runnable
-///END
+#endif /* LAB >= 5 */
 	assert(envs[0].env_status == ENV_RUNNABLE);
 	env_run(&envs[0]);
 }
-///END
+
+#endif /* LAB >= 3 */

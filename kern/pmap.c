@@ -1,4 +1,4 @@
-///LAB2
+#if LAB >= 2
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/x86.h>
@@ -112,7 +112,7 @@ alloc(u_int n, u_int align, int clear)
 	//	Step 4: clear allocated chunk if necessary
 	//	Step 5: return allocated chunk
 
-///SOL2
+#if SOL >= 2
 	freemem = ROUND(freemem, align);
 	if (freemem+n < freemem || freemem+n > KERNBASE+maxpa)
 		panic("out of memory during i386_vm_init");
@@ -121,7 +121,7 @@ alloc(u_int n, u_int align, int clear)
 	if (clear)
 		bzero(v, n);
 	return v;
-///END
+#endif /* SOL >= 2 */
 }
 
 //
@@ -142,7 +142,7 @@ alloc(u_int n, u_int align, int clear)
 static Pte*
 boot_pgdir_walk(Pde *pgdir, u_long va, int create)
 {
-///SOL2
+#if SOL >= 2
 	Pde *pde;
 	Pte *pgtab;
 
@@ -156,7 +156,7 @@ boot_pgdir_walk(Pde *pgdir, u_long va, int create)
 		*pde = PADDR(pgtab)|PTE_P|PTE_W;
 	}
 	return &pgtab[PTX(va)];
-///END
+#endif /* SOL >= 2 */
 }
 
 //
@@ -167,12 +167,12 @@ boot_pgdir_walk(Pde *pgdir, u_long va, int create)
 static void
 boot_map_segment(Pde *pgdir, u_long va, u_long size, u_long pa, int perm)
 {
-///SOL2
+#if SOL >= 2
 	u_long i;
 
 	for (i=0; i<size; i+=BY2PG)
 		*boot_pgdir_walk(pgdir, va+i, 1) = (pa+i)|perm|PTE_P;
-///END
+#endif /* SOL >= 2 */
 }
 
 // Set up a two-level page table:
@@ -193,10 +193,10 @@ i386_vm_init(void)
 	Pde *pgdir;
 	u_int cr0, n;
 
-///SOL2
-///ELSE
+#if SOL >= 2
+#else
 	panic("i386_vm_init: This function is not finished\n");
-///END
+#endif
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -224,10 +224,10 @@ i386_vm_init(void)
 	//     * [KSTACKTOP-PDMAP, KSTACKTOP-KSTKSIZE) -- not backed => faults
 	//   Permissions: kernel RW, user NONE
 	// Your code goes here:
-///SOL2
+#if SOL >= 2
 	boot_map_segment(pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE,
 		PADDR(bootstack), PTE_W);
-///END
+#endif
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE. 
@@ -237,37 +237,39 @@ i386_vm_init(void)
 	// bytes of physical memory.  But we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here: 
-///SOL2
+#if SOL >= 2
 	boot_map_segment(pgdir, KERNBASE, -KERNBASE, 0, PTE_W);
-///END
+#endif
 
 	//////////////////////////////////////////////////////////////////////
 	// Make 'pages' point to an array of size 'npage' of 'struct Page'.   
+	// You must allocate this array yourself.
 	// Map this array read-only by the user at virtual address UPAGES
 	// (ie. perm = PTE_U | PTE_P)
 	// Permissions:
 	//    - pages -- kernel RW, user NONE
 	//    - the image mapped at UPAGES  -- kernel R, user R
 	// Your code goes here: 
-///SOL2
+#if SOL >= 2
 	n = npage*sizeof(struct Page);
 	pages = alloc(n, BY2PG, 1);
 	boot_map_segment(pgdir, UPAGES, n, PADDR(pages), PTE_U);
-///END
+#endif
 
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
+	// You must allocate this array yourself.
 	// Map this array read-only by the user at virtual address UENVS
 	// (ie. perm = PTE_U | PTE_P)
 	// Permissions:
 	//    - envs itself -- kernel RW, user NONE
 	//    - the image of envs mapped at UENVS  -- kernel R, user R
 	// Your code goes here: 
-///SOL2
+#if SOL >= 2
 	n = NENV*sizeof(struct Env);
 	envs = alloc(n, BY2PG, 1);
 	boot_map_segment(pgdir, UENVS, n, PADDR(envs), PTE_U);
-///END
+#endif
 
 	check_boot_pgdir();
 
@@ -404,7 +406,7 @@ static void page_initpp(struct Page *pp);
 void
 page_init(void)
 {
-///SOL2
+#if SOL >= 2
 	int i, inuse;
 
 	LIST_INIT (&page_free_list);
@@ -431,7 +433,7 @@ page_init(void)
 			LIST_INSERT_HEAD(&page_free_list, &pages[i], pp_link);
 	}
 	
-///ELSE
+#else /* not SOL >= 2 */
 	// The exaple code here marks all pages as free.
 	// However this is not truly the case.  What memory is free?
 	//  1) Mark page 0 as in use(for good luck) 
@@ -449,7 +451,7 @@ page_init(void)
 		pages[i].pp_ref = 0;
 		LIST_INSERT_HEAD(&page_free_list, &pages[i], pp_link);
 	}
-///END
+#endif /* not SOL >= 2 */
 }
 
 //
@@ -477,7 +479,7 @@ int
 page_alloc(struct Page **pp)
 {
 	// Fill this function in
-///SOL2
+#if SOL >= 2
 	*pp = LIST_FIRST (&page_free_list);
 	if (*pp) {
 		LIST_REMOVE(*pp, pp_link);
@@ -486,7 +488,7 @@ page_alloc(struct Page **pp)
 	}
 
 	warn("page_alloc() can't find memory");
-///END
+#endif /* not SOL >= 2 */
 	return -E_NO_MEM;
 }
 
@@ -497,16 +499,16 @@ page_alloc(struct Page **pp)
 void
 page_free(struct Page *pp)
 {
-///SOL2
+#if SOL >= 2
 	if (pp->pp_ref) {
 		warn("page_free: attempt to free mapped page");
 		return;		/* be conservative and assume page is still used */
 	}
 	LIST_INSERT_HEAD(&page_free_list, pp, pp_link);
 	pp->pp_ref = 0;
-///ELSE
+#else /* not SOL >= 2 */
 	// Fill this function in
-///END
+#endif /* not SOL >= 2 */
 }
 
 //
@@ -524,7 +526,7 @@ page_free(struct Page *pp)
 int
 pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte)
 {
-///SOL2
+#if SOL >= 2
 	int r;
 	struct Page *pp;
 	Pde *pde;
@@ -557,9 +559,9 @@ pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte)
 
 	*ppte = &pgtab[PTX(va)];
 	return 0;
-///ELSE
+#else /* not SOL >= 2 */
 	// Fill this function in
-///END
+#endif /* not SOL >= 2 */
 }
 
 //
@@ -582,7 +584,7 @@ pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte)
 int
 page_insert(Pde *pgdir, struct Page *pp, u_long va, u_int perm) 
 {
-///SOL2
+#if SOL >= 2
 	int r;
 	Pte *pte;
 
@@ -595,9 +597,9 @@ page_insert(Pde *pgdir, struct Page *pp, u_long va, u_int perm)
 	pp->pp_ref++;
 	*pte = page2pa(pp) | perm | PTE_P;
 	return 0;
-///ELSE
+#else /* not SOL >= 2 */
 	// Fill this function in
-///END
+#endif /* not SOL >= 2 */
 }
 
 //
@@ -617,7 +619,7 @@ page_insert(Pde *pgdir, struct Page *pp, u_long va, u_int perm)
 void
 page_remove(Pde *pgdir, u_long va) 
 {
-///SOL2
+#if SOL >= 2
 	int r;
 	struct Page *pp;
 	Pte *pte;
@@ -644,9 +646,9 @@ page_remove(Pde *pgdir, u_long va)
 
 	*pte = 0;
 	tlb_invalidate(pgdir, va);
-///ELSE	
+#else /* not SOL >= 2 */
 	// Fill this function in
-///END
+#endif /* not SOL >= 2 */
 }
 
 //
@@ -752,4 +754,4 @@ page_check(void)
 	printf("page_check() succeeded!\n");
 }
 
-///END
+#endif /* LAB >= 2 */
