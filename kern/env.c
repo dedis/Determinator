@@ -50,53 +50,6 @@ envid2env(u_int envid, int *error)
 }
 
 //
-// Sets up the the initial stack and program binary for a user process.
-//   This function loads the binary image at virtual address UTEXT
-//   and maps one page for the program's initial stack
-//   at virtual address USTACKTOP - BY2PG.
-// Ignore the a.out header -- assume the binary is the given size,
-// begins at UTEXT+0x20, doesn't need its bss cleared, and so on.
-//
-static void
-load_icode(struct Env *e, u_char *binary, u_int size)
-{
-///SOL3
-	int i, r;
-	struct Page *pp;
-
-	// Allocate and map physical pages
-	for (i = 0; i < size; i += BY2PG) {
-		if ((r = page_alloc(&pp)) < 0)
-			panic("load_icode: could not alloc page. Errno %d\n", r);
-		bcopy(&binary[i], (void*)page2kva(pp), MIN(BY2PG, size - i));
-		if ((r = page_insert(e->env_pgdir, pp, UTEXT + i,
-					PTE_P|PTE_W|PTE_U)) < 0)
-			panic("load_icode: could not map page. Errno %d\n", r);
-	}
-
-	/* Give it a stack */
-	if ((r = page_alloc(&pp)) < 0)
-		panic("load_icode: could not alloc page. Errno %d\n", r);
-	if ((r = page_insert(e->env_pgdir, pp, USTACKTOP - BY2PG,
-				PTE_P|PTE_W|PTE_U)) < 0)
-		panic("load_icode: could not map page. Errno %d\n", r);
-///ELSE
-	// Hint: 
-	//  Use page_alloc, page_insert, page2kva and e->env_pgdir
-	//  You must figure out which permissions you'll need
-	//  for the different mappings you create.
-	//  Remember that the binary image is an a.out format image,
-	//  which contains both text and data.
-///END
-}
-
-
-
-
-
-
-
-//
 // Marks all environments in 'envs' as free and inserts them into 
 // the env_free_list.  Insert in reverse order, so that
 // the first call to env_alloc() returns envs[0].
@@ -113,8 +66,6 @@ env_init(void)
 	}
 ///END
 }
-
-
 
 //
 // Initializes the kernel virtual memory layout for environment e.
@@ -218,8 +169,46 @@ env_alloc(struct Env **new, u_int parent_id)
 	return 0;
 }
 
+//
+// Sets up the the initial stack and program binary for a user process.
+//   This function loads the binary image at virtual address UTEXT
+//   and maps one page for the program's initial stack
+//   at virtual address USTACKTOP - BY2PG.
+// Ignore the a.out header -- assume the binary is the given size,
+// begins at UTEXT+0x20, doesn't need its bss cleared, and so on.
+//
+static void
+load_icode(struct Env *e, u_char *binary, u_int size)
+{
+///SOL3
+	int i, r;
+	struct Page *pp;
 
+	// Allocate and map physical pages
+	for (i = 0; i < size; i += BY2PG) {
+		if ((r = page_alloc(&pp)) < 0)
+			panic("load_icode: could not alloc page. Errno %d\n", r);
+		bcopy(&binary[i], (void*)page2kva(pp), MIN(BY2PG, size - i));
+		if ((r = page_insert(e->env_pgdir, pp, UTEXT + i,
+					PTE_P|PTE_W|PTE_U)) < 0)
+			panic("load_icode: could not map page. Errno %d\n", r);
+	}
 
+	/* Give it a stack */
+	if ((r = page_alloc(&pp)) < 0)
+		panic("load_icode: could not alloc page. Errno %d\n", r);
+	if ((r = page_insert(e->env_pgdir, pp, USTACKTOP - BY2PG,
+				PTE_P|PTE_W|PTE_U)) < 0)
+		panic("load_icode: could not map page. Errno %d\n", r);
+///ELSE
+	// Hint: 
+	//  Use page_alloc, page_insert, page2kva and e->env_pgdir
+	//  You must figure out which permissions you'll need
+	//  for the different mappings you create.
+	//  Remember that the binary image is an a.out format image,
+	//  which contains both text and data.
+///END
+}
 
 //
 // Allocates a new env and loads the a.out binary into it.
@@ -235,7 +224,6 @@ env_create(u_char *binary, int size)
 	load_icode(e, binary, size);
 ////END
 }
-
 
 //
 // Frees env e and all memory it uses.
@@ -267,7 +255,6 @@ env_free(struct Env *e)
 	e->env_status = ENV_FREE;
 	LIST_INSERT_HEAD(&env_free_list, e, env_link);
 }
-
 
 //
 // Frees env e.  And schedules a new env
