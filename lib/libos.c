@@ -2,7 +2,7 @@
 // Called from entry.S to get us going.
 // Entry.S took care of defining envs, pages, vpd, and vpt.
 
-#include "lib.h"
+#include <inc/lib.h>
 
 extern void umain(int, char**);
 

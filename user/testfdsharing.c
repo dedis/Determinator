@@ -1,5 +1,6 @@
 #if LAB >= 6
-#include "lib.h"
+
+#include <inc/lib.h>
 
 char buf[512], buf2[512];
 

@@ -19,8 +19,11 @@ PMAP=pmap
 
 ## Only build files if they exist.
 ##
-## locore.S must be first, so it's the 
+## locore.S must be first, so that it's the 
 ## first code in the text segment!!!
+##
+## Note that we also snatch the use of a couple handy source files
+## from the lib directory, to avoid gratuitous code duplication.
 ##
 KERN_SRCFILES :=	kern/locore.S \
 			kern/$(INIT).c \
@@ -33,7 +36,8 @@ KERN_SRCFILES :=	kern/locore.S \
 			kern/trap.c \
 			kern/lab3.S \
 			kern/sched.c \
-			kern/syscall.c
+			kern/syscall.c \
+			lib/string.c
 KERN_SRCFILES := $(foreach file, $(KERN_SRCFILES), \
 			$(shell test -f $(file) && echo $(file)))
 KERN_OBJFILES := $(patsubst %.c, %.o, \

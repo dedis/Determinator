@@ -3,7 +3,7 @@
 // test user-level fault handler -- just exit when we fault
 // run the handlers on the user stack, just to make sure we can.
 
-#include "lib.h"
+#include <inc/lib.h>
 
 void
 handler(u_int va, u_int err)

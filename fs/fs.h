@@ -1,6 +1,7 @@
 #if LAB >= 5
-#include <user/lib.h>
+
 #include <inc/fs.h>
+#include <inc/lib.h>
 
 /* IDE disk number to look on for our file system */
 #define DISKNO		1

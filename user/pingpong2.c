@@ -4,7 +4,7 @@
 // Start two instances of this program as envs 1 and 2
 // (user/idle is env 0).
 
-#include "lib.h"
+#include <inc/lib.h>
 
 void
 umain(void)

@@ -2,7 +2,7 @@
 // Stripped-down printf.  Unlike kernel printf, formats to buffer
 // and then sends buffer in one go with sys_cputs.
 
-#include "lib.h"
+#include <inc/lib.h>
 
 /*
  * Put a number(base <= 16) in a buffer in reverse order; return an

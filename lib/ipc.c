@@ -1,7 +1,7 @@
 #if LAB >= 4
 // User-level IPC library routines
 
-#include "lib.h"
+#include <inc/lib.h>
 
 // Send val to whom.  This function keeps trying until
 // it succeeds.  It should panic() on any error other than

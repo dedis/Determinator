@@ -1,6 +1,6 @@
 #if LAB >= 4
 
-#include "lib.h"
+#include <inc/lib.h>
 
 char buf[8192];
 

@@ -2,8 +2,7 @@
 
 #include <inc/fs.h>
 #include <inc/string.h>
-
-#include "lib.h"
+#include <inc/lib.h>
 
 #define debug 0
 

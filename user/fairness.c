@@ -4,7 +4,7 @@
 // Start three instances of this program as envs 1, 2, and 3.
 // (user/idle is env 0).
 
-#include "lib.h"
+#include <inc/lib.h>
 
 void
 umain(void)

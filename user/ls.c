@@ -1,6 +1,6 @@
 #if LAB >= 6
 
-#include "lib.h"
+#include <inc/lib.h>
 
 int flag[256];
 

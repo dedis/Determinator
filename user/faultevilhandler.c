@@ -2,7 +2,7 @@
 #elif LAB >= 4
 // test evil pointer for user-level fault handler
 
-#include "lib.h"
+#include <inc/lib.h>
 
 void
 umain(void)

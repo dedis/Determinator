@@ -2,7 +2,7 @@
 #elif LAB >= 4
 // test user-level fault handler -- alloc pages to fix faults
 
-#include "lib.h"
+#include <inc/lib.h>
 
 void
 handler(u_int va, u_int err)

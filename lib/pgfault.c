@@ -2,7 +2,7 @@
 // User-level page fault handler.  We use an assembly wrapper around a C function.
 // The assembly wrapper is in entry.S.
 
-#include "lib.h"
+#include <inc/lib.h>
 
 extern void (*_pgfault_handler)(u_int, u_int);
 extern void _asm_pgfault_handler(void);

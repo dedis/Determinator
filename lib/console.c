@@ -1,8 +1,7 @@
 #if LAB >= 6
 
 #include <inc/string.h>
-
-#include "lib.h"
+#include <inc/lib.h>
 
 static int cons_read(struct Fd*, void*, u_int, u_int);
 static int cons_write(struct Fd*, const void*, u_int, u_int);

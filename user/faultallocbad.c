@@ -3,7 +3,7 @@
 // test user-level fault handler -- alloc pages to fix faults
 // doesn't work because we sys_cputs instead of printf (exercise: why?)
 
-#include "lib.h"
+#include <inc/lib.h>
 
 void
 handler(u_int va, u_int err)

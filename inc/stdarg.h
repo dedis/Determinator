@@ -1,3 +1,4 @@
+#if LAB >= 1
 /*	$NetBSD: stdarg.h,v 1.12 1995/12/25 23:15:31 mycroft Exp $	*/
 
 #ifndef _I386_STDARG_H_
@@ -17,3 +18,4 @@ typedef char * va_list;
 #define	va_end(ap)	((void)0)
 
 #endif /* !_I386_STDARG_H_ */
+#endif	// LAB >= 1

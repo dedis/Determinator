@@ -1,7 +1,7 @@
 #if LAB >= 5
 #elif LAB >= 4
 
-#include "lib.h"
+#include <inc/lib.h>
 
 void
 umain(void)

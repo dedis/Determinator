@@ -1,9 +1,8 @@
 #if LAB >= 4
 // implement fork from user space
 
-#include "lib.h"
-
 #include <inc/string.h>
+#include <inc/lib.h>
 
 
 #define debug 0

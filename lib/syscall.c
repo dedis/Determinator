@@ -1,8 +1,8 @@
 #if LAB >= 4
 // System call stubs.
 
-#include "lib.h"
 #include <inc/syscall.h>
+#include <inc/lib.h>
 
 static inline int
 syscall(int num, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)

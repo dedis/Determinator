@@ -39,7 +39,7 @@ info: action=ignore
 error: action=report
 panic: action=ask
 
-vga_update_interval: 10000
+vga_update_interval: 100000
 ips: 15000000
 keyboard_serial_delay: 10
 

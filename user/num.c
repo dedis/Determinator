@@ -1,6 +1,6 @@
 #if LAB >= 4
 
-#include "lib.h"
+#include <inc/lib.h>
 
 int bol = 1;
 int line = 0;

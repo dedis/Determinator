@@ -2,7 +2,7 @@
 #elif LAB >= 4
 // test an evil stack for user-level fault handler
 
-#include "lib.h"
+#include <inc/lib.h>
 
 void
 loop(void)

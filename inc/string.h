@@ -4,11 +4,12 @@
 
 #include <inc/types.h>
 
-void *memcpy(void *, const void *, size_t);
-void *memset(void *, int, size_t);
+int		strlen(const char*);
+char*		strcpy(char*, const char*);
+int		strcmp(const char*, const char*);
+const char*	strchr(const char*, char);
 
-// XXX get rid of these - deprecated
-void bcopy(const void *, void *, size_t);
-void bzero(void *, size_t);
+void *		memset(void *, int, size_t);
+void *		memcpy(void *, const void *, size_t);
 
 #endif /* not _INC_STRING_H_ */

@@ -6,6 +6,26 @@
 #	http://aegis.sourceforge.net/auug97.pdf
 #
 
+#if LAB >= 999
+#
+# Anything in an #if LAB >= 999 always gets cut out by mklab.pl on export,
+# and thus is for the internal instructor/TA project tree only.
+# Students never see this.
+# 
+# To build within the instructor/TA tree
+# (instead of exporting a student tree and then building),
+# invoke 'make' as follows:
+#
+#	make LAB=# SOL=#
+#
+# substituting the appropriate LAB# and SOL# to control the build.
+# Be sure to do a 'make clean' when changing the LAB# or SOL#.
+#
+# Pass the LAB and SOL values to the C compiler.
+DEFS	:= $(DEFS) -DLAB=$(LAB) -DSOL=$(SOL)
+#
+#endif // LAB >= 999
+
 TOP = .
 
 # Cross-compiler osclass toolchain
@@ -25,9 +45,6 @@ PERL	:= perl
 # Compiler flags
 # Note that -O2 is required for the boot loader to fit within 512 bytes;
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
-#if LAB >= 999
-DEFS	:= $(DEFS) -DLAB=$(LAB) -DSOL=$(SOL)
-#endif
 CFLAGS	:= $(CFLAGS) $(DEFS) -O2 -fno-builtin -I$(TOP) -MD -MP -Wall -Wno-format -ggdb
 
 # Linker flags for user programs
@@ -44,8 +61,9 @@ all:
 
 
 # Include Makefrags for subdirectories
-include kern/Makefrag
 include boot/Makefrag
+include kern/Makefrag
+include lib/Makefrag
 #if LAB >= 4
 include user/Makefrag
 #endif
@@ -75,10 +93,32 @@ include fs/Makefrag
 	$(TOP)/tools/bintoc/bintoc -S $< $*_bin > $@~ && $(MV) -f $@~ $@
 
 
-#if LAB >= 999
+#if LAB >= 999	// Visible only in instructor's project tree
+
+# Use a fake target to make sure both LAB and SOL are defined.
+-include .oldlab
+all inc/types.h: checklab
+checklab:
+ifndef LAB
+	@echo LAB and SOL must be defined to build in the instructor tree.
+	@false
+endif
+ifndef SOL
+	@echo LAB and SOL must be defined to build in the instructor tree.
+	@false
+endif
+ifdef OLDLAB
+ifneq ($(LAB):$(SOL),$(OLDLAB))
+	@echo "Do a 'make clean' before changing the value of LAB or SOL."
+	@false
+endif
+else
+	echo >.oldlab "OLDLAB=$(LAB):$(SOL)"
+endif
+
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S
-LAB_DIRS := inc $(OBJDIRS)
+LAB_DIRS := inc lib $(OBJDIRS)
 LAB_FILES := CODING GNUmakefile .bochsrc mergedep.pl grade.sh boot/sign.pl \
 	fs/lorem fs/motd fs/newmotd fs/script \
 	fs/testshell.sh fs/testshell.key fs/testshell.out fs/out \
@@ -135,7 +175,7 @@ bios:
 bios/%: /usr/local/share/bochs/% bios
 	cp $< $@
 all: $(BIOS_FILES)
-#endif
+#endif // LAB >= 999
 
 bochs: kern/bochs.img fs/fs.img
 	bochs-nogui

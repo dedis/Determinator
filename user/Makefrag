@@ -31,27 +31,9 @@ CLEAN_FILES += \
 
 OBJDIRS += user
 
-USERLIB := \
-	user/console.o \
-	user/fd.o \
-	user/file.o \
-	user/fork.o \
-	user/fprintf.o \
-	user/fsipc.o \
-	user/ipc.o \
-	user/libos.o \
-	user/pageref.o \
-	user/pgfault.o \
-	user/pipe.o \
-	user/printf.o \
-	user/spawn.o \
-	user/string.o \
-	user/syscall.o \
-	user/wait.o \
-
-user/%: user/entry.o user/%.o $(USERLIB)
+user/%: user/%.o lib/entry.o lib/libuser.a
 	@echo ld $@
-	@$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib $^
+	@$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib -Llib -luser $^
 
 user/%.asm: user/%
 	$(OBJDUMP) --adjust-vma=0x7ff000 -S $^ >$@

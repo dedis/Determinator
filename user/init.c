@@ -1,5 +1,6 @@
 #if LAB >= 5
-#include "lib.h"
+
+#include <inc/lib.h>
 
 struct {
 	char msg1[5000];

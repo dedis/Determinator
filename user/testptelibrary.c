@@ -1,5 +1,6 @@
 #if LAB >= 6
-#include "lib.h"
+
+#include <inc/lib.h>
 
 #define VA (0xA0000000)
 char *msg = "hello, world\n";

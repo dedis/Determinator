@@ -35,9 +35,9 @@ FSIMGFILES := \
 	user/testptelibrary \
 	user/testshell \
 
-fs/fs:	user/entry.o $(FSOFILES) $(USERLIB)
+fs/fs:	$(FSOFILES) lib/entry.o lib/libuser.a
 	@echo ld $@
-	@$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib $^
+	@$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib -Llib -luser $^
 
 fs/fs.asm: fs/fs
 	$(OBJDUMP) --adjust-vma=0x007ff000 -S $^ >$@

@@ -2,7 +2,7 @@
 #elif LAB >= 4
 // buggy program - faults
 
-#include "lib.h"
+#include <inc/lib.h>
 
 void
 umain(void)

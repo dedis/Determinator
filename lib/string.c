@@ -1,7 +1,7 @@
-#if LAB >= 4
-// String routines.  Not hardware optimized, but not shabby.
+#if LAB >= 1
+// Basic string routines.  Not hardware optimized, but not shabby.
 
-#include "lib.h"
+#include <inc/string.h>
 
 int
 strlen(const char *s)
@@ -22,6 +22,18 @@ strcpy(char *dst, const char *src)
 	while ((*dst++ = *src++) != 0)
 		;
 	return ret;
+}
+
+int
+strcmp(const char *p, const char *q)
+{
+	while (*p && *p == *q)
+		p++, q++;
+	if ((u_int)*p < (u_int)*q)
+		return -1;
+	if ((u_int)*p > (u_int)*q)
+		return 1;
+	return 0;
 }
 
 const char*
@@ -61,18 +73,6 @@ memcpy(void *dst, const void *src, size_t n)
 		*d++ = *s++;
 
 	return dst;
-}
-
-int
-strcmp(const char *p, const char *q)
-{
-	while (*p && *p == *q)
-		p++, q++;
-	if ((u_int)*p < (u_int)*q)
-		return -1;
-	if ((u_int)*p > (u_int)*q)
-		return 1;
-	return 0;
 }
 
 #endif

@@ -1,5 +1,6 @@
 #if LAB >= 6
-#include "lib.h"
+
+#include <inc/lib.h>
 
 void wrong(int, int, int);
 

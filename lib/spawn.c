@@ -1,6 +1,7 @@
 #if LAB >= 5
-#include "lib.h"
+
 #include <inc/aout.h>
+#include <inc/lib.h>
 
 #define TMPPAGE		(BY2PG)
 #define TMPPAGETOP	(TMPPAGE+BY2PG)

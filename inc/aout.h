@@ -2,6 +2,8 @@
 #ifndef _AOUT_H_
 #define _AOUT_H_ 1
 
+#include <inc/types.h>
+
 struct Aout {
 	u_int  a_magic;		// flags<<26 | mid<<16 | magic
 	u_int  a_text;		// text segment size

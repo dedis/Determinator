@@ -1,8 +1,8 @@
 #if LAB >= 4
 // idle loop
 
-#include "lib.h"
 #include <inc/x86.h>
+#include <inc/lib.h>
 
 void
 umain(void)

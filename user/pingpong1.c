@@ -3,10 +3,8 @@
 // Ping-pong a counter between two processes.
 // Only need to start one of these -- splits into two, crudely.
 
-#include "lib.h"
-
 #include <inc/string.h>
-
+#include <inc/lib.h>
 
 int dumbfork(void);
 
