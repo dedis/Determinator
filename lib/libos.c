@@ -7,6 +7,7 @@
 extern void umain(int, char**);
 
 struct Env *env;
+char *binaryname = "NAME_UNKNOWN";
 
 void
 libmain(int argc, char **argv)
@@ -17,6 +18,10 @@ libmain(int argc, char **argv)
 #else
 	env = 0;	// Your code here.
 #endif
+
+	// save the name of the program so that panic() can use it
+	if (argc > 0)
+		binaryname = argv[0];
 
 	// call user main routine
 	umain(argc, argv);

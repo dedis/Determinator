@@ -7,6 +7,8 @@
 void
 umain(void)
 {
+	binaryname = "idle";
+
 #if LAB >= 5
 	// Since we're idling, there's no point in continuing on.
 	// Do some illegal I/O, which should trap back into Bochs.

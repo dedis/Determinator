@@ -316,6 +316,8 @@ void
 umain(void)
 {
 	assert(sizeof(struct File)==256);
+        binaryname = "fs";
+	opencons();
 	printf("FS is running\n");
 
 	// Check that we are able to do I/O

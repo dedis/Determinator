@@ -31,6 +31,7 @@ void	ipc_send(u_int whom, u_int val, u_int srcva, u_int perm);
 u_int	ipc_recv(u_int *whom, u_int dstva, u_int *perm);
 
 // libos.c or entry.S
+extern char *binaryname;
 extern struct Env *env;
 extern struct Env envs[NENV];
 extern struct Page pages[];
@@ -123,7 +124,7 @@ int	spawnl(char*, char*, ...);
 #endif  // LAB >= 5
 #if LAB >= 6
 // console.c
-int	putchar(int c);
+void	putchar(int c);
 int	getchar(void);
 int	iscons(int);
 int	opencons(void);

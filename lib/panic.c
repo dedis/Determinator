@@ -21,7 +21,7 @@ _panic(const char *file, int line, const char *fmt,...)
 	n = 0;
 	if (argv0)
 		n += snprintf(buf+n, sizeof buf-n, "%s: ", argv0);
-	n += snprintf(buf+n, sizeof buf-n, "user panic at %s:%d: ", file, line);
+	n += snprintf(buf+n, sizeof buf-n, "user panic in %s at %s:%d: ", binaryname, file, line);
 	n += vsnprintf(buf+n, sizeof buf-n, fmt, ap);
 	n += snprintf(buf+n, sizeof buf-n, "\n");
 	va_end(ap);
