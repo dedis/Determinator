@@ -20,3 +20,28 @@ After this year's class is over (fall 2003), we should:
   maybe in a separate test/ directory?
 
 - Update lab4 so IPC can transfer page mappings
+
+Also, (copied from Russ's E-mail):
+
+	minishell in kernel - console i/o very early
+
+	tie v6 to bsd/linux with special lecture at end of v6
+		more mentions throughout
+
+	tie x86 to v6 lectures more
+
+	drop l3 in favor of good microkernel intro (amoeba?)
+
+	replace ras with queued locks?  multiprocessor?
+
+	use osdi soft updates
+
+	io-lite?
+
+	kill lab 1 to move everything up,
+	more room at end
+
+	challenge points accrued throughout semester
+
+	more comments and less code
+
