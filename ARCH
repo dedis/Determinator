@@ -1,0 +1,9 @@
+##    LINUX - build under linux
+##    FREEBSD - build under freebsd -- NOT TESTED
+##    OPENBSD - build under openbsd
+##    GNULD - use GNU ld
+
+#OPENBSD = 1
+#GNULD = 1
+#LINUX=1
+FREEBSD=1

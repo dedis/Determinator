@@ -1,0 +1,457 @@
+
+##
+##  Global Makefile for kernel and utilities.  When invoked, the
+##  following variables can be set:
+##
+##    TOP - Top of build directory
+##    SRCFILES - All source files for main target
+##    EXTRAOBJ - Extra object files to include in the main target
+##    PROG     - program to build
+##    LIB      - library to build (if PROG not set)
+##    AUXPROGS - auxiliary programs to build
+##    AUXCSRCS - auxiliary C files for dependencies
+##    OBJDIR   - build in OBJDIR rather than current directory
+##    SUBDIRS  - recurse into sub directories
+##    DEFS     - any command line defines needed
+##    EXTRACLN - extra files to clean
+##    EXTRATRG - extra targets to make by default
+##    EXTRAINC - extra -I flags for compile command line
+##    DOPROF   - when set to "yes" c files are built with profiling information
+##    DOBBPROF - when set to "yes" c files are built with basic block profiling
+##    UNINITOK - files for which to ignore uninitialized variable warnings
+##    UNUSEDOK - files for which unused variables are ok
+##    BADFORMATOK - files for which not to check args/types of printf, etc.
+##    WARNOK   - files for which warnings are ok
+##    NOPROF   - files not to profile
+##    NOBBPROF - files not to basic block profile
+##    NOOPT    - files not to optimize 
+##    PAXINSTALL - files to install with 'pax -r -w -luv'
+##    PAXINSTALLPREFIX - where to put the PAXINSTALL files
+##    LNPROGINSTALL - uses LN instead of 'install' to install programs
+##    LNLIBINSTALL - uses LN instead of 'install' to install libraries
+
+LNPROGINSTALL = 1
+LNLIBINSTALL = 1
+
+# OS deps?
+include $(TOP)/ARCH
+
+## Figure out where the cross compiler is
+CROSS =
+
+ATHENA  := $(shell test -f /etc/athena/version && echo "yes")
+ifeq ($(ATHENA),yes)
+# Athena has it rooted in our class locker
+CROSS := /mit/6.097
+else
+# FreeBSD development machines have a local tree
+CROSS := /usr/local/aout-cross
+endif
+
+##
+##  Commands:
+##
+
+
+CC = $(CROSS)/bin/i386-osclass-aout-gcc -pipe
+NCC = gcc $(CC_VER) -pipe
+GCC_LIB = `$(CC) -print-libgcc-file-name`
+AS = $(CROSS)/bin/i386-osclass-aout-as
+AR = $(CROSS)/bin/i386-osclass-aout-ar
+RM = rm
+LD = $(CROSS)/bin/i386-osclass-aout-ld
+OBJCOPY = $(CROSS)/bin/i386-osclass-aout-objcopy
+# named so as not to conflict with internal STRIP
+STRIP_PROG = $(CROSS)/bin/i386-osclass-aout-strip
+CP = cp
+MV = mv
+INSTALL = install
+RANLIB = $(CROSS)/bin/i386-osclass-aout-ranlib
+BINPWD = /bin/pwd
+PAX = pax
+LN = ln
+YACC = yacc
+
+# lorder needs this set in the env
+export NM $(CROSS)/bin/i386-osclass-aout-nm
+LORDER = $(TOP)/tools/lorder/lorder
+
+### XXX is this still needed?
+ifdef LINUX
+# tsort under LINUX seems to be broken
+TSORT = cat
+# which means that lorder isn't too usefull...
+LORDER = echo
+else
+TSORT = tsort -q
+endif
+
+##
+##  Flags:
+##
+
+# A couple programs I've encountered bail on duplicate debug symbols with -g
+ifndef DBG
+DBG = -g -O2
+endif
+
+ifndef INC
+INC = -nostdinc -I$(TOP) $(EXTRAINC)
+endif
+WFLAGS += -Wall -Wno-comments -Wno-parentheses -Werror -Wno-char-subscripts $(EXTRAWFLAGS)
+
+EXTRADEFS =
+
+CFLAGS = $(DBG) $(INC) $(DEFS) $(EXTRADEFS) $(WFLAGS) -fno-builtin
+
+ifndef LDFLAGS
+ifndef LDADDR
+LDADDR = 800020
+endif # LDADDR
+LDFLAGS = $(DBG) -static -N -Ttext $(LDADDR) -nostdlib
+endif
+#LD_RULE = $(CC) -o $@ $(LDFLAGS) --start-group $^ --end-group $(GCC_LIB)
+LD_RULE = $(CC) -o $@ $(LDFLAGS) $^ $(GCC_LIB)
+export HOME := /you/may/not/rely/on/HOME/in/these/makefiles
+
+
+
+##
+##  Targets always supported
+##
+all::
+TARGETS = all install clean clobber
+.PHONY: $(TARGETS)
+FORCE:
+	@:
+.PHONY: FORCE
+
+##
+##  Get rid of any built-in suffix rules.
+##
+.SUFFIXES:
+
+##
+##  Current directory.  Use environment var PWD if it maps to the
+##  current directory (possibly through some simlinks or automount
+##  file systems).  Otherwise, just use `$(BINPWD)`.
+##
+ifndef CURDIR
+export CURDIR := ${shell curdir=`$(BINPWD)`; \
+	case "$(PWD)" in \
+		/*$) test "`cd $(PWD) && $(BINPWD)`" = "$$curdir" \
+			&& curdir=$(PWD) ;; \
+	esac; \
+	echo $$curdir}
+endif # !CURDIR
+
+##
+##  Figure out where to install based on where we are in the tree.
+##
+ifeq ($(DOINSTALL),yes)
+ifndef INSTALLPREFIX
+export INSTALLPREFIX := $(notdir $(patsubst %/, %, $(dir $(CURDIR))))
+ifneq ($(filter $(INSTALLPREFIX), lib include),)
+INSTALLPREFIX := usr/$(INSTALLPREFIX)
+endif # INSTALLPREFIX is neither lib nor include
+endif # INSTALLPREFIX
+export DOINSTALL
+endif # !DOINSTALL
+
+##
+##  Now the fun begins.  Build in $(OBJDIR) if it's defined
+##
+DOOBJDIR :=
+ifdef OBJDIR
+ifndef INOBJDIR
+DOOBJDIR := yes
+endif
+endif
+
+ifneq ($(PREORDER),yes)
+ifneq ($(INOBJDIR),yes)
+##  Make subdirectories if $(SUBDIRS) is set
+ifdef SUBDIRS
+REALSUBDIRS := $(filter \
+	$(patsubst %/, %, $(shell ls -d $(SUBDIRS:=/) 2> /dev/null)), \
+	$(SUBDIRS))
+$(TARGETS)::
+	@set -e; for dir in $(REALSUBDIRS); do \
+		(cd $$dir && $(MAKE) $(filter-out all, $@) \
+			CURDIR=$(CURDIR)/$$dir); \
+	done
+clean::
+ifdef SRCFILES
+	$(RM) -f $(AUXPROGS) $(PROG) $(LIB) $(EXTRACLN) \
+			core *.s *.o *.a *.d *~ *.core *.aout
+else # !SRCFILES
+	rm -f *~ *.core core *.aout $(EXTRACLN)
+endif # !SRCFILES
+endif # SUBDIRS
+endif # INOBJDIR
+endif # !PREORDER
+
+ifeq ($(DOOBJDIR),yes)
+export OLDTOP := $(CURDIR)/$(TOP)
+export OLDVPATH := $(VPATH)
+
+$(TARGETS):: $(OBJDIR)
+$(OBJDIR):
+	mkdir -p $@
+
+OBJDIRRULE = \
+	@cd $(OBJDIR) && \
+	$(MAKE) -f $(CURDIR)/GNUmakefile $(filter-out all, $@) \
+		TOP=$(OLDTOP) CURDIR=$(CURDIR) INOBJDIR=yes SUBDIRS=
+
+.PHONY: $(TARGETS) $(OBJDIR)
+$(TARGETS)::
+	$(OBJDIRRULE)
+%.o %.s:
+	$(OBJDIRRULE)
+clean::
+	$(RM) -f $(addsuffix /*~, . $(VPATH)) \
+		$(addsuffix /*.aout, . $(VPATH)) \
+		$(addsuffix /*.core, . $(VPATH)) \
+		$(addsuffix /core, . $(VPATH))
+	-rmdir $(OBJDIR)
+	$(RM) -f $(AUXPROGS) $(PROG) $(LIB) $(EXTRACLN) \
+			core *.s *.o *.a *.d *~ *.core *.aout
+
+
+else	# $(DOOBJDIR) empty
+
+all:: $(EXTRATRG)
+
+##
+##  If $(INOBJDIR) is defined, we should build from $(CURDIR).
+##
+ifeq ($(INOBJDIR),yes)
+VPATHABS := $(filter /%, $(OLDVPATH))
+VPATHREL := $(filter-out /%, $(OLDVPATH))
+VPATH := $(addprefix $(CURDIR)/, . $(VPATHREL)) $(VPATHABS)
+endif
+
+
+##
+##  Static pattern rules
+##
+
+# Don't fail when a stale ".d" file contains non-existent header files.
+# This rule will cause the ".o" file to be remade, which will both cause
+# an error if there really is a missing ".h" file, and rebuild the ".d"
+# file.
+%.h:
+	@:
+
+%.o: %.S
+	$(CC) -MD -c $(INC) $(EXTRADEFS) $(DEFS) $<
+
+# for some reason $(strip ...) works but $($(STRIP) ...) does not under LINUX
+
+UNUSED_F=$(strip $(patsubst $(<F),-Wno-unused,$(filter $(<F), $(notdir $(UNUSEDOK)))))
+UNINIT_F=$(strip $(patsubst $(<F), -Wno-uninitialized, $(filter $(<F), $(notdir $(UNINITOK)))))
+BADFORMAT_F=$(strip $(patsubst $(<F), -Wno-format, $(filter $(<F), $(notdir $(BADFORMATOK)))))
+WARNOK_F=$(strip $(patsubst $(<F),-Wno-error,$(filter $(<F), $(notdir $(WARNOK)))))
+OPT_F   =$(strip $(patsubst $(<F),-O0,$(filter $(<F), $(notdir $(NOOPT)))))
+
+ifeq ($(DOPROF),yes)
+ FRAMEP_F=$(strip $(patsubst $(<F), ,$(patsubst ,-fno-omit-frame-pointer,$(filter $(<F), $(notdir $(NOPROF))))))
+ PROF_F  =$(strip $(patsubst $(<F), ,$(patsubst ,-pg,$(filter $(<F), $(notdir $(NOPROF))))))
+ PROFDEF =$(strip $(patsubst $(<F), ,$(patsubst ,-DEXOPROFILE,$(filter $(<F), $(notdir $(NOPROF))))))
+endif
+
+ifeq ($(DOBBPROF),yes)
+ BBPROF =$(strip $(patsubst $(<F), ,$(patsubst ,-a,$(filter $(<F), $(notdir $(NOBBPROF))))))
+endif
+
+CC_COMPILE_RULE = $(CC) -MD -c $(PROF_F) $(PROFDEF) $(BBPROF) $(CFLAGS) $(OPT_F) $(FRAMEP_F) $(UNUSED_F) $(UNINIT_F) $(BADFORMAT_F) $(WARNOK_F) $<
+
+%.o: %.c
+	$(CC_COMPILE_RULE)
+
+%.o: %.s
+	$(CC) -c $<
+
+##  Get rid of debugging symbols
+$(patsubst %.gdb, %, $(filter %.gdb, $(PROG))): %: %.gdb
+	rm -f $(notdir $@) $(notdir $@~)
+	$(CP) $< $(notdir $@~) && \
+		$(STRIP_PROG) $(notdir $@~) && mv -f $(notdir $@~) $(notdir $@)
+
+##  For embedding one program in another
+%.b.c: %.b
+	rm -f $@
+	$(TOP)/tools/bintoc/bintoc $< $*_bin > $@~ && $(MV) -f $@~ $@
+%.b.s: %.b
+	rm -f $@
+	$(TOP)/tools/bintoc/bintoc -S $< $*_bin > $@~ && $(MV) -f $@~ $@
+
+##  For examining compiler output
+CC_COMPILE_2ASM_RULE = $(CC) -S -fverbose-asm $(PROF_F) $(PROFDEF) $(filter-out -g, $(CFLAGS)) $(OPT_F) $(FRAMEP_F) $(UNUSED_F) $(UNINIT_F) $(BADFORMAT_F) $(WARNOK_F) $<
+
+%.s: %.c FORCE
+	$(CC_COMPILE_2ASM_RULE)
+
+##
+##  Make target if there is one
+##
+AUXCSRCS += $(AUXPROGS:=.c)
+ifdef SRCFILES
+##  Break $(SRCFILES) into each kind of file
+SFILES := $(filter %.S, $(SRCFILES))
+sFILES := $(filter %.s, $(SRCFILES))
+CFILES := $(filter %.c, $(SRCFILES))
+OBJFILES := $(SFILES:.S=.o) $(sFILES:.s=.o) $(CFILES:.c=.o) $(EXTRAOBJ)
+
+
+##
+##  Build a program or library
+##
+ifdef PROG
+all:: $(PROG)
+
+ifdef INITPROG
+BOUNCE = $(TOP)/lib/csu/bounce_initp.o
+CRT0 = $(TOP)/lib/csu/crt0_initp.o
+else
+BOUNCE = $(TOP)/lib/csu/bounce.o
+CRT0 = $(TOP)/lib/csu/crt0.o
+endif #INITPROG
+
+ifndef NOLIB
+ifdef STATIC
+$(PROG): $(CRT0) $(SFILES:.S=.o) $(sFILES:.s=.o) \
+	$(CFILES:.c=.o) $(EXTRAOBJ) $(TOP)/lib/libc/obj/libc.a $(LIBS)
+else	# not STATIC
+$(PROG): $(BOUNCE) $(SFILES:.S=.o) $(sFILES:.s=.o) \
+	$(CFILES:.c=.o) $(EXTRAOBJ) $(TOP)/bin/shlib/libexos.so_stub.o $(LIBS)
+endif	# STATIC
+else
+$(PROG): $(SFILES:.S=.o) $(sFILES:.s=.o) $(CFILES:.c=.o) $(EXTRAOBJ)
+endif
+ifdef PRE_LINK
+	$(PRE_LINK)
+endif # PRE_LINK
+	$(LD_RULE)
+ifdef POST_LINK
+	$(POST_LINK)
+endif # POST_LINK
+
+else	# no PROG
+
+ifdef LIB
+
+all:: $(LIB)
+
+#NLIBOBJS := $(sort $(SFILES:.S=.o) $(CFILES:.c=.o) $(EXTRAOBJ))
+#OLIBOBJS := $(sort $(filter-out __.SYMDEF, \
+#		$(shell test -f $(LIB) && ar t $(LIB))))
+
+$(LIB): $(SFILES:.S=.o) $(CFILES:.c=.o) $(EXTRAOBJ)
+ifdef STATIC
+ifneq ($(NLIBOBJS), $(OLIBOBJS))
+	@$(RM) -f $@
+	@objs=`$(LORDER) $^ | $(TSORT)`; \
+		echo $(AR) cq $(LIB) $$objs; \
+		$(AR) cq $(LIB) $$objs
+else # NLIBOBJS == OLIBOBJS
+	@if [ "`echo $? | wc -w`" -gt 7 ]; then \
+		rm -f $@; \
+		objs=`$(LORDER) $^ | $(TSORT)`; \
+			echo $(AR) cq $(LIB) $$objs; \
+			$(AR) cq $(LIB) $$objs; \
+	else \
+		echo $(AR) r $@ $?; \
+		$(AR) r $@ $?; \
+	fi
+endif # NLIBOBJS == OLIBOBJS
+	$(RANLIB) $@
+endif	# STATIC
+endif	# LIB
+
+endif	# no PROG
+endif	# $(SRCFILES)
+
+
+##
+##  Build auxiliary programs with the native C compiler
+##
+ifdef AUXPROGS
+$(AUXPROGS): %: %.o
+	$(NCC) $(EXTRADEFS) $(AUXDEFS) -o $@ $^
+$(patsubst %, %.o, $(AUXPROGS)): %.o: %.c $(AUXDEP)
+	$(NCC) $(EXTRADEFS) $(AUXDEFS) -MD -c -g -O $(WFLAGS) $(WARNOK_F) $(AUXINC) $<
+endif
+
+
+##
+##  Automatically maintain all dependencies so we don't need to
+##  worry about things like "make depend".
+##
+##  Dependencies for each source file are kept in a corresponding
+##  ".d" file (which is generated as a side effect of compilation
+##  when the -MD flag is supplied).
+##
+##  We only need to include ".d" files which correspond to existing
+##  ".o" files, as missing ".o" files will need to be regenerated
+##  anyway.  Therefore we include in this makefile only the list of
+##  ".d" files in $(INCFILES), which is set to the list of all ".d"
+##  files with existing ".o" files.
+##
+##  One small problem with this is that a ".d" file might get
+##  deleted while the ".o" still exists.  Such missing ".d" files,
+##  listed in $(REQDFILES), are therefore manually regenerated.
+##
+DFILES := $(notdir $(SFILES:.S=.d) $(CFILES:.c=.d) $(AUXCSRCS:.c=.d))
+INCDFILES := $(filter $(DFILES), $(patsubst %.o, %.d, $(wildcard *.o)))
+REQDFILES := $(filter-out $(wildcard *.d), $(INCDFILES))
+
+$(filter $(SFILES:.S=.d), $(REQDFILES)): %.d: %.S
+	$(CC) -M -c $(INC) $(EXTRADEFS) $(DEFS) $< > $@
+$(filter $(CFILES:.c=.d), $(REQDFILES)): %.d: %.c
+	$(CC) -M -c $(INC) $(EXTRADEFS) $(DEFS) $< > $@
+$(filter $(AUXCSRCS:.c=.d), $(REQDFILES)): %.d: %.c
+	$(NCC) -M -c $(EXTRADEFS) -DAUXUTIL $< > $@
+
+ifneq ($(INCDFILES),)
+include $(INCDFILES)
+endif
+
+##
+##  Clean and clobber
+##
+.PHONY: clean clobber
+ifndef SUBDIRS
+clean::
+	$(RM) -f $(AUXPROGS) $(sort $(PROG:.gdb=) $(PROG)) $(LIB) $(EXTRACLN) \
+			core *.s *.o *.a *.d *~ *.core *.aout
+clobber: clean
+endif
+
+endif	# no $(DOOBJDIR)
+
+ifeq ($(PREORDER),yes)
+ifneq ($(INOBJDIR),yes)
+##  Make subdirectories if $(SUBDIRS) is set
+ifdef SUBDIRS
+$(TARGETS)::
+	@set -e; for dir in $(SUBDIRS); do \
+		(cd $$dir && $(MAKE) $(filter-out all, $@) \
+			CURDIR=$(CURDIR)/$$dir); \
+	done
+clean::
+ifdef SRCFILES
+	$(RM) -f $(AUXPROGS) $(PROG) $(LIB) $(EXTRACLN) \
+			core *.s *.o *.a *.d *~ *.core *.aout
+else # !SRCFILES
+	rm -f *~ *.core core *.aout
+endif # !SRCFILES
+endif # SUBDIRS
+endif # INOBJDIR
+endif # PREORDER
+
+##
+## Make docs
+##
+
