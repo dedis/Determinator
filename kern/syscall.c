@@ -3,6 +3,7 @@
 
 #include <inc/x86.h>
 #include <inc/error.h>
+#include <inc/string.h>
 #include <inc/assert.h>
 
 #include <kern/env.h>

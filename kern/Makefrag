@@ -36,6 +36,7 @@ KERN_SRCFILES :=	kern/locore.S \
 			kern/sched.c \
 			kern/syscall.c \
 			lib/printf.c \
+			lib/printfmt.c \
 			lib/readline.c \
 			lib/string.c
 KERN_SRCFILES := $(foreach file, $(KERN_SRCFILES), \

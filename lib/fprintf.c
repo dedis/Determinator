@@ -1,4 +1,6 @@
 #if LAB >= 5
+// XXX change this to use printfmt properly,
+// with no string length limitation.
 
 #include <inc/lib.h>
 

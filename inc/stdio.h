@@ -11,12 +11,22 @@
 int	putchar(int c);
 int	getchar(void);
 
+// lib/printfmt.c
+void	printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...);
+void	vprintfmt(void (*putch)(int, void*), void *putdat,
+			const char *fmt, va_list ap);
+
 // lib/printf.c
 int	printf(const char*, ...);
 int	vprintf(const char*, va_list);
+
+// lib/sprintf.c
 int	snprintf(char*, int, const char*, ...);
 int	vsnprintf(char*, int, const char*, va_list);
+
+// lib/fprintf.c
 int	fprintf(int fd, const char*, ...);
+int	vfprintf(int fd, const char*, va_list);
 
 // lib/readline.c
 char *	readline(const char *prompt);

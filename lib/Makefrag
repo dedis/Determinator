@@ -9,7 +9,9 @@ LIB_SRCFILES :=		\
 			lib/panic.c \
 			lib/pgfault.c \
 			lib/printf.c \
+			lib/printfmt.c \
 			lib/readline.c \
+			lib/sprintf.c \
 			lib/string.c \
 			lib/syscall.c
 
