@@ -298,7 +298,7 @@ page_fault_handler(struct Trapframe *tf)
 	// so just terminate it.
 	page_fault_mode = PFM_KILL;
 
-	// first spare word special -- need to TRUP pointer to check it
+	// first spare word is special -- need to TRUP pointer to check it
 	--tos;
 	tos = TRUP(tos);
 	*tos = 0;

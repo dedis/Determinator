@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 5
 #elif LAB >= 3
 // buggy program - faults with a read from location zero
 

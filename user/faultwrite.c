@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 6
 #elif LAB >= 3
 // buggy program - faults with a write to location zero
 

@@ -60,9 +60,11 @@ sys_env_destroy(u_int envid)
 	if ((r=envid2env(envid, &e, 1)) < 0)
 		return r;
 #if LAB >= 5
-	// printf("[%08x] destroying %08x\n", curenv->env_id, e->env_id);
 #else
-	printf("[%08x] destroying %08x\n", curenv->env_id, e->env_id);
+	if (e == curenv)
+		printf("[%08x] exiting gracefully\n", curenv->env_id);
+	else
+		printf("[%08x] destroying %08x\n", curenv->env_id, e->env_id);
 #endif
 	env_destroy(e);
 	return 0;

@@ -62,15 +62,16 @@ KERN_BINFILES := \
 	user/idle \
 	user/yield \
 	user/dumbfork \
+	user/faultread \
+	user/faultwrite \
 	user/faultdie \
 	user/faultalloc \
 	user/faultallocbad \
 	user/faultbadhandler \
 	user/faultevilhandler \
+	user/forktree \
 	user/fairness \
 	user/pingpong \
-	user/pingpong1 \
-	user/pingpong2 \
 	user/pingpongs \
 	user/primes
 else
