@@ -125,6 +125,11 @@ conf/gcc.mk:
 	echo "*** environment variable to that prefix and run 'make' again." 1>&2; \
 	echo "*** To turn off this error, run 'echo GCCPREFIX= >conf/gcc.mk'." 1>&2; \
 	echo "***" 1>&2; exit 1; fi
+	@f=`grep GCCPREFIX conf/gcc.mk | sed 's/.*=//'`; if echo $$f | grep '^[12]\.' >/dev/null 2>&1; then echo "***" 1>&2; \
+	echo "*** Error: Your gcc compiler is too old." 1>&2; \
+	echo "*** The labs will only work with gcc-3.0 or later, and are only" 1>&2; \
+	echo "*** tested on gcc-3.3 and later." 1>&2; \
+	echo "***" 1>&2; exit 1; fi
 
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 
