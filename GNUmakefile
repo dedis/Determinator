@@ -7,17 +7,17 @@
 #
 OBJDIR := obj
 
-#if LAB >= 999
-ifdef LAB
-SETTINGLAB := true
-else
--include .oldlab
-endif
-
 ifdef GCCPREFIX
 SETTINGGCCPREFIX := true
 else
 -include .gccsetup
+endif
+
+#if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
+ifdef LAB
+SETTINGLAB := true
+else
+-include .oldlab
 endif
 
 #
@@ -37,7 +37,7 @@ endif
 # Pass the LAB and SOL values to the C compiler.
 DEFS	:= $(DEFS) -DLAB=$(LAB) -DSOL=$(SOL)
 #
-#endif // LAB >= 999
+#endif // LAB >= 999		##### Begin Instructor/TA-Only Stuff #####
 
 TOP = .
 
@@ -48,7 +48,7 @@ TOP = .
 # to install an i386-jos-elf tool chain and set GCCPREFIX
 # by doing
 #
-#	make 'GCCPREFIX=i386-jos-elf' gccsetup
+#	make 'GCCPREFIX=i386-jos-elf-' gccsetup
 #
 
 CC	:= $(GCCPREFIX)gcc -pipe
@@ -111,7 +111,12 @@ $(OBJDIR)/%.o: %.S
 	$(TOP)/tools/bintoc/bintoc -S $< $*_bin > $@~ && $(MV) -f $@~ $@
 
 
-#if LAB >= 999	// Visible only in instructor's project tree
+# Setup a prefix for the GCC tools if we're cross-compiling.
+gccsetup:
+	echo >.gccsetup "GCCPREFIX=$(GCCPREFIX)"
+
+
+#if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 
 # Use a fake target to make sure both LAB and SOL are defined.
 all inc/types.h: checklab
@@ -121,9 +126,6 @@ ifdef SETTINGLAB
 	@false
 endif
 	@echo "Building LAB=$(LAB) SOL=$(SOL)"
-
-gccsetup:
-	echo >.gccsetup "GCCPREFIX=$(GCCPREFIX)"
 
 labsetup:
 	rm -rf obj
@@ -166,7 +168,7 @@ endif
 clean: deloldlab
 deloldlab:
 	rm -f .oldlab
-#endif // LAB >= 999
+#endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
 # Include Makefrags for subdirectories
 include boot/Makefrag
@@ -181,7 +183,7 @@ include user/Makefrag
 include fs/Makefrag
 #endif
 
-#if LAB >= 999
+#if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S
 LAB_DIRS := inc boot kern lib user fs
@@ -240,7 +242,7 @@ bios:
 bios/%: /usr/local/share/bochs/% bios
 	cp $< $@
 all: $(BIOS_FILES)
-#endif // LAB >= 999
+#endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
 bochs: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 	bochs-nogui

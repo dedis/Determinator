@@ -19,8 +19,8 @@ struct Command {
 };
 
 static struct Command commands[] = {
-	{"help", "display this list of commands", mon_help},
-	{"kerninfo", "display information about the kernel", mon_kerninfo},
+	{"help",	"Display this list of commands", mon_help},
+	{"kerninfo",	"Display information about the kernel", mon_kerninfo},
 #if SOL >= 1
 	{"backtrace", "display a stack backtrace", mon_backtrace},
 #endif

@@ -12,6 +12,15 @@ else
 	err=/dev/null
 fi
 
+runbochs() {
+	brkaddr=`grep monitor obj/kern/kernel.sym | sed -e's/ .*$//g'`
+	echo "brkaddr $brkaddr"
+	(echo vbreak 0x8:0x$brkaddr; echo c; echo die; echo quit) |
+		bochs -q 'display_library: nogui' \
+			'parport1: enabled=1, file="bochs.out"' \
+			>$out 2>$err
+}
+
 #if LAB >= 4
 
 pts=5
@@ -269,8 +278,8 @@ runtest1 hello \
 	'.00001001. free env 00001001'
 
 # the [00001001] tags should have [] in them, but that's 
-# a regular expression reserved character, and i'll be damned
-# if i can figure out how many \ i need to add to get through 
+# a regular expression reserved character, and i'll be damned if
+# I can figure out how many \ i need to add to get through 
 # however many times the shell interprets this string.  sigh.
 
 runtest pingpong2 'DEFS=-DTEST_PINGPONG2' \
@@ -645,33 +654,53 @@ score=0
 
 # echo -n "Page directory: "
 awk 'BEGIN{printf("Page directory: ");}' </dev/null	# goddamn suns can't echo -n.
-if grep "MAGIC STRING check_boot_pgdir() succeeded!" bochs.out >/dev/null
-then
+ if grep "MAGIC STRING check_boot_pgdir() succeeded!" bochs.out >/dev/null
+ then
 	score=`echo 20+$score | bc`
 	echo OK
-else
+ else
 	echo WRONG
-fi
+ fi
 
 # echo -n "Page management: "
 awk 'BEGIN{printf("Page management: ");}' </dev/null
-if grep "MAGIC STRING page_check() succeeded!" bochs.out >/dev/null
-then
+ if grep "MAGIC STRING page_check() succeeded!" bochs.out >/dev/null
+ then
 	score=`echo 20+$score | bc`
 	echo OK
-else
+ else
 	echo WRONG
-fi
+ fi
+
+echo "Score: $score/50"
+
+#elif LAB >= 1
+
+gmake
+runbochs
+
+score=0
 
 # echo -n "Printf: "
-awk 'BEGIN{printf("Printf: ");}' </dev/null
-if grep "6828 decimal is 15254 octal!" bochs.out >/dev/null
-then
-	score=`echo 10+$score | bc`
-	echo OK
-else
-	echo WRONG
-fi
+	awk 'BEGIN{printf("Printf: ");}' </dev/null
+	if grep "6828 decimal is 15254 octal!" bochs.out >/dev/null
+	then
+		score=`echo 20+$score | bc`
+		echo OK
+	else
+		echo WRONG
+	fi
+
+# echo -n "Printf: "
+	awk 'BEGIN{printf("Backtrace: ");}' </dev/null
+	cnt=`grep "ebp f0109...  eip f01000..  args" bochs.out|wc -w`
+	if [ $cnt -eq 80 ]
+	then
+		score=`echo 30+$score | bc`
+		echo OK
+	else
+		echo WRONG
+	fi
 
 echo "Score: $score/50"
 
