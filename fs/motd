@@ -1,6 +1,6 @@
 #if LAB >= 5
 This is /motd, the message of the day.
 
-Welcome to the 6.828 kernel, now with a file system!
+Welcome to the JOS kernel, now with a file system!
 
 #endif // LAB >= 5

@@ -1,5 +1,5 @@
 #
-# Makefile fragment for 6.828 kernel.
+# Makefile fragment for the JOS kernel.
 # This is NOT a complete makefile;
 # you must run GNU make in the top-level directory
 # where the GNUmakefile is located.
@@ -10,7 +10,8 @@ OBJDIRS += boot
 BOOT_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o
 
 $(OBJDIR)/boot/main.o: boot/main.c
-	$(CC) -nostdinc $(CFLAGS) -Os -c -o $(OBJDIR)/boot/main.o boot/main.c
+	@echo cc $<
+	@$(CC) -nostdinc $(CFLAGS) -Os -c -o $(OBJDIR)/boot/main.o boot/main.c
 
 $(OBJDIR)/boot/boot: $(BOOT_OBJS)
 	@echo ld boot/boot

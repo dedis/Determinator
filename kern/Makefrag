@@ -1,5 +1,5 @@
 #
-# Makefile fragment for 6.828 kernel.
+# Makefile fragment for JOS kernel.
 # This is NOT a complete makefile;
 # you must run GNU make in the top-level directory
 # where the GNUmakefile is located.

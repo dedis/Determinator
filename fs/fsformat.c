@@ -1,7 +1,7 @@
 #if LAB >= 5
 
 /*
- * 6.828 file system format
+ * JOS file system format
  */
 
 #define _BSD_EXTENSION

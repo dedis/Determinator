@@ -126,7 +126,7 @@ monitor(struct Trapframe *tf)
 {
 	char *buf;
 
-	printf("Welcome to the 6.828 kernel monitor!\n");
+	printf("Welcome to the JOS kernel monitor!\n");
 	printf("Type 'help' for a list of commands.\n");
 
 	while (1) {
