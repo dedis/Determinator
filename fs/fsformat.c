@@ -316,8 +316,10 @@ gotit:
 			perror("");
 			exit(1);
 		}
-		if(n == 0)
+		if(n == 0){
+			putblk(b);
 			break;
+		}
 		nextb++;
 		if(nblk < NDIRECT)
 			f->f_direct[nblk] = b->bno;
