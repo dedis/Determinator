@@ -58,40 +58,25 @@ sys_getenvid(void)
 	 return syscall(SYS_getenvid, 0, 0, 0, 0, 0);
 }
 
+#if SOL >= 4
 int
 sys_mem_alloc(u_int envid, u_int va, u_int perm)
 {
-#if SOL >= 3
 	return syscall(SYS_mem_alloc, envid, va, perm, 0, 0);
-#else
-	// Your code here.
-	panic("sys_mem_alloc not implemented");
-#endif
 }
 
 int
 sys_mem_map(u_int srcenv, u_int srcva, u_int dstenv, u_int dstva, u_int perm)
 {
-#if SOL >= 3
 	return syscall(SYS_mem_map, srcenv, srcva, dstenv, dstva, perm);
-#else
-	// Your code here.
-	panic("sys_mem_map not implemented");
-#endif
 }
 
 int
 sys_mem_unmap(u_int envid, u_int va)
 {
-#if SOL >= 3
 	return syscall(SYS_mem_unmap, envid, va, 0, 0, 0);
-#else
-	// Your code here.
-	panic("sys_mem_unmap not implemented");
-#endif
 }
 
-#if SOL >= 4
 // sys_env_alloc is inlined in lib.h
 
 int

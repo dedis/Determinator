@@ -29,10 +29,10 @@ struct Env {
 	Pde  *env_pgdir;                // Kernel virtual address of page dir
 	u_int env_cr3;                  // Physical address of page dir
 
-	// Exception handling
-	u_int env_pgfault_entry;      // page fault state
-
 #if LAB >= 4
+	// Exception handling
+	u_int env_pgfault_entry;	// page fault state
+
 	// Lab 4 IPC
 	u_int env_ipc_value;            // data value sent to us 
 	u_int env_ipc_from;             // envid of the sender  

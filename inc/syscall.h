@@ -12,10 +12,10 @@ enum
 	SYS_cgetc,
 	SYS_getenvid,
 	SYS_env_destroy,
+#if LAB >= 4
 	SYS_mem_alloc,
 	SYS_mem_map,
 	SYS_mem_unmap,
-#if LAB >= 4
 	SYS_env_alloc,
 	SYS_set_trapframe,
 	SYS_set_status,

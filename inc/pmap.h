@@ -102,12 +102,6 @@
 #define USTACKTOP (UTOP - 2*BY2PG)   // top of the normal user stack
 #define UTEXT (2*PDMAP)
 
-/*
- * Page fault modes inside kernel.
- */
-#define PFM_NONE 0x0     // No page faults expected.  Must be a kernel bug
-#define PFM_KILL 0x1     // On fault kill user process.
-
 
 #ifndef __ASSEMBLER__
 

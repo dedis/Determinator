@@ -11,6 +11,7 @@
 #include <kern/env.h>
 #include <kern/pmap.h>
 #include <kern/trap.h>
+#include <kern/monitor.h>
 #if LAB >= 4
 #include <kern/sched.h>
 #endif
@@ -408,7 +409,9 @@ env_destroy(struct Env *e)
 		sched_yield();
 	}
 #else
-	panic("Destroyed the only environment - nothing more to do!");
+	printf("Destroyed the only environment - nothing more to do!\n");
+	for (;;)
+		monitor(NULL);
 #endif
 }
 

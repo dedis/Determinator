@@ -68,6 +68,7 @@ sys_env_destroy(u_int envid)
 	return 0;
 }
 
+#if LAB >= 4
 //
 // Allocate a page of memory and map it at 'va' with permission
 // 'perm' in the address space of 'envid'.
@@ -86,7 +87,7 @@ sys_env_destroy(u_int envid)
 static int
 sys_mem_alloc(u_int envid, u_int va, u_int perm)
 {
-#if SOL >= 3
+#if SOL >= 4
 	int r;
 	struct Env *e;
 	struct Page *p;
@@ -123,7 +124,7 @@ sys_mem_alloc(u_int envid, u_int va, u_int perm)
 static int
 sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm)
 {
-#if SOL >= 3
+#if SOL >= 4
 	int r;
 	struct Env *es, *ed;
 	struct Page *p;
@@ -154,7 +155,7 @@ sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm)
 static int
 sys_mem_unmap(u_int envid, u_int va)
 {
-#if SOL >= 3
+#if SOL >= 4
 	int r;
 	struct Env *e;
 
@@ -172,7 +173,6 @@ sys_mem_unmap(u_int envid, u_int va)
 #endif
 }
 
-#if LAB >= 4
 // Allocate a new environment.
 //
 // The new child is left as env_alloc created it, except that
@@ -393,13 +393,13 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 		return sys_getenvid();
 	case SYS_env_destroy:
 		return sys_env_destroy(a1);
+#if SOL >= 4
 	case SYS_mem_alloc:
 		return sys_mem_alloc(a1, a2, a3);
 	case SYS_mem_map:
 		return sys_mem_map(a1, a2, a3, a4, a5);
 	case SYS_mem_unmap:
 		return sys_mem_unmap(a1, a2);
-#if SOL >= 4
 	case SYS_env_alloc:
 		return sys_env_alloc();
 	case SYS_set_trapframe:

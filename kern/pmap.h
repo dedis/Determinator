@@ -36,6 +36,8 @@
 	(pa) + KERNBASE;					\
 })
 
+
+
 extern char bootstacktop[], bootstack[];
 
 extern u_long npage;

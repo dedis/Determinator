@@ -459,7 +459,8 @@ runtest1 hello \
 	'hello, world' \
 	'i am environment 00000800' \
 	'.00000800. destroying 00000800' \
-	'.00000800. free env 00000800'
+	'.00000800. free env 00000800' \
+	'Destroyed the only environment - nothing more to do!'
 
 # the [00000800] tags should have [] in them, but that's 
 # a regular expression reserved character, and i'll be damned if

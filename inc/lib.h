@@ -44,10 +44,10 @@ void	sys_cputs(char*);
 int	sys_cgetc(void);
 u_int	sys_getenvid(void);
 int	sys_env_destroy(u_int);
+#if LAB >= 4
 int	sys_mem_alloc(u_int, u_int, u_int);
 int	sys_mem_map(u_int, u_int, u_int, u_int, u_int);
 int	sys_mem_unmap(u_int, u_int);
-#if LAB >= 4
 // int	sys_env_alloc(void);
 int	sys_set_trapframe(u_int, struct Trapframe*);
 int	sys_set_status(u_int, u_int);
