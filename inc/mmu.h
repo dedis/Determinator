@@ -224,11 +224,17 @@ struct Gatedesc {
 	unsigned gd_off_31_16 : 16;  // high bits of offset in segment
 };
 
-// Normal gate descriptor
-#define SETGATE(gate, istrap, ss, off, dpl)			\
+// Set up a normal interrupt/trap gate descriptor.
+// - istrap: true for a trap gate, false for an interrupt gate.
+// - sel: Code segment selector for interrupt/trap handler
+// - off: Offset in code segment for interrupt/trap handler
+// - dpl: Descriptor Privilege Level -
+//	  the privilege level required for software to invoke
+//	  this interrupt/trap gate explicitly using an int instruction.
+#define SETGATE(gate, istrap, sel, off, dpl)			\
 {								\
 	(gate).gd_off_15_0 = (u_long) (off) & 0xffff;		\
-	(gate).gd_ss = (ss);					\
+	(gate).gd_ss = (sel);					\
 	(gate).gd_args = 0;					\
 	(gate).gd_rsv1 = 0;					\
 	(gate).gd_type = (istrap) ? STS_TG32 : STS_IG32;	\
