@@ -219,7 +219,7 @@ LAB_FILES := CODING GNUmakefile .bochsrc mergedep.pl grade.sh boot/sign.pl \
 export-lab%: always
 	rm -rf lab$*
 	num=`echo $$(($*-$(LABADJUST)))`; \
-		$(MKLABENV) $(PERL) mklab.pl $$num 3 lab$* $(LAB_FILES)
+		$(MKLABENV) $(PERL) mklab.pl $$num 0 lab$* $(LAB_FILES)
 	test -d lab$*/conf || mkdir lab$*/conf
 	echo >lab$*/conf/lab.mk "LAB=$*"
 	echo >>lab$*/conf/lab.mk "PACKAGEDATE="`date`
