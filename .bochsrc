@@ -18,7 +18,8 @@ parport1: enabled=1, file="/dev/stdout"
 #parport1: enabled=1, file="/dev/null"
 
 # uncommenting one of the following lines can be used to specify your
-# preferred display.
+# preferred display. (defaults to x11 for bochs-bin and to term for
+# bochs-term)
 
 #display: x
 
@@ -45,7 +46,7 @@ boot: c
 log: bochs.log
 #log: /dev/stdout
 
-# disable the mouse, since this pragmalinux is text only
+# disable the mouse
 mouse: enabled=0
 
 #debug: action=ignore
@@ -63,9 +64,18 @@ vga_update_interval: 100000
 
 # changing ips can lead to dramatically different performance.  It
 # also affects how quickly time passes in the emulated machine.
-ips: 1000000
+# Setting it too low can cause clock interrupts to happen too rapidly.
+# Setting it too high will make the whole machine feel sluggish.
+# (Note: with using clock sync=realtime, the ips parameter is not
+# really used, although it is still used for vga updates)
+ips: 2000000
+
+# This means that time in the emulated machine is the same as
+# realtime.  This can be scary because running the same simulation
+# twice in a row can lead to different results (because they started
+# at different times, for instance).  If you want to use non-real
+# time, then use sync=none.
+clock: sync=realtime, time0=local
+# clock: sync=none, time0=946681200 # jan 1, 2000
 
 keyboard_serial_delay: 10
-
-#keyboard_serial_delay: 2
-
