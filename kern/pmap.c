@@ -318,7 +318,7 @@ i386_vm_init(void)
 	asm volatile("movw %%ax,%%ds" :: "a" (GD_KD));
 	asm volatile("movw %%ax,%%ss" :: "a" (GD_KD));
 	asm volatile("ljmp %0,$1f\n 1:\n" :: "i" (GD_KT));  // reload cs
-	asm volatile("lldt %0" :: "m" (0));
+	asm volatile("lldt %%ax" :: "a" (0));
 
 	// Final mapping: KERNBASE+x => KERNBASE+x => x.
 
@@ -654,7 +654,9 @@ page_lookup(Pde *pgdir, u_long va, Pte **ppte)
 	}
 
 	return pa2page(PTE_ADDR(*pte));
-#endif
+#else /* not SOL >= 2 */
+	// Fill this function in
+#endif /* not SOL >= 2 */
 }
 
 //
@@ -683,7 +685,9 @@ page_remove(Pde *pgdir, u_long va)
 	*pte = 0;
 	tlb_invalidate(pgdir, va);
 	page_decref(p);
-#endif
+#else /* not SOL >= 2 */
+	// Fill this function in
+#endif /* not SOL >= 2 */
 }
 
 //

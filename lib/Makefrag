@@ -2,23 +2,36 @@
 
 OBJDIRS += lib
 
-LIB_SRCFILES :=		lib/console.c \
-			lib/fd.c \
-			lib/file.c \
+LIB_SRCFILES :=		\
 			lib/fork.c \
-			lib/fprintf.c \
-			lib/fsipc.c \
 			lib/ipc.c \
 			lib/libos.c \
-			lib/pageref.c \
 			lib/pgfault.c \
-			lib/pipe.c \
 			lib/printf.c \
 			lib/readline.c \
-			lib/spawn.c \
 			lib/string.c \
-			lib/syscall.c \
-			lib/wait.c
+			lib/syscall.c
+
+#if LAB >= 5
+LIB_SRCFILES :=		\
+			lib/fd.c \
+			lib/file.c \
+			lib/fprintf.c \
+			lib/fsipc.c \
+			lib/pageref.c \
+			lib/spawn.c \
+			$(LIB_SRCFILES)
+#endif
+
+#if LAB >= 6
+LIB_SRCFILES :=		\
+			lib/console.c \
+			lib/pipe.c \
+			lib/wait.c \
+			$(LIB_SRCFILES)
+#endif
+
+
 LIB_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(LIB_SRCFILES))
 
 $(OBJDIR)/lib/libuser.a: $(LIB_OBJFILES)

@@ -1,4 +1,4 @@
-#if LAB >= 6
+#if LAB >= 5
 
 #include <inc/lib.h>
 

@@ -1,4 +1,4 @@
-#if LAB >= 6
+#if LAB >= 5
 
 #include <inc/lib.h>
 
@@ -88,4 +88,4 @@ umain(int argc, char **argv)
 	}
 }
 
-#endif /* LAB >= 6 */
+#endif /* LAB >= 5 */

@@ -1,5 +1,3 @@
-#if LAB >= 1
-
 #ifndef _INC_STDIO_H_
 #define _INC_STDIO_H_
 
@@ -23,4 +21,3 @@ int	fprintf(int fd, const char*, ...);
 char *	readline(const char *prompt);
 
 #endif	// not _INC_STDIO_H_
-#endif	// LAB >= 1

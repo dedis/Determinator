@@ -28,7 +28,9 @@ libmain(int argc, char **argv)
 void
 exit(void)
 {
+#if LAB >= 5
 	close_all();
+#endif
 	sys_env_destroy(0);
 }
 

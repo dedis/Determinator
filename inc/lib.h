@@ -16,8 +16,10 @@
 #include <inc/pmap.h>
 #include <inc/syscall.h>
 #include <inc/args.h>
+#if LAB >= 5
 #include <inc/fs.h>
 #include <inc/libfd.h>
+#endif
 
 #define USED(x) (void)(x)
 
@@ -34,7 +36,6 @@ void	warn(const char*, ...);
 #define assert(x)	\
 	do {	if (!(x)) panic("assertion failed: %s", #x); } while (0)
 #define	panic(...) _panic(__FILE__, __LINE__, __VA_ARGS__)
-int	fprintf(int fd, const char*, ...);
 
 // string.c
 void *	memcpy(void *, const void *, size_t);
@@ -51,23 +52,11 @@ void	exit(void);
 int	fork(void);
 int	sfork(void);	// Challenge!
 
-// wait.c
-void	wait(u_int);
-
-// pageref.c
-int	pageref(void*);
-
 // pgfault.c
 void	set_pgfault_handler(void(*)(u_int va, u_int err));
 
-// console.c
-int	putchar(int c);
-int	getchar(void);
-int	iscons(int);
-int	opencons(void);
-
 // readline.c
-void	readline(char *buf, u_int len);
+char *	readline(const char *buf);
 
 // syscall.c
 void	sys_cputs(char*);
@@ -106,16 +95,6 @@ sys_env_alloc(void)
 }
 
 #if LAB >= 5
-// fsipc.c
-int	fsipc_open(const char*, u_int, struct Fd*);
-int	fsipc_map(u_int, u_int, u_int);
-int	fsipc_set_size(u_int, u_int);
-int	fsipc_close(u_int);
-int	fsipc_dirty(u_int, u_int);
-int	fsipc_remove(const char*);
-int	fsipc_sync(void);
-int	fsipc_incref(u_int);
-
 // fd.c
 int	close(int fd);
 int	read(int fd, void *buf, u_int nbytes);
@@ -134,18 +113,41 @@ int	delete(const char *path);
 int	ftruncate(int fd, u_int size);
 int	sync(void);
 
-// pipe.c
-int	pipe(int[2]);
-int	pipeisclosed(int);
+// fprintf.c
+int	fprintf(int fd, const char*, ...);
+
+// fsipc.c
+int	fsipc_open(const char*, u_int, struct Fd*);
+int	fsipc_map(u_int, u_int, u_int);
+int	fsipc_set_size(u_int, u_int);
+int	fsipc_close(u_int);
+int	fsipc_dirty(u_int, u_int);
+int	fsipc_remove(const char*);
+int	fsipc_sync(void);
+int	fsipc_incref(u_int);
+
+// pageref.c
+int	pageref(void*);
 
 // spawn.c
 int	spawn(char*, char**);
 int	spawnl(char*, char*, ...);
 
+#endif  // LAB >= 5
 #if LAB >= 6
-// readline.c
-void readline(char *buf, u_int n);
-#endif
+// console.c
+int	putchar(int c);
+int	getchar(void);
+int	iscons(int);
+int	opencons(void);
+
+// pipe.c
+int	pipe(int[2]);
+int	pipeisclosed(int);
+
+// wait.c
+void	wait(u_int);
+#endif  // LAB >= 6
 
 /* File open modes */
 #define	O_RDONLY	0x0000		/* open for reading only */
@@ -158,6 +160,5 @@ void readline(char *buf, u_int n);
 #define	O_EXCL		0x0400		/* error if already exists */
 #define O_MKDIR		0x0800		/* create directory, not regular file */
 
-#endif	// LAB >= 5
 #endif	// not _INC_LIB_H_
 #endif	// LAB >= 4

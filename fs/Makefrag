@@ -6,53 +6,61 @@ CLEAN_FILES += \
 OBJDIRS += fs
 
 FSOFILES := \
-	fs/ide.o \
-	fs/fs.o \
-	fs/serv.o \
-	fs/test.o \
+	$(OBJDIR)/fs/ide.o \
+	$(OBJDIR)/fs/fs.o \
+	$(OBJDIR)/fs/serv.o \
+	$(OBJDIR)/fs/test.o \
 
 FSIMGFILES := \
 	fs/lorem \
-	fs/motd \
 	fs/newmotd \
+	fs/out \
 	fs/script \
-	fs/testshell.sh \
 	fs/testshell.key \
 	fs/testshell.out \
-	fs/out \
-	user/cat \
-	user/echo \
-	user/init \
-	user/ls \
-	user/lsfd \
-	user/num \
-	user/primes \
-	user/primespipe \
-	user/sh \
-	user/testfdsharing \
-	user/testkbd \
-	user/testpipe \
-	user/testptelibrary \
-	user/testshell \
+	fs/testshell.sh \
+	$(OBJDIR)/user/cat \
+	$(OBJDIR)/user/echo \
+	$(OBJDIR)/user/init \
+	$(OBJDIR)/user/ls \
+	$(OBJDIR)/user/lsfd \
+	$(OBJDIR)/user/num \
+	$(OBJDIR)/user/primes \
 
-fs/fs:	$(FSOFILES) lib/entry.o lib/libuser.a
+#if LAB >= 6
+FSIMGFILES := \
+	$(OBJDIR)/user/primespipe \
+	$(OBJDIR)/user/sh \
+	$(OBJDIR)/user/testfdsharing \
+	$(OBJDIR)/user/testkbd \
+	$(OBJDIR)/user/testpipe \
+	$(OBJDIR)/user/testptelibrary \
+	$(OBJDIR)/user/testshell \
+	$(FSIMGFILES)
+#endif
+
+$(OBJDIR)/fs/fs:	$(FSOFILES) $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libuser.a
 	@echo ld $@
-	@$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib -Llib -luser $^
+	@mkdir -p $(@D)
+	@$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib -L$(OBJDIR)/lib -luser $^
 
-fs/fs.asm: fs/fs
+$(OBJDIR)/fs/fs.asm: $(OBJDIR)/fs/fs
+	@mkdir -p $(@D)
 	$(OBJDUMP) --adjust-vma=0x007ff000 -S $^ >$@
 
-fs/%.o:	fs/fs.h user/lib.h
+$(OBJDIR)/fs/%.o:	fs/fs.h user/lib.h
 
 # How to build the file system image
-fs/fsformat: fs/fsformat.c
-	gcc -I. -o fs/fsformat fs/fsformat.c
+$(OBJDIR)/fs/fsformat: fs/fsformat.c
+	@mkdir -p $(@D)
+	gcc -I. -o $(OBJDIR)/fs/fsformat fs/fsformat.c
 
-fs/fs.img: fs/fsformat $(FSIMGFILES)
-	dd if=/dev/zero of=fs/fs.img bs=4096 count=1024 2>/dev/null
-	./fs/fsformat fs/fs.img $(FSIMGFILES)
+$(OBJDIR)/fs/fs.img: $(OBJDIR)/fs/fsformat $(FSIMGFILES)
+	@mkdir -p $(@D)
+	dd if=/dev/zero of=$(OBJDIR)/fs/fs.img bs=4096 count=1024 2>/dev/null
+	$(OBJDIR)/fs/fsformat $(OBJDIR)/fs/fs.img $(FSIMGFILES)
 
-all: fs/fs.img
+all: $(OBJDIR)/fs/fs.img
 
 .PRECIOUS: fs/%
 

@@ -29,10 +29,10 @@ void env_pop_tf(struct Trapframe *tf);
 
 #define ENV_CREATE(x) \
 { \
-	extern u_char binary_##x##_start[], \
-		binary_##x##_size[]; \
-	env_create(binary_##x##_start, \
-		(int)binary_##x##_size); \
+	extern u_char binary_obj_##x##_start[], \
+		binary_obj_##x##_size[]; \
+	env_create(binary_obj_##x##_start, \
+		(int)binary_obj_##x##_size); \
 }
 #elif LAB >= 3
 #define ENV_CREATE2(x) \

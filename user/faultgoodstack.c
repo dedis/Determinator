@@ -9,7 +9,7 @@ void
 handler(u_int va, u_int err)
 {
 	printf("i faulted at va %x, err %x, stack %x\n", va, err&7, (u_int)&va);
-	sys_env_destroy();
+	sys_env_destroy(sys_getenvid());
 }
 
 void

@@ -14,8 +14,10 @@
 static struct Dev *devtab[] =
 {
 	&devfile,
+#if LAB >= 6
 	&devpipe,
 	&devcons,
+#endif
 	0
 };
 
