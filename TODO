@@ -106,3 +106,19 @@ New TODO items for Fall 2004:
 	sort of paddr_t and use it for physical addresses.  Maybe do
 	the same thing for virtual addresses.
 
+
+--- 
+
+The Plan - December 13, 2004
+
+UCLA type changes
+UCLA makefile changes
+	gmake patch
+move IDT -> earlier lab
+see list at top of file
+	utext -> appropriate place for elf
+Austin's trap frame and UTF code
+rework header files
+file server
+window server
+
