@@ -1,15 +1,139 @@
 #if LAB >= 5
-
 #include <inc/lib.h>
 
-#define debug 0
+#define debug		0
 
-#define MAXFD 32
-#define FILEBASE 0xd0000000
-#define FDTABLE (FILEBASE-PTSIZE)
+// Maximum number of file descriptors a program may hold open concurrently
+#define MAXFD		32
+// Bottom of file data area
+#define FILEBASE	0xd0000000
+// Bottom of file descriptor area
+#define FDTABLE		(FILEBASE - PTSIZE)
 
-#define INDEX2FD(i)	(FDTABLE+(i)*PGSIZE)
-#define INDEX2DATA(i)	(FILEBASE+(i)*PTSIZE)
+// Return the 'struct Fd*' for file descriptor index i
+#define INDEX2FD(i)	((struct Fd*) (FDTABLE + (i)*PGSIZE))
+// Return the file data pointer for file descriptor index i
+#define INDEX2DATA(i)	((char*) (FILEBASE + (i)*PTSIZE))
+
+
+/********************************
+ * FILE DESCRIPTOR MANIPULATORS *
+ *                              *
+ ********************************/
+
+char*
+fd2data(struct Fd *fd)
+{
+	return INDEX2DATA(fd2num(fd));
+}
+
+int
+fd2num(struct Fd *fd)
+{
+	return ((uintptr_t) fd - FDTABLE) / PGSIZE;
+}
+
+// Finds the smallest i from 0 to MAXFD-1 that doesn't have
+// its fd page mapped.
+// Sets *fd_store to the corresponding fd page virtual address.
+//
+// fd_alloc does NOT actually allocate an fd page.
+// It is up to the caller to allocate the page somehow.
+// This means that if someone calls fd_alloc twice in a row
+// without allocating the first page we return, we'll return the same
+// page the second time.
+//
+// Hint: Use INDEX2FD.
+//
+// Returns 0 on success, < 0 on error.  Errors are:
+//	-E_MAX_FD: no more file descriptors
+// On error, *fd_store is set to 0.
+int
+fd_alloc(struct Fd **fd_store)
+{
+#if SOL >= 5
+	int i;
+	struct Fd *fd;
+
+	for (i = 0; i < MAXFD; i++) {
+		fd = INDEX2FD(i);
+		if ((vpd[PDX(fd)] & PTE_P) == 0 || (vpt[VPN(fd)] & PTE_P) == 0) {
+			*fd_store = fd;
+			return 0;
+		}
+	}
+	*fd_store = 0;
+	return -E_MAX_OPEN;
+#else
+	// LAB 5: Your code here.
+
+	panic("fd_alloc not implemented");
+	return -E_MAX_OPEN;
+#endif
+}
+
+// Check that fdnum is in range and mapped.
+// If it is, set *fd_store to the fd page virtual address.
+//
+// Returns 0 on success (the page is in range and mapped), < 0 on error.
+// Errors are:
+//	-E_INVAL: fdnum was either not in range or not mapped.
+int
+fd_lookup(int fdnum, struct Fd **fd_store)
+{
+#if SOL >= 5
+	struct Fd *fd;
+
+	if (fdnum < 0 || fdnum >= MAXFD) {
+		if (debug)
+			printf("[%08x] bad fd %d\n", env->env_id, fd);
+		return -E_INVAL;
+	}
+	fd = INDEX2FD(fdnum);
+	if (!(vpd[PDX(fd)] & PTE_P) || !(vpt[VPN(fd)] & PTE_P)) {
+		if (debug)
+			printf("[%08x] closed fd %d\n", env->env_id, fd);
+		return -E_INVAL;
+	}
+	*fd_store = fd;
+	return 0;
+#else
+	// LAB 5: Your code here.
+
+	panic("fd_lookup not implemented");
+	return -E_INVAL;
+#endif
+}
+
+// Frees file descriptor 'fd' by closing the corresponding file
+// and unmapping the file descriptor page.
+// If 'must_exist' is 0, then fd can be a closed or nonexistent file
+// descriptor; the function will return 0 and have no other effect.
+// If 'must_exist' is 1, then fd_close returns -E_INVAL when passed a
+// closed or nonexistent file descriptor.
+// Returns 0 on success, < 0 on error.
+int
+fd_close(struct Fd *fd, bool must_exist)
+{
+	struct Fd *fd2;
+	struct Dev *dev;
+	int r;
+	if ((r = fd_lookup(fd2num(fd), &fd2)) < 0
+	    || fd != fd2)
+		return (must_exist ? r : 0);
+	if ((r = dev_lookup(fd->fd_dev_id, &dev)) >= 0)
+		r = (*dev->dev_close)(fd);
+	// Make sure fd is unmapped.  Might be a no-op if
+	// (*dev->dev_close)(fd) already unmapped it.
+	(void) sys_page_unmap(0, fd);
+	return r;
+}
+
+
+/******************
+ * FILE FUNCTIONS *
+ *                *
+ ******************/
 
 static struct Dev *devtab[] =
 {
@@ -25,170 +149,92 @@ int
 dev_lookup(int dev_id, struct Dev **dev)
 {
 	int i;
-
-	for (i=0; devtab[i]; i++)
+	for (i = 0; devtab[i]; i++)
 		if (devtab[i]->dev_id == dev_id) {
 			*dev = devtab[i];
 			return 0;
 		}
 	printf("[%08x] unknown device type %d\n", env->env_id, dev_id);
+	*dev = 0;
 	return -E_INVAL;
-}
-
-int
-fd_alloc(struct Fd **fd)
-{
-#if SOL >= 5
-	int i;
-	u_int va;
-
-	for (i=0; i<MAXFD; i++) {
-		va = (u_int)INDEX2FD(i);
-		if ((vpd[PDX(va)]&PTE_P) == 0 || (vpt[VPN(va)]&PTE_P) == 0) {
-			*fd = (struct Fd*)va;
-			return 0;
-		}
-	}
-	return -E_MAX_OPEN;
-#else
-	// Your code here.
-	//
-	// Find the smallest i from 0 to MAXFD-1 that doesn't have
-	// its fd page mapped.  Set *fd to the fd page virtual address.
-	// (Do not allocate a page.  It is up to the caller to allocate
-	// the page.  This means that if someone calls fd_alloc twice
-	// in a row without allocating the first page we return, we'll
-	// return the same page the second time.)
-	// Return 0 on success, or an error code on error.
-
-	panic("fd_alloc not implemented");
-	return -E_MAX_OPEN;
-#endif
-}
-
-void
-fd_close(struct Fd *fd)
-{
-	sys_mem_unmap(0, (u_int)fd);
-}
-
-int
-fd_lookup(int fdnum, struct Fd **fd)
-{
-#if SOL >= 5
-	u_int va;
-
-	if (fdnum < 0 || fdnum >= MAXFD) {
-		if (debug) printf("[%08x] bad fd %d\n", env->env_id, fd);
-		return -E_INVAL;
-	}
-	va = (u_int)INDEX2FD(fdnum);
-	if(!(vpd[PDX(va)]&PTE_P) || !(vpt[VPN(va)]&PTE_P)) {
-		if (debug) printf("[%08x] closed fd %d\n", env->env_id, fd);
-		return -E_INVAL;
-	}
-	*fd = (struct Fd*)va;
-	return 0;
-#else
-	// Your code here.
-	// 
-	// Check that fdnum is in range and mapped.  If not, return -E_INVAL.
-	// Set *fd to the fd page virtual address.  Return 0.
-
-	panic("fd_lookup not implemented");
-	return -E_INVAL;
-#endif
-}
-
-u_int
-fd2data(struct Fd *fd)
-{
-	return INDEX2DATA(fd2num(fd));
-}
-
-int
-fd2num(struct Fd *fd)
-{
-	return ((u_int)fd - FDTABLE)/PGSIZE;
 }
 
 int
 close(int fdnum)
 {
-	int r;
-	struct Dev *dev;
 	struct Fd *fd;
-
-	if ((r = fd_lookup(fdnum, &fd)) < 0
-	||  (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
-		return r;
-	r = (*dev->dev_close)(fd);
-	fd_close(fd);
-	return r;
+	(void) fd_lookup(fdnum, &fd);
+	return fd_close(fd, 1);
 }
 
 void
 close_all(void)
 {
 	int i;
-
-	for (i=0; i<MAXFD; i++)
+	for (i = 0; i < MAXFD; i++)
 		close(i);
 }
 
+// Make file descriptor 'newfdnum' a duplicate of file descriptor 'oldfdnum'.
+// For instance, writing onto either file descriptor will affect the
+// file and the file offset of the other.
+// Closes any previously open file descriptor at 'newfdnum'.
+// This is implemented using virtual memory tricks (of course!).
 int
 dup(int oldfdnum, int newfdnum)
 {
 	int i, r;
-	u_int ova, nva, pte;
+	char *ova, *nva;
+	pte_t pte;
 	struct Fd *oldfd, *newfd;
 
 	if ((r = fd_lookup(oldfdnum, &oldfd)) < 0)
 		return r;
 	close(newfdnum);
 
-	newfd = (struct Fd*)INDEX2FD(newfdnum);
+	newfd = INDEX2FD(newfdnum);
 	ova = fd2data(oldfd);
 	nva = fd2data(newfd);
 
 #if SOL >= 6
 #else
-	if ((r = sys_mem_map(0, (u_int)oldfd, 0, (u_int)newfd, vpt[VPN(oldfd)]&PTE_USER)) < 0)
+	if ((r = sys_page_map(0, oldfd, 0, newfd, vpt[VPN(oldfd)] & PTE_USER)) < 0)
 		goto err;
 #endif
 	if (vpd[PDX(ova)]) {
-		for (i=0; i<PTSIZE; i+=PGSIZE) {
-			pte = vpt[VPN(ova+i)];
-			if(pte&PTE_P) {
+		for (i = 0; i < PTSIZE; i += PGSIZE) {
+			pte = vpt[VPN(ova + i)];
+			if (pte&PTE_P) {
 				// should be no error here -- pd is already allocated
-				if ((r = sys_mem_map(0, ova+i, 0, nva+i, pte&PTE_USER)) < 0)
+				if ((r = sys_page_map(0, ova + i, 0, nva + i, pte & PTE_USER)) < 0)
 					goto err;
 			}
 		}
 	}
 #if SOL >= 6
-	if ((r = sys_mem_map(0, (u_int)oldfd, 0, (u_int)newfd, vpt[VPN(oldfd)]&PTE_USER)) < 0)
+	if ((r = sys_page_map(0, oldfd, 0, newfd, vpt[VPN(oldfd)] & PTE_USER)) < 0)
 		goto err;
+#else
 #endif
 
 	return newfdnum;
 
 err:
-	sys_mem_unmap(0, (u_int)newfd);
-	for (i=0; i<PTSIZE; i+=PGSIZE)
-		sys_mem_unmap(0, nva+i);
+	sys_page_unmap(0, newfd);
+	for (i = 0; i < PTSIZE; i += PGSIZE)
+		sys_page_unmap(0, nva + i);
 	return r;
 }
 
 int
-read(int fdnum, void *buf, u_int n)
+read(int fdnum, void *buf, size_t n)
 {
 	int r;
 	struct Dev *dev;
 	struct Fd *fd;
 
 	if ((r = fd_lookup(fdnum, &fd)) < 0
-	||  (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	if ((fd->fd_omode & O_ACCMODE) == O_WRONLY) {
 		printf("[%08x] read %d -- bad mode\n", env->env_id, fdnum); 
@@ -201,12 +247,12 @@ read(int fdnum, void *buf, u_int n)
 }
 
 int
-readn(int fdnum, void *buf, u_int n)
+readn(int fdnum, void *buf, size_t n)
 {
 	int m, tot;
 
-	for (tot=0; tot<n; tot+=m) {
-		m = read(fdnum, (char*)buf+tot, n-tot);
+	for (tot = 0; tot < n; tot += m) {
+		m = read(fdnum, (char*)buf + tot, n - tot);
 		if (m < 0)
 			return m;
 		if (m == 0)
@@ -216,21 +262,22 @@ readn(int fdnum, void *buf, u_int n)
 }
 
 int
-write(int fdnum, const void *buf, u_int n)
+write(int fdnum, const void *buf, size_t n)
 {
 	int r;
 	struct Dev *dev;
 	struct Fd *fd;
 
 	if ((r = fd_lookup(fdnum, &fd)) < 0
-	||  (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	if ((fd->fd_omode & O_ACCMODE) == O_RDONLY) {
 		printf("[%08x] write %d -- bad mode\n", env->env_id, fdnum);
 		return -E_INVAL;
 	}
-	if (debug) printf("write %d %p %d via dev %s\n",
-		fdnum, buf, n, dev->dev_name);
+	if (debug)
+		printf("write %d %p %d via dev %s\n",
+		       fdnum, buf, n, dev->dev_name);
 	r = (*dev->dev_write)(fd, buf, n, fd->fd_offset);
 	if (r > 0)
 		fd->fd_offset += r;
@@ -238,7 +285,7 @@ write(int fdnum, const void *buf, u_int n)
 }
 
 int
-seek(int fdnum, u_int offset)
+seek(int fdnum, off_t offset)
 {
 	int r;
 	struct Fd *fd;
@@ -250,18 +297,17 @@ seek(int fdnum, u_int offset)
 }
 
 int
-ftruncate(int fdnum, u_int newsize)
+ftruncate(int fdnum, off_t newsize)
 {
 	int r;
 	struct Dev *dev;
 	struct Fd *fd;
-
 	if ((r = fd_lookup(fdnum, &fd)) < 0
-	||  (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	if ((fd->fd_omode & O_ACCMODE) == O_RDONLY) {
 		printf("[%08x] ftruncate %d -- bad mode\n",
-			env->env_id, fdnum); 
+		       env->env_id, fdnum); 
 		return -E_INVAL;
 	}
 	return (*dev->dev_trunc)(fd, newsize);
@@ -275,7 +321,7 @@ fstat(int fdnum, struct Stat *stat)
 	struct Fd *fd;
 
 	if ((r = fd_lookup(fdnum, &fd)) < 0
-	||  (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	stat->st_name[0] = 0;
 	stat->st_size = 0;
