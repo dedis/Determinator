@@ -31,7 +31,8 @@ static struct Command commands[] = {
 
 /***** Implementations of basic kernel monitor commands *****/
 
-void mon_help(int argc, char **argv)
+void
+mon_help(int argc, char **argv)
 {
 	int i;
 
@@ -39,7 +40,8 @@ void mon_help(int argc, char **argv)
 		printf("%s - %s\n", commands[i].name, commands[i].desc);
 }
 
-void mon_kerninfo(int argc, char **argv)
+void
+mon_kerninfo(int argc, char **argv)
 {
 	extern char _start[], etext[], edata[], end[];
 
@@ -52,7 +54,8 @@ void mon_kerninfo(int argc, char **argv)
 		(end-_start+1023)/1024);
 }
 
-void mon_backtrace(int argc, char **argv)
+void
+mon_backtrace(int argc, char **argv)
 {
 #if SOL >= 1
 	u_int *ebp = (u_int*)read_ebp();
