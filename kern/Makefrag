@@ -1,0 +1,60 @@
+#///LAB1
+#
+# Makefile fragment for 6.828 kernel.
+# This is NOT a complete makefile;
+# you must run GNU make in the top-level directory
+# where the GNUmakefile is located.
+#
+
+OBJDIRS += kern
+CLEAN_FILES += kern/kernel kern/bochs.img
+
+#KERN_LDFLAGS = -dc -dp -static -Ttext F0100020 -nostdlib -e start
+KERN_LDFLAGS := $(LDFLAGS) -Ttext F0100020 -nostdlib -e start
+
+
+## Only build files if they exist.
+##
+## locore.S must be first, so it's the 
+## first code in the text segment!!!
+##
+KERN_SRCFILES :=	kern/locore.S \
+			kern/init.c \
+			kern/console.c \
+			kern/pmap.c \
+			kern/printf.c \
+			kern/env.c \
+			kern/kclock.c \
+			kern/picirq.c \
+			kern/trap.c \
+			kern/lab3.S \
+			kern/sched.c \
+			kern/syscall.c
+KERN_SRCFILES := $(foreach file, $(KERN_SRCFILES), \
+			$(shell test -f $(file) && echo $(file)))
+KERN_OBJFILES := $(patsubst %.c, %.o, \
+			$(patsubst %.S, %.o, $(KERN_SRCFILES)))
+
+
+# Binary program images to embed within the kernel.
+KERN_BINFILES :=	user/kenv0/kenv0 \
+			user/simple/simple
+KERN_BINFILES := $(foreach file, $(KERN_BINFILES), \
+			$(shell test -f $(file) && echo $(file)))
+
+
+# How to build the kernel itself
+kern/kernel: $(KERN_OBJFILES)
+	$(LD) -o $@ $(KERN_LDFLAGS) $^ $(GCC_LIB) -b binary $(KERN_BINFILES)
+
+
+# How to build the Bochs disk image
+kern/bochs.img: kern/kernel boot/boot
+	dd if=/dev/zero	of=kern/bochs.img~ count=10000
+	dd if=boot/boot of=kern/bochs.img~ conv=notrunc
+	dd if=kern/kernel of=kern/bochs.img~ seek=1 conv=notrunc
+	mv kern/bochs.img~ kern/bochs.img
+
+all: kern/bochs.img
+
+#///END
