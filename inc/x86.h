@@ -93,13 +93,13 @@ outl(int port, u_int32_t data)
 static __inline void 
 invlpg(u_int addr)
 { 
-	__asm __volatile("invlpg(%0)" : : "r" (addr) : "memory");
+	__asm __volatile("invlpg (%0)" : : "r" (addr) : "memory");
 }  
 
 static __inline void
 lidt(void *p)
 {
-	__asm __volatile("lidt(%0)" : : "r" (p));
+	__asm __volatile("lidt (%0)" : : "r" (p));
 }
 
 static __inline void

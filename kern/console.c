@@ -84,11 +84,11 @@ cons_putc(short int c)
 		crt_pos -= (crt_pos % CRT_COLS);
 		break;
 	case '\t':
-		cnputc(' ');
-		cnputc(' ');
-		cnputc(' ');
-		cnputc(' ');
-		cnputc(' ');
+		cons_putc(' ');
+		cons_putc(' ');
+		cons_putc(' ');
+		cons_putc(' ');
+		cons_putc(' ');
 		break;
 	default:
 		crt_buf[crt_pos++] = c;		/* write the character */

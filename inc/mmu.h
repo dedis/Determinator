@@ -27,14 +27,16 @@
 /* page table index */
 #define PTX(va)		((((u_long)(va))>>12) & 0x03FF)
 
+/* page number field of address (should have VPN too, but too bad) */
+#define PPN(va)		(((u_long)(va))>>12)
+
 /* offset in page */
 #define PGOFF(va)	(((u_long)(va)) & 0xFFF)
 
-/* bytes in a page */
-#define PGSIZE		4096
-
-/* bytes mapped by a page directory entry */
-#define PDSIZE		(4*1024*1024)
+#define PDMAP		(4*1024*1024)	/* bytes mapped by a page directory entry */
+#define PGMASK		(PGSIZE-1)	/* mask offset bits in va */
+#define PGSIZE		4096		/* bytes in a page */
+#define PGSHIFT		12		/* log(PGSHIFT) */
 
 /* At IOPHYSMEM (640K) there is a 384K hole for I/O.  From the kernel,
  * IOPHYSMEM can be addressed at KERNBASE + IOPHYSMEM.  The hole ends
@@ -45,16 +47,21 @@
 /* Page Table/Directory Entry flags
  *   these are defined by the hardware
  */
-#define PG_P 0x1               /* Present */
-#define PG_W 0x2               /* Writeable */
-#define PG_U 0x4               /* User */
-#define PG_PWT 0x8             /* Write-Through */
-#define PG_PCD 0x10            /* Cache-Disable */
-#define PG_A 0x20              /* Accessed */
-#define PG_D 0x40              /* Dirty */
-#define PG_PS 0x80             /* Page Size */
-#define PG_MBZ 0x180           /* Bits must be zero */
-#define PG_USER 0xe00          /* Bits for user processes */
+#define PTE_P 0x1               /* Present */
+#define PTE_W 0x2               /* Writeable */
+#define PTE_U 0x4               /* User */
+#define PTE_PWT 0x8             /* Write-Through */
+#define PTE_PCD 0x10            /* Cache-Disable */
+#define PTE_A 0x20              /* Accessed */
+#define PTE_D 0x40              /* Dirty */
+#define PTE_PS 0x80             /* Page Size */
+#define PTE_MBZ 0x180           /* Bits must be zero */
+#define PTE_USER 0xe00          /* Bits for user processes */
+#define PTE_FLAGS 0xfff         /* All flags */
+
+/* address in page table entry */
+#define PTE_ADDR(pte)	((u_long)(pte)&~PTE_FLAGS)
+
 /*
  * The PG_USER bits are not used by the kernel and they are
  * not interpreted by the hardware.  The kernel allows 
@@ -140,15 +147,15 @@ struct Segdesc {
 	unsigned sd_base_31_24 : 8;  /* Hight bits of base */
 };
 /* Null segment */
-#define SEG_NULL (struct seg_desc){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+#define SEG_NULL (struct Segdesc){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 /* Segment that is loadable but faults when used */
-#define SEG_FAULT (struct seg_desc){0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0}
+#define SEG_FAULT (struct Segdesc){0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0}
 /* Normal segment */
-#define SEG(type, base, lim, dpl) (struct seg_desc)			\
+#define SEG(type, base, lim, dpl) (struct Segdesc)			\
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
     type, 1, dpl, 1, (unsigned) (unsigned) (lim) >> 28, 0, 0, 1, 1,	\
     (unsigned) (base) >> 24 }
-#define SEG16(type, base, lim, dpl) (struct seg_desc)			\
+#define SEG16(type, base, lim, dpl) (struct SEgdesc)			\
 { (lim) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,		\
     type, 1, dpl, 1, (unsigned) (unsigned) (lim) >> 16, 0, 0, 1, 0,	\
     (unsigned) (base) >> 24 }
@@ -223,12 +230,12 @@ struct Gatedesc {
 	(gate).gd_off_31_16 = (u_long) (off) >> 16;		\
 }
 
-#define GATE(type, sel, off, dpl) (struct gate_desc)		\
+#define GATE(type, sel, off, dpl) (struct Gatedesc)		\
 	{ off & 0xffff, sel, 0, 0, type, 0, dpl, 1, off >> 16 }
 
 
 /* Call gate descriptor */
-#define SETCALLGATE(gate, ss, off, dpl)           	      \
+#define SETCALLGATE(gate, ss, off, dpl)           	        \
 {								\
 	(gate).gd_off_15_0 = (u_long) (off) & 0xffff;		\
 	(gate).gd_ss = (ss);					\
@@ -302,14 +309,14 @@ struct Pseudodesc {
  *		       |  Kernel Virtual Page Table   | RW/--   PGSIZE
  *    VPT,KSTACKTOP--> +------------------------------+                 --+
  *             	       |        Kernel Stack          | RW/--  KSTKSIZE   |
- *                     | - - - - - - - - - - - - - - -|                 PDSIZE
+ *                     | - - - - - - - - - - - - - - -|                 PDMAP
  *		       |       Invalid memory 	      | --/--             |
  *    ULIM     ------> +------------------------------+                 --+
  *       	       |      R/O User VPT            | R-/R-   PGSIZE
  *    UVPT      ---->  +------------------------------+
- *                     |        R/O PPAGE             | R-/R-   PGSIZE
- *    UPPAGES   ---->  +------------------------------+
- *                     |        R/O UENVS             | R-/R-   PGSIZE
+ *                     |        R/O PAGES             | R-/R-   PGSIZE
+ *    UPAGES    ---->  +------------------------------+
+ *                     |        R/O ENVS              | R-/R-   PGSIZE
  * UTOP,UENVS -------> +------------------------------+
  * UXSTACKTOP -/       |      user exception stack    | RW/RW   PGSIZE  
  *                     +------------------------------+
@@ -326,7 +333,7 @@ struct Pseudodesc {
  *  		       |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
  *		       |                              |
  *    UTEXT ------->   +------------------------------+
- *                     |                              |  2 * PDSIZE
+ *                     |                              |  2 * PDMAP
  *    0 ------------>  +------------------------------+
  */
 
@@ -342,7 +349,7 @@ struct Pseudodesc {
 #define VPT (KERNBASE - PGSIZE)
 #define KSTACKTOP VPT
 #define KSTKSIZE (8 * PGSIZE)   		/* size of a kernel stack */
-#define ULIM (KSTACKTOP - PDSIZE) 
+#define ULIM (KSTACKTOP - PDMAP) 
 
 /*
  * User read-only mappings! Anything below here til UTOP are readonly to user.
@@ -350,11 +357,11 @@ struct Pseudodesc {
  */
 
 /* Same as VPT but read-only for users */
-#define UVPT (ULIM - PDSIZE)
+#define UVPT (ULIM - PDMAP)
 /* Read-only copies of all ppage structures */
-#define UPPAGES (UVPT - PDSIZE)
+#define UPAGES (UVPT - PDMAP)
 /* Read only copy of the global env structures */
-#define UENVS (UPPAGES - PDSIZE)
+#define UENVS (UPAGES - PDMAP)
 
 /*
  * Top of user VM. User can manipulate VA from UTOP-1 and down!
@@ -363,7 +370,7 @@ struct Pseudodesc {
 #define UXSTACKTOP (UTOP)           /* one page user exception stack */
 /* leave top page invalid to guard against exception stack overflow */ 
 #define USTACKTOP (UTOP - 2*PGSIZE)   /* top of the normal user stack */
-#define UTEXT (2*PDSIZE)
+#define UTEXT (2*PDMAP)
 
 /*
  * Page fault modes inside kernel.
@@ -389,39 +396,33 @@ struct Pseudodesc {
 })
 
 /* translates from virtual address to physical address */
-/* BUG case */
 #define PADDR(kva)						\
 ({								\
 	u_long a = (u_long) (kva);				\
-	if ((u_long) a < KERNBASE)				\
-		panic("%s:%d: PADDR called with invalid kva",	\
-			__FILE__, __LINE__);			\
+	if (a < KERNBASE)					\
+		panic("PADDR called with invalid kva %08lx", a);\
 	a - KERNBASE;						\
 })
 
 /* translates from physical address to kernel virtual address */
-/* BUG case */
 #define KADDR(pa)						\
 ({								\
-	u_long ppn = (u_long) (pa) >> PGSHIFT;			\
-	if (ppn >= nppage)					\
-		panic("%s:%d: KADDR called with invalid pa",	\
-			__FILE__, __LINE__);			\
+	u_long ppn = PPN(pa);					\
+	if (ppn >= npage)					\
+		panic("KADDR called with invalid pa %08lx", (u_long)pa);\
 	(pa) + KERNBASE;					\
 })
 
 void bcopy(const void *, void *, size_t);
 void bzero(void *, size_t);
 
-extern u_long nppage;
+extern char bootstacktop[], bootstack[];
 
-
-typedef unsigned int Pte;
-typedef unsigned int Pde;
+extern u_long npage;
 
 /*
  * The page directory entry corresponding to the virtual address range
- * from VPT to (VPT+PDSIZE) points to the page directory itself
+ * from VPT to (VPT+PDMAP) points to the page directory itself
  * (treating it as a page table as well as a page directory).  One
  * result of treating the page directory as a page table is that all
  * PTE's can be accessed through a "virtual page table" at virtual
@@ -430,6 +431,9 @@ typedef unsigned int Pde;
  * always be available at virtual address(VPT+(VPT>>PGSHIFT)) to
  * which vpd is set in locore.S.
  */
+typedef u_long Pte;
+typedef u_long Pde;
+
 extern Pte vpt[];     /* VA of "virtual page table" */
 extern Pde vpd[];     /* VA of current page directory */
 

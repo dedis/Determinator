@@ -127,13 +127,13 @@ kprintf(const char *fmt, va_list ap)
 		case 'b':
 			uq = va_arg(ap, int);
 			p = va_arg(ap, char *);
-			for (q = ksprintn(uq, *p++, NULL); ch = *q--;)
+			for (q = ksprintn(uq, *p++, NULL); (ch = *q--) != '\0';)
 				cons_putc(ch);
 
 			if (!uq)
 				break;
 
-			for (tmp = 0; n = *p++;) {
+			for (tmp = 0; (n = *p++) != '\0'; ) {
 				if (uq & (1 << (n - 1))) {
 					cons_putc(tmp ? ',' : '<');
 					for (; (n = *p) > ' '; ++p)
@@ -157,7 +157,7 @@ kprintf(const char *fmt, va_list ap)
 		case 's':
 			if ((p = va_arg(ap, char *)) == NULL)
 					p = "(null)";
-			while (ch = *p++)
+			while ((ch = *p++) != '\0')
 				cons_putc(ch);
 			break;
 		case 'd':
@@ -198,7 +198,7 @@ kprintf(const char *fmt, va_list ap)
 			if (width && (width -= tmp) > 0)
 				while (width--)
 					cons_putc(padc);
-			while (ch = *p--)
+			while ((ch = *p--) != '\0')
 				cons_putc(ch);
 			break;
 		default:

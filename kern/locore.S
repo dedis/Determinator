@@ -30,8 +30,8 @@
 # boot stack
 ###################################################################
 	.p2align	PGSHIFT		# force page alignment
-	.globl		bootstack
-bootstack:
+	.globl		_bootstack
+_bootstack:
 	.space		KSTKSIZE
 	.globl		_bootstacktop   
 _bootstacktop:

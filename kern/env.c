@@ -8,11 +8,11 @@
 #include <kern/pmap.h>
 #include <kern/printf.h>
 
-struct Env *__envs = NULL;		/* All environments */
-static struct Env_list env_free_list;	/* Free list */
+struct Env *envs = NULL;		/* All environments */
 struct Env *curenv = NULL;	        /* the current env */
 ///END
 ///LAB3
+static struct Env_list env_free_list;	/* Free list */
 
 //
 // Calculates the envid for env e.  
