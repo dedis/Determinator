@@ -87,7 +87,8 @@ strtol(const char *s, char **endptr, int base)
 		// we don't properly detect overflow!
 	}
 
-	*endptr = (char*)s;
+	if (endptr)
+		*endptr = (char*)s;
 	return val;
 }
 
