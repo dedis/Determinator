@@ -13,9 +13,10 @@ NCC	:= gcc $(CC_VER) -pipe
 TAR	:= gtar
 PERL	:= perl
 
-# Flags
-CFLAGS	:= $(CFLAGS) -I$(TOP) -MD -MP
-LDFLAGS := $(LDFLAGS)
+# Compiler flags
+# Note that -O2 is required for the boot loader to fit within 512 bytes;
+# -fno-builtin is required to avoid refs to undefined functions in the kernel.
+CFLAGS	:= $(CFLAGS) -O2 -fno-builtin -I$(TOP) -MD -MP
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=

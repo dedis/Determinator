@@ -93,12 +93,12 @@ static short crt_pos;
 
 /* Output to alternate parallel port console */
 static void
-delay(int n)
+delay()
 {
-	int i;
-
-	for(i=0; i<n; i++)
-		inb(0x84);
+	inb(0x84);
+	inb(0x84);
+	inb(0x84);
+	inb(0x84);
 }
 
 static void
@@ -107,7 +107,7 @@ lptputc(int c)
 	int i;
 
 	for(i=0; !(inb(0x378+1)&0x80) && i<12800; i++)
-		delay(1);
+		delay();
 	outb(0x378+0, c);
 	outb(0x378+2, 0x08|0x01);
 	outb(0x378+2, 0x08);
@@ -369,7 +369,7 @@ sget (void)
   static u_char capchar[2];
 
 top:
-  delay ();
+  delay();
   dt = inb(KBDATAP);
 
   switch (dt) {
