@@ -40,7 +40,7 @@ runbochs() {
 # Usage: runtest <tagname> <defs> <strings...>
 runtest() {
 	perl -e "print '$1: '"
-	rm -f obj/kern/init.o obj/kern/kernel obj/kern/bochs.img obj/fs/fs.img
+	rm -f obj/kern/init.o obj/kern/kernel obj/kern/bochs.img
 	if $verbose
 	then
 		echo "gmake $2... "
@@ -198,8 +198,14 @@ echo SCORE: $score/100
 #elif LAB >= 5		/******************** LAB 5 ********************/
 score=0
 
-rm -f fs/fs.img
-gmake fs/fs.img >$out
+# Reset the file system to its original, pristine state
+resetfs() {
+	rm -f obj/fs/fs.img
+	gmake obj/fs/fs.img >$out
+}
+
+
+resetfs
 
 runtest1 -tag 'fs i/o' testfsipc \
 	'FS can do I/O' \
@@ -240,8 +246,7 @@ quicktest 'serv_*' \
 
 echo PART A SCORE: $score/55
 
-rm -f fs/fs.img
-gmake fs/fs.img >$out
+resetfs
 
 score=0
 pts=10
@@ -257,20 +262,19 @@ runtest1 -tag 'motd change' writemotd \
 	'NEW MOTD' \
 	! 'This is /motd, the message of the day.' \
 
-rm -f fs/fs.img
-gmake fs/fs.img >$out
+resetfs
 
 pts=25
 runtest1 -tag 'spawn via icode' icode \
 	'icode: read /motd' \
 	'This is /motd, the message of the day.' \
 	'icode: spawn /init' \
-	'/init: running' \
-	'/init: data seems okay' \
+	'init: running' \
+	'init: data seems okay' \
 	'icode: exiting' \
-	'/init: bss seems okay' \
-	"/init: args: 'init' 'initarg1' 'initarg2'" \
-	'/init: exiting' \
+	'init: bss seems okay' \
+	"init: args: 'init' 'initarg1' 'initarg2'" \
+	'init: exiting' \
 
 echo PART B SCORE: $score/45
 

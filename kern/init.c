@@ -109,7 +109,6 @@ i386_init(void)
 	// ENV_CREATE(user_testfsipc);
 	// ENV_CREATE(user_icode);
 #endif
-
 #elif LAB >= 4
 	// Should always have an idle process as first one.
 	ENV_CREATE(user_idle);

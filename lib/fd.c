@@ -38,7 +38,7 @@ dev_lookup(int dev_id, struct Dev **dev)
 int
 fd_alloc(struct Fd **fd)
 {
-#if SOL >= 6
+#if SOL >= 5
 	int i;
 	u_int va;
 
@@ -75,7 +75,7 @@ fd_close(struct Fd *fd)
 int
 fd_lookup(int fdnum, struct Fd **fd)
 {
-#if SOL >= 6
+#if SOL >= 5
 	u_int va;
 
 	if (fdnum < 0 || fdnum >= MAXFD) {
@@ -247,6 +247,24 @@ seek(int fdnum, u_int offset)
 		return r;
 	fd->fd_offset = offset;
 	return 0;
+}
+
+int
+ftruncate(int fdnum, u_int newsize)
+{
+	int r;
+	struct Dev *dev;
+	struct Fd *fd;
+
+	if ((r = fd_lookup(fdnum, &fd)) < 0
+	||  (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
+		return r;
+	if ((fd->fd_omode & O_ACCMODE) == O_RDONLY) {
+		printf("[%08x] ftruncate %d -- bad mode\n",
+			env->env_id, fdnum); 
+		return -E_INVAL;
+	}
+	return (*dev->dev_trunc)(fd, newsize);
 }
 
 int

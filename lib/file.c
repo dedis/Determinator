@@ -10,6 +10,7 @@ static int file_close(struct Fd *fd);
 static int file_read(struct Fd *fd, void *buf, u_int n, u_int offset);
 static int file_write(struct Fd *fd, const void *buf, u_int n, u_int offset);
 static int file_stat(struct Fd *fd, struct Stat *stat);
+static int file_trunc(struct Fd *fd, u_int newsize);
 
 struct Dev devfile =
 {
@@ -19,6 +20,7 @@ struct Dev devfile =
 .dev_write=	file_write,
 .dev_close=	file_close,
 .dev_stat=	file_stat,
+.dev_trunc=	file_trunc,
 };
 
 #if SOL >= 5
@@ -42,7 +44,6 @@ open(const char *path, int mode)
 	f = (struct Filefd*)fd;
 
 	if ((r = fmap(f, 0, f->f_file.f_size)) < 0) {
-		funmap(f, 0, f->f_file.f_size, 0);
 		sys_mem_unmap(0, (u_int)fd);
 		return r;
 	}
@@ -65,7 +66,7 @@ file_close(struct Fd *fd)
 	f = (struct Filefd*)fd;
 
 	va = fd2data(fd);
-	ret = funmap(f, 0, f->f_file.f_size, 1);
+	ret = funmap(f, f->f_file.f_size, 0, 1);
 	if ((r = fsipc_close(f->f_fileid)) < 0 && ret == 0)
 		ret = r;
 	return ret;
@@ -137,7 +138,7 @@ file_write(struct Fd *fd, const void *buf, u_int n, u_int offset)
 
 	// increase the file's size if necessary
 	if (tot > f->f_file.f_size) {
-		if ((r = ftruncate(fd2num(fd), tot)) < 0)
+		if ((r = file_trunc(fd, tot)) < 0)
 			return r;
 	}
 
@@ -160,47 +161,28 @@ file_stat(struct Fd *fd, struct Stat *st)
 }
 
 // Truncate or extend an open file to 'size' bytes
-int
-ftruncate(int fdnum, u_int size)
+static int
+file_trunc(struct Fd *fd, u_int newsize)
 {
-	int i, r;
-	struct Fd *fd;
+	int r;
 	struct Filefd *f;
 	u_int oldsize, va, fileid;
 
-	if (size > MAXFILESIZE)
+	if (newsize > MAXFILESIZE)
 		return -E_NO_DISK;
-
-	if ((r = fd_lookup(fdnum, &fd)) < 0)
-		return r;
-	if (fd->fd_dev_id != devfile.dev_id)
-		return -E_INVAL;
 
 	f = (struct Filefd*)fd;
 	fileid = f->f_fileid;
 	oldsize = f->f_file.f_size;
-	if ((r = fsipc_set_size(fileid, size)) < 0)
+	if ((r = fsipc_set_size(fileid, newsize)) < 0)
 		return r;
+	assert(f->f_file.f_size == newsize);
 
 	va = fd2data(fd);
-#if SOL >= 6
-	if ((r = fmap(f, oldsize, size)) < 0)
+	if ((r = fmap(f, oldsize, newsize)) < 0)
 		return r;
-	funmap(f, oldsize, size, 0);
-#else
-	// Map any new pages needed if extending the file
-	for (i = ROUND(oldsize, BY2PG); i < ROUND(size, BY2PG); i += BY2PG) {
-		if ((r = fsipc_map(fileid, i, va+i)) < 0) {
-			fsipc_set_size(fileid, oldsize);
-			return r;
-		}
-	}
+	funmap(f, oldsize, newsize, 0);
 
-	// Unmap pages if truncating the file
-	for (i = ROUND(size, BY2PG); i < ROUND(oldsize, BY2PG); i+=BY2PG)
-		if ((r = sys_mem_unmap(0, va+i)) < 0)
-			panic("ftruncate: sys_mem_unmap %08x: %e", va+i, r);
-#endif
 	return 0;
 }
 
@@ -214,7 +196,8 @@ fmap(struct Filefd *f, u_int oldsize, u_int newsize)
 	va = fd2data((struct Fd*)f);
 	for (i=ROUND(oldsize, BY2PG); i<newsize; i+=BY2PG) {
 		if ((r = fsipc_map(f->f_fileid, i, va+i)) < 0) {
-			fsipc_set_size(f->f_fileid, oldsize);
+			// unmap anything we may have mapped so far
+			funmap(f, i, oldsize, 0);
 			return r;
 		}
 	}
@@ -237,8 +220,8 @@ funmap(struct Filefd *f, u_int oldsize, u_int newsize, u_int dirty)
 	}
 	return ret;
 }
+#endif	// SOL >= 5
 
-#endif
 // Delete a file
 int
 remove(const char *path)

@@ -180,7 +180,9 @@ serve_set_size(u_int envid, struct Fsreq_set_size *rq)
 
 	if ((r = open_lookup(envid, rq->req_fileid, &o)) < 0)
 		goto out;
-	r = file_set_size(o->o_file, rq->req_size);
+	if ((r = file_set_size(o->o_file, rq->req_size)) < 0)
+		goto out;
+	o->o_ff->f_file.f_size = rq->req_size;
 out:
 	ipc_send(envid, r, 0, 0);
 #else
@@ -317,7 +319,6 @@ umain(void)
 {
 	assert(sizeof(struct File)==256);
         binaryname = "fs";
-	opencons();
 	printf("FS is running\n");
 
 	// Check that we are able to do I/O

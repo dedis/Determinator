@@ -15,7 +15,12 @@ USERAPPS := \
 	$(OBJDIR)/user/ls \
 	$(OBJDIR)/user/lsfd \
 	$(OBJDIR)/user/num \
-	$(OBJDIR)/user/primes
+	$(OBJDIR)/user/forktree \
+	$(OBJDIR)/user/primes \
+
+FSIMGTXTFILES := \
+	fs/newmotd \
+	fs/motd \
 
 ifdef LAB6
 USERAPPS := \
@@ -27,17 +32,16 @@ USERAPPS := \
 	$(OBJDIR)/user/testptelibrary \
 	$(OBJDIR)/user/testshell \
 	$(USERAPPS)
-endif
 
 FSIMGTXTFILES := \
 	fs/lorem \
-	fs/newmotd \
-	fs/motd \
-	fs/out \
 	fs/script \
+	fs/out \
 	fs/testshell.key \
 	fs/testshell.out \
-	fs/testshell.sh
+	fs/testshell.sh \
+	$(FSIMGTXTFILES)
+endif
 
 #if LAB >= 999
 

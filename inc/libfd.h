@@ -24,6 +24,7 @@ struct Dev
 	int (*dev_close)(struct Fd*);
 	int (*dev_stat)(struct Fd*, struct Stat*);
 	int (*dev_seek)(struct Fd*, u_int);
+	int (*dev_trunc)(struct Fd*, u_int);
 };
 
 struct Fd

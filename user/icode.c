@@ -10,11 +10,6 @@ umain(void)
 
 	sys_cputs("icode startup\n");
 
-	// need to do some of the initialization here, 
-	//because we are not called from init or the shell.
-	binaryname = "icode";
-	opencons();
-
 	printf("icode: open /motd\n");
 	if ((fd = open("/motd", O_RDONLY)) < 0)
 		panic("icode: open /motd: %e", fd);

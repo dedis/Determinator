@@ -54,6 +54,12 @@ ifdef LAB5
 # Binary program images to embed within the kernel.
 KERN_BINFILES := \
 	user/idle \
+	user/forktree \
+	user/pingpong \
+	user/primes \
+	user/testfsipc \
+	user/writemotd \
+	user/icode \
 	fs/fs
 else
 ifdef LAB4

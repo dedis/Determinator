@@ -46,18 +46,17 @@ umain(int argc, char **argv)
 		printf(" '%s'", argv[i]);
 	printf("\n");
 
+#if LAB >= 6
 	printf("init: running sh\n");
 
 	// being run directly from kernel, so no file descriptors open yet
 	close(0);
-#if LAB >= 6
 	if ((r = opencons()) < 0)
 		panic("opencons: %e", r);
 	if (r != 0)
 		panic("first opencons used fd %d", r);
 	if ((r = dup(0, 1)) < 0)
 		panic("dup: %e", r);
-#endif
 	for (;;) {
 		printf("init: starting sh\n");
 		r = spawnl("sh", "sh", (char*)0);
@@ -65,9 +64,10 @@ umain(int argc, char **argv)
 			printf("init: spawn sh: %e\n", r);
 			continue;
 		}
-#if LAB >= 6
 		wait(r);
-#endif
 	}
+#else	// LAB 5
+	printf("init: exiting\n");
+#endif
 }
 #endif
