@@ -17,13 +17,13 @@ PMAP=pmap
 
 ## Only build files if they exist.
 ##
-## locore.S must be first, so that it's the 
+## entry.S must be first, so that it's the 
 ## first code in the text segment!!!
 ##
 ## Note that we also snatch the use of a couple handy source files
 ## from the lib directory, to avoid gratuitous code duplication.
 ##
-KERN_SRCFILES :=	kern/locore.S \
+KERN_SRCFILES :=	kern/entry.S \
 			kern/$(INIT).c \
 			kern/console.c \
 			kern/monitor.c \
@@ -32,6 +32,7 @@ KERN_SRCFILES :=	kern/locore.S \
 			kern/kclock.c \
 			kern/picirq.c \
 			kern/trap.c \
+			kern/trapentry.S \
 			kern/lab3.S \
 			kern/sched.c \
 			kern/syscall.c \

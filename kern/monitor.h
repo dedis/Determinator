@@ -1,8 +1,7 @@
 #ifndef _KERN_MONITOR_H_
 #define _KERN_MONITOR_H_
 
-#include <inc/trap.h>
-
+struct Trapframe;
 
 // Activate the kernel monitor,
 // optionally providing a trap frame indicating the current state

@@ -5,7 +5,6 @@
 #define _KERN_PMAP_H_
 
 #include <inc/pmap.h>
-#include <inc/trap.h>
 #include <inc/assert.h>
 
 
