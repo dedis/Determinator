@@ -197,7 +197,7 @@ env_alloc(struct Env **new, u_int parent_id)
 
 #if SOL >= 4
 	// Enable interrupts while in user mode.
-	//e->env_tf.tf_eflags = FL_IF; // interrupts enabled
+	e->env_tf.tf_eflags = FL_IF; // interrupts enabled
 #endif
 
 	// You also need to set tf_eip to the correct value at some point.

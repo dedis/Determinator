@@ -70,6 +70,7 @@ KERN_BINFILES := \
 	user/faultbadhandler \
 	user/faultevilhandler \
 	user/forktree \
+	user/spin \
 	user/fairness \
 	user/pingpong \
 	user/pingpongs \

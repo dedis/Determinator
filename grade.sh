@@ -278,37 +278,25 @@ echo PART B SCORE: $score/45
 exit 0
 
 #elif LAB >= 4		/******************** LAB 4 ********************/
+
 score=0
 
-runtest1 hello \
+runtest1 dumbfork \
 	'.00000000. new env 00000800' \
 	'.00000000. new env 00001001' \
-	'hello, world' \
-	'i am environment 00001001' \
-	'.00001001. exiting gracefully' \
-	'.00001001. free env 00001001'
-
-# the [00001001] tags should have [] in them, but that's 
-# a regular expression reserved character, and i'll be damned if
-# I can figure out how many \ i need to add to get through 
-# however many times the shell interprets this string.  sigh.
-
-runtest pingpong2 'DEFS=-DTEST_PINGPONG2' \
-	'1802 got 0 from 1001' \
-	'1001 got 1 from 1802' \
-	'1802 got 8 from 1001' \
-	'1001 got 9 from 1802' \
-	'1802 got 10 from 1001' \
+	'0: I am the parent!' \
+	'9: I am the parent!' \
+	'0: I am the child!' \
+	'9: I am the child!' \
+	'19: I am the child!' \
 	'.00001001. exiting gracefully' \
 	'.00001001. free env 00001001' \
 	'.00001802. exiting gracefully' \
 	'.00001802. free env 00001802'
 
-echo PART A SCORE: $score/10
+echo PART A SCORE: $score/5
 
-score=0
-
-runtest1 buggyhello \
+runtest1 forktree \
 	'.00001001. PFM_KILL va 00000001 ip f01.....' \
 	'.00001001. free env 00001001'
 

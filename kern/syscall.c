@@ -262,7 +262,7 @@ sys_set_status(u_int envid, u_int status)
 	return 0;
 #else
 	// Your code here (in lab 4).
-	panic("sys_env_set_status not implemented");
+	panic("sys_set_status not implemented");
 #endif
 }
 

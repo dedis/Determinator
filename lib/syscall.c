@@ -58,7 +58,7 @@ sys_getenvid(void)
 	 return syscall(SYS_getenvid, 0, 0, 0, 0, 0);
 }
 
-#if SOL >= 4
+#if LAB >= 4
 void
 sys_yield(void)
 {
@@ -114,6 +114,6 @@ sys_ipc_recv(u_int dstva)
 {
 	syscall(SYS_ipc_recv, dstva, 0, 0, 0, 0);
 }
-#endif	// SOL >= 4
+#endif	// LAB >= 4
 
 #endif	// LAB >= 3
