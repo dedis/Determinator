@@ -6,21 +6,23 @@
 void
 putchar(int ch)
 {
-#if LAB >= 6
-	unsigned char c = ch;
-	int r;
+	char s[2];
 
-	// Don't make a console system call directly anymore -
-	// instead, write to file descriptor 0.
-	r = write(0, &c, 1);
-	if (r < 0)
-		panic("calling putchar when FD 0 is not initialized");
-#else	// not LAB >= 6
-	char s[2] = {ch, 0};
+	// Putchar is only called in two places:
+	// from readline when input is the console,
+	// and from printf.  In both cases we want to
+	// write to the console.
 
-	// System call to output a string.
+	// Writing to the console always during printf rather
+	// than to fd 1 is a break with traditional Unix, but in
+	// this code, printf is more of a debugging statement
+	// than a generic output statement.  It is very important
+	// that it always go to the console, especially when 
+	// debugging the file descriptor code!
+
+	s[0] = ch;
+	s[1] = 0;
 	sys_cputs(s);
-#endif	// not LAB >= 6
 }
 
 int
