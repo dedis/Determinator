@@ -247,6 +247,8 @@ page_fault_handler(struct Trapframe *tf)
 	env_run(curenv);
 #else
 	// Fill this in
+	print_trapframe(tf);
+	panic("page fault");
 #endif
 }
 #endif /* LAB >= 4 */

@@ -161,6 +161,7 @@ _alltraps:
 
 #if SOL >= 3
 #elif LAB >= 4
+#else
 .globl _clock_interrupt
 _clock_interrupt:
 	pushl	%eax		# push caller-saves

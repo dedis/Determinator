@@ -18,13 +18,6 @@ sys_getenvid(void)
 	return curenv->env_id;
 }
 
-// print an integer to the screen.
-static void
-sys_cputu(u_int value)
-{
-	printf("%d", (int)value);
-}
-
 // print a string to the screen.
 static void
 sys_cputs(char *s)
@@ -49,31 +42,24 @@ sys_yield(void)
 static void
 sys_env_destroy(void)
 {
+	printf("[%08x] exiting gracefully\n", curenv->env_id);
 	env_destroy(curenv);
 }
 
-// Allocate a new environment.
-//
-// The new child is left as env_alloc created it, except that
-// status is set to ENV_NOT_RUNNABLE and the register set is copied
-// from the current environment.
-//
-// Returns envid of new environment, or < 0 on error.
-static int
-sys_env_alloc(void)
+// Block until a value is ready.  Record that you want to receive,
+// mark yourself not runnable, and then give up the CPU.
+static void
+sys_ipc_recv(void)
 {
 #if SOL >= 4
-	int r;
-	struct Env *e;
+	if(curenv->env_ipc_recving)
+		panic("already recving!");
 
-	if ((r=env_alloc(&e, curenv->env_id)) < 0)
-		return r;
-	e->env_status = ENV_NOT_RUNNABLE;
-	e->env_tf = *UTF;
-	e->env_tf.tf_eax = 0;
-	return e->env_id;
+	curenv->env_ipc_recving = 1;
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	sched_yield();
 #else
-	// Your code here.
+	// Your code here
 #endif
 }
 
@@ -90,6 +76,8 @@ sys_env_alloc(void)
 // The target environment is marked runnable again.
 //
 // Return 0 on success, < 0 on error.
+//
+// Hint: the only function you need to call is envid2env.
 static int
 sys_ipc_can_send(u_int envid, u_int value)
 {
@@ -107,23 +95,6 @@ sys_ipc_can_send(u_int envid, u_int value)
 	e->env_ipc_value = value;
 	e->env_status = ENV_RUNNABLE;
 	return 0;
-#else
-	// Your code here
-#endif
-}
-
-// Block until a value is ready.  Record that you want to receive,
-// mark yourself not runnable, and then give up the CPU.
-static void
-sys_ipc_recv(void)
-{
-#if SOL >= 4
-	if(curenv->env_ipc_recving)
-		panic("already recving!");
-
-	curenv->env_ipc_recving = 1;
-	curenv->env_status = ENV_NOT_RUNNABLE;
-	sched_yield();
 #else
 	// Your code here
 #endif
@@ -150,6 +121,126 @@ sys_set_pgfault_handler(u_int envid, u_int func, u_int xstacktop)
 #endif
 }
 
+//
+// Allocate a page of memory and map it at 'va' with permission
+// 'perm' in the address space of 'envid'.
+//
+// If a page is already mapped at 'va', that page is unmapped as a
+// side-effect.
+//
+// perm -- PTE_U|PTE_P are required, 
+//         PTE_AVAIL|PTE_W are optional,
+//         but no other bits are allowed (return -E_INVAL)
+//
+// Return 0 on success, < 0 on error
+//	- va must be < UTOP
+//	- env may modify its own address space or the address space of its children
+// 
+static int
+sys_mem_alloc(u_int envid, u_int va, u_int perm)
+{
+#if SOL >= 4
+	int r;
+	struct Env *e;
+	struct Page *p;
+
+	if ((r=envid2env(envid, &e, 1)) < 0)
+		return r;
+	if (((~perm)&(PTE_U|PTE_P)) || (perm&~(PTE_U|PTE_P|PTE_AVAIL|PTE_W)))
+		return -E_INVAL;
+	if (va >= UTOP)
+		return -E_INVAL;
+	if ((r=page_alloc(&p)) < 0)
+		return r;
+	if ((r=page_insert(e->env_pgdir, p, va, perm)) < 0) {
+		page_free(p);
+		return r;
+	}
+	return 0;
+#else
+	// Your code here.
+#endif
+}
+
+// Map the page of memory at 'srcva' in srcid's address space
+// at 'dstva' in dstid's address space with permission 'perm'.
+// Perm has the same restrictions as in sys_mem_alloc.
+// (Probably we should add a restriction that you can't go from
+// non-writable to writable?)
+//
+// Return 0 on success, < 0 on error.
+//
+// Cannot access pages above UTOP.
+static int
+sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm)
+{
+#if SOL >= 4
+	int r;
+	struct Env *es, *ed;
+	struct Page *p;
+
+	if (srcva >= UTOP || dstva >= UTOP)
+		return -E_INVAL;
+	if ((r=envid2env(srcid, &es, 1)) < 0 || (r=envid2env(dstid, &ed, 1)) < 0)
+		return r;
+	if (((~perm)&(PTE_U|PTE_P)) || (perm&~(PTE_U|PTE_P|PTE_AVAIL|PTE_W)))
+		return -E_INVAL;
+	if ((p = page_lookup(es->env_pgdir, srcva, 0)) == 0)
+		return -E_INVAL;
+	if ((r = page_insert(ed->env_pgdir, p, dstva, perm)) < 0)
+		return r;
+	return 0;
+#endif
+}
+
+// Unmap the page of memory at 'va' in the address space of 'envid'
+// (if no page is mapped, the function silently succeeds)
+//
+// Return 0 on success, < 0 on error.
+//
+// Cannot unmap pages above UTOP.
+static int
+sys_mem_unmap(u_int envid, u_int va)
+{
+#if SOL >= 4
+	int r;
+	struct Env *e;
+
+	if ((r=envid2env(envid, &e, 1)) == 0)
+		return r;
+	if (va >= UTOP)
+		return -E_INVAL;
+	page_remove(e->env_pgdir, va);
+	return 0;
+#endif
+}
+
+// Allocate a new environment.
+//
+// The new child is left as env_alloc created it, except that
+// status is set to ENV_NOT_RUNNABLE and the register set is copied
+// from the current environment.  In the child, the register set is
+// tweaked so sys_env_alloc returns 0.
+//
+// Returns envid of new environment, or < 0 on error.
+static int
+sys_env_alloc(void)
+{
+#if SOL >= 4
+	int r;
+	struct Env *e;
+
+	if ((r=env_alloc(&e, curenv->env_id)) < 0)
+		return r;
+	e->env_status = ENV_NOT_RUNNABLE;
+	e->env_tf = *UTF;
+	e->env_tf.tf_eax = 0;
+	return e->env_id;
+#else
+	// Your code here.
+#endif
+}
+
 // Set envid's env_status to status. 
 //
 // Returns 0 on success, < 0 on error.
@@ -171,92 +262,6 @@ sys_set_env_status(u_int envid, u_int status)
 #else
 	// Your code here.
 #endif
-}
-
-//
-// Allocate a page of memory and map it at 'va' with permission
-// 'perm' in the address space of 'envid'.
-//
-// If a page is already mapped at 'va', that page is unmapped as a
-// side-effect.
-//
-// perm -- PTE_U|PTE_P are required, 
-//         PTE_AVAIL|PTE_W are optional,
-//         but no other bits are allowed (return -E_INVAL)
-//
-// Return 0 on success, < 0 on error
-//	- va must be < UTOP
-//	- env may modify its own address space or the address space of its children
-// 
-static int
-sys_mem_alloc(u_int envid, u_int va, u_int perm)
-{
-	int r;
-	struct Env *e;
-	struct Page *p;
-
-	if ((r=envid2env(envid, &e, 1)) < 0)
-		return r;
-	if (((~perm)&(PTE_U|PTE_P)) || (perm&~(PTE_U|PTE_P|PTE_AVAIL|PTE_W)))
-		return -E_INVAL;
-	if (va >= UTOP)
-		return -E_INVAL;
-	if ((r=page_alloc(&p)) < 0)
-		return r;
-	if ((r=page_insert(e->env_pgdir, p, va, perm)) < 0) {
-		page_free(p);
-		return r;
-	}
-	return 0;
-}
-
-// Map the page of memory at 'srcva' in srcid's address space
-// at 'dstva' in dstid's address space with permission 'perm'.
-// Perm has the same restrictions as in sys_mem_alloc.
-// (Probably we should add a restriction that you can't go from
-// non-writable to writable?)
-//
-// Return 0 on success, < 0 on error.
-//
-// Cannot access pages above UTOP.
-static int
-sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm)
-{
-	int r;
-	struct Env *es, *ed;
-	struct Page *p;
-
-	if (srcva >= UTOP || dstva >= UTOP)
-		return -E_INVAL;
-	if ((r=envid2env(srcid, &es, 1)) < 0 || (r=envid2env(dstid, &ed, 1)) < 0)
-		return r;
-	if (((~perm)&(PTE_U|PTE_P)) || (perm&~(PTE_U|PTE_P|PTE_AVAIL|PTE_W)))
-		return -E_INVAL;
-	if ((p = page_lookup(es->env_pgdir, srcva, 0)) == 0)
-		return -E_INVAL;
-	if ((r = page_insert(ed->env_pgdir, p, dstva, perm)) < 0)
-		return r;
-	return 0;
-}
-
-// Unmap the page of memory at 'va' in the address space of 'envid'
-// (if no page is mapped, the function silently succeeds)
-//
-// Return 0 on success, < 0 on error.
-//
-// Cannot unmap pages above UTOP.
-static int
-sys_mem_unmap(u_int envid, u_int va)
-{
-	int r;
-	struct Env *e;
-
-	if ((r=envid2env(envid, &e, 1)) == 0)
-		return r;
-	if (va >= UTOP)
-		return -E_INVAL;
-	page_remove(e->env_pgdir, va);
-	return 0;
 }
 
 #if LAB >= 5

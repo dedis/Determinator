@@ -184,6 +184,7 @@ env_alloc(struct Env **new, u_int parent_id)
 	LIST_REMOVE(e, env_link);
 	*new = e;
 
+	printf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
 	return 0;
 }
 
@@ -257,6 +258,9 @@ env_free(struct Env *e)
 #if LAB >= 4
 	Pte *pt;
 	u_int pdeno, pteno, pa;
+
+	// Note the environment's demise.
+	printf("[%08x] free env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
 
 	// Flush all pages
 	static_assert(UTOP%PDMAP == 0);

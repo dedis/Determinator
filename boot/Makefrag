@@ -13,8 +13,9 @@ BOOT_OBJS := boot/boot.o boot/main.o
 
 
 boot/boot: $(BOOT_OBJS)
-	i386-osclass-aout-ld -N -e start -Ttext 0x7C00 -o $@.out $^
-	i386-osclass-aout-objcopy -S -O binary $@.out $@
-	perl boot/sign.pl boot/boot
+	@echo mk boot/boot
+	@i386-osclass-aout-ld -N -e start -Ttext 0x7C00 -o $@.out $^
+	@i386-osclass-aout-objcopy -S -O binary $@.out $@
+	@perl boot/sign.pl boot/boot
 
 #endif

@@ -9,7 +9,6 @@
 enum
 {
 	SYS_getenvid	= 0,
-	SYS_cputu,
 	SYS_cputs,
 	SYS_yield,
 	SYS_env_destroy,

@@ -26,7 +26,7 @@ ULDFLAGS := -Ttext 0x800020
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
 CLEAN_FILES := .deps bochs.log
-CLEAN_PATS := *.o *.d
+CLEAN_PATS := *.o *.d *.asm
 
 
 # Make sure that 'all' is the first target
@@ -46,9 +46,11 @@ include user/Makefrag
 
 # Rules for building regular object files
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@echo cc $<
+	@$(CC) $(CFLAGS) -c -o $@ $<
 %.o: %.S
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@echo as $<
+	@$(CC) $(CFLAGS) -c -o $@ $<
 
 
 # For embedding one program in another

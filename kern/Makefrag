@@ -44,15 +44,17 @@ KERN_OBJFILES := $(patsubst %.c, %.o, \
 KERN_BINFILES := \
 	user/buggyhello \
 	user/evilhello \
+	user/fairness \
 	user/fault \
 	user/faultalloc \
-	user/faultalloc-bad \
+	user/faultallocbad \
 	user/faultdie \
 	user/hello \
 	user/idle \
 	user/pingpong \
 	user/pingpong1 \
 	user/pingpong2 \
+	user/pingpongs \
 	user/primes \
 
 KERN_BINFILES := $(foreach file, $(KERN_BINFILES), \
@@ -60,15 +62,17 @@ KERN_BINFILES := $(foreach file, $(KERN_BINFILES), \
 
 # How to build the kernel itself
 kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
-	$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) -b binary $(KERN_BINFILES)
+	@echo ld $@
+	@$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) -b binary $(KERN_BINFILES)
 
 
 # How to build the Bochs disk image
 kern/bochs.img: kern/kernel boot/boot
-	dd if=/dev/zero	of=kern/bochs.img~ count=10000
-	dd if=boot/boot of=kern/bochs.img~ conv=notrunc
-	dd if=kern/kernel of=kern/bochs.img~ seek=1 conv=notrunc
-	mv kern/bochs.img~ kern/bochs.img
+	@echo mk kern/bochs.img
+	@dd if=/dev/zero of=kern/bochs.img~ count=10000 2>/dev/null
+	@dd if=boot/boot of=kern/bochs.img~ conv=notrunc 2>/dev/null
+	@dd if=kern/kernel of=kern/bochs.img~ seek=1 conv=notrunc 2>/dev/null
+	@mv kern/bochs.img~ kern/bochs.img
 
 all: kern/bochs.img
 
