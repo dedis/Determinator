@@ -1,21 +1,20 @@
-#ifndef _INC_STDIO_H_
-#define _INC_STDIO_H_
+#ifndef JOS_INC_STDIO_H
+#define JOS_INC_STDIO_H
 
 #include <inc/stdarg.h>
 
 #ifndef NULL
-#define NULL ((void *) 0)
+#define NULL	((void*) 0)
 #endif /* !NULL */
 
 // lib/stdio.c
 void	putchar(int c);
 int	getchar(void);
-int	iscons(int);
+int	iscons(int fd);
 
 // lib/printfmt.c
 void	printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...);
-void	vprintfmt(void (*putch)(int, void*), void *putdat,
-			const char *fmt, va_list ap);
+void	vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap);
 
 // lib/printf.c
 int	printf(const char*, ...);
@@ -30,6 +29,6 @@ int	fprintf(int fd, const char*, ...);
 int	vfprintf(int fd, const char*, va_list);
 
 // lib/readline.c
-char *	readline(const char *prompt);
+char*	readline(const char *prompt);
 
-#endif	// not _INC_STDIO_H_
+#endif /* !JOS_INC_STDIO_H */

@@ -3,8 +3,8 @@
 /* see http://plan9.bell-labs.com/magic/man2html/2/arg */
 extern char	*argv0;
 
-#define _ARGSET(x) (x)=0
-#define _ARGUSED(x) if(x){}else
+#define _ARGSET(x)	(x) = 0
+#define _ARGUSED(x)	if (x) { } else
 
 #define	ARGBEGIN	for((argv?0:(argv=(void*)&argc)),(argv0?0:(argv0=*argv)),\
 			    argv++,argc--;\
@@ -26,4 +26,4 @@ extern char	*argv0;
 				(*_argt? _argt: argv[1]? (argc--, *++argv): ((x), abort(), (char*)0)))
 
 #define	ARGC()		_argc
-#endif // LAB >= 5
+#endif /* LAB >= 5 */

@@ -1,8 +1,11 @@
 #if LAB >= 4
 /* See COPYRIGHT for copyright information. */
 
-#ifndef _PICIRQ_H_
-#define _PICIRQ_H_
+#ifndef JOS_KERN_PICIRQ_H
+#define JOS_KERN_PICIRQ_H
+#ifndef JOS_KERNEL
+# error "This is a JOS kernel header; user programs should not #include it"
+#endif
 
 #define MAX_IRQS 16
 /* I/O Addresses of the two 8259A programmable interrupt controllers */
@@ -17,11 +20,11 @@
 #include <inc/types.h>
 #include <inc/x86.h>
 
-extern u_short irq_mask_8259A;
+extern uint16_t irq_mask_8259A;
 void pic_init(void);
-void irq_setmask_8259A (u_short mask);
+void irq_setmask_8259A(uint16_t mask);
 
 #endif // !__ASSEMBLER__
 
-#endif // _PICIRQ_H_
+#endif // !JOS_KERN_PICIRQ_H
 #endif // LAB >= 4

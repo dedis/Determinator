@@ -1,5 +1,5 @@
-#ifndef	_SYS_QUEUE_H_
-#define	_SYS_QUEUE_H_
+#ifndef JOS_INC_QUEUE_H
+#define JOS_INC_QUEUE_H
 
 /*
  * This file defines three types of data structures: lists, tail queues,

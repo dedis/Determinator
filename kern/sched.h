@@ -1,10 +1,14 @@
-#if LAB >= 4
+#if LAB >= 3
 /* See COPYRIGHT for copyright information. */
 
-#ifndef __SCHED_H__
-#define __SCHED_H__
+#ifndef JOS_KERN_SCHED_H
+#define JOS_KERN_SCHED_H
+#ifndef JOS_KERNEL
+# error "This is a JOS kernel header; user programs should not #include it"
+#endif
 
-void sched_yield(void);
+// This function does not return.
+void sched_yield(void) __attribute__((noreturn));
 
-#endif /* __SCHED_H__ */
-#endif /* LAB >= 4 */
+#endif	// !JOS_KERN_SCHED_H
+#endif	// LAB >= 3

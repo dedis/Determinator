@@ -1,3 +1,5 @@
+#ifndef JOS_KBDREG_H
+#define JOS_KBDREG_H
 
 /* This is i8042reg.h + kbdreg.h from NetBSD. */
 
@@ -64,3 +66,5 @@
 #define	KBR_BREAK	0xF0	/* break code prefix - sent on key release */
 #define	KBR_RSTDONE	0xAA	/* reset complete */
 #define	KBR_ECHO	0xEE	/* echo response */
+
+#endif /* !JOS_KBDREG_H */

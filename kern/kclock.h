@@ -1,8 +1,11 @@
 #if LAB >= 2	// pmap.c must read NVRAM to detect how much memory we have
 /* See COPYRIGHT for copyright information. */
 
-#ifndef _KERN_KCLOCK_H_
-#define _KERN_KCLOCK_H_
+#ifndef JOS_KERN_KCLOCK_H
+#define JOS_KERN_KCLOCK_H
+#ifndef JOS_KERNEL
+# error "This is a JOS kernel header; user programs should not #include it"
+#endif
 
 #define	IO_RTC		0x070		/* RTC port */
 
@@ -24,9 +27,9 @@
 /* NVRAM byte 36: current century.  (please increment in Dec99!) */
 #define NVRAM_CENTURY	(MC_NVRAM_START + 36)	/* RTC offset 0x32 */
 
-u_int mc146818_read(void *sc, u_int reg);
-void mc146818_write(void *sc, u_int reg, u_int datum);
+unsigned mc146818_read(void *sc, unsigned reg);
+void mc146818_write(void *sc, unsigned reg, unsigned datum);
 void kclock_init(void);
 
-#endif	// not _KERN_KCLOCK_H_
+#endif	// !JOS_KERN_KCLOCK_H
 #endif	// LAB >= 2

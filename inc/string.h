@@ -1,6 +1,5 @@
-
-#ifndef _INC_STRING_H_
-#define _INC_STRING_H_
+#ifndef JOS_INC_STRING_H
+#define JOS_INC_STRING_H
 
 #include <inc/types.h>
 
@@ -13,4 +12,4 @@ long		strtol(const char *s, char **endptr, int base);
 void *		memset(void *dest, int, size_t len);
 void *		memcpy(void *dest, const void *src, size_t len);
 
-#endif /* not _INC_STRING_H_ */
+#endif /* not JOS_INC_STRING_H */
