@@ -8,7 +8,7 @@
 #include <inc/mmu.h>
 
 extern struct Gatedesc idt[];
-void idt_init();
+void idt_init(void);
 
 /* The user trap frame is always at the top of the kernel stack */
 #define UTF	((struct Trapframe*)(KSTACKTOP-sizeof(struct Trapframe)))
