@@ -1,10 +1,11 @@
 #if LAB >= 5
-
 /*
  * JOS file system format
  */
 
 #define _BSD_EXTENSION
+
+// We don't actually want to define off_t!
 #define off_t xxx_off_t
 #define u_long xxx_u_long
 #include <stdio.h>
@@ -19,9 +20,12 @@
 #undef u_long
 #undef off_t
 
-/* Prevent inc/types.h, included from inc/fs.h,
- * from attempting to redefine types defined in the host's inttypes.h. */
-#define _INC_TYPES_H_
+// Prevent inc/types.h, included from inc/fs.h,
+// from attempting to redefine types defined in the host's inttypes.h.
+#define JOS_INC_TYPES_H
+// Typedef the types that inc/mmu.h needs.
+typedef uint32_t physaddr_t;
+typedef uint32_t off_t;
 
 #include <inc/mmu.h>
 #include <inc/fs.h>
@@ -30,11 +34,11 @@
 #define USED
 #endif
 
-#define nelem(x) (sizeof(x)/sizeof((x)[0]))
+#define nelem(x)	(sizeof(x) / sizeof((x)[0]))
 typedef struct Super Super;
 typedef struct File File;
 
-Super super;
+struct Super super;
 int diskfd;
 uint32_t nblock;
 uint32_t nbitblock;
@@ -45,7 +49,7 @@ enum
 	BLOCK_SUPER,
 	BLOCK_DIR,
 	BLOCK_FILE,
-	BLOCK_BITS,
+	BLOCK_BITS
 };
 
 typedef struct Block Block;
@@ -54,24 +58,24 @@ struct Block
 	uint32_t busy;
 	uint32_t bno;
 	uint32_t used;
-	uint8_t buf[BY2BLK];
+	uint8_t buf[BLKSIZE];
 	uint32_t type;
 };
 
-Block cache[16];
+struct Block cache[16];
 
-int32_t
-readn(int f, void *av, int32_t n)
+ssize_t
+readn(int f, void *av, size_t n)
 {
-	char *a;
-	int32_t m, t;
+	uint8_t *a;
+	size_t t;
 
 	a = av;
 	t = 0;
-	while(t < n){
-		m = read(f, a+t, n-t);
-		if(m <= 0){
-			if(t == 0)
+	while (t < n) {
+		size_t m = read(f, a + t, n - t);
+		if (m <= 0) {
+			if (t == 0)
 				return m;
 			break;
 		}
@@ -87,12 +91,12 @@ swizzle(uint32_t *x)
 	uint32_t y;
 	uint8_t *z;
 
-	z = (uint8_t*)x;
+	z = (uint8_t*) x;
 	y = *x;
-	z[0] = y&0xFF;
-	z[1] = (y>>8)&0xFF;
-	z[2] = (y>>16)&0xFF;
-	z[3] = (y>>24)&0xFF;
+	z[0] = y & 0xFF;
+	z[1] = (y >> 8) & 0xFF;
+	z[2] = (y >> 16) & 0xFF;
+	z[3] = (y >> 24) & 0xFF;
 }
 
 void
@@ -100,11 +104,11 @@ swizzlefile(struct File *f)
 {
 	int i;
 
-	if(f->f_name[0] == 0)
+	if (f->f_name[0] == 0)
 		return;
-	swizzle(&f->f_size);
+	swizzle((uint32_t*) &f->f_size);
 	swizzle(&f->f_type);
-	for(i=0; i<NDIRECT; i++)
+	for (i = 0; i < NDIRECT; i++)
 		swizzle(&f->f_direct[i]);
 	swizzle(&f->f_indirect);
 }
@@ -117,74 +121,75 @@ flushb(Block *b)
 	struct File *f;
 	uint32_t *u;
 
-	switch(b->type){
+	switch (b->type) {
 	case BLOCK_SUPER:
-		s = (struct Super*)b->buf;
+		s = (struct Super*) b->buf;
 		swizzle(&s->s_magic);
 		swizzle(&s->s_nblocks);
 		swizzlefile(&s->s_root);
 		break;
 	case BLOCK_DIR:
-		f = (struct File*)b->buf;
-		for(i = 0; i < FILE2BLK; i++)
-			swizzlefile(f+i);
+		f = (struct File*) b->buf;
+		for (i = 0; i < BLKFILES; i++)
+			swizzlefile(f + i);
 		break;
 	case BLOCK_BITS:
-		u = (uint32_t*)b->buf;
-		for(i=0; i<BY2BLK/4; i++)
-			swizzle(u+i);
+		u = (uint32_t*) b->buf;
+		for(i = 0; i < BLKSIZE / 4; i++)
+			swizzle(u + i);
 		break;
 	}
-	if(lseek(diskfd, b->bno*BY2BLK, 0) < 0
-	|| write(diskfd, b->buf, BY2BLK) != BY2BLK){
+	if (lseek(diskfd, b->bno * BLKSIZE, 0) < 0
+	    || write(diskfd, b->buf, BLKSIZE) != BLKSIZE) {
 		perror("flushb");
 		fprintf(stderr, "\n");
 		exit(1);
 	}
-	switch(b->type){
+	switch (b->type) {
 	case BLOCK_SUPER:
-		s = (struct Super*)b->buf;
+		s = (struct Super*) b->buf;
 		swizzle(&s->s_magic);
 		swizzle(&s->s_nblocks);
 		swizzlefile(&s->s_root);
 		break;
 	case BLOCK_DIR:
-		f = (struct File*)b->buf;
-		for(i = 0; i < FILE2BLK; i++)
+		f = (struct File*) b->buf;
+		for (i = 0; i < BLKFILES; i++)
 			swizzlefile(f+i);
 		break;
 	case BLOCK_BITS:
-		u = (uint32_t*)b->buf;
-		for(i=0; i<BY2BLK/4; i++)
+		u = (uint32_t*) b->buf;
+		for (i = 0; i < BLKSIZE / 4; i++)
 			swizzle(u+i);
 		break;
 	}
 }
 
 Block*
-getblk(uint bno, uint clr, uint type)
+getblk(uint32_t bno, uint32_t clr, uint32_t type)
 {
 	int i, least;
 	static int t;
 	Block *b;
 
-	if(bno >= nblock){
+	if (bno >= nblock) {
 		fprintf(stderr, "attempt to access past end of disk bno=%d\n", bno);
-		*(int*)0=0;
+		*(int*) 0 = 0;
 		exit(1);
 	}
 
 	least = -1;
-	for(i=0; i<nelem(cache); i++){
-		if(cache[i].bno == bno){
+	for (i = 0; i < nelem(cache); i++) {
+		if (cache[i].bno == bno) {
 			b = &cache[i];
 			goto out;
 		}
-		if(!cache[i].busy && (least==-1 || cache[i].used < cache[least].used))
+		if (!cache[i].busy
+		    && (least == -1 || cache[i].used < cache[least].used))
 			least = i;
 	}
 
-	if(least == -1){
+	if (least == -1) {
 		fprintf(stderr, "panic: block cache full\n");
 		exit(1);
 	}
@@ -192,8 +197,8 @@ getblk(uint bno, uint clr, uint type)
 	b = &cache[least];
 	flushb(b);
 
-	if(lseek(diskfd, bno*BY2BLK, 0) < 0
-	|| readn(diskfd, b->buf, BY2BLK) != BY2BLK){
+	if (lseek(diskfd, bno*BLKSIZE, 0) < 0
+	    || readn(diskfd, b->buf, BLKSIZE) != BLKSIZE) {
 		fprintf(stderr, "read block %d: ", bno);
 		perror("");
 		fprintf(stderr, "\n");
@@ -203,10 +208,10 @@ getblk(uint bno, uint clr, uint type)
 	b->type = type;
 
 out:
-	if(clr)
-		memset(b->buf, 0, sizeof b->buf);
+	if (clr)
+		memset(b->buf, 0, sizeof(b->buf));
 	b->used = ++t;
-	if(b->busy){
+	if (b->busy) {
 		fprintf(stderr, "panic: b is busy\n");
 		exit(1);
 	}
@@ -221,40 +226,40 @@ putblk(Block *b)
 }
 
 void
-opendisk(char *name)
+opendisk(const char *name)
 {
 	int i;
 	struct stat s;
 	Block *b;
 
-	if((diskfd = open(name, O_RDWR)) < 0){
+	if ((diskfd = open(name, O_RDWR)) < 0) {
 		fprintf(stderr, "open %s: ", name);
 		perror("");
 		fprintf(stderr, "\n");
 		exit(1);
 	}
 	
-	if(fstat(diskfd, &s) < 0){
+	if (fstat(diskfd, &s) < 0) {
 		fprintf(stderr, "cannot stat %s: ", name);
 		perror("");
 		fprintf(stderr, "\n");
 		exit(1);
 	}
 
-	if(s.st_size < 1024 || s.st_size > 4*1024*1024){
+	if (s.st_size < 1024 || s.st_size > 4*1024*1024) {
 		fprintf(stderr, "bad disk size %d\n", s.st_size);
 		exit(1);
 	}
 
-	nblock = s.st_size/BY2BLK;
-	nbitblock = (nblock+BIT2BLK-1)/BIT2BLK;
-	for(i=0; i<nbitblock; i++){
-		b = getblk(2+i, 0, BLOCK_BITS);
-		memset(b->buf, 0xFF, BY2BLK);
+	nblock = s.st_size/BLKSIZE;
+	nbitblock = (nblock + BLKBITSIZE - 1) / BLKBITSIZE;
+	for (i = 0; i < nbitblock; i++){
+		b = getblk(2 + i, 0, BLOCK_BITS);
+		memset(b->buf, 0xFF, BLKSIZE);
 		putblk(b);
 	}
 
-	nextb = 2+nbitblock;
+	nextb = 2 + nbitblock;
 
 	super.s_magic = FS_MAGIC;
 	super.s_nblocks = nblock;
@@ -284,18 +289,18 @@ writefile(char *name)
 		last = name;
 
 	if(super.s_root.f_size > 0){
-		dirb = getblk(super.s_root.f_direct[super.s_root.f_size/BY2BLK-1], 0, BLOCK_DIR);
+		dirb = getblk(super.s_root.f_direct[super.s_root.f_size/BLKSIZE-1], 0, BLOCK_DIR);
 		f = (File*)dirb->buf;
-		for(i=0; i<FILE2BLK; i++)
-			if(f[i].f_name[0] == 0){
+		for (i = 0; i < BLKFILES; i++)
+			if (f[i].f_name[0] == 0) {
 				f = &f[i];
 				goto gotit;
 			}
 	}
 	// allocate new block
 	dirb = getblk(nextb, 1, BLOCK_DIR);
-	super.s_root.f_direct[super.s_root.f_size/BY2BLK] = nextb++;
-	super.s_root.f_size += BY2BLK;
+	super.s_root.f_direct[super.s_root.f_size / BLKSIZE] = nextb++;
+	super.s_root.f_size += BLKSIZE;
 	f = (File*)dirb->buf;
 	
 gotit:
@@ -303,7 +308,7 @@ gotit:
 	n = 0;
 	for(nblk=0;; nblk++){
 		b = getblk(nextb, 1, BLOCK_FILE);
-		n = readn(fd, b->buf, BY2BLK);
+		n = readn(fd, b->buf, BLKSIZE);
 		if(n < 0){
 			fprintf(stderr, "reading %s: ", name);
 			perror("");
@@ -322,7 +327,7 @@ gotit:
 				f->f_indirect = bindir->bno;
 			}else
 				bindir = getblk(f->f_indirect, 0, BLOCK_BITS);
-			((uint32_t*)bindir->buf)[nblk] = b->bno;
+			((u_int*)bindir->buf)[nblk] = b->bno;
 			putblk(bindir);
 		}else{
 			fprintf(stderr, "%s: file too large\n", name);
@@ -330,10 +335,10 @@ gotit:
 		}
 		
 		putblk(b);
-		if(n < BY2BLK)
+		if(n < BLKSIZE)
 			break;
 	}
-	f->f_size = nblk*BY2BLK+n;
+	f->f_size = nblk*BLKSIZE + n;
 	putblk(dirb);
 }
 
@@ -343,17 +348,17 @@ finishfs(void)
 	int i;
 	Block *b;
 
-	for(i=0; i<nextb; i++){
-		b = getblk(2+i/BIT2BLK, 0, BLOCK_BITS);
-		((uint32_t*)b->buf)[(i%BIT2BLK)/32] &= ~(1<<(i%32));
+	for (i = 0; i < nextb; i++) {
+		b = getblk(2 + i/BLKBITSIZE, 0, BLOCK_BITS);
+		((u_int*)b->buf)[(i%BLKBITSIZE)/32] &= ~(1<<(i%32));
 		putblk(b);
 	}
 
 	// this is slow but not too slow.  i do not care
-	if(nblock != nbitblock*BIT2BLK){
+	if(nblock != nbitblock*BLKBITSIZE){
 		b = getblk(2+nbitblock-1, 0, BLOCK_BITS);
-		for(i=nblock%BIT2BLK; i<BIT2BLK; i++)
-			((uint32_t*)b->buf)[i/32] &= ~(1<<(i%32));
+		for (i = nblock % BLKBITSIZE; i < BLKBITSIZE; i++)
+			((u_int*)b->buf)[i/32] &= ~(1<<(i%32));
 		putblk(b);
 	}
 
@@ -384,7 +389,7 @@ main(int argc, char **argv)
 {
 	int i;
 
-	assert(sizeof(struct File) == BY2FILE);
+	assert(BLKSIZE % sizeof(struct File) == 0);
 
 	if(argc < 2)
 		usage();
@@ -395,6 +400,7 @@ main(int argc, char **argv)
 	finishfs();
 	flushdisk();
 	exit(0);
+	return 0;
 }
 
 #endif

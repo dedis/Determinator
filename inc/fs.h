@@ -1,16 +1,16 @@
 #if LAB >= 5
 // See COPYRIGHT for copyright information.
 
-#ifndef _FS_H_
-#define _FS_H_ 1
+#ifndef JOS_INC_FS_H
+#define JOS_INC_FS_H
 
 #include <inc/types.h>
 
 // File nodes (both in-memory and on-disk)
 
 // Bytes per file system block - same as page size
-#define BY2BLK		PGSIZE
-#define BIT2BLK		(BY2BLK*8)
+#define BLKSIZE		PGSIZE
+#define BLKBITSIZE	(BLKSIZE * 8)
 
 // Maximum size of a filename (a single path component), including null
 #define MAXNAMELEN	128
@@ -18,43 +18,49 @@
 // Maximum size of a complete pathname, including null
 #define MAXPATHLEN	1024
 
-// Number of (direct) block pointers in a File descriptor
+// Number of block pointers in a File descriptor
 #define NDIRECT		10
-#define NINDIRECT	(BY2BLK/4)
+// Number of direct block pointers in an indirect block
+#define NINDIRECT	(BLKSIZE / 4)
 
-#define MAXFILESIZE	(NINDIRECT*BY2BLK)
+#define MAXFILESIZE	(NINDIRECT * BLKSIZE)
 
-#define BY2FILE		256
 struct File {
-  union {
-    struct {
-	uint8_t f_name[MAXNAMELEN];	// filename
-	uint32_t f_size;		// file size in bytes
+	char f_name[MAXNAMELEN];	// filename
+	off_t f_size;			// file size in bytes
 	uint32_t f_type;		// file type
-	uint32_t f_direct[NDIRECT];
-	uint32_t f_indirect;
 
-	struct File *f_dir;		// valid only in memory
-    };
-    uint8_t f_pad[BY2FILE];		// make sizeof(struct File) == BY2FILE
-  };
+	// Block pointers.
+	// A block is allocated iff its value is != 0.
+	uint32_t f_direct[NDIRECT];	// direct blocks
+	uint32_t f_indirect;		// indirect block
+
+	// Points to the directory in which this file lives.
+	// Meaningful only in memory; the value on disk can be garbage.
+	// dir_lookup() sets the value when required.
+	struct File *f_dir;
+
+	// Pad out to 256 bytes; must do arithmetic in case we're compiling
+	// fsformat on a 64-bit machine.
+	uint8_t f_pad[256 - MAXNAMELEN - 8 - 4*NDIRECT - 4 - sizeof(struct File*)];
 };
 
-#define FILE2BLK	(BY2BLK/sizeof(struct File))
+// An inode block contains exactly BLKFILES 'struct File's
+#define BLKFILES	(BLKSIZE / sizeof(struct File))
 
 // File types
-#define FTYPE_REG		0	// Regular file
-#define FTYPE_DIR		1	// Directory
+#define FTYPE_REG	0	// Regular file
+#define FTYPE_DIR	1	// Directory
 
 
 // File system super-block (both in-memory and on-disk)
 
-#define FS_MAGIC	0x68286097	// Everyone's favorite OS class
+#define FS_MAGIC	0x4A0530AE	// related vaguely to 'J\0S!'
 
 struct Super {
-	uint32_t s_magic;	// Magic number: FS_MAGIC
-	uint32_t s_nblocks;	// Total number of blocks on disk
-	struct File s_root;	// Root directory node
+	uint32_t s_magic;		// Magic number: FS_MAGIC
+	uint32_t s_nblocks;		// Total number of blocks on disk
+	struct File s_root;		// Root directory node
 };
 
 // Definitions for requests from clients to file system
@@ -68,32 +74,32 @@ struct Super {
 #define FSREQ_SYNC	7
 
 struct Fsreq_open {
-	uint8_t req_path[MAXPATHLEN];
-	uint32_t req_omode;
+	char req_path[MAXPATHLEN];
+	int req_omode;
 };
 
 struct Fsreq_map {
-	int32_t req_fileid;
-	uint32_t req_offset;
+	int req_fileid;
+	off_t req_offset;
 };
 
 struct Fsreq_set_size {
-	int32_t req_fileid;
-	uint32_t req_size;
+	int req_fileid;
+	off_t req_size;
 };
 
 struct Fsreq_close {
-	int32_t req_fileid;
+	int req_fileid;
 };
 
 struct Fsreq_dirty {
-	int32_t req_fileid;
-	uint32_t req_offset;
+	int req_fileid;
+	off_t req_offset;
 };
 
 struct Fsreq_remove {
-	uint8_t req_path[MAXPATHLEN];
+	char req_path[MAXPATHLEN];
 };
 
-#endif // _FS_H_
+#endif /* !JOS_INC_FS_H */
 #endif

@@ -22,13 +22,13 @@ fs_test(void)
 {
 	struct File *f;
 	int r;
-	void *blk;
-	u_int *bits;
+	char *blk;
+	uint32_t *bits;
 
 	// back up bitmap
-	if ((r=sys_mem_alloc(0, PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
-		panic("sys_mem_alloc: %e", r);
-	bits = (u_int*)PGSIZE;
+	if ((r = sys_page_alloc(0, (void*) PGSIZE, PTE_P|PTE_U|PTE_W)) < 0)
+		panic("sys_page_alloc: %e", r);
+	bits = (uint32_t*) PGSIZE;
 	memcpy(bits, bitmap, PGSIZE);
 	// allocate block
 	if ((r = alloc_block()) < 0)
@@ -49,7 +49,7 @@ fs_test(void)
 
 	if ((r = file_get_block(f, 0, &blk)) < 0)
 		panic("file_get_block: %e", r);
-	if(strecmp(blk, msg) != 0)
+	if (strecmp(blk, msg) != 0)
 		panic("file_get_block returned wrong data");
 	printf("file_get_block is good\n");
 
@@ -70,7 +70,7 @@ fs_test(void)
 	assert(!(vpt[VPN(f)]&PTE_D));
 	if ((r = file_get_block(f, 0, &blk)) < 0)
 		panic("file_get_block 2: %e", r);
-	strcpy((char*)blk, msg);	
+	strcpy(blk, msg);	
 	assert((vpt[VPN(blk)]&PTE_D));
 	file_flush(f);
 	assert(!(vpt[VPN(blk)]&PTE_D));

@@ -1,39 +1,41 @@
 #if LAB >= 5
-
 #include <inc/fs.h>
 #include <inc/lib.h>
 
 /* IDE disk number to look on for our file system */
 #define DISKNO		1
 
-#define SECTSIZE	512	/* Bytes per disk sector */
-#define SECT2BLK	(BY2BLK/SECTSIZE)	/* sectors to a block */
+#define SECTSIZE	512			// bytes per disk sector
+#define BLKSECTS	(BLKSIZE / SECTSIZE)	// sectors per block
 
 /* Disk block n, when in memory, is mapped into the file system
- * server's address space at DISKMAP+(n*BY2BLK). */
+ * server's address space at DISKMAP + (n*BLKSIZE). */
 #define DISKMAP		0x10000000
 
 /* Maximum disk size we can handle (3GB) */
-#define DISKMAX		0xc0000000
+#define DISKSIZE	0xC0000000
 
 /* ide.c */
-void ide_read(u_int diskno, u_int secno, void *dst, u_int nsecs);
-void ide_write(u_int diskno, u_int secno, const void *src, u_int nsecs);
+void	ide_read(uint32_t diskno, uint32_t secno, void *dst, size_t nsecs);
+void	ide_write(uint32_t diskno, uint32_t secno, const void *src, size_t nsecs);
 
 /* fs.c */
-int file_open(char *path, struct File **pfile);
-int file_get_block(struct File *f, u_int blockno, void **pblk);
-int file_set_size(struct File *f, u_int newsize);
-void file_close(struct File *f);
-int file_remove(char *path);
-void fs_init(void);
-int file_dirty(struct File *f, u_int offset);
-void fs_sync(void);
-void file_flush(struct File*);
-extern u_int *bitmap;
-int map_block(u_int);
-int alloc_block(void);
+int	file_create(const char *path, struct File **f);
+int	file_open(const char *path, struct File **f);
+int	file_get_block(struct File *f, uint32_t file_blockno, char **pblk);
+int	file_set_size(struct File *f, off_t newsize);
+void	file_flush(struct File *f);
+void	file_close(struct File *f);
+int	file_remove(const char *path);
+void	fs_init(void);
+int	file_dirty(struct File *f, off_t offset);
+void	fs_sync(void);
+
+extern uint32_t *bitmap;
+int	map_block(uint32_t);
+int	alloc_block(void);
 
 /* test.c */
-void fs_test(void);
+void	fs_test(void);
+
 #endif

@@ -46,19 +46,19 @@ getchar(void)
 // The putchar/getchar functions above will still come here by default,
 // but now can be redirected to files, pipes, etc., via the fd layer.
 
-static int cons_read(struct Fd*, void*, u_int, u_int);
-static int cons_write(struct Fd*, const void*, u_int, u_int);
+static int cons_read(struct Fd*, void*, size_t, off_t);
+static int cons_write(struct Fd*, const void*, size_t, off_t);
 static int cons_close(struct Fd*);
 static int cons_stat(struct Fd*, struct Stat*);
 
 struct Dev devcons =
 {
-.dev_id=	'c',
-.dev_name=	"cons",
-.dev_read=	cons_read,
-.dev_write=	cons_write,
-.dev_close=	cons_close,
-.dev_stat=	cons_stat,
+	.dev_id =	'c',
+	.dev_name =	"cons",
+	.dev_read =	cons_read,
+	.dev_write =	cons_write,
+	.dev_close =	cons_close,
+	.dev_stat =	cons_stat
 };
 
 int
@@ -76,11 +76,11 @@ int
 opencons(void)
 {
 	int r;
-	struct Fd *fd;
+	struct Fd* fd;
 
 	if ((r = fd_alloc(&fd)) < 0)
 		return r;
-	if ((r = sys_mem_alloc(0, (u_int)fd, PTE_P|PTE_U|PTE_W|PTE_LIBRARY)) < 0)
+	if ((r = sys_page_alloc(0, fd, PTE_P|PTE_U|PTE_W|PTE_SHARE)) < 0)
 		return r;
 	fd->fd_dev_id = devcons.dev_id;
 	fd->fd_omode = O_RDWR;
@@ -88,7 +88,7 @@ opencons(void)
 }
 
 int
-cons_read(struct Fd *fd, void *vbuf, u_int n, u_int offset)
+cons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
 {
 	int c;
 
@@ -108,7 +108,7 @@ cons_read(struct Fd *fd, void *vbuf, u_int n, u_int offset)
 }
 
 int
-cons_write(struct Fd *fd, const void *vbuf, u_int n, u_int offset)
+cons_write(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
 {
 	int tot, m;
 	char buf[128];
@@ -117,11 +117,11 @@ cons_write(struct Fd *fd, const void *vbuf, u_int n, u_int offset)
 
 	// mistake: have to nul-terminate arg to sys_cputs, 
 	// so we have to copy vbuf into buf in chunks and nul-terminate.
-	for(tot=0; tot<n; tot+=m) {
+	for (tot = 0; tot < n; tot += m) {
 		m = n - tot;
-		if (m > sizeof buf-1)
-			m = sizeof buf-1;
-		memcpy(buf, (char*)vbuf+tot, m);
+		if (m > sizeof(buf) - 1)
+			m = sizeof(buf) - 1;
+		memcpy(buf, (char*)vbuf + tot, m);
 		buf[m] = 0;
 		sys_cputs(buf);
 	}

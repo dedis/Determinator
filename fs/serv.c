@@ -12,54 +12,54 @@
 
 #define debug 0
 
-struct Open {
+struct OpenFile {
+	uint32_t o_fileid;	// file id
 	struct File *o_file;	// mapped descriptor for open file
-	u_int o_fileid;		// file id
 	int o_mode;		// open mode
-	struct Filefd *o_ff;	// va of filefd page
+	struct Fd *o_fd;	// Fd page
 };
 
 // Max number of open files in the file system at once
-#define MAXOPEN	1024
-#define FILEVA 0xD0000000
+#define MAXOPEN		1024
+#define FILEVA		0xD0000000
 
 // initialize to force into data section
-struct Open opentab[MAXOPEN] = { { 0, 0, 1 } };
+struct OpenFile opentab[MAXOPEN] = {
+	{ 0, 0, 1, 0 }
+};
 
 // Virtual address at which to receive page mappings containing client requests.
-#define REQVA	0x0ffff000
+#define REQVA		0x0ffff000
 
 void
 serve_init(void)
 {
 	int i;
-	u_int va;
-
-	va = FILEVA;
-	for (i=0; i<MAXOPEN; i++) {
+	uintptr_t va = FILEVA;
+	for (i = 0; i < MAXOPEN; i++) {
 		opentab[i].o_fileid = i;
-		opentab[i].o_ff = (struct Filefd*)va;
+		opentab[i].o_fd = (struct Fd*) va;
 		va += PGSIZE;
 	}
 }
 
 // Allocate an open file.
 int
-open_alloc(struct Open **o)
+openfile_alloc(struct OpenFile **o)
 {
 	int i, r;
 
 	// Find an available open-file table entry
 	for (i = 0; i < MAXOPEN; i++) {
-		switch (pageref(opentab[i].o_ff)) {
+		switch (pageref(opentab[i].o_fd)) {
 		case 0:
-			if ((r = sys_mem_alloc(0, (u_int)opentab[i].o_ff, PTE_P|PTE_U|PTE_W)) < 0)
+			if ((r = sys_page_alloc(0, opentab[i].o_fd, PTE_P|PTE_U|PTE_W)) < 0)
 				return r;
 			/* fall through */
 		case 1:
 			opentab[i].o_fileid += MAXOPEN;
 			*o = &opentab[i];
-			memset((void*)opentab[i].o_ff, 0, PGSIZE);
+			memset(opentab[i].o_fd, 0, PGSIZE);
 			return (*o)->o_fileid;
 		}
 	}
@@ -68,12 +68,12 @@ open_alloc(struct Open **o)
 
 // Look up an open file for envid.
 int
-open_lookup(u_int envid, u_int fileid, struct Open **po)
+openfile_lookup(envid_t envid, uint32_t fileid, struct OpenFile **po)
 {
-	struct Open *o;
+	struct OpenFile *o;
 
-	o = &opentab[fileid%MAXOPEN];
-	if (pageref(o->o_ff) == 1 || o->o_fileid != fileid)
+	o = &opentab[fileid % MAXOPEN];
+	if (pageref(o->o_fd) == 1 || o->o_fileid != fileid)
 		return -E_INVAL;
 	*po = o;
 	return 0;
@@ -82,184 +82,234 @@ open_lookup(u_int envid, u_int fileid, struct Open **po)
 // Serve requests, sending responses back to envid.
 // To send a result back, ipc_send(envid, r, 0, 0).
 // To include a page, ipc_send(envid, r, srcva, perm).
-
 void
-serve_open(u_int envid, struct Fsreq_open *rq)
+serve_open(envid_t envid, struct Fsreq_open *rq)
 {
-	if (debug) printf("serve_open %08x %s 0x%x\n", envid, rq->req_path, rq->req_omode);
-
-	u_char path[MAXPATHLEN];
+	char path[MAXPATHLEN];
 	struct File *f;
-	struct Filefd *ff;
 	int fileid;
 	int r;
-	struct Open *o;
+	struct OpenFile *o;
+
+	if (debug)
+		printf("serve_open %08x %s 0x%x\n", envid, rq->req_path, rq->req_omode);
 
 	// Copy in the path, making sure it's null-terminated
 	memcpy(path, rq->req_path, MAXPATHLEN);
 	path[MAXPATHLEN-1] = 0;
 
-	// Find a file id.
-	if ((r = open_alloc(&o)) < 0) {
-		if (debug) printf("open_alloc failed: %e", r);
+	// Find an open file ID
+	if ((r = openfile_alloc(&o)) < 0) {
+		if (debug)
+			printf("openfile_alloc failed: %e", r);
 		goto out;
 	}
 	fileid = r;
 
-	// Open the file.
+	// Open the file
 	if ((r = file_open(path, &f)) < 0) {
-		if (debug) printf("file_open failed: %e", r);
+		if (debug)
+			printf("file_open failed: %e", r);
 		goto out;
 	}
 
-	// Save the file pointer.
+	// Save the file pointer
 	o->o_file = f;
 
-	// Fill out the Filefd structure
-	ff = (struct Filefd*)o->o_ff;
-	ff->f_file = *f;
-	ff->f_fileid = o->o_fileid;
+	// Fill out the Fd structure
+	o->o_fd->fd_file.file = *f;
+	o->o_fd->fd_file.id = o->o_fileid;
+	o->o_fd->fd_omode = rq->req_omode;
+	o->o_fd->fd_dev_id = devfile.dev_id;
 	o->o_mode = rq->req_omode;
-	ff->f_fd.fd_omode = o->o_mode;
-	ff->f_fd.fd_dev_id = devfile.dev_id;
 
-	if (debug) printf("sending success, page %08x\n", (u_int)o->o_ff);
-#if SOL >= 6
-	ipc_send(envid, 0, (u_int)o->o_ff, PTE_P|PTE_U|PTE_W|PTE_LIBRARY);
-#else
-	ipc_send(envid, 0, (u_int)o->o_ff, PTE_P|PTE_U|PTE_W);
-#endif
+	if (debug)
+		printf("sending success, page %08x\n", (uintptr_t) o->o_fd);
+	ipc_send(envid, 0, o->o_fd, PTE_P|PTE_U|PTE_W|PTE_SHARE);
 	return;
 out:
 	ipc_send(envid, r, 0, 0);
 }
 
 void
-serve_map(u_int envid, struct Fsreq_map *rq)
+serve_set_size(envid_t envid, struct Fsreq_set_size *rq)
 {
-	if (debug) printf("serve_map %08x %08x %08x\n", envid, rq->req_fileid, rq->req_offset);
-
-#if SOL >= 5
+	struct OpenFile *o;
 	int r;
-	void *blk;
-	struct Open *o;
-	u_int perm;
+	
+	if (debug)
+		printf("serve_set_size %08x %08x %08x\n", envid, rq->req_fileid, rq->req_size);
 
-	if ((r = open_lookup(envid, rq->req_fileid, &o)) < 0)
+	// The file system server maintains three structures
+	// for each open file.
+	//
+	// 1. The on-disk 'struct File' is mapped into the part of memory
+	//    that maps the disk.  This memory is kept private to the
+	//    file server.
+	// 2. Each open file has a 'struct Fd' as well,
+	//    which sort of corresponds to a Unix file descriptor.
+	//    This 'struct Fd' is kept on *its own page* in memory,
+	//    and it is shared with any environments that
+	//    have the file open.
+	//    Part of the 'struct Fd' is a *copy* of the on-disk
+	//    'struct File' (struct Fd::fd_file.file), except that the
+	//    block pointers are effectively garbage.
+	//    This lets environments find out a file's size by examining
+	//    struct Fd::fd_file.file.f_size, for example.
+	//    *The server must make sure to keep two copies of the
+	//    'struct File' in sync!*
+	// 3. 'struct OpenFile' links these other two structures,
+	//    and is kept private to the file server.
+	//    The server maintains an array of all open files, indexed
+	//    by "file ID".
+	//    (There can be at most MAXFILE files open concurrently.)
+	//    The client uses file IDs to communicate with the server.
+	//    File IDs are a lot like environment IDs in the kernel.
+	//    Use openfile_lookup to translate file IDs to struct OpenFile.
+
+	// Every file system IPC call has the same general structure.
+	// Here's how it goes.
+
+	// First, use openfile_lookup to find the relevant open file.
+	// On failure, return the error code to the client with ipc_send.
+	if ((r = openfile_lookup(envid, rq->req_fileid, &o)) < 0)
 		goto out;
 
-	if ((r = file_get_block(o->o_file, rq->req_offset/BY2BLK, &blk)) < 0)
+	// Second, call the relevant file system function (from fs/fs.c).
+	// On failure, return the error code to the client.
+	if ((r = file_set_size(o->o_file, rq->req_size)) < 0)
+		goto out;
+
+	// Third, update the 'struct Fd' copy of the 'struct File'
+	// as appropriate.
+	o->o_fd->fd_file.file.f_size = rq->req_size;
+
+	// Finally, return to the client!
+	// (We just return r since we know it's 0 at this point.)
+out:
+	ipc_send(envid, r, 0, 0);
+}
+
+void
+serve_map(envid_t envid, struct Fsreq_map *rq)
+{
+	int r;
+	char *blk;
+	struct OpenFile *o;
+	int perm;
+
+	if (debug)
+		printf("serve_map %08x %08x %08x\n", envid, rq->req_fileid, rq->req_offset);
+
+#if SOL >= 5
+	if ((r = openfile_lookup(envid, rq->req_fileid, &o)) < 0)
+		goto out;
+
+	if ((r = file_get_block(o->o_file, rq->req_offset / BLKSIZE, &blk)) < 0)
 		goto out;
 
 #if SOL >= 6
-	perm = PTE_U|PTE_P|PTE_LIBRARY;
+	perm = PTE_U|PTE_P|PTE_SHARE;
 #else
 	perm = PTE_U|PTE_P;
 #endif
 	if ((o->o_mode & O_ACCMODE) != O_RDONLY)
 		perm |= PTE_W;
-	ipc_send(envid, 0, (u_int)blk, perm);
+	ipc_send(envid, 0, blk, perm);
 	return;
 
 out:
 	ipc_send(envid, r, 0, 0);
 #else
-	// Your code here
+	// Map the requested block in the client's address space
+	// by using ipc_send.
+	// Map read-only unless the file's open mode (o->o_mode) allows writes
+	// (see the O_ flags in inc/fs.h).
+	
+	// LAB 5: Your code here.
 	panic("serve_map not implemented");
 #endif
 }
 
 void
-serve_set_size(u_int envid, struct Fsreq_set_size *rq)
+serve_close(envid_t envid, struct Fsreq_close *rq)
 {
-	if (debug) printf("serve_set_size %08x %08x %08x\n", envid, rq->req_fileid, rq->req_size);
-
-#if SOL >= 5
-	struct Open *o;
+	struct OpenFile *o;
 	int r;
 
-	if ((r = open_lookup(envid, rq->req_fileid, &o)) < 0)
-		goto out;
-	if ((r = file_set_size(o->o_file, rq->req_size)) < 0)
-		goto out;
-	o->o_ff->f_file.f_size = rq->req_size;
-out:
-	ipc_send(envid, r, 0, 0);
-#else
-	// Your code here
-	panic("serve_set_size not implemented");
-#endif
-}
-
-void
-serve_close(u_int envid, struct Fsreq_close *rq)
-{
-	if (debug) printf("serve_close %08x %08x\n", envid, rq->req_fileid);
+	if (debug)
+		printf("serve_close %08x %08x\n", envid, rq->req_fileid);
 
 #if SOL >= 5
-	struct Open *o;
-	int r;
-
-	if ((r = open_lookup(envid, rq->req_fileid, &o)) < 0)
+	if ((r = openfile_lookup(envid, rq->req_fileid, &o)) < 0)
 		goto out;
 	file_close(o->o_file);
-	if (pageref(o->o_ff) == 1)
-		o->o_file = 0;
 	r = 0;
 
 out:
 	ipc_send(envid, r, 0, 0);
 #else
-	// Your code here
+	// Close the file.
+	
+	// LAB 5: Your code here.
 	panic("serve_close not implemented");
 #endif
 }
-		
+
 void
-serve_remove(u_int envid, struct Fsreq_remove *rq)
+serve_remove(envid_t envid, struct Fsreq_remove *rq)
 {
-	if (debug) printf("serve_map %08x %s\n", envid, rq->req_path);
+	char path[MAXPATHLEN];
+	int r;
+
+	if (debug)
+		printf("serve_map %08x %s\n", envid, rq->req_path);
 
 #if SOL >= 5
-	u_char path[MAXPATHLEN];
-	int rc;
-
 	// Copy in the path, making sure it's null-terminated
 	memcpy(path, rq->req_path, MAXPATHLEN);
 	path[MAXPATHLEN-1] = 0;
 
 	// Delete the specified file
-	rc = file_remove(path);
-	ipc_send(envid, rc, 0, 0);
+	r = file_remove(path);
+	ipc_send(envid, r, 0, 0);
 #else
-	// Your code here
+	// Delete the named file.
+	// Note: This request doesn't refer to an open file.
+	// Hint: Make sure the path is null-terminated!
+
+	// LAB 5: Your code here.
 	panic("serve_remove not implemented");
 #endif
 }
 
 void
-serve_dirty(u_int envid, struct Fsreq_dirty *rq)
+serve_dirty(envid_t envid, struct Fsreq_dirty *rq)
 {
-	if (debug) printf("serve_dirty %08x %08x %08x\n", envid, rq->req_fileid, rq->req_offset);
-
-#if SOL >= 5
-	struct Open *o;
+	struct OpenFile *o;
 	int r;
 
-	if ((r = open_lookup(envid, rq->req_fileid, &o)) < 0)
+	if (debug)
+		printf("serve_dirty %08x %08x %08x\n", envid, rq->req_fileid, rq->req_offset);
+
+#if SOL >= 5
+	if ((r = openfile_lookup(envid, rq->req_fileid, &o)) < 0)
 		goto out;
 	r = file_dirty(o->o_file, rq->req_offset);
 
 out:
 	ipc_send(envid, r, 0, 0);
 #else
-	// Your code here
+	// Mark the page containing the requested file offset as dirty.
+	// Returns 0 on success, < 0 on error.
+	
+	// LAB 5: Your code here.
 	panic("serve_dirty not implemented");
 #endif
 }
 
 void
-serve_sync(u_int envid)
+serve_sync(envid_t envid)
 {
 	fs_sync();
 	ipc_send(envid, 0, 0, 0);
@@ -268,11 +318,12 @@ serve_sync(u_int envid)
 void
 serve(void)
 {
-	u_int req, whom, perm;
-
-	for(;;) {
+	uint32_t req, whom;
+	int perm;
+	
+	while (1) {
 		perm = 0;
-		req = ipc_recv(&whom, REQVA, &perm);
+		req = ipc_recv(&whom, (void*) REQVA, &perm);
 		if (debug)
 			printf("fs req %d from %08x [page %08x: %s]\n",
 				req, whom, vpt[VPN(REQVA)], REQVA);
@@ -310,14 +361,14 @@ serve(void)
 			printf("Invalid request code %d from %08x\n", whom, req);
 			break;
 		}
-		sys_mem_unmap(0, REQVA);
+		sys_page_unmap(0, (void*) REQVA);
 	}
 }
 
 void
 umain(void)
 {
-	assert(sizeof(struct File)==256);
+	static_assert(sizeof(struct File) == 256);
         binaryname = "fs";
 	printf("FS is running\n");
 
