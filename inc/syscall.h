@@ -10,6 +10,7 @@ enum
 {
 	SYS_getenvid	= 0,
 	SYS_cputs,
+	SYS_cgetc,
 	SYS_yield,
 	SYS_env_destroy,
 	SYS_env_alloc,
@@ -22,7 +23,6 @@ enum
 	SYS_mem_unmap,
 	SYS_set_trapframe,
 	SYS_panic,
-	SYS_cgetc,
 
 	NSYSCALLS,
 };

@@ -33,6 +33,12 @@ sys_cputs(char *s)
 #endif
 }
 
+static int
+sys_cgetc(void)
+{
+	return cons_getc();
+}
+
 // deschedule current environment
 static void
 sys_yield(void)
@@ -360,14 +366,6 @@ sys_panic(char *msg)
 	panic("%s", TRUP(msg));
 }
 
-#if SOL >= 6
-static int
-sys_cgetc(void)
-{
-	return cons_getc();
-}
-
-#endif
 #endif
 // Dispatches to the correct kernel function, passing the arguments.
 int
@@ -382,6 +380,8 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 	case SYS_cputs:
 		sys_cputs((char*)a1);
 		return 0;
+	case SYS_cgetc:
+		return sys_cgetc();
 	case SYS_yield:
 		sys_yield();
 		return 0;
@@ -410,10 +410,6 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 	case SYS_panic:
 		sys_panic((char*)a1);
 		panic("sys_panic!");
-#endif
-#if SOL >= 6
-	case SYS_cgetc:
-		return sys_cgetc();
 #endif
 	default:
 		return -E_INVAL;

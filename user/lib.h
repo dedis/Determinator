@@ -60,6 +60,7 @@ int	opencons(void);
 
 // syscall.c
 void	sys_cputs(char*);
+int	sys_cgetc(void);
 // int	sys_env_alloc(void);
 int	sys_env_destroy(u_int);
 u_int	sys_getenvid(void);
@@ -74,9 +75,6 @@ int	sys_mem_unmap(u_int, u_int);
 #if LAB >= 5
 int	sys_set_trapframe(u_int, struct Trapframe*);
 void	sys_panic(char*);
-#endif
-#if LAB >= 6
-int	sys_cgetc(void);
 #endif
 
 // This must be inlined.  

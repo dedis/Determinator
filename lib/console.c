@@ -1,7 +1,59 @@
-#if LAB >= 6
+#if LAB >= 4
 
 #include <inc/string.h>
 #include <inc/lib.h>
+
+int
+putchar(int ch)
+{
+#if LAB >= 6
+	unsigned char c = ch;
+	int r;
+
+	// Don't make a console system call directly anymore -
+	// instead, write to file descriptor 0.
+	r = write(0, &c, 1);
+	if (r < 0)
+		return r;
+	return 0;
+#else	// not LAB >= 6
+	char s[2] = {ch, 0};
+
+	// System call to output a string.
+	sys_cputs(s);
+#endif	// not LAB >= 6
+}
+
+int getchar(void)
+{
+#if LAB >= 6
+	unsigned char c;
+	int r;
+
+	// Read a character from file descriptor 0.
+	r = read(0, &c, 1);
+	if (r < 0)
+		return r;
+	if (r < 1)
+		return -E_EOF;
+	return c;
+#else	// not LAB >= 6
+	int c;
+
+	// System call to read a character from the console.
+	// The system call doesn't wait for a character,
+	// but getchar() is normally expected to.
+	while ((c = sys_cgetc()) == 0)
+		sys_yield();
+	return c;
+#endif	// not LAB >= 6
+}
+
+
+#if LAB >= 6
+// "Real" console file descriptor implementation.
+// The putchar/getchar functions above will still come here by default,
+// but now can be redirected to files, pipes, etc., via the fd layer.
 
 static int cons_read(struct Fd*, void*, u_int, u_int);
 static int cons_write(struct Fd*, const void*, u_int, u_int);
@@ -99,4 +151,6 @@ cons_stat(struct Fd *fd, struct Stat *stat)
 	strcpy(stat->st_name, "<cons>");
 	return 0;
 }
-#endif
+
+#endif	// LAB >= 6
+#endif	// LAB >= 4

@@ -40,6 +40,12 @@ sys_cputs(char *a1)
 	syscall(SYS_cputs, (u_int) a1, 0, 0, 0, 0);
 }
 
+int
+sys_cgetc(void)
+{
+	return syscall(SYS_cgetc, 0, 0, 0, 0, 0);
+}
+
 void
 sys_yield(void)
 {
@@ -150,16 +156,5 @@ sys_panic(char *msg)
 	syscall(SYS_panic, (u_int)msg, 0, 0, 0, 0);
 }
 
-#endif
-int
-sys_cgetc(void)
-{
-#if SOL >= 6
-	return syscall(SYS_cgetc, 0, 0, 0, 0, 0);
-#else
-	panic("sys_cgetc not implemented");
-	return -E_INVAL;
-#endif
-}
-
-#endif
+#endif	// LAB >= 5
+#endif	// LAB >= 4

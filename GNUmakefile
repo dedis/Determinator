@@ -158,7 +158,7 @@ include fs/Makefrag
 #if LAB >= 999
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S
-LAB_DIRS := inc lib $(OBJDIRS)
+LAB_DIRS := inc boot kern lib user fs
 LAB_FILES := CODING GNUmakefile .bochsrc mergedep.pl grade.sh boot/sign.pl \
 	fs/lorem fs/motd fs/newmotd fs/script \
 	fs/testshell.sh fs/testshell.key fs/testshell.out fs/out \

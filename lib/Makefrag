@@ -3,6 +3,7 @@ ifdef LAB3
 OBJDIRS += lib
 
 LIB_SRCFILES :=		\
+			lib/console.c \
 			lib/fork.c \
 			lib/ipc.c \
 			lib/libos.c \
@@ -28,7 +29,6 @@ endif
 
 ifdef LAB6
 LIB_SRCFILES :=		\
-			lib/console.c \
 			lib/pipe.c \
 			lib/wait.c \
 			$(LIB_SRCFILES)
