@@ -218,7 +218,7 @@ i386_vm_init(void)
 	pgdir[PDX(UVPT)] = PADDR(pgdir)|PTE_U|PTE_P;
 
 	//////////////////////////////////////////////////////////////////////
-	// Map the kernel stack:
+	// Map the kernel stack (symbol name "bootstack"):
 	//   [KSTACKTOP-PDMAP, KSTACKTOP)  -- the complete VA range of the stack
 	//     * [KSTACKTOP-KSTKSIZE, KSTACKTOP) -- backed by physical memory
 	//     * [KSTACKTOP-PDMAP, KSTACKTOP-KSTKSIZE) -- not backed => faults
