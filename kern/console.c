@@ -306,6 +306,8 @@ static struct {
 	u_int wpos;
 } cons;
 
+// called by device interrupt routines to feed input characters
+// into the circular console input buffer.
 void
 cons_intr(int (*proc)(void))
 {
@@ -314,19 +316,25 @@ cons_intr(int (*proc)(void))
 	while ((c = (*proc)()) != -1) {
 		if (c == 0)
 			continue;
-		if (c < 0x80)
-			cons_putc(c);
 		cons.buf[cons.wpos++] = c;
 		if (cons.wpos == BY2CONS)
 			cons.wpos = 0;
 	}
 }
 
+// return the next input character from the console, or 0 if none waiting
 int
 cons_getc(void)
 {
 	int c;
 
+	// poll for any pending input characters,
+	// so that this function works even when interrupts are disabled
+	// (e.g., when called from the kernel monitor).
+	serial_intr();
+	kbd_intr();
+
+	// grab the next character from the input buffer.
 	if (cons.rpos != cons.wpos) {
 		c = cons.buf[cons.rpos++];
 		if (cons.rpos == BY2CONS)
@@ -336,6 +344,7 @@ cons_getc(void)
 	return 0;
 }
 
+// output a character to the console
 void
 cons_putc(int c)
 {
@@ -343,11 +352,32 @@ cons_putc(int c)
 	cga_putc(c);
 }
 
+// initialize the console devices
 void
 cons_init(void)
 {
 	cga_init();
 	kbd_init();
 	serial_init();
+}
+
+
+
+/***** High-level console read/write primitives *****/
+// used by readline() in particular
+
+int putchar(int c)
+{
+	cons_putc(c);
+	return 0;
+}
+
+int getchar(void)
+{
+	int c;
+
+	while ((c = cons_getc()) == 0)
+		; // spin
+	return c;
 }
 

@@ -1,8 +1,7 @@
 #if LAB >= 6
 
+#include <inc/stdio.h>
 #include <inc/lib.h>
-
-char buf[1024];
 
 void
 umain(void)
@@ -18,9 +17,13 @@ umain(void)
 		panic("dup: %e", r);
 
 	for(;;){
-		printf("Type a line: ");
-		readline(buf, sizeof buf);
-		fprintf(1, "%s\n", buf);
+		char *buf;
+
+		buf = readline("Type a line: ");
+		if (buf != NULL)
+			fprintf(1, "%s\n", buf);
+		else
+			fprintf(1, "(end of file received)\n");
 	}
 }
 #endif

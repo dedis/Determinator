@@ -27,7 +27,7 @@ u_int	ipc_recv(u_int *whom, u_int dstva, u_int *perm);
 
 // printf.c
 void	_panic(const char*, int, const char*, ...);
-void	printf(const char*, ...);
+int	printf(const char*, ...);
 int	snprintf(char*, int, const char*, ...);
 int	vsnprintf(char*, int, const char*, va_list);
 void	warn(const char*, ...);
@@ -61,8 +61,13 @@ int	pageref(void*);
 void	set_pgfault_handler(void(*)(u_int va, u_int err));
 
 // console.c
+int	putchar(int c);
+int	getchar(void);
 int	iscons(int);
 int	opencons(void);
+
+// readline.c
+void	readline(char *buf, u_int len);
 
 // syscall.c
 void	sys_cputs(char*);

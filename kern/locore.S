@@ -27,8 +27,8 @@
 ###################################################################
 
 .text
-.globl		start
-start:
+.globl		_start
+_start:
 	movw	$0x1234,0x472			# warm boot
 
 	# Establish our own GDT in place of the boot loader's temporary GDT.
@@ -52,16 +52,6 @@ relocated:
 	# XXX use sizeof(.)
 	movl	$(_bootstacktop-0x40),%esp	# set the stack pointer 
 
-	# Zero the uninitialized global data (BSS) section of our program
-	xorl	%eax,%eax			# quickest way to get zero
-	cld					# d=0: ascending string ops
-	movl	$_edata,%edi			# destination of string op
-	movl	$(3 + _end),%ecx		# repeat count for "rep"
-	subl	$_edata,%ecx			#  = ceil((_end-_edata)/4)
-	shr	$2, %ecx
-	rep
-	 stosl					# store it!
-	
 	# now to C code
 	call	_i386_init
 

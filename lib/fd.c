@@ -276,4 +276,29 @@ stat(const char *path, struct Stat *stat)
 	return r;
 }
 
+int
+putchar(int ch)
+{
+	unsigned char c = ch;
+	int r;
+
+	r = write(0, &c, 1);
+	if (r < 0)
+		return r;
+	return 0;
+}
+
+int getchar(void)
+{
+	unsigned char c;
+	int r;
+
+	r = read(0, &c, 1);
+	if (r < 0)
+		return r;
+	if (r < 1)
+		return -E_EOF;
+	return c;
+}
+
 #endif /* LAB >= 5 */

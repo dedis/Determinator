@@ -1,36 +1,39 @@
-#if LAB >= 6
+#if LAB >= 1
 
-#include <inc/lib.h>
+#include <inc/stdio.h>
 
-void
-readline(char *buf, u_int n)
+#define BUFLEN 1024
+static char buf[BUFLEN];
+
+char *
+readline(const char *prompt)
 {
-	int i, r;
+	int i = 0;
 
-	r = 0;
-	for(i=0; i<n; i++){
-		if((r = read(0, buf+i, 1)) != 1){
-			if(r == 0)
-				printf("unexpected eof\n");
-			else
-				printf("read error: %e", r);
-			exit();
+	if (prompt != NULL)
+		printf("%s", prompt);
+
+	while (1) {
+		int c = getchar();
+			; // spin
+		if (c < 0) {
+			printf("read error: %e", c);
+			return NULL;
 		}
-		if(buf[i] == '\b'){
-			if(i >= 2)
-				i -= 2;
-			else
-				i = 0;
+		else if (c >= ' ' && i < BUFLEN-1) {
+			putchar(c);
+			buf[i++] = c;
 		}
-		if(buf[i] == '\n'){
+		else if (c == '\b' && i > 0) {
+			putchar(c);
+			i--;
+		}
+		else if (c == '\n') {
+			putchar(c);
 			buf[i] = 0;
-			return;
+			return buf;
 		}
 	}
-	printf("line too long\n");
-	while((r = read(0, buf, 1)) == 1 && buf[0] != '\n')
-		;
-	buf[0] = 0;
-}	
+}
 
-#endif	// LAB >= 6
+#endif	// LAB >= 1

@@ -78,6 +78,7 @@ static char *error_string[MAXERROR+1] =
 	"out of memory",
 	"out of environments",
 	"env is blocking ipc",
+	"unexpected end of file",
 };
 
 static u_quad_t

@@ -1,5 +1,6 @@
 #if LAB >= 6
 
+#include <inc/stdio.h>
 #include <inc/lib.h>
 
 int debug = 0;
@@ -218,37 +219,6 @@ runit:
 }
 
 void
-readline(char *buf, u_int n)
-{
-	int i, r;
-
-	r = 0;
-	for(i=0; i<n; i++){
-		if((r = read(0, buf+i, 1)) != 1){
-			if(r < 0)
-				printf("read error: %e", r);
-			exit();
-		}
-		if(buf[i] == '\b'){
-			if(i > 0)
-				i -= 2;
-			else
-				i = 0;
-		}
-		if(buf[i] == '\n'){
-			buf[i] = 0;
-			return;
-		}
-	}
-	printf("line too long\n");
-	while((r = read(0, buf, 1)) == 1 && buf[0] != '\n')
-		;
-	buf[0] = 0;
-}	
-
-char buf[1024];
-
-void
 usage(void)
 {
 	printf("usage: sh [-dix] [command-file]\n");
@@ -287,9 +257,11 @@ umain(int argc, char **argv)
 	if(interactive == '?')
 		interactive = iscons(0);
 	for(;;){
-		if (interactive)
-			fprintf(1, "$ ");
-		readline(buf, sizeof buf);
+		char *buf;
+
+		buf = readline(interactive ? "$ " : NULL);
+		if (buf == NULL)
+			exit();	// end of file
 		if (debug) printf("LINE: %s\n", buf);
 		if (buf[0] == '#')
 			continue;

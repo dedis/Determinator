@@ -74,6 +74,7 @@ static char *error_string[MAXERROR+1] =
 	"out of memory",
 	"out of environments",
 	"env is not recving",
+	"unexpected end of file",
 #if LAB >= 5
 	"no free space on disk",
 	"too many files are open",
@@ -315,7 +316,7 @@ warn(const char *fmt, ...)
 	sys_cputs(buf);
 }
 
-void
+int
 printf(const char *fmt, ...)
 {
 	char buf[256];
@@ -325,6 +326,8 @@ printf(const char *fmt, ...)
 	vsnprintf(buf, sizeof buf, fmt, ap);
 	va_end(ap);
 	sys_cputs(buf);
+
+	return 0;
 }
 
 #endif

@@ -2,6 +2,7 @@
 
 #include <inc/asm.h>
 #include <inc/string.h>
+#include <kern/monitor.h>
 #if LAB >= 3
 #include <kern/trap.h>
 #endif
@@ -18,7 +19,15 @@
 void
 i386_init(void)
 {
-	// can't call printf until after cons_init()
+	extern char edata[], end[];
+
+	// Before doing anything else,
+	// clear the uninitialized global data (BSS) section of our program.
+	// This ensures that all static/global variables start out zero.
+	memset(edata, 0, end-edata);
+
+	// Initialize the console.
+	// Can't call printf until after we do this!
 	cons_init();
 
 	printf("6828 decimal is %o octal!\n", 6828);
@@ -112,6 +121,9 @@ i386_init(void)
 #if LAB >= 3
 	sched_yield();
 #endif
-	panic("init.c: end of i386_init() reached!");
+
+	// Drop into the kernel monitor.
+	while (1)
+		monitor(NULL);
 }
 
