@@ -1,7 +1,6 @@
 #if LAB >= 4
 
 OBJDIRS += tools/mkimg
-CLEAN_FILES += tools/mkimg/mkimg
 
 tools/mkimg/mkimg: tools/mkimg/mkimg.c
 	$(NCC) $(CFLAGS) -o $@ $<
