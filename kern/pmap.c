@@ -69,7 +69,7 @@ i386_detect_memory(void)
 
 	// Calculate the maxmium physical address based on whether
 	// or not there is any extended memory.  See comment in ../inc/mmu.h.
-	if(extmem)
+	if (extmem)
 		maxpa = EXTPHYSMEM + extmem;
 	else
 		maxpa = basemem;
@@ -77,7 +77,7 @@ i386_detect_memory(void)
 	npage = maxpa / PGSIZE;
 
 	printf("Physical memory: %dK available, ", (int)(maxpa/1024));
-	printf("base = %dK, ", (int)(basemem/1024));
+	printf("base = %dK, extended = %dK\n", (int)(basemem/1024), (int)(extmem/1024));
 }
 
 // --------------------------------------------------------------
@@ -107,18 +107,18 @@ alloc(u_int n, u_int align, int clear)
 
 	// Your code here:
 	//	Step 1: round freemem up to be aligned properly
-	//  Step 2: save current value of freemem as allocated chunk
+	//	Step 2: save current value of freemem as allocated chunk
 	//	Step 3: increase freemem to record allocation
 	//	Step 4: clear allocated chunk if necessary
 	//	Step 5: return allocated chunk
 
 ///SOL2
 	freemem = ROUND(freemem, align);
-	if(freemem+n < freemem || freemem+n > KERNBASE+maxpa)
+	if (freemem+n < freemem || freemem+n > KERNBASE+maxpa)
 		panic("out of memory during i386_vm_init");
 	v = (void*)freemem;
 	freemem += n;
-	if(clear)
+	if (clear)
 		bzero(v, n);
 	return v;
 ///END
@@ -166,7 +166,7 @@ boot_map_segment(Pde *pgdir, u_long va, u_long size, u_long pa, int perm)
 ///SOL2
 	u_long i;
 
-	for(i=0; i<size; i+=PGSIZE)
+	for (i=0; i<size; i+=PGSIZE)
 		*boot_pgdir_walk(pgdir, va+i, 1) = (pa+i)|perm|PTE_P;
 ///END
 }
@@ -216,9 +216,9 @@ i386_vm_init(void)
 
 	//////////////////////////////////////////////////////////////////////
 	// Map the kernel stack:
-	//   [KSTACKTOP-PDSIZE, KSTACKTOP)  -- the complete VA range of the stack
+	//   [KSTACKTOP-PDMAP, KSTACKTOP)  -- the complete VA range of the stack
 	//     * [KSTACKTOP-KSTKSIZE, KSTACKTOP) -- backed by physical memory
-	//     * [KSTACKTOP-PDSIZE, KSTACKTOP-KSTKSIZE) -- not backed => faults
+	//     * [KSTACKTOP-PDMAP, KSTACKTOP-KSTKSIZE) -- not backed => faults
 	//   Permissions: kernel RW, user NONE
 	// Your code goes here:
 ///SOL2
@@ -388,7 +388,7 @@ getent(Pde *pgdir, u_long va)
 	Pte *p;
 
 	pgdir = &pgdir[PDX(va)];
-	if(!(*pgdir&PTE_P))
+	if (!(*pgdir&PTE_P))
 		return 0;
 	p = (Pte*)KADDR(PTE_ADDR(*pgdir));
 	return p[PTX(va)];
@@ -419,17 +419,17 @@ page_init(void)
 		inuse = 1;
 
 		// The bottom basemem bytes are free except page 0.
-		if(i!=0 && i<basemem/PGSIZE)
+		if (i!=0 && i<basemem/PGSIZE)
 			inuse = 0;
 
 		// The IO hole and the kernel abut.
 
 		// The memory past the kernel is free.
-		if(i >= (freemem-KERNBASE)/PGSIZE)
+		if (i >= (freemem-KERNBASE)/PGSIZE)
 			inuse = 0;
 
 		pages[i].pp_ref = inuse;
-		if(!inuse)
+		if (!inuse)
 			LIST_INSERT_HEAD(&page_free_list, &pages[i], pp_link);
 	}
 	
@@ -473,7 +473,7 @@ page_initpp(struct Page *pp)
 //   0 -- on success
 //   -E_NO_MEM -- otherwise 
 //
-// Hint: use LIST_FIRST, LIST_REMOVE, page_zero()
+// Hint: use LIST_FIRST, LIST_REMOVE, page_initpp()
 // Hint: pp_ref should not be incremented 
 int
 page_alloc(struct Page **pp)
@@ -584,7 +584,7 @@ page_insert(Pde *pgdir, struct Page *pp, u_long va, u_int perm)
 	if ((r = pgdir_walk(pgdir, va, 1, &pte)) < 0)
 		return r;
 
-	if(*pte & PTE_P)
+	if (*pte & PTE_P)
 		page_remove(pgdir, va);
 
 	pp->pp_ref++;
@@ -634,7 +634,7 @@ page_remove(Pde *pgdir, u_long va)
 
 	// Decref page.
 	pp = &pages[PPN(PTE_ADDR(*pte))];
-	if(--pp->pp_ref == 0)
+	if (--pp->pp_ref == 0)
 		page_free(pp);
 
 	*pte = 0;
