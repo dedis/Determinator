@@ -9,6 +9,9 @@
 
 #include <kern/console.h>
 #include <kern/monitor.h>
+#if LAB >= 3
+#include <kern/trap.h>
+#endif
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
@@ -131,6 +134,11 @@ monitor(struct Trapframe *tf)
 
 	printf("Welcome to the JOS kernel monitor!\n");
 	printf("Type 'help' for a list of commands.\n");
+
+#if LAB >= 3
+	if (tf != NULL)
+		print_trapframe(tf);
+#endif	// LAB >= 3
 
 	while (1) {
 		buf = readline("K> ");

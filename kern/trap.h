@@ -13,6 +13,7 @@ void idt_init(void);
 /* The user trap frame is always at the top of the kernel stack */
 #define UTF	((struct Trapframe*)(KSTACKTOP-sizeof(struct Trapframe)))
 
+void print_trapframe(struct Trapframe *tf);
 void page_fault_handler(struct Trapframe *);
 void backtrace(struct Trapframe *);
 extern u_int page_fault_mode;

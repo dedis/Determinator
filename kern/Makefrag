@@ -76,9 +76,15 @@ ifdef LAB3
 KERN_BINFILES := \
 	user/hello \
 	user/buggyhello \
+	user/evilhello \
 	user/testbss \
-	user/exit \
-	user/fault
+	user/divzero \
+	user/breakpoint \
+	user/badsegment \
+	user/faultread \
+	user/faultreadkernel \
+	user/faultwrite \
+	user/faultwritekernel
 else
 KERN_BINFILES := 
 endif	# not LAB3

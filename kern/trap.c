@@ -9,6 +9,7 @@
 #include <kern/env.h>
 #include <kern/console.h>
 #include <kern/syscall.h>
+#include <kern/monitor.h>
 #if LAB >= 4
 #include <kern/sched.h>
 #include <kern/kclock.h>
@@ -145,28 +146,27 @@ idt_init(void)
 }
 
 
-static void
+void
 print_trapframe(struct Trapframe *tf)
 {
 	printf("TRAP frame at %p\n", tf);
-	printf("	edi  0x%08x\n", tf->tf_edi);
-	printf("	esi  0x%08x\n", tf->tf_esi);
-	printf("	ebp  0x%08x\n", tf->tf_ebp);
-	printf("	oesp 0x%08x\n", tf->tf_oesp);
-	printf("	ebx  0x%08x\n", tf->tf_ebx);
-	printf("	edx  0x%08x\n", tf->tf_edx);
-	printf("	ecx  0x%08x\n", tf->tf_ecx);
-	printf("	eax  0x%08x\n", tf->tf_eax);
-	printf("	es   0x----%04x\n", tf->tf_es);
-	printf("	ds   0x----%04x\n", tf->tf_ds);
-	printf("	trap 0x%08x %s\n", tf->tf_trapno,
-					trapname(tf->tf_trapno));
-	printf("	err  0x%08x\n", tf->tf_err);
-	printf("	eip  0x%08x\n", tf->tf_eip);
-	printf("	cs   0x----%04x\n", tf->tf_cs);
-	printf("	flag 0x%08x\n", tf->tf_eflags);
-	printf("	esp  0x%08x\n", tf->tf_esp);
-	printf("	ss   0x----%04x\n", tf->tf_ss);
+	printf("  edi  0x%08x\n", tf->tf_edi);
+	printf("  esi  0x%08x\n", tf->tf_esi);
+	printf("  ebp  0x%08x\n", tf->tf_ebp);
+	printf("  oesp 0x%08x\n", tf->tf_oesp);
+	printf("  ebx  0x%08x\n", tf->tf_ebx);
+	printf("  edx  0x%08x\n", tf->tf_edx);
+	printf("  ecx  0x%08x\n", tf->tf_ecx);
+	printf("  eax  0x%08x\n", tf->tf_eax);
+	printf("  es   0x----%04x\n", tf->tf_es);
+	printf("  ds   0x----%04x\n", tf->tf_ds);
+	printf("  trap 0x%08x %s\n", tf->tf_trapno, trapname(tf->tf_trapno));
+	printf("  err  0x%08x\n", tf->tf_err);
+	printf("  eip  0x%08x\n", tf->tf_eip);
+	printf("  cs   0x----%04x\n", tf->tf_cs);
+	printf("  flag 0x%08x\n", tf->tf_eflags);
+	printf("  esp  0x%08x\n", tf->tf_esp);
+	printf("  ss   0x----%04x\n", tf->tf_ss);
 }
 
 void
@@ -176,6 +176,10 @@ trap(struct Trapframe *tf)
 
 	// Handle processor exceptions
 #if SOL >= 3
+	if (tf->tf_trapno == T_PGFLT) {
+		page_fault_handler(tf);
+		return;
+	}
 	if (tf->tf_trapno == T_SYSCALL) {
 		// handle system call
 		tf->tf_eax = syscall(
@@ -188,13 +192,16 @@ trap(struct Trapframe *tf)
 		);
 		return;
 	}
-#endif
-#if LAB >= 4
-	if (tf->tf_trapno == T_PGFLT) {
-		page_fault_handler(tf);
+	if (tf->tf_trapno == T_BRKPT) {
+		// Invoke the kernel monitor.
+		monitor(tf);
 		return;
 	}
+#else
+	// Your code here.
+#endif
 
+#if LAB >= 4
 	// Handle external interrupts
 	if (tf->tf_trapno == IRQ_OFFSET+0) {
 		// irq 0 -- clock interrupt
@@ -231,17 +238,18 @@ trap(struct Trapframe *tf)
 }
 
 
-#if LAB >= 4
 void
 page_fault_handler(struct Trapframe *tf)
 {
 	u_int fault_va;
+#if SOL >= 4
 	u_int *tos, d;
+#endif
 
 	// Read processor's CR2 register to find the faulting address
 	fault_va = rcr2();
 
-#if SOL >= 4
+#if SOL >= 3
 	if ((tf->tf_cs & 3) == 0) {
 		switch (page_fault_mode) {
 		default:
@@ -254,13 +262,17 @@ page_fault_handler(struct Trapframe *tf)
 		case PFM_KILL:
 			printf("[%08x] PFM_KILL va %08x ip %08x\n", 
 				curenv->env_id, fault_va, tf->tf_eip);
+			print_trapframe(tf);
 			env_destroy(curenv);
 		}
 	}
 
-	if (curenv->env_pgfault_handler == 0) {
-		printf("[%08x] user fault va %08x ip %08x eax %08x\n",
-			curenv->env_id, fault_va, tf->tf_eip, tf->tf_eax);
+#if SOL >= 4
+	// See if the environment has installed a user page fault handler.
+	if (curenv->env_pgfault_entry == 0) {
+		printf("[%08x] user fault va %08x ip %08x\n",
+			curenv->env_id, fault_va, tf->tf_eip);
+		print_trapframe(tf);
 		env_destroy(curenv);
 	}
 
@@ -308,11 +320,17 @@ page_fault_handler(struct Trapframe *tf)
 
 	env_run(curenv);
 #else	// not SOL >= 4
+	// User-mode exception - destroy the environment.
+	printf("[%08x] user fault va %08x ip %08x\n",
+		curenv->env_id, fault_va, tf->tf_eip);
+	print_trapframe(tf);
+	env_destroy(curenv);
+#endif	// not SOL >= 4
+#else	// not SOL >= 3
 	// Fill this in
 	print_trapframe(tf);
 	panic("page fault");
-#endif	// not SOL >= 4
+#endif	// not SOL >= 3
 }
-#endif	// LAB >= 4
 
 #endif /* LAB >= 3 */

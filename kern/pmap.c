@@ -49,7 +49,7 @@ struct Segdesc gdt[] =
 	// 0x20 - user data segment
 	[GD_UD >> 3] = SEG(STA_W, 0x0, 0xffffffff, 3),
 
-	// 0x40 - tss, initialized in idt_init()
+	// 0x28 - tss, initialized in idt_init()
 	[GD_TSS >> 3] =  SEG_NULL
 };
 

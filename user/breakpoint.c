@@ -1,13 +1,13 @@
 #if LAB >= 4
 #elif LAB >= 3
-// buggy program - faults
+// program to cause a breakpoint trap
 
 #include <inc/lib.h>
 
 void
 umain(void)
 {
-	*(u_int*)0 = 0;
+	asm volatile("int $3");
 }
 
 #endif

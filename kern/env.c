@@ -285,9 +285,8 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 	if (elf->e_magic != ELF_MAGIC)
 		panic("load_icode: not an ELF binary");
 
-	// Record entry for binary.
+	// Record entrypoint of binary in env's initial EIP.
 	e->env_tf.tf_eip = elf->e_entry;
-	printf("load_icode: entry is 0x%x\n", e->env_tf.tf_eip);
 
 	// Map and load segments as directed.
 	ph = (struct Proghdr*)(binary + elf->e_phoff);

@@ -19,7 +19,7 @@
 static void
 sys_cputs(char *s)
 {
-#if SOL >= 4
+#if SOL >= 3
 	page_fault_mode = PFM_KILL;
 	printf("%s", TRUP(s));
 	page_fault_mode = PFM_NONE;

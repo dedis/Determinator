@@ -2,7 +2,7 @@
 
 verbose=false
 
-if [ "x$1" = "x-x" ]
+if [ "x$1" = "x-v" ]
 then
 	verbose=true
 	out=/dev/stdout
@@ -12,36 +12,46 @@ else
 	err=/dev/null
 fi
 
+pts=5
+timeout=30
+
 runbochs() {
-	brkaddr=`grep monitor obj/kern/kernel.sym | sed -e's/ .*$//g'`
-	echo "brkaddr $brkaddr"
-	(echo vbreak 0x8:0x$brkaddr; echo c; echo die; echo quit) |
+	# Find the address of the kernel readline function,
+	# which the kernel monitor uses to read commands interactively.
+	brkaddr=`grep readline obj/kern/kernel.sym | sed -e's/ .*$//g'`
+	#echo "brkaddr $brkaddr"
+
+	# Run Bochs, setting a breakpoint at readline(),
+	# and feeding in appropriate commands to run, then quit.
+	(
+		echo vbreak 0x8:0x$brkaddr
+		echo c
+		echo die
+		echo quit
+	) | (
+		ulimit -t $timeout
 		bochs -q 'display_library: nogui' \
 			'parport1: enabled=1, file="bochs.out"' \
 			>$out 2>$err
+	)
 }
 
 #if LAB >= 3
 
-pts=5
-timeout=30
+# Usage: runtest <tagname> <defs> <strings...>
 runtest() {
 	perl -e "print '$1: '"
-	rm -f kern/init.o kern/kernel kern/bochs.img fs/fs.img
+	rm -f obj/kern/init.o obj/kern/kernel obj/kern/bochs.img obj/fs/fs.img
 	if $verbose
 	then
-		perl -e "print 'gmake $2... '"
+		echo "gmake $2... "
 	fi
-	if ! gmake $2 kern/bochs.img fs/fs.img >$out
+	if ! gmake $2 >$out
 	then
 		echo gmake failed 
 		exit 1
 	fi
-	(
-		ulimit -t $timeout
-		(echo c; echo die; echo quit) |
-			bochs-nogui 'parport1: enabled=1, file="bochs.out"'
-	) >$out 2>$err
+	runbochs
 	if [ ! -s bochs.out ]
 	then
 		echo 'no bochs.out'
@@ -101,6 +111,7 @@ continuetest() {
 	fi
 }
 
+# Usage: runtest1 [-tag <tagname>] <progname>
 runtest1() {
 	if [ $1 = -tag ]
 	then
@@ -114,7 +125,7 @@ runtest1() {
 		prog=$1
 		shift
 	fi
-	runtest "$tag" "DEFS=-DTEST=binary_user_${prog}_start DEFS+=-DTESTSIZE=binary_user_${prog}_size" "$@"
+	runtest "$tag" "DEFS=-DTEST=_binary_obj_user_${prog}_start DEFS+=-DTESTSIZE=_binary_obj_user_${prog}_size" "$@"
 }
 
 #endif
@@ -445,125 +456,86 @@ score=0
 
 runtest1 hello \
 	'.00000000. new env 00000800' \
-	'.00000000. new env 00001001' \
 	'hello, world' \
-	'i am environment 00001001' \
-	'.00001001. exiting gracefully' \
-	'.00001001. free env 00001001'
+	'i am environment 00000800' \
+	'.00000800. destroying 00000800' \
+	'.00000800. free env 00000800'
 
-# the [00001001] tags should have [] in them, but that's 
+# the [00000800] tags should have [] in them, but that's 
 # a regular expression reserved character, and i'll be damned if
 # I can figure out how many \ i need to add to get through 
 # however many times the shell interprets this string.  sigh.
 
-runtest pingpong2 'DEFS=-DTEST_PINGPONG2' \
-	'1802 got 0 from 1001' \
-	'1001 got 1 from 1802' \
-	'1802 got 8 from 1001' \
-	'1001 got 9 from 1802' \
-	'1802 got 10 from 1001' \
-	'.00001001. exiting gracefully' \
-	'.00001001. free env 00001001' \
-	'.00001802. exiting gracefully' \
-	'.00001802. free env 00001802'
-
-echo PART A SCORE: $score/10
-
-score=0
-
 runtest1 buggyhello \
-	'.00001001. PFM_KILL va 00000001 ip f01.....' \
-	'.00001001. free env 00001001'
+	'.00000800. PFM_KILL va 00000001 ip f01.....' \
+	'.00000800. free env 00000800'
 
 runtest1 evilhello \
-	'.00001001. PFM_KILL va ef800000 ip f01.....' \
-	'.00001001. free env 00001001'
+	'.00000800. PFM_KILL va ef800000 ip f01.....' \
+	'.00000800. free env 00000800'
 
-runtest1 fault \
-	'.00001001. user fault va 00000000 ip 008.....' \
-	'.00001001. free env 00001001'
+runtest1 divzero \
+	! '1/0 is ........!' \
+	'TRAP frame at 0xefbfff..' \
+	'  trap 0x00000000 Divide error' \
+	'  eip  0x008.....' \
+	'.00000800. free env 00000800'
 
-runtest1 faultdie \
-	'i faulted at va deadbeef, err 6' \
-	'.00001001. exiting gracefully' \
-	'.00001001. free env 00001001' 
+runtest1 breakpoint \
+	'Welcome to the JOS kernel monitor!' \
+	'TRAP frame at 0xefbfffbc' \
+	'  trap 0x00000003 Breakpoint' \
+	'  eip  0x008.....' \
+	! '.00000800. free env 00000800'
 
-runtest1 faultalloc \
-	'fault deadbeef' \
-	'this string was faulted in at deadbeef' \
-	'fault cafebffe' \
-	'fault cafec000' \
-	'this string was faulted in at cafebffe' \
-	'.00001001. exiting gracefully' \
-	'.00001001. free env 00001001'
+runtest1 badsegment \
+	'TRAP frame at 0xefbfffbc' \
+	'  trap 0x0000000d General Protection' \
+	'  err  0x0000001c' \
+	'  eip  0x008.....' \
+	'.00000800. free env 00000800'
 
-runtest1 faultallocbad \
-	'.00001001. PFM_KILL va deadbeef ip f01.....' \
-	'.00001001. free env 00001001' 
+runtest1 faultread \
+	! 'I read ........ from location 0!' \
+	'.00000800. user fault va 00000000 ip 008.....' \
+	'TRAP frame at 0xefbfffbc' \
+	'  trap 0x0000000e Page Fault' \
+	'  err  0x00000004' \
+	'.00000800. free env 00000800'
 
-runtest1 faultbadhandler \
-	'.00001001. PFM_KILL va eebfcf.. ip f01.....' \
-	'.00001001. free env 00001001'
+runtest1 faultreadkernel \
+	! 'I read ........ from location 0xf0100000!' \
+	'.00000800. user fault va f0100000 ip 008.....' \
+	'TRAP frame at 0xefbfffbc' \
+	'  trap 0x0000000e Page Fault' \
+	'  err  0x00000005' \
+	'.00000800. free env 00000800' \
 
-runtest1 faultbadstack \
-	'.00001001. PFM_KILL va ef800000 ip f01.....' \
-	'.00001001. free env 00001001'
+runtest1 faultwrite \
+	'.00000800. user fault va 00000000 ip 008.....' \
+	'TRAP frame at 0xefbfffbc' \
+	'  trap 0x0000000e Page Fault' \
+	'  err  0x00000006' \
+	'.00000800. free env 00000800'
 
-runtest1 faultgoodstack \
-	'i faulted at va deadbeef, err 6, stack eebfd...' \
-	'.00001001. exiting gracefully' \
-	'.00001001. free env 00001001' 
+runtest1 faultwritekernel \
+	'.00000800. user fault va f0100000 ip 008.....' \
+	'TRAP frame at 0xefbfffbc' \
+	'  trap 0x0000000e Page Fault' \
+	'  err  0x00000007' \
+	'.00000800. free env 00000800'
 
-runtest1 faultevilhandler \
-	'.00001001. PFM_KILL va eebfcf.. ip f01.....' \
-	'.00001001. free env 00001001'
+runtest1 testbss \
+	'Making sure bss works right...' \
+	'Yes, good.  Now doing a wild write off the end...' \
+	'.00000800. user fault va 00c..... ip 008.....' \
+	'.00000800. free env 00000800'
 
-runtest1 faultevilstack \
-	'.00001001. PFM_KILL va ef800000 ip f01.....' \
-	'.00001001. free env 00001001'
 
-echo PART B SCORE: $score/55
+
+echo Score: $score/55
 
 score=0
-
-
-
-
-fault() {
-	perl -e "print '$1: '"
-	(
-		rm -f kern/init.o
-		echo gmake "DEFS=-DTEST_START=$2_start -DTEST_END=$2_end"
-		gmake "DEFS=-DTEST_START=$2_start -DTEST_END=$2_end"
-		ulimit -t 10
-		runbochs
-	) #>/dev/null 2>/dev/null
-	if grep "oesp 0xefbfffdc" bochs.out >/dev/null \
-	&& grep "trap $3"'$' bochs.out >/dev/null \
-	&& grep "err  $4"'$' bochs.out >/dev/null \
-	&& grep "eip  $5"'$' bochs.out >/dev/null
-	then
-		score=`echo 5+$score | bc`
-		echo OK
-	else
-		echo WRONG
-	fi
-}
-
-		
-score=0
-
-# Try all the different fault tests
-gmake clean >/dev/null 2>/dev/null
-fault 'Divide by zero' div0 0x0 0x0 0x800022
-fault 'Breakpoint' brkpt 0x3 0x0 0x800021
-fault 'Bad data segment' badds 0xd 0x8 0x800025
-fault 'Read nonexistent page' pgfault_rd_nopage 0xe 0xfffc 0x800020
-fault 'Read kernel-only page' pgfault_rd_noperms 0xe 0xfffd 0x800020
-fault 'Write nonexistent page' pgfault_wr_nopage 0xe 0xfffe 0x800020
-fault 'Write kernel-only page' pgfault_wr_noperms 0xe 0xffff 0x800020
-
-echo "Score: $score/50"
 
 
 #elif LAB >= 2		/******************** LAB 2 ********************/

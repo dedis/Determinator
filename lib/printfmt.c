@@ -187,7 +187,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			putch('0', putdat);
 			putch('x', putdat);
 			num = (unsigned long long)
-				(register_t)va_arg(ap, void *);
+				(u_long)va_arg(ap, void *);
 			base = 16;
 			goto number;
 

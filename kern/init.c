@@ -130,7 +130,7 @@ i386_init(void)
 	// Temporary test code specific to LAB 3
 #if defined(TEST)
 	// Don't touch -- used by grading script!
-	ENV_CREATE(TEST)
+	ENV_CREATE2(TEST, TESTSIZE);
 #else
 	// Touch all you want.
 	ENV_CREATE(user_hello);
