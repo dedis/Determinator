@@ -10,6 +10,7 @@
 // lib/stdio.c
 void	putchar(int c);
 int	getchar(void);
+int	iscons(int);
 
 // lib/printfmt.c
 void	printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...);
