@@ -14,7 +14,6 @@ struct Open {
 	u_int o_fileid;		// file id
 	int o_mode;		// open mode
 	struct Filefd *o_ff;	// va of filefd page
-	u_int o_fileva;		// va of file page
 };
 
 // Max number of open files in the file system at once
@@ -37,8 +36,6 @@ serve_init(void)
 	for (i=0; i<MAXOPEN; i++) {
 		opentab[i].o_fileid = i;
 		opentab[i].o_ff = (struct Filefd*)va;
-		va += BY2PG;
-		opentab[i].o_fileva = va;
 		va += BY2PG;
 	}
 }
@@ -114,11 +111,6 @@ serve_open(u_int envid, struct Fsreq_open *rq)
 
 	// Save the file pointer.
 	o->o_file = f;
-
-	// Double-map the file page to pin it in memory.
-	// Cannot fail since vpd is already allocated (o->o_ff is the even page before this).
-	if ((r = sys_mem_map(0, ROUNDDOWN((u_int)f, BY2PG), 0, o->o_fileva, PTE_P|PTE_U)) < 0)
-		panic("sys_mem_map in serve_open: %e", r);
 
 	// Fill out the Filefd structure
 	ff = (struct Filefd*)o->o_ff;
@@ -206,10 +198,8 @@ serve_close(u_int envid, struct Fsreq_close *rq)
 	if ((r = open_lookup(envid, rq->req_fileid, &o)) < 0)
 		goto out;
 	file_close(o->o_file);
-	if (pageref(o->o_ff) == 1) {
-		sys_mem_unmap(0, (u_int)o->o_fileva);
+	if (pageref(o->o_ff) == 1)
 		o->o_file = 0;
-	}
 	r = 0;
 
 out:

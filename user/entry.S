@@ -41,7 +41,7 @@ _fdtab:
 	pushl $(_edata)
 	call _bzero
 
-	// IMPORTANT BUG FIX FOR LAB 6 -- COPY THIS NEXT LINE!
+	// IMPORTANT BUG FIX FOR LAB 5 -- COPY THIS NEXT LINE!
 	addl $8, %esp
 
 args_exist:

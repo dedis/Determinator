@@ -405,18 +405,7 @@ file_get_block(struct File *f, u_int filebno, void **blk)
 	panic("file_get_block not implemented");
 #endif
 
-	if (isnew && f->f_type == FTYPE_DIR) {
-		// we just read some File structures off disk - initialize the memory-only parts
-		int i;
-		struct File *ff;
-
-		ff = *blk;
-		for (i=0; i<FILE2BLK; i++) {
-			ff[i].f_ref = 0;
-			ff[i].f_dir = f;
-			f->f_ref++;
-		}
-	}
+	// Don't need to maintain reference counts anymore.
 
 	return 0;
 }
@@ -453,7 +442,7 @@ dir_lookup(struct File *dir, char *name, struct File **file)
 		for (j=0; j<FILE2BLK; j++)
 			if (strcmp(f[j].f_name, name) == 0) {
 				*file = &f[j];
-				f[j].f_ref++;
+				f[j].f_dir = dir;
 				return 0;
 			}
 	}
@@ -477,7 +466,6 @@ dir_alloc_file(struct File *dir, struct File **file)
 		for (j=0; j<FILE2BLK; j++)
 			if (f[j].f_name[0] == '\0') {
 				*file = &f[j];
-				f[j].f_ref++;
 				return 0;
 			}
 	}
@@ -486,7 +474,6 @@ dir_alloc_file(struct File *dir, struct File **file)
 		return r;
 	f = blk;
 	*file = &f[0];
-	f[0].f_ref++;
 	return 0;		
 }
 
@@ -517,7 +504,6 @@ walk_path(char *path, struct File **pdir, struct File **pfile, char *lastelem)
 	//	return -E_BAD_PATH;
 	path = skip_slash(path);
 	file = &super->s_root;
-	file->f_ref++;
 	dir = 0;
 	name[0] = 0;
 

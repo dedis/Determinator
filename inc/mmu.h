@@ -63,7 +63,8 @@
 #define PTE_PS		0x080	// Page Size
 #define PTE_MBZ		0x180	// Bits must be zero
 #define PTE_AVAIL	0xe00	// Available for software use
-#define PTE_FLAGS	0xfff	// All flags
+// There's no good reason to use this.
+// #define PTE_FLAGS	0xfff	// All flags
 
 #define PTE_USER	0xe07	// All flags that can be used in system calls
 

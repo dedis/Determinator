@@ -43,7 +43,7 @@ ls1(char *prefix, u_int isdir, u_int size, char *name)
 	char *sep;
 
 	if(flag['l'])
-		fprintf(1, "%c %11d ", isdir ? 'd' : '-');
+		fprintf(1, "%11d %c ", size, isdir ? 'd' : '-');
 	if(prefix) {
 		if (prefix[0] && prefix[strlen(prefix)-1] != '/')
 			sep = "/";

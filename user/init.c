@@ -59,7 +59,7 @@ umain(int argc, char **argv)
 		printf("init: starting sh\n");
 		r = spawnl("sh", "sh", (char*)0);
 		if (r < 0) {
-			printf("init: spawn sh: %e", r);
+			printf("init: spawn sh: %e\n", r);
 			continue;
 		}
 		wait(r);

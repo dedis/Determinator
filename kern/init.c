@@ -101,6 +101,11 @@ i386_init(void)
 #endif // TEST*
 #endif // LAB5, LAB4, LAB3
 
+#if LAB >= 6
+	// Should not be necessary - drain keyboard because interrupt has given up.
+	kbd_intr();
+
+#endif
 #if LAB >= 3
 	sched_yield();
 #endif
