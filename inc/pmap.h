@@ -11,14 +11,10 @@ typedef LIST_ENTRY(Page) Page_LIST_entry_t;
 struct Page {
 	Page_LIST_entry_t pp_link;	/* free list link */
 
-	//
-	// ref is set to the number of address
-	// spaces this physical page is mapped.
-	//
-	// N.B.: the physical pages which are used
-	// either as a page directory or a page table
-	// have pp_refcnt = 0.
-	//
+	// Ref is the count of pointers (usually in page table entries)
+	// to this page.  This only holds for pages allocated using 
+	// page_alloc.  Pages allocated at boot time using pmap.c's "alloc"
+	// do not have valid reference count fields.
 
 	u_short pp_ref;
 };
