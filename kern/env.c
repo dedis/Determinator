@@ -38,17 +38,35 @@ mkenvid(struct Env *e)
 //   env pointer -- on success and sets *error = 0
 //   NULL -- on failure, and sets *error = the error number
 //
-struct Env *
-envid2env(u_int envid, int *error)
+int
+envid2env(u_int envid, struct Env **penv, int checkperm)
 {
-	struct Env *e = &envs[ENVX(envid)];
-	if (e->env_status == ENV_FREE || e->env_id != envid) {
-		*error = -E_BAD_ENV;
-		return NULL;
-	} else {
-		*error = 0;
-		return e;
+	struct Env *e;
+
+	if (envid == 0) {
+		*penv = curenv;
+		return 0;
 	}
+
+	e = &envs[ENVX(envid)];
+	if (e->env_status == ENV_FREE || e->env_id != envid) {
+		*penv = 0;
+		return -E_BAD_ENV;
+	}
+
+	if (checkperm) {
+#if SOL >= 4
+		if (e != curenv && e->env_parent_id != curenv->env_id) {
+			*penv = 0;
+			return -E_BAD_ENV;
+		}
+#else
+		// Your code here in Lab 4
+		return -E_BAD_ENV;
+#endif
+	}
+	*penv = e;
+	return 0;
 }
 
 //
@@ -96,11 +114,11 @@ env_setup_vm(struct Env *e)
 	//      (except at VPT and UVPT) 
 	//    - Use boot_pgdir
 	//    - Do not make any calls to page_alloc 
-	//    - Note: pp_refcnt is not maintained for physical pages mapped above UTOP.
+	//    - Note: pp_ref is not maintained for physical pages mapped above UTOP.
 
 #if SOL >= 3
 	e->env_cr3 = page2pa(p);
-	e->env_pgdir = page2kva(p);
+	e->env_pgdir = (Pde*)page2kva(p);
 	bzero(e->env_pgdir, BY2PG);
 
 	// The VA space of all envs is identical above UTOP...
@@ -111,7 +129,7 @@ env_setup_vm(struct Env *e)
 #endif /* SOL >= 3 */
 
 	// ...except at VPT and UVPT.  These map the env's own page table
-	e->env_pgdir[PDX(VPT)]   = e->env_cr3 | PTE_P | PTE_W;
+	e->env_pgdir[PDX(VPT)]   = e->env_cr3 | PTE_P | PTE_U;
 	e->env_pgdir[PDX(UVPT)]  = e->env_cr3 | PTE_P | PTE_U;
 
 	return 0;
@@ -157,9 +175,7 @@ env_alloc(struct Env **new, u_int parent_id)
 	e->env_tf.tf_eflags = 0;
 #endif
 
-	e->env_ipc_blocked = 0;
-	e->env_ipc_value = 0;
-	e->env_ipc_from = 0;
+	e->env_ipc_recving = 0;
 
 	e->env_pgfault_handler = 0;
 	e->env_xstacktop = 0;
@@ -172,7 +188,7 @@ env_alloc(struct Env **new, u_int parent_id)
 }
 
 //
-// Sets up the the initial stack and program binary for a user process.
+// Set up the the initial stack and program binary for a user process.
 //
 // This function loads the complete binary image, including a.out header,
 // into the environment's user memory starting at virtual address UTEXT,
@@ -201,7 +217,7 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 			panic("load_icode: could not map page. Errno %d\n", r);
 	}
 
-	/* Give it a stack */
+	// Give it a stack
 	if ((r = page_alloc(&p)) < 0)
 		panic("load_icode: could not alloc page: %e\n", r);
 	if ((r = page_insert(e->env_pgdir, p, USTACKTOP - BY2PG,
@@ -240,20 +256,25 @@ env_free(struct Env *e)
 {
 #if LAB >= 4
 	Pte *pt;
-	u_int pdeno, pteno;
+	u_int pdeno, pteno, pa;
 
-	static_assert(UTOP%PDMAP == 0);
 	// Flush all pages
+	static_assert(UTOP%PDMAP == 0);
 	for (pdeno = 0; pdeno < PDX(UTOP); pdeno++) {
 		if (!(e->env_pgdir[pdeno] & PTE_P))
 			continue;
-		pt = (Pte*)KADDR(PTE_ADDR(e->env_pgdir[pdeno]));
+		pa = PTE_ADDR(e->env_pgdir[pdeno]);
+		pt = (Pte*)KADDR(pa);
 		for (pteno = 0; pteno <= PTX(~0); pteno++)
 			if (pt[pteno] & PTE_P)
 				page_remove(e->env_pgdir, (pdeno << PDSHIFT) | (pteno << PGSHIFT));
-		page_free(pa2page(PADDR((u_long) pt)));
+		e->env_pgdir[pdeno] = 0;
+		page_decref(pa2page(pa));
 	}
-	page_free(pa2page(PADDR((u_long) (e->env_pgdir))));
+	pa = e->env_cr3;
+	e->env_pgdir = 0;
+	e->env_cr3 = 0;
+	page_decref(pa2page(pa));
 
 #else /* not LAB >= 4 */
 	// For lab 3, env_free() doesn't really do
@@ -315,7 +336,7 @@ env_run(struct Env *e)
 	if (curenv)
 		curenv->env_tf = *UTF;
 	curenv = e;
-	// switch to e's addressing context
+	// restore e's address space
 	lcr3(e->env_cr3);
 	// restore e's register state
 	env_pop_tf(&e->env_tf);

@@ -2,65 +2,31 @@
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/x86.h>
+#include <inc/error.h>
 #include <kern/env.h>
 #include <kern/pmap.h>
 #include <kern/trap.h>
 #include <kern/syscall.h>
 #include <kern/console.h>
 #include <kern/printf.h>
+#include <kern/sched.h>
 
-#if SOL >= 4
-u_int(*sctab[MAX_SYSCALL + 1])() = {
-	[SYS_getenvid] = (void *) sys_getenvid,
-	[SYS_cputu] = (void *) sys_cputu,
-	[SYS_cputs] = (void *) sys_cputs,
-	[SYS_yield] = (void *) sys_yield,
-	[SYS_env_destroy] = (void *) sys_env_destroy,
-	[SYS_env_alloc] = (void *) sys_env_alloc,
-	[SYS_ipc_send] = (void *) sys_ipc_send,
-	[SYS_ipc_unblock] = (void *) sys_ipc_unblock,
-	[SYS_set_pgfault_handler] = (void *) sys_set_pgfault_handler,
-	[SYS_mod_perms] = (void *) sys_mod_perms,
-	[SYS_set_env_status] = (void *) sys_set_env_status,
-	[SYS_mem_unmap] = (void *) sys_mem_unmap,
-	[SYS_mem_alloc] = (void *) sys_mem_alloc,
-	[SYS_mem_remap] = (void *) sys_mem_remap,
-	[SYS_disk_read] = (void *) sys_disk_read
-};
-#endif /* SOL >= 4 */
-
-// Dispatches to the correct kernel function, passing the arguments.
-int
-dispatch_syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4)
-{
-#if SOL >= 4
-	if (sn <= MAX_SYSCALL)
-		return sctab[sn] (a1, a2, a3, a4);
-	else {
-		printf("Invalid system call %d\n", sn);
-		return -E_INVAL;
-	}
-#else /* not SOL >= 4 */
-	// Fill in this code
-#endif /* not SOL >= 4 */
-}
-
-// returns the current environment id
-u_int
+// return the current environment id
+static u_int
 sys_getenvid(void)
 {
 	return curenv->env_id;
 }
 
-// prints the integer to the screen.
-void
+// print an integer to the screen.
+static void
 sys_cputu(u_int value)
 {
-	printf("%d", value);
+	printf("%d", (int)value);
 }
 
-// prints the string to the screen.
-void
+// print a string to the screen.
+static void
 sys_cputs(char *s)
 {
 #if SOL >= 4
@@ -73,371 +39,250 @@ sys_cputs(char *s)
 }
 
 // deschedule current environment
-void
+static void
 sys_yield(void)
 {
 	sched_yield();
 }
 
-// destroys the current environment
-void
+// destroy the current environment
+static void
 sys_env_destroy(void)
 {
 	env_destroy(curenv);
 }
 
-// Allocates a new(child) environment.
+// Allocate a new environment.
 //
-// The state of the child is initialized as follows:  
-//    env_parent_id -- set the the curenv's id
-//    env_status  -- set to ENV_NOTRUNNABLE
-//    env_xstacktop -- inherited from parent
-//    env_pgfault_handler -- ditto
-//    env_tf -- set so that the child
-//              resumes execution at the point where the parent 
-//              made the call to sys_env_alloc
-//    env_tf.tf_eax -- set to 0, so that the child observes a 0
-//                     return value
-//    env_* -- All other fields are left to the values to which env_alloc
-//             initialized them.
+// The new child is left as env_alloc created it, except that
+// status is set to ENV_NOT_RUNNABLE and the register set is copied
+// from the current environment.
 //
-// RETURNS
-//  <0 on error
-//  otherwise envid of the new environment
-//
-int
-sys_env_alloc(u_int inherit, u_int initial_esp)
+// Returns envid of new environment, or < 0 on error.
+static int
+sys_env_alloc(void)
 {
 #if SOL >= 4
-	struct Env *e;
 	int r;
+	struct Env *e;
 
-	if ((r = env_alloc(&e, curenv->env_id)) < 0)
+	if ((r=env_alloc(&e, curenv->env_id)) < 0)
 		return r;
-
-	e->env_status = ENV_NOTRUNNABLE;
-	if (inherit) {
-		e->env_pgfault_handler = curenv->env_pgfault_handler;
-		e->env_xstacktop = curenv->env_xstacktop;
-
-		e->env_tf = *UTF;
-		e->env_tf.tf_eax = 0;	 // return 0 to child
-	} else {
-		e->env_tf.tf_esp = initial_esp;
-	}
-	return e->env_id;	// return child's envid to parent
-#endif /* SOL >= 4 */
+	e->env_status = ENV_NOT_RUNNABLE;
+	e->env_tf = *UTF;
+	e->env_tf.tf_eax = 0;
+	return e->env_id;
+#else
+	// Your code here.
+#endif
 }
 
-
-// clears curenv->env_ipc_blocked
-void
-sys_ipc_unblock(void)
-{
-#if SOL >= 4
-	//printf("sys_ipc_unblock: old blocked %u\n", curenv->env_ipc_blocked);
-	curenv->env_ipc_blocked = 0;
-#endif /* SOL >= 4 */
-}
-
-// Sends the 'value' to the target env 'envid'.
+// Try to send 'value' to the target env 'envid'.
 //
-// The send fails, with a return value of -E_IPC_BLOCKED if the
-// target's env_ipc_blocked field is set.
+// The send fails with a return value of -E_IPC_NOT_RECV if the
+// target has not requested IPC with sys_ipc_recv.
 //
 // Otherwise, the send succeeds, and the target's ipc fields are
 // updated as follows:
-//    env_ipc_block is set to 1 to block further IPCs
+//    env_ipc_recving is set to 0 to block future sends
 //    env_ipc_from is set to the sending envid
 //    env_ipc_value is set to the 'value' parameter
+// The target environment is marked runnable again.
 //
-// RETURNS
-//  0 -- on success
-//  <0 -- on error
-int
-sys_ipc_send(u_int envid, u_int value)
+// Return 0 on success, < 0 on error.
+static int
+sys_ipc_can_send(u_int envid, u_int value)
+{
+#if SOL >= 4
+	int r;
+	struct Env *e;
+
+	if ((r=envid2env(envid, &e, 0)) < 0)
+		return r;
+	if (!e->env_ipc_recving)
+		return -E_IPC_NOT_RECV;
+
+	e->env_ipc_recving = 0;
+	e->env_ipc_from = curenv->env_id;
+	e->env_ipc_value = value;
+	e->env_status = ENV_RUNNABLE;
+	return 0;
+#else
+	// Your code here
+#endif
+}
+
+// Block until a value is ready.  Record that you want to receive,
+// mark yourself not runnable, and then give up the CPU.
+static void
+sys_ipc_recv(void)
+{
+#if SOL >= 4
+	if(curenv->env_ipc_recving)
+		panic("already recving!");
+
+	curenv->env_ipc_recving = 1;
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	sched_yield();
+#else
+	// Your code here
+#endif
+}
+
+// Set envid's pagefault handler entry point and exception stack.
+// (xstacktop points one byte past exception stack).
+//
+// Returns 0 on success, < 0 on error.
+static int
+sys_set_pgfault_handler(u_int envid, u_int func, u_int xstacktop)
+{
+#if SOL >= 4
+	int r;
+	struct Env *e;
+
+	if ((r=envid2env(envid, &e, 1)) < 0)
+		return r;
+	e->env_pgfault_handler = func;
+	e->env_xstacktop = xstacktop;
+	return 0;
+#else
+	// Your code here.
+#endif
+}
+
+// Set envid's env_status to status. 
+//
+// Returns 0 on success, < 0 on error.
+// 
+// Return -E_INVAL if status is not a valid status for an environment.
+static int
+sys_set_env_status(u_int envid, u_int status)
 {
 #if SOL >= 4
 	struct Env *e;
 	int r;
 
-	//printf("*** sys_ipc_send\n");
-
-	if (!(e = envid2env(envid, &r))) {
-		printf("sys_ipc_send: No env\n");
+	if ((r=envid2env(envid, &e, 1)) < 0)
 		return r;
-	}
-
-	if (e->env_ipc_blocked) {
-		printf("sys_ipc_send: Blocked\n");
-		return -E_IPC_BLOCKED;
-	}
-
-	e->env_ipc_blocked = 1;
-	e->env_ipc_from = curenv->env_id;
-	e->env_ipc_value = value;
-
-#if 0
-	printf("*** Delivering IPC: value %u(from %d, to %d)\n", 
-		value, curenv->env_id, e->env_id);
-#endif
-
-#if 1
-	UTF->tf_eax = 0; // caller sees return value of 0
-	env_run(e);	 // switch to destination environment
-	/* NOT REACHED */
+	if (status != ENV_RUNNABLE && status != ENV_NOT_RUNNABLE)
+		return -E_INVAL;
+	e->env_status = status;
+	return 0;
 #else
-	// the alternative is return back to caller
-	// who probably should call yield
-	return 0;
+	// Your code here.
 #endif
-#endif /* SOL >= 4 */
-}
-
-// Sets the current env's pagefault handler entry point and exception
-// stack.
-//
-// xstacktop points one byte past exception stack
-//
-void
-sys_set_pgfault_handler(u_int func, u_int xstacktop)
-{
-	curenv->env_pgfault_handler = func;
-	curenv->env_xstacktop = xstacktop;
-}
-
-
-// Sets envid's env_status to status. 
-//
-// envid==0, means the current environment.
-//
-//RETURNS
-// 0 -- on sucess
-// <0 -- on error
-//       envid must be 0, the current env's envid of a child of the
-//       current environment => E_BAD_ENV
-
-int
-sys_set_env_status(u_int envid, u_int status)
-{
-	struct Env *env;
-	int r;
-
-	// 0 means self
-	if (envid == 0)
-		env = curenv;
-	else if (!(env = envid2env(envid, &r)))
-		return r;
-	else if (env->env_parent_id != curenv->env_id)
-		return -E_BAD_ENV;
-	
-	env->env_status = status;
-	return 0;
-}
-
-
-// Modifies the permission for the page of memory at the virtual
-// address 'va'.
-//
-// 'add' -- these permission bits are turned on
-// 'del' -- these permission bits are turned off
-//
-// Upon the completion of this function the permission bits of the
-// PTE must satifies:
-// permission -- PTE_U|PTE_P are required,
-//               PTE_AVAIL|PTE_W are optional,
-//               but not other bits are allowed
-//
-// The tlb is invalidated for 'va'.
-//
-//RETURNS
-//  0 -- on success
-//  <0 -- on error
-//     va must be less than UTOP => -E_INVAL
-//     the is no PTE corresponding to va => -E_INVAL
-//     permission violation => -E_INVAL
-int
-sys_mod_perms(u_int va, u_int add, u_int del)
-{
-#if SOL >= 4
-	Pde pde = vpd[PDX(va)];
-	if (!(pde & PTE_P))
-		return -E_INVAL;
-	if (va >= UTOP)
-		return -E_INVAL;
-	if (del & PTE_P)
-		return -E_INVAL;
-	vpt[PGNO(va)] |= add; // XXX check these
-	vpt[PGNO(va)] &= ~del; // XXX ditto
-	tlb_invalidate(va, curenv->env_pgdir);
-	return 0;
-#endif /* SOL >= 4 */
 }
 
 //
-// Allocates a page of memory and maps it at 'va' with permission
+// Allocate a page of memory and map it at 'va' with permission
 // 'perm' in the address space of 'envid'.
 //
-// If a page is already mapped at 'va', it is unmapped as a
+// If a page is already mapped at 'va', that page is unmapped as a
 // side-effect.
-//
-// envid==0, means the current environment.
 //
 // perm -- PTE_U|PTE_P are required, 
 //         PTE_AVAIL|PTE_W are optional,
-//         but not other bits are allowed
+//         but no other bits are allowed (return -E_INVAL)
 //
-//RETURNS
-// 0 -- on sucess
-// <0 -- on error:
-//    - va >= UTOP
-//    - A env may modify its own address space or the address space of
-//      its children.
-//    - permission violation
-//    - plus others.
-int
+// Return 0 on success, < 0 on error
+//	- va must be < UTOP
+//	- env may modify its own address space or the address space of its children
+// 
+static int
 sys_mem_alloc(u_int envid, u_int va, u_int perm)
 {
-#if SOL >= 4
-	struct Env *env;
-	struct Page *pp;
 	int r;
+	struct Env *e;
+	struct Page *p;
 
+	if ((r=envid2env(envid, &e, 1)) < 0)
+		return r;
+	if (((~perm)&(PTE_U|PTE_P)) || (perm&~(PTE_U|PTE_P|PTE_AVAIL|PTE_W)))
+		return -E_INVAL;
 	if (va >= UTOP)
 		return -E_INVAL;
-
-	if (envid == 0)
-		env = curenv;
-	else if (!(env = envid2env(envid, &r)))
+	if ((r=page_alloc(&p)) < 0)
 		return r;
-	else if (env->env_parent_id != curenv->env_id)
-		return -E_BAD_ENV;
-
-	if ((r = page_alloc(&pp)) < 0)
-		return r;
-
-	// XXX -- check perms
-	if ((r = page_insert(env->env_pgdir, pp, va, perm)) < 0) {
-		page_free(pp);
+	if ((r=page_insert(e->env_pgdir, p, va, perm)) < 0) {
+		page_free(p);
 		return r;
 	}
 	return 0;
-#endif /* SOL >= 4 */
 }
 
-
+// Map the page of memory at 'srcva' in srcid's address space
+// at 'dstva' in dstid's address space with permission 'perm'.
+// Perm has the same restrictions as in sys_mem_alloc.
+// (Probably we should add a restriction that you can't go from
+// non-writable to writable?)
 //
-// Remaps the page of memory at 'srcva' (in the current address space)
-// at the address 'va' in the address space of 'envid' with permission
-// 'perm'.
-// envid==0, means the current environment.
+// Return 0 on success, < 0 on error.
 //
-// perm -- PTE_U|PTE_P are required, 
-//         PTE_AVAIL|PTE_W are optional,
-//         but not other bits are allowed
-//
-//RETURNS
-// 0 -- on sucess
-// <0 -- on error:
-//    - va >= UTOP
-//    - srcva >= UTOP
-//    - A env may modify its own address space or the address space of
-//      its child.
-//    - No page is mapped at 'srcva'
-//    - permission violation
-//    - plus others..
-
-int
-sys_mem_remap(u_int srcva, u_int envid, u_int va, u_int perm)
+// Cannot access pages above UTOP.
+static int
+sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm)
 {
-#if SOL >= 4
-	Pte pte;
 	int r;
-	struct Env *env;
+	struct Env *es, *ed;
+	struct Page *p;
 
-	if (srcva >= UTOP || va >= UTOP)
+	if (srcva >= UTOP || dstva >= UTOP)
 		return -E_INVAL;
-
-	if (envid == 0)
-		env = curenv;
-	else if (!(env = envid2env(envid, &r)))
+	if ((r=envid2env(srcid, &es, 1)) < 0 || (r=envid2env(dstid, &ed, 1)) < 0)
 		return r;
-	else if (env->env_parent_id != curenv->env_id)
-		return -E_BAD_ENV;
-
-	if (!(vpd[PDX(srcva)] & PTE_P))
+	if (((~perm)&(PTE_U|PTE_P)) || (perm&~(PTE_U|PTE_P|PTE_AVAIL|PTE_W)))
 		return -E_INVAL;
-	pte = vpt[PGNO(srcva)];
-	if (!(pte & PTE_P))
+	if ((p = page_lookup(es->env_pgdir, srcva, 0)) == 0)
 		return -E_INVAL;
-
-	// XXX -- check perms
-	return page_insert(env->env_pgdir, &ppages[PGNO(pte)], va, perm);
-#endif /* SOL >= 4 */
+	if ((r = page_insert(ed->env_pgdir, p, dstva, perm)) < 0)
+		return r;
+	return 0;
 }
 
-
-//
-// Unmaps the page of memory at 'va' in the address space of 'envid'
-// envid==0, means the current environment.
+// Unmap the page of memory at 'va' in the address space of 'envid'
 // (if no page is mapped, the function silently succeeds)
 //
-//RETURNS
-// 0 -- on sucess
-// <0 -- on error:
-//    - va >= UTOP
-//    - srcva >= UTOP
-//    - A env may modify its own address space or the address space of
-//      its child.
-//    - No page is mapped at 'srcva'
-//    - permission violation
-//    - plus others..
-int
+// Return 0 on success, < 0 on error.
+//
+// Cannot unmap pages above UTOP.
+static int
 sys_mem_unmap(u_int envid, u_int va)
 {
-#if SOL >= 4
-	struct Env *env;
 	int r;
+	struct Env *e;
 
-	if (envid == 0)
-		env = curenv;
-	else if (!(env = envid2env(envid, &r)))
+	if ((r=envid2env(envid, &e, 1)) == 0)
 		return r;
-	else if (env->env_parent_id != curenv->env_id)
-		return -E_BAD_ENV;
-
-	page_remove(env->env_pgdir, va);
+	if (va >= UTOP)
+		return -E_INVAL;
+	page_remove(e->env_pgdir, va);
 	return 0;
-#endif /* SOL >= 4 */
 }
 
-#define SECTOR_SIZE 512
+#if LAB >= 5
+#define BY2SECT 512
 
 static void
-read_block(u_int diskno, u_int blockno, char *destination)
+read_block(u_int diskno, u_int blockno, void *dst)
 {
-	unsigned int sectors_per_block = NBPG/SECTOR_SIZE;
-	unsigned int sectorno = sectors_per_block * blockno;
-	unsigned char status;
-	do {
-		status = inb(0x1f7);
-	} while (status & 0x80);
+	u_int n;
 
-	outb(0x1f2, sectors_per_block);       // sector count 
-	outb(0x1f3, (sectorno >> 0) & 0xff);
-	outb(0x1f4, (sectorno >> 8) & 0xff);
-	outb(0x1f5, (sectorno >> 16) & 0xff);
-	outb(0x1f6, 0xe0 | (0x1 & diskno) << 4 | ((sectorno >> 24) & 0x0f));
-	outb(0x1f7, 0x20);         // CMD 0x20 means read sector
-	do {
-		status = inb(0x1f7);
-	} while (status & 0x80);
+	while(inb(0x1F7)&0x80);
 
-	insl(0x1f0, destination, NLPG);
+	outb(0x1F2, BY2PG/BY2SECT);
+	n = blockno*(BY2PG/BY2SECT);
+	outb(0x1F3, n & 0xFF);
+	outb(0x1F4, (n>>8) & 0xFF);
+	outb(0x1F5, (n>>16) & 0xFF);
+	outb(0x1F6, 0xE0 | ((diskno&1)<<4) | ((n>>24)&0x0F));
+	outb(0x1F7, 0x20);	// CMD 0x20 means read sector
+
+	while(inb(0x1F7)&0x80);
+
+	insl(0x1F0, dst, BY2PG/4);
 }
 
-
-int
+static int
 sys_disk_read(u_int diskno, u_int blockno, u_int va)
 {
 	int ret;
@@ -455,5 +300,53 @@ sys_disk_read(u_int diskno, u_int blockno, u_int va)
 	read_block(diskno, blockno, (char *)va);
 	return 0;
 }
+#endif
 
-#endif /* LAB >= 4 */
+// Dispatches to the correct kernel function, passing the arguments.
+int
+syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
+{
+	// printf("syscall %d %d %d %d from env %d\n", sn, a1, a2, a3, curenv->env_id);
+
+#if SOL >= 4
+	switch (sn) {
+	case SYS_getenvid:
+		return sys_getenvid();
+	case SYS_cputu:
+		sys_cputu(a1);
+		return 0;
+	case SYS_cputs:
+		sys_cputs((char*)a1);
+		return 0;
+	case SYS_yield:
+		sys_yield();
+		return 0;
+	case SYS_env_destroy:
+		sys_env_destroy();
+		return 0;
+	case SYS_env_alloc:
+		return sys_env_alloc();
+	case SYS_ipc_can_send:
+		return sys_ipc_can_send(a1, a2);
+	case SYS_ipc_recv:
+		sys_ipc_recv();
+		return 0;
+	case SYS_set_pgfault_handler:
+		return sys_set_pgfault_handler(a1, a2, a3);
+	case SYS_set_env_status:
+		return sys_set_env_status(a1, a2);
+	case SYS_mem_alloc:
+		return sys_mem_alloc(a1, a2, a3);
+	case SYS_mem_map:
+		return sys_mem_map(a1, a2, a3, a4, a5);
+	case SYS_mem_unmap:
+		return sys_mem_unmap(a1, a2);
+	default:
+		return -E_INVAL;
+	}
+#else
+	// Your code here
+#endif
+}
+
+#endif

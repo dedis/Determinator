@@ -30,7 +30,7 @@ static struct Page_list page_free_list;	/* Free list of physical pages */
 //
 struct Segdesc gdt[] =
 {
-	// 0x0 - unused(always faults--for trapping NULL far pointers)
+	// 0x0 - unused (always faults -- for trapping NULL far pointers)
 	SEG_NULL,
 
 	// 0x8 - kernel code segment
@@ -152,8 +152,14 @@ boot_pgdir_walk(Pde *pgdir, u_long va, int create)
 	else {
 		if (!create)
 			return 0;
+
+		// Must set PTE_U in directory entry so that we can define
+		// user segments with boot_map_segment.  If the
+		// pages really aren't meant to be user readable,
+		// the page table entries will reflect this.
+
 		pgtab = alloc(BY2PG, BY2PG, 1);
-		*pde = PADDR(pgtab)|PTE_P|PTE_W;
+		*pde = PADDR(pgtab)|PTE_P|PTE_U|PTE_W;
 	}
 	return &pgtab[PTX(va)];
 #endif /* SOL >= 2 */
@@ -512,6 +518,16 @@ page_free(struct Page *pp)
 }
 
 //
+// Decrement the reference count on a page, freeing it if there are no more refs.
+//
+void
+page_decref(struct Page *pp)
+{
+	if (--pp->pp_ref == 0)
+		page_free(pp);
+}
+
+//
 // This is boot_pgdir_walk with a different allocate function.
 // Unlike boot_pgdir_walk, pgdir_walk can fail, so we have to
 // return pte via a pointer parameter.
@@ -591,15 +607,53 @@ page_insert(Pde *pgdir, struct Page *pp, u_long va, u_int perm)
 	if ((r = pgdir_walk(pgdir, va, 1, &pte)) < 0)
 		return r;
 
+	// We must increment pp_ref before page_remove, so that
+	// if pp is already mapped at va (we're just changing perm),
+	// we don't lose the page when we decref in page_remove.
+	pp->pp_ref++;
+
 	if (*pte & PTE_P)
 		page_remove(pgdir, va);
 
-	pp->pp_ref++;
 	*pte = page2pa(pp) | perm | PTE_P;
 	return 0;
 #else /* not SOL >= 2 */
 	// Fill this function in
 #endif /* not SOL >= 2 */
+}
+
+//
+// Return the page mapped at virtual address 'va'.
+// If ppte is not zero, then we store in it the address
+// of the pte for this page.  This is used by page_remove
+// but should not be used by other callers.
+//
+// Return 0 if there is no page mapped at va.
+//
+// Hint: the TA solution uses pgdir_walk and pa2page.
+//
+struct Page*
+page_lookup(Pde *pgdir, u_long va, Pte **ppte)
+{
+#if SOL >= 2
+	int r;
+	Pte *pte;
+
+	if ((r = pgdir_walk(pgdir, va, 0, &pte)) < 0)
+		panic("pgdir_walk cannot fail now: %e", r);
+
+	if (pte == 0)
+		return 0;
+	if (ppte)
+		*ppte = pte;
+	if (!(*pte & PTE_P) || PPN(PTE_ADDR(*pte)) >= npage) {
+		warn("page_lookup: found bogus PTE 0x%08lx at pgdir %p va 0x%08lx",
+			*pte, pgdir, va);
+		return 0;
+	}
+
+	return pa2page(PTE_ADDR(*pte));
+#endif
 }
 
 //
@@ -613,42 +667,22 @@ page_insert(Pde *pgdir, struct Page *pp, u_long va, u_int perm)
 //   - The TLB must be invalidated if you remove an entry from
 //	   the pg dir/pg table.
 //
-// Hint: The TA solution is implemented using
-//  pgdir_walk(), page_free(), tlb_invalidate()
+// Hint: The TA solution is implemented using page_lookup,
+// 	tlb_invalidate, and page_decref.
 //
 void
 page_remove(Pde *pgdir, u_long va) 
 {
 #if SOL >= 2
-	int r;
-	struct Page *pp;
+	struct Page *p;
 	Pte *pte;
 
-	// Find the PTE and unmap the page.
-	if ((r = pgdir_walk(pgdir, va, 0, &pte)) < 0)
-		panic("pgdir_walk cannot fail when not creating");
-
-	// Page is not mapped?  No work to do.
-	if (pte == 0)
+	if ((p = page_lookup(pgdir, va, &pte)) == 0)
 		return;
-
-	// Sanity check: should be mapped and a valid entry.
-	if (!(*pte & PTE_P) || PPN(PTE_ADDR(*pte)) >= npage) {
-		warn("page_remove: found bogus PTE 0x%08lx at pgdir %p va 0x%08lx",
-			*pte, pgdir, va);
-		return;
-	}
-
-	// Decref page.
-	pp = &pages[PPN(PTE_ADDR(*pte))];
-	if (--pp->pp_ref == 0)
-		page_free(pp);
-
 	*pte = 0;
 	tlb_invalidate(pgdir, va);
-#else /* not SOL >= 2 */
-	// Fill this function in
-#endif /* not SOL >= 2 */
+	page_decref(p);
+#endif
 }
 
 //
@@ -700,6 +734,18 @@ page_check(void)
 	assert(page_insert(boot_pgdir, pp2, BY2PG, 0) == 0);
 	assert(va2pa(boot_pgdir, BY2PG) == page2pa(pp2));
 	assert(pp2->pp_ref == 1);
+
+	// should be no free memory
+	assert(page_alloc(&pp) == -E_NO_MEM);
+
+	// should be able to map pp2 at BY2PG because it's already there
+	assert(page_insert(boot_pgdir, pp2, BY2PG, 0) == 0);
+	assert(va2pa(boot_pgdir, BY2PG) == page2pa(pp2));
+	assert(pp2->pp_ref == 1);
+
+	// pp2 should NOT be on the free list
+	// could happen in ref counts are handled sloppily in page_insert
+	assert(page_alloc(&pp) == -E_NO_MEM);
 
 	// should not be able to map at PDMAP because need free page for page table
 	assert(page_insert(boot_pgdir, pp0, PDMAP, 0) < 0);

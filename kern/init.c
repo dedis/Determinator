@@ -1,4 +1,3 @@
-#if LAB >= 2
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/asm.h>
@@ -35,52 +34,41 @@ i386_init(void)
 	pic_init();
 	kclock_init();
 	env_init();
-
-#if LAB >= 4
-#else
-	// Temporary test code specific to LAB 3
-#if defined(TEST_START)
-	{
-		// Don't touch this!  Used by the grading script.
-		extern u_char TEST_START, TEST_END;
-		env_create(&TEST_START, &TEST_END - &TEST_START);
-	}
-#elif defined(TEST_ALICEBOB)
-	{
-		// Don't touch this!  Used by the grading script.
-		extern u_char alice_start, alice_end, bob_start, bob_end;
-		env_create(&alice_start, &alice_end - &alice_start);
-		env_create(&bob_start, &bob_end - &bob_start);
-	}
-#else
-	{
-		// Do whatever you want here for your own testing purposes.
-		extern u_char spin_start;
-		extern u_char spin_end;
-		env_create(&spin_start, &spin_end - &spin_start);
-	}
 #endif
 
-#if SOL >= 4
-	{
-		/* the binary for the user prog */
-		extern u_char binary_user_simple_simple_start[];
-		extern u_char binary_user_simple_simple_size[];
+#if LAB >= 4
+	// Should always have an idle process as first one.
+	ENV_CREATE(user_idle);
 
-		/* the binary for the idle loop */
-		extern u_char binary_user_kenv0_kenv0_start[];
-		extern u_char binary_user_kenv0_kenv0_size[];
+#if defined(TEST)
+	// Don't touch -- used by grading script!
+	ENV_CREATE(TEST)
+#elif defined(TEST_PINGPONG2)
+	// Don't touch -- used by grading script!
+	ENV_CREATE(user_pingpong2);
+	ENV_CREATE(user_pingpong2);
+#else
+	// Touch all you want.
+	ENV_CREATE(user_hello);
+#endif // TEST*
+#elif LAB >= 3
+	// Temporary test code specific to LAB 3
+#if defined(TEST)
+	// Don't touch -- used by grading script!
+	ENV_CREATE(TEST)
+#elif defined(TEST_ALICEBOB)
+	// Don't touch -- used by grading script!
+	ENV_CREATE(alice);
+	ENV_CREATE(bob);
+#else
+	// Touch all you want.
+	ENV_CREATE(spin);
+#endif // TEST*
+#endif // LAB4, LAB3
 
-		env_create(binary_user_kenv0_kenv0_start,
-								(u_int)binary_user_kenv0_kenv0_size);
-		env_create(binary_user_simple_simple_start,
-								(u_int)binary_user_simple_simple_size);
-	}
-#endif /* SOL >= 4 */
-
+#if LAB >= 3
 	sched_yield();
-#endif /* LAB >= 3 */
-
+#endif
 	panic("init.c: end of i386_init() reached!");
 }
 
@@ -141,4 +129,3 @@ atexit(void(*function)(void))
 	panic("atexit: function %p", function);
 }
 
-#endif /* LAB >= 2 */

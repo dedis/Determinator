@@ -41,15 +41,26 @@ KERN_OBJFILES := $(patsubst %.c, %.o, \
 
 
 # Binary program images to embed within the kernel.
-KERN_BINFILES :=	user/kenv0/kenv0 \
-			user/simple/simple
-KERN_BINFILES := $(foreach file, $(KERN_BINFILES), \
-			$(shell test -f $(file) && echo $(file)))
+KERN_BINFILES := \
+	user/buggyhello \
+	user/evilhello \
+	user/fault \
+	user/faultalloc \
+	user/faultalloc-bad \
+	user/faultdie \
+	user/hello \
+	user/idle \
+	user/pingpong \
+	user/pingpong1 \
+	user/pingpong2 \
+	user/primes \
 
+KERN_BINFILES := $(foreach file, $(KERN_BINFILES), \
+			$(shell test -f $(file).c && echo $(file)))
 
 # How to build the kernel itself
-kern/kernel: $(KERN_OBJFILES)
-	$(LD) -o $@ $(KERN_LDFLAGS) $^ $(GCC_LIB) -b binary $(KERN_BINFILES)
+kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
+	$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) -b binary $(KERN_BINFILES)
 
 
 # How to build the Bochs disk image

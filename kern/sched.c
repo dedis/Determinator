@@ -21,26 +21,28 @@ clock(void)
 void
 sched_yield(void)
 {
-#if LAB >= 5
-	// marks current position in the round-robin sweep
-	static int sched_idx = 0;
-	int start = sched_idx;
+#if SOL >= 4
+	int i, j;
 
-	do {
-		sched_idx++;
-		sched_idx %= NENV; 
-		// skip the idle env
-		if (sched_idx && envs[sched_idx].env_status == ENV_OK)
-			env_run(&envs[sched_idx]);
-		// we fall out of the loop when we've
-		// checked all envs except the idle env
-	} while (start != sched_idx);
-
-	// idle env must always be runnable
+	if (curenv)
+		i = curenv-envs;
+	else
+		i = -1;
+	for (j=1; j<=NENV; j++) {
+		if (j+i == NENV)
+			continue;
+		if (envs[(j+i)%NENV].env_status == ENV_RUNNABLE)
+			env_run(&envs[(j+i)%NENV]);
+	}
+	assert(envs[0].env_status == ENV_RUNNABLE);
+	env_run(&envs[0]);
 #elif SOL >= 3
 	int i, j;
 
-	i = curenv-envs;
+	if (curenv)
+		i = curenv-envs;
+	else
+		i = -1;
 	for (j=1; j<=NENV; j++)
 		if(envs[(j+i)%NENV].env_status == ENV_RUNNABLE)
 			env_run(&envs[(j+i)%NENV]);
@@ -48,7 +50,7 @@ sched_yield(void)
 #else
 	assert(envs[0].env_status == ENV_RUNNABLE);
 	env_run(&envs[0]);
-#endif /* SOL >= 3 */
+#endif // SOL 4, SOL 3
 }
 
 #endif

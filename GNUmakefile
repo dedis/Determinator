@@ -7,6 +7,7 @@ AS	:= i386-osclass-aout-as
 AR	:= i386-osclass-aout-ar
 LD	:= i386-osclass-aout-ld
 OBJCOPY	:= i386-osclass-aout-objcopy
+OBJDUMP	:= i386-osclass-aout-objdump
 
 # Native commands
 NCC	:= gcc $(CC_VER) -pipe
@@ -18,6 +19,9 @@ PERL	:= perl
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 DEFS	:=
 CFLAGS	:= $(CFLAGS) $(DEFS) -O2 -fno-builtin -I$(TOP) -MD -MP -Wall -ggdb
+
+# Linker flags for user programs
+ULDFLAGS := -Ttext 0x800020
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
@@ -32,9 +36,9 @@ all:
 # Include Makefrags for subdirectories
 include kern/Makefrag
 include boot/Makefrag
--include user/Makefrag
--include tools/mkimg/Makefrag
-
+#if LAB >= 4
+include user/Makefrag
+#endif
 
 # Eliminate default suffix rules
 .SUFFIXES:
@@ -60,7 +64,7 @@ include boot/Makefrag
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S
 LAB_DIRS := inc user $(OBJDIRS)
-LAB_FILES := CODING GNUmakefile .bochsrc mergedep.pl grade.sh \
+LAB_FILES := CODING GNUmakefile .bochsrc mergedep.pl grade.sh boot/sign.pl \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
 BIOS_FILES := bios/BIOS-bochs-latest bios/VGABIOS-elpin-2.40
@@ -91,11 +95,16 @@ lab%.tar.gz: $(BIOS_FILES)
 # in order to avoid absolute pathname dependencies in .bochsrc.
 bios:
 	mkdir $@
-bios/%: /usr/local/share/bochs/bios/% bios
+bios/%: /usr/local/share/bochs/% bios
 	cp $< $@
 all: $(BIOS_FILES)
 #endif
 
+bochs: kern/bochs.img
+	bochs-nogui
+
+kernel.asm: kern/kernel
+	$(OBJDUMP) -S --adjust-vma=0xf00ff000 kern/kernel >kernel.asm
 
 # For cleaning the source tree
 clean:

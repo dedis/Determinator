@@ -157,9 +157,10 @@ _alltraps:
 	popl %ds		#
 	addl $0x8,%esp		# skip trapno and errcode
 	iret			# go back..
-#endif /* SOL >= 3 */
+#endif // SOL >= 3
 
-
+#if SOL >= 3
+#elif LAB >= 4
 .globl _clock_interrupt
 _clock_interrupt:
 	pushl	%eax		# push caller-saves
@@ -177,5 +178,7 @@ _clock_interrupt:
 	popl	%ecx
 	popl	%eax
 	iret			# return to whence we came..	
-#endif /* LAB >= 3 */
-#endif /* LAB >= 2 */
+#endif // LAB3 only, without solution
+#endif // LAB >= 3
+#endif // LAB >= 2
+

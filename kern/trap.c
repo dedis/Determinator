@@ -80,11 +80,10 @@ idt_init(void)
 	SETGATE(idt[IRQ_OFFSET + 15], 0, GD_KT, &Xirq15, 0);
 
 #if SOL >= 4
-	// dpl=3 since it is explicitly invoked with "int $T_SYSCALL"
-	// by the user process(at priv level 3)
+	// Use DPL=3 because system calls are explicitly invoked
+	// by the user process (with "int $T_SYSCALL").
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, &Xsyscall, 3);
 #endif
-
 #endif /* SOL >= 3 */
 
 	// Setup a TSS so that we get the right stack
@@ -132,17 +131,24 @@ print_trapframe(struct Trapframe *tf)
 void
 trap(struct Trapframe *tf)
 {
+	// print_trapframe(tf);
 #if LAB >= 4
 	if (tf->tf_trapno == T_PGFLT) {
 		page_fault_handler(tf);
 		return;
 	}
 #endif
-
 #if SOL >= 4
 	if (tf->tf_trapno == T_SYSCALL) {
 		// handle system call
-		syscall(tf);
+		tf->tf_eax = syscall(
+			tf->tf_eax,
+			tf->tf_edx,
+			tf->tf_ecx,
+			tf->tf_ebx,
+			tf->tf_edi,
+			tf->tf_esi
+		);
 		return;
 	}
 #endif
@@ -182,68 +188,66 @@ trap(struct Trapframe *tf)
 void
 page_fault_handler(struct Trapframe *tf)
 {
-	u_int va = rcr2 ();
-#if 0
-	u_int env_id = curenv ? curenv->env_id : -1;
-	printf("%%%% [0x%x] Page fault(code 0x%x) for VA 0x%x(env 0x%x)\n"
-		"   eip = 0x%x, cs = 0x%x, eflags = 0x%x(pte 0x%x)\n",
-		tf->tf_trapno, 0xffff & tf->tf_err, va, env_id,
-		tf->tf_eip, 0xffff & tf->tf_cs, tf->tf_eflags, 
-		vpd[PDX(va)] & PG_P ? vpt[PGNO(va)] : -1);
+	u_int va;
+	u_int *tos, d;
 
-	/* Only traps from user mode push %ss:%esp */
-	if (tf->tf_err & FEC_U)
-		printf("   esp = 0x%x, ss = 0x%x\n", tf->tf_esp, 0xffff & tf->tf_ss);
-#endif
+	va = rcr2();
+
 #if SOL >= 4
-
-	if (tf->tf_err & FEC_U) {
-		if (curenv->env_id == 0)
-			panic("Unexpected page fault in idle environment");
-
-		if (curenv->env_pgfault_handler) {
-			// switch to the exception stack(if we are not already on it).
-#if 0
-			u_int *xsp = (u_int *)(tf->tf_esp <= USTACKTOP ? UXSTACKTOP : tf->tf_esp);
-#else
-			//printf("%x %x\n", tf->tf_esp, curenv->env_xstacktop);
-
-			u_int *xsp = (u_int *)curenv->env_xstacktop;
-			if ((tf->tf_esp < (u_int)xsp) && (tf->tf_esp > (u_int)xsp - NBPG)) {
-				xsp = (u_int *)tf->tf_esp;
-				//printf("ON XSTACK [%x]: ", (u_int)xsp);
-			}
-#endif
-			// XXX what if xsp is 0?
-			//     Then trup works, but xsp -= 5 wraps around
-			//     and the code overwrites kernel memory. 
-
-			// XXX explain..
-			xsp -= 5;
-			if ((u_int)xsp < ULIM) { 	// XXX and check for write-ability
-				// "push" the trap frame on the user exception stack
-				*--xsp = tf->tf_eip;
-				*--xsp = tf->tf_eflags;
-				*--xsp = tf->tf_esp;
-				*--xsp = tf->tf_err;
-				*--xsp = va;
-				tf->tf_esp = (u_int)xsp;
-				// XXX if the trap handler is bogus, will the fault be charged
-				// to the kernel or the user?
-				tf->tf_eip = curenv->env_pgfault_handler;
-				//printf("popping...eip %x\n", tf->tf_eip);
-				//printf("popping...esp %x\n", tf->tf_esp);
-				env_pop_tf(tf);
-			}
+	if ((tf->tf_cs & 3) == 0) {
+		switch (page_fault_mode) {
+		default:
+			panic("page_fault_mode %d", page_fault_mode);
+		case PFM_NONE:
+			print_trapframe(tf);
+			panic("page fault");
+	
+		case PFM_KILL:
+			printf("user env %d made kernel fault at %x\n",
+				curenv->env_id, va);
+			env_destroy(curenv);
 		}
-		printf("Killing faulting user environment\n");
-		env_destroy(curenv);
-	} else {
-		panic("Unexpected kernel page fault");
 	}
-#else /* not SOL >= 4 */
+
+	if (curenv->env_pgfault_handler == 0) {
+		printf("user env 0x%x:0x%x: fault addr %x\n", 
+			tf->tf_cs, tf->tf_eip, va);
+		env_destroy(curenv);
+	}
+
+	d = curenv->env_xstacktop - tf->tf_esp;
+	if (d < BY2PG)
+		tos = (u_int*)tf->tf_esp;
+	else
+		tos = (u_int*)curenv->env_xstacktop;
+
+	page_fault_mode = PFM_KILL;
+
+	// first spare word special -- need to TRUP pointer to check it
+	--tos;
+	tos = TRUP(tos);
+	*tos = 0;
+
+	// rest of frame
+	*--tos = 0;
+	*--tos = 0;
+	*--tos = 0;
+	*--tos = 0;
+	*--tos = tf->tf_eip;
+	*--tos = tf->tf_eflags;
+	*--tos = tf->tf_esp;
+	*--tos = tf->tf_err;
+	*--tos = va;
+
+	// set user registers so that env_run switches to fault handler
+	tf->tf_esp = (u_int)tos;
+	tf->tf_eip = curenv->env_pgfault_handler;
+	page_fault_mode = PFM_NONE;
+
+	env_run(curenv);
+#else
 	// Fill this in
-#endif /* not SOL >= 4 */
+#endif
 }
 #endif /* LAB >= 4 */
 

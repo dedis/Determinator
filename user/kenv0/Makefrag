@@ -1,9 +1,0 @@
-#if LAB >= 4
-
-OBJDIRS += user/kenv0
-CLEAN_FILES += user/kenv0/kenv0
-
-user/kenv0/kenv0: user/kenv0/kenv0.o
-	$(LD) -o $@ $(LDFLAGS) -nostdlib $^
-
-#endif /* LAB >= 4 */

@@ -1,19 +1,35 @@
 #if LAB >= 4
+CLEAN_FILES += \
+	user/buggyhello \
+	user/evilhello \
+	user/fault \
+	user/faultalloc \
+	user/faultalloc-bad \
+	user/faultdie \
+	user/hello \
+	user/idle \
+	user/pingpong \
+	user/pingpong1 \
+	user/pingpong2 \
+	user/primes \
 
-USER_SUBDIRS := kenv0 simple ls
-CLEAN_FILES += user/bochs.img
+USERLIB := \
+	user/fork.o \
+	user/ipc.o \
+	user/libos.o \
+	user/pgfault.o \
+	user/printf.o \
+	user/string.o \
+	user/syscall.o \
 
-include user/kenv0/Makefrag
-include user/simple/Makefrag
-include user/ls/Makefrag
+user/%: user/entry.o user/%.o $(USERLIB)
+	$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib $^
 
+user/%.asm: user/%
+	$(OBJDUMP) --adjust-vma=0x7ff000 $^ >$@
 
-user/bochs.img: $(foreach sub,$(USER_SUBDIRS),user/$(sub)/$(sub)) \
-		tools/mkimg/mkimg
-	(cd user; ../tools/mkimg/mkimg bochs.img~ -c)
-	(cd user; ../tools/mkimg/mkimg bochs.img~ -a $(USER_SUBDIRS))
-	mv user/bochs.img~ user/bochs.img
+user/%.o: lib.h
 
-all: user/bochs.img
+.PRECIOUS: %.o user/%
 
 #endif
