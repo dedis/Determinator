@@ -62,7 +62,7 @@ alloc_range(int initaddr, int maxpa, int startn) {
   // - limit to 256 M worth of pages
   for (va = initva; va < maxva; va += BY2PG, n++) { 
     // alloc a page 
-    if ((r = sys_mem_alloc(0, va, PTE_P | PTE_U | PTE_W)) < 0) { 
+    if ((r = sys_mem_alloc(0, va, PTE_P | PTE_U | PTE_W | PTE_USER)) < 0) { 
       //printf("\nsys_mem_alloc failed: %e", r);
       break;
     }
@@ -100,6 +100,14 @@ test_range(int startva, int endva, int startn) {
       
       failures++;
     } else {
+      Pte pte = vpt[VPN(va)];
+      int perm = (PTE_U | PTE_P | PTE_W | PTE_USER);
+
+      if ((pte & perm) != perm) {
+	printf("\n[%08x] unexpected PTE permissions [04x] for address [%08x]\n {", env->env_id, pte & perm, va);
+	failures++;
+      }
+
       //      printf("\n value at [%08x]: {", va);
       //print_marked_page((int*)va);
       //printf("} should be {");
@@ -133,7 +141,7 @@ duplicate_range(int startva, int dupeva, int nbytes) {
 	 env->env_id, startva, startva+nbytes, dupeva, dupeva+nbytes);
   int xva, r, k;
   for (xva = 0, k = 0; xva < nbytes; xva += BY2PG, k+=BY2PG) { 
-    if ((r = sys_mem_map(0, startva+xva, 0, dupeva+xva, PTE_P | PTE_U | PTE_W)) < 0) {
+    if ((r = sys_mem_map(0, startva+xva, 0, dupeva+xva, PTE_P | PTE_U | PTE_W | PTE_USER)) < 0) {
       printf ("[%08x] duplicate_range FAILURE: %e\n", env->env_id, r);
       return r;
     }
