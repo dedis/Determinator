@@ -78,6 +78,10 @@ export-sol%: $(BIOS_FILES)
 	$(PERL) mklab.pl $* 1 $(LAB_FILES)
 	cp -R bios sol$*/
 
+lab%.tar.gz: $(BIOS_FILES)
+	gmake export-lab$*
+	tar cf - lab$* | gzip > lab$*.tar.gz
+
 # Distribute the BIOS images Bochs needs with the lab trees
 # in order to avoid absolute pathname dependencies in .bochsrc.
 bios:
