@@ -261,13 +261,15 @@ map_segment(struct Env *e, u_int va, u_int len)
 // This function is ONLY called during kernel initialization,
 // before running the first user-mode environment.
 //
-// This function loads the complete binary image, including elf header,
-// into the environment's user memory starting at virtual address UTEXT,
-// and maps one page for the program's initial stack
-// at virtual address USTACKTOP - BY2PG.
+// This function loads all loadable segments from the ELF binary image
+// into the environment's user memory, starting at the appropriate
+// virtual addresses indicated in the ELF program header.
+// At the same time it clears to zero any portions of these segments
+// that are marked in the program header as being mapped
+// but not actually present in the ELF file - i.e., the program's bss section.
 //
-// This function does not allocate or clear the bss of the loaded program,
-// and all mappings are read/write including those of the text segment.
+// Finally, this function maps one page for the program's initial stack
+// at virtual address USTACKTOP - BY2PG.
 //
 static void
 load_icode(struct Env *e, u_char *binary, u_int size)
