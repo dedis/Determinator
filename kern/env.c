@@ -51,15 +51,13 @@ envid2env(u_int envid, int *error)
 
 //
 // Sets up the the stack and program binary for a user process.
-//   The binary image is loaded at VA UTEXT.
-//   One page for the stack is mapped at VA USTACKTOP - BY2PG.
+//   This function loads the binary image at virtual address UTEXT,
+//   and maps one page for the program's initial stack
+//   at virtual address USTACKTOP - BY2PG.
 //
 void
 load_aout(struct Env* e, u_char *binary, u_int size)
 {
-	// Hint: 
-	//  Use page_alloc, page_insert, page2kva and e->env_pgdir
-
 ///SOL3
 	int i, r;
 	struct Page *pp;
@@ -81,6 +79,13 @@ load_aout(struct Env* e, u_char *binary, u_int size)
 	if ((r = page_insert(e->env_pgdir, pp, USTACKTOP - BY2PG,
 				PTE_P|PTE_W|PTE_U)) < 0)
 		panic("load_aout: could not map page. Errno %d\n", r);
+///ELSE
+	// Hint: 
+	//  Use page_alloc, page_insert, page2kva and e->env_pgdir
+	//  You must figure out which permissions you'll need
+	//  for the different mappings you create.
+	//  Remember that the binary image is an a.out format image,
+	//  which contains both text and data.
 ///END
 }
 
