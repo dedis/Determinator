@@ -29,7 +29,7 @@ void
 idt_init(void)
 {
 	extern struct Segdesc gdt[];
-#if LAB >= 4
+#if SOL >= 3
 	extern void
 		Xdivide,Xdebug,Xnmi,Xbrkpt,Xoflow,Xbound,
 		Xillop,Xdevice,Xdblflt,Xtss,Xsegnp,Xstack,
@@ -42,50 +42,51 @@ idt_init(void)
 
 	// install a default handler
 	for (i = 0; i < sizeof(idt)/sizeof(idt[0]); i++)
-		setgate(idt[i], 0, GD_KT, &Xdefault, 0);
+		SETGATE(idt[i], 0, GD_KT, &Xdefault, 0);
 
-	setgate(idt[T_DIVIDE], 0, GD_KT, &Xdivide, 0);
-	setgate(idt[T_DEBUG],  0, GD_KT, &Xdebug,  0);
-	setgate(idt[T_NMI],    0, GD_KT, &Xnmi,    0);
-	setgate(idt[T_BRKPT],  0, GD_KT, &Xbrkpt,  0);
-	setgate(idt[T_OFLOW],  0, GD_KT, &Xoflow,  0);
-	setgate(idt[T_BOUND],  0, GD_KT, &Xbound,  0);
-	setgate(idt[T_ILLOP],  0, GD_KT, &Xillop,  0);
-	setgate(idt[T_DEVICE], 0, GD_KT, &Xdevice, 0);
-	setgate(idt[T_DBLFLT], 0, GD_KT, &Xdblflt, 0);
-	setgate(idt[T_TSS],    0, GD_KT, &Xtss,    0);
-	setgate(idt[T_SEGNP],  0, GD_KT, &Xsegnp,  0);
-	setgate(idt[T_STACK],  0, GD_KT, &Xstack,  0);
-	setgate(idt[T_GPFLT],  0, GD_KT, &Xgpflt,  0);
-	setgate(idt[T_PGFLT],  0, GD_KT, &Xpgflt,  0);
-	setgate(idt[T_FPERR],  0, GD_KT, &Xfperr,  0);
-	setgate(idt[T_ALIGN],  0, GD_KT, &Xalign,  0);
-	setgate(idt[T_MCHK],   0, GD_KT, &Xmchk,   0);
+	SETGATE(idt[T_DIVIDE], 0, GD_KT, &Xdivide, 0);
+	SETGATE(idt[T_DEBUG],  0, GD_KT, &Xdebug,  0);
+	SETGATE(idt[T_NMI],    0, GD_KT, &Xnmi,    0);
+	SETGATE(idt[T_BRKPT],  0, GD_KT, &Xbrkpt,  0);
+	SETGATE(idt[T_OFLOW],  0, GD_KT, &Xoflow,  0);
+	SETGATE(idt[T_BOUND],  0, GD_KT, &Xbound,  0);
+	SETGATE(idt[T_ILLOP],  0, GD_KT, &Xillop,  0);
+	SETGATE(idt[T_DEVICE], 0, GD_KT, &Xdevice, 0);
+	SETGATE(idt[T_DBLFLT], 0, GD_KT, &Xdblflt, 0);
+	SETGATE(idt[T_TSS],    0, GD_KT, &Xtss,    0);
+	SETGATE(idt[T_SEGNP],  0, GD_KT, &Xsegnp,  0);
+	SETGATE(idt[T_STACK],  0, GD_KT, &Xstack,  0);
+	SETGATE(idt[T_GPFLT],  0, GD_KT, &Xgpflt,  0);
+	SETGATE(idt[T_PGFLT],  0, GD_KT, &Xpgflt,  0);
+	SETGATE(idt[T_FPERR],  0, GD_KT, &Xfperr,  0);
+	SETGATE(idt[T_ALIGN],  0, GD_KT, &Xalign,  0);
+	SETGATE(idt[T_MCHK],   0, GD_KT, &Xmchk,   0);
 
-	setgate(idt[IRQ_OFFSET + 0], 0, GD_KT, &Xirq0, 0);
-	setgate(idt[IRQ_OFFSET + 1], 0, GD_KT, &Xirq1, 0);
-	setgate(idt[IRQ_OFFSET + 2], 0, GD_KT, &Xirq2, 0);
-	setgate(idt[IRQ_OFFSET + 3], 0, GD_KT, &Xirq3, 0);
-	setgate(idt[IRQ_OFFSET + 4], 0, GD_KT, &Xirq4, 0);
-	setgate(idt[IRQ_OFFSET + 5], 0, GD_KT, &Xirq5, 0);
-	setgate(idt[IRQ_OFFSET + 6], 0, GD_KT, &Xirq6, 0);
-	setgate(idt[IRQ_OFFSET + 7], 0, GD_KT, &Xirq7, 0);
-	setgate(idt[IRQ_OFFSET + 8], 0, GD_KT, &Xirq8, 0);
-	setgate(idt[IRQ_OFFSET + 9], 0, GD_KT, &Xirq9, 0);
-	setgate(idt[IRQ_OFFSET + 10], 0, GD_KT, &Xirq10, 0);
-	setgate(idt[IRQ_OFFSET + 11], 0, GD_KT, &Xirq11, 0);
-	setgate(idt[IRQ_OFFSET + 12], 0, GD_KT, &Xirq12, 0);
-	setgate(idt[IRQ_OFFSET + 13], 0, GD_KT, &Xirq13, 0);
-	setgate(idt[IRQ_OFFSET + 14], 0, GD_KT, &Xirq14, 0);
-	setgate(idt[IRQ_OFFSET + 15], 0, GD_KT, &Xirq15, 0);
+	SETGATE(idt[IRQ_OFFSET + 0], 0, GD_KT, &Xirq0, 0);
+	SETGATE(idt[IRQ_OFFSET + 1], 0, GD_KT, &Xirq1, 0);
+	SETGATE(idt[IRQ_OFFSET + 2], 0, GD_KT, &Xirq2, 0);
+	SETGATE(idt[IRQ_OFFSET + 3], 0, GD_KT, &Xirq3, 0);
+	SETGATE(idt[IRQ_OFFSET + 4], 0, GD_KT, &Xirq4, 0);
+	SETGATE(idt[IRQ_OFFSET + 5], 0, GD_KT, &Xirq5, 0);
+	SETGATE(idt[IRQ_OFFSET + 6], 0, GD_KT, &Xirq6, 0);
+	SETGATE(idt[IRQ_OFFSET + 7], 0, GD_KT, &Xirq7, 0);
+	SETGATE(idt[IRQ_OFFSET + 8], 0, GD_KT, &Xirq8, 0);
+	SETGATE(idt[IRQ_OFFSET + 9], 0, GD_KT, &Xirq9, 0);
+	SETGATE(idt[IRQ_OFFSET + 10], 0, GD_KT, &Xirq10, 0);
+	SETGATE(idt[IRQ_OFFSET + 11], 0, GD_KT, &Xirq11, 0);
+	SETGATE(idt[IRQ_OFFSET + 12], 0, GD_KT, &Xirq12, 0);
+	SETGATE(idt[IRQ_OFFSET + 13], 0, GD_KT, &Xirq13, 0);
+	SETGATE(idt[IRQ_OFFSET + 14], 0, GD_KT, &Xirq14, 0);
+	SETGATE(idt[IRQ_OFFSET + 15], 0, GD_KT, &Xirq15, 0);
 
 	// dpl=3 since it is explicitly invoked with "int $T_SYSCALL"
 	// by the user process(at priv level 3)
-	setgate(idt[T_SYSCALL], 0, GD_KT, &Xsyscall, 3);
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, &Xsyscall, 3);
 
-#endif /* LAB >= 4 */
+#endif /* SOL >= 3 */
 
-	// Setup a TSS so that we get the right stack when we trap to the kernel.
+	// Setup a TSS so that we get the right stack
+	// when we trap to the kernel.
 	ts.ts_esp0 = KSTACKTOP;
 	ts.ts_ss0 = GD_KD;
 
@@ -95,7 +96,10 @@ idt_init(void)
 					sizeof(struct Taskstate), 0);
 	gdt[GD_TSS >> 3].sd_s = 0;
 
+	// Load the TSS
 	ltr(GD_TSS);
+
+	// Load the IDT
 	asm volatile("lidt _idt_pd+2");
 }
 
@@ -133,13 +137,10 @@ trap(struct Trapframe *tf)
 		printf("*");
 #endif
 
-	/* print_trapframe(tf); */
-
+#if SOL >= 3
 	if (tf->tf_trapno == IRQ_OFFSET) {
 		// irq 0 -- clock interrupt
-#if SOL >= 3
 		sched_yield();
-#endif
 	}
 #if LAB >= 4
 	if (tf->tf_trapno == T_PGFLT) {
@@ -152,8 +153,9 @@ trap(struct Trapframe *tf)
 		 * tf_ebx - 3rd argument(if any)
 		 * tf_esi - 4th argument(if any)
 		 */
-		tf->tf_eax = dispatch_syscall(tf->tf_eax, tf->tf_edx, tf->tf_ecx, 
-							   tf->tf_ebx, tf->tf_esi);
+		tf->tf_eax = dispatch_syscall(
+				tf->tf_eax, tf->tf_edx, tf->tf_ecx,
+				tf->tf_ebx, tf->tf_esi);
 	}
 #endif /* not LAB >= 4 */
 #if LAB >= 6
@@ -162,7 +164,7 @@ trap(struct Trapframe *tf)
 	}
 #endif
 	else if (tf->tf_trapno >= IRQ_OFFSET && 
-					 tf->tf_trapno < IRQ_OFFSET + MAX_IRQS) {
+		 tf->tf_trapno < IRQ_OFFSET + MAX_IRQS) {
 		// just ignore spurious interrupts
 		u_int irq = tf->tf_trapno - IRQ_OFFSET;
 		printf("ignoring unexpected IRQ %d:", irq);
@@ -181,6 +183,10 @@ trap(struct Trapframe *tf)
 		panic("unhandled trap");
 #endif
 	}
+#else /* not SOL >= 3 */
+	print_trapframe(tf);
+	panic("unhandled trap");
+#endif /* not SOL >= 3 */
 }
 
 

@@ -1,4 +1,7 @@
 #if LAB >= 3	
+#if LAB >= 4
+#else /* not LAB >= 4 */
+
 #include <inc/mmu.h>
 
 .global _div0_start
@@ -165,4 +168,6 @@ _spin_start:
 1:	jmp 1b		
 .global _spin_end
 _spin_end:
+
+#endif /* not LAB >= 4 */
 #endif /* LAB >= 3 */

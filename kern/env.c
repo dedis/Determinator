@@ -152,11 +152,9 @@ env_alloc(struct Env **new, u_int parent_id)
 
 #if SOL >= 3
 	e->env_tf.tf_eflags = FL_IF; // interrupts enabled
+	e->env_tf.tf_eip = UTEXT + 0x20; // start right past a.out header
 #else
 	e->env_tf.tf_eflags = 0;
-#endif
-#if SOL >= 4
-	e->env_tf.tf_eip = UTEXT + 0x20; // right past a.out header
 #endif
 
 	e->env_ipc_blocked = 0;
@@ -235,7 +233,7 @@ env_create(u_char *binary, int size)
 void
 env_free(struct Env *e)
 {
-#if SOL >= 3
+#if LAB >= 4
 	Pte *pt;
 	u_int pdeno, pteno;
 
@@ -252,11 +250,11 @@ env_free(struct Env *e)
 	}
 	page_free(pa2page(PADDR((u_long) (e->env_pgdir))));
 
-#else /* not SOL >= 3 */
+#else /* not LAB >= 4 */
 	// For lab 3, env_free() doesn't really do
 	// anything (except leak memory).  We'll fix
 	// this in later labs.
-#endif /* not SOL >= 3 */
+#endif /* not LAB >= 4 */
 
 	e->env_status = ENV_FREE;
 	LIST_INSERT_HEAD(&env_free_list, e, env_link);
@@ -311,9 +309,6 @@ env_run(struct Env *e)
 	// step 3: use lcr3
 	// step 4: use env_pop_tf()
 
-	// Hint: Skip step 1 until exercise 4.  You don't
-	// need it for exercise 1, and in exercise 4 you'll better
-	// understand what you need to do.
 #if SOL >= 3
 	// save register state of currently executing env
 	if (curenv)
@@ -323,7 +318,11 @@ env_run(struct Env *e)
 	lcr3(e->env_cr3);
 	// restore e's register state
 	env_pop_tf(&e->env_tf);
-#endif /* SOL >= 3 */
+#else /* not SOL >= 3 */
+	// Hint: Skip step 1 until exercise 4.  You don't
+	// need it for exercise 1, and in exercise 4 you'll better
+	// understand what you need to do.
+#endif /* not SOL >= 3 */
 }
 
 

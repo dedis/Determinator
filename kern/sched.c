@@ -5,14 +5,20 @@
 #include <kern/picirq.h>
 #include <kern/printf.h>
 
+#if LAB >= 4
+#else
+// Trivial temporary clock interrupt handler,
+// called from clock_interrupt in locore.S
 void
 clock(void)
 {
 	printf("*");
 }
+#endif
 
 
-// round-robin scheduling
+// The real clock interrupt handler,
+// implementing round-robin scheduling
 void
 sched_yield(void)
 {
