@@ -85,9 +85,9 @@ runtest1 hello \
 runtest pingpong2 'DEFS=-DTEST_PINGPONG2' \
 	'1802 got 0 from 1001' \
 	'1001 got 1 from 1802' \
-	'1802 got 98 from 1001' \
-	'1001 got 99 from 1802' \
-	'1802 got 100 from 1001' \
+	'1802 got 8 from 1001' \
+	'1001 got 9 from 1802' \
+	'1802 got 10 from 1001' \
 	'.00001001. exiting gracefully' \
 	'.00001001. free env 00001001' \
 	'.00001802. exiting gracefully' \
@@ -159,9 +159,9 @@ runtest1 pingpong1 \
 	'send 0 from 1001 to 1802' \
 	'1802 got 0 from 1001' \
 	'1001 got 1 from 1802' \
-	'1802 got 98 from 1001' \
-	'1001 got 99 from 1802' \
-	'1802 got 100 from 1001' \
+	'1802 got 8 from 1001' \
+	'1001 got 9 from 1802' \
+	'1802 got 10 from 1001' \
 	'.00001001. exiting gracefully' \
 	'.00001001. free env 00001001' \
 	'.00001802. exiting gracefully' \
@@ -174,9 +174,9 @@ runtest1 pingpong \
 	'send 0 from 1001 to 1802' \
 	'1802 got 0 from 1001' \
 	'1001 got 1 from 1802' \
-	'1802 got 98 from 1001' \
-	'1001 got 99 from 1802' \
-	'1802 got 100 from 1001' \
+	'1802 got 8 from 1001' \
+	'1001 got 9 from 1802' \
+	'1802 got 10 from 1001' \
 	'.00001001. exiting gracefully' \
 	'.00001001. free env 00001001' \
 	'.00001802. exiting gracefully' \

@@ -129,7 +129,7 @@ env_setup_vm(struct Env *e)
 #endif /* SOL >= 3 */
 
 	// ...except at VPT and UVPT.  These map the env's own page table
-	e->env_pgdir[PDX(VPT)]   = e->env_cr3 | PTE_P | PTE_U;
+	e->env_pgdir[PDX(VPT)]   = e->env_cr3 | PTE_P | PTE_W;
 	e->env_pgdir[PDX(UVPT)]  = e->env_cr3 | PTE_P | PTE_U;
 
 	return 0;

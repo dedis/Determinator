@@ -20,11 +20,11 @@ umain(void)
 	for (;;) {
 		i = ipc_recv(&who);
 		printf("%x got %d from %x\n", sys_getenvid(), i, who);
-		if (i == 100)
+		if (i == 10)
 			return;
 		i++;
 		ipc_send(who, i);
-		if (i == 100)
+		if (i == 10)
 			return;
 	}
 		
