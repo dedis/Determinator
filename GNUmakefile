@@ -68,7 +68,7 @@ PERL	:= perl
 # Compiler flags
 # Note that -O2 is required for the boot loader to fit within 512 bytes;
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
-CFLAGS	:= $(CFLAGS) $(DEFS) -O2 -fno-builtin -I$(TOP) -MD -MP -Wall -Wno-format -ggdb
+CFLAGS	:= $(CFLAGS) $(DEFS) -O2 -fno-builtin -I$(TOP) -MD -Wall -Wno-format -ggdb
 
 # Linker flags for user programs
 ULDFLAGS := -Ttext 0x800020
@@ -211,15 +211,15 @@ BIOS_FILES := bios/BIOS-bochs-latest bios/VGABIOS-lgpl-latest
 export-lab%: $(BIOS_FILES)
 	rm -rf lab$*
 	$(PERL) mklab.pl $* 0 lab$* $(LAB_FILES)
-	cp -R bios lab$*/
+	# cp -R bios lab$*/
 export-sol%: $(BIOS_FILES)
 	rm -rf sol$*
 	$(PERL) mklab.pl $* $* sol$* $(LAB_FILES)
-	cp -R bios sol$*/
+	# cp -R bios sol$*/
 export-prep%: $(BIOS_FILES)
 	rm -rf prep$*
 	$(PERL) mklab.pl $* `echo -1+$* | bc` prep$* $(LAB_FILES)
-	cp -R bios prep$*/
+	# cp -R bios prep$*/
 
 %.c: $(OBJDIR)
 lab%.tar.gz: $(BIOS_FILES)
