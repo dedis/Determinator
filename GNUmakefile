@@ -255,7 +255,6 @@ grade:
 	@gmake clean >/dev/null 2>/dev/null
 	gmake all
 	sh grade.sh
-	@gmake clean >/dev/null 2>/dev/null
 
 handin: clean
 	-rm -f handin5.tgz

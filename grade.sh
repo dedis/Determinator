@@ -693,7 +693,7 @@ score=0
 
 # echo -n "Printf: "
 	awk 'BEGIN{printf("Backtrace: ");}' </dev/null
-	cnt=`grep "ebp f0109...  eip f01000..  args" bochs.out|wc -w`
+	cnt=`grep "ebp f0109...  eip f0100...  args" bochs.out|wc -w`
 	if [ $cnt -eq 80 ]
 	then
 		score=`echo 30+$score | bc`
