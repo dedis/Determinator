@@ -43,7 +43,7 @@ i386_init(void)
 	// Before doing anything else,
 	// clear the uninitialized global data (BSS) section of our program.
 	// This ensures that all static/global variables start out zero.
-	memset(edata, 0, end-edata);
+	memset(edata, 0, end - edata);
 
 	// Initialize the console.
 	// Can't call printf until after we do this!

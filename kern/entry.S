@@ -4,6 +4,7 @@
 #include <inc/asm.h>
 #include <inc/mmu.h>
 #include <inc/pmap.h>
+#include <inc/trap.h>
 
 
 ###################################################################
@@ -59,9 +60,13 @@ relocated:
 	# stack backtraces will be terminated properly.
 	movl	$0x0,%ebp			# nuke frame pointer
 
+#if LAB >= 3
         # Leave a few words on the stack for the user trap frame UTF
-	# XXX use sizeof(.)
-	movl	$(bootstacktop-0x40),%esp	# set the stack pointer 
+	movl	$(bootstacktop-SIZEOF_STRUCT_TRAPFRAME),%esp
+#else
+        # Set the stack pointer
+	movl	$(bootstacktop),%esp
+#endif
 
 	# now to C code
 	call	i386_init

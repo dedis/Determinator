@@ -82,6 +82,9 @@ idt_init(void)
 
 	int i;
 
+	// check that the SIZEOF_STRUCT_TRAPFRAME symbol is defined correctly
+	static_assert(sizeof(struct Trapframe) == SIZEOF_STRUCT_TRAPFRAME);
+
 	// install a default handler
 	for (i = 0; i < sizeof(idt)/sizeof(idt[0]); i++)
 		SETGATE(idt[i], 0, GD_KT, &Xdefault, 0);

@@ -62,5 +62,9 @@ struct Trapframe {
 
 #endif /* !__ASSEMBLER__ */
 
+// Must equal 'sizeof(struct Trapframe)'.
+// A static_assert in kern/trap.c checks this.
+#define SIZEOF_STRUCT_TRAPFRAME	0x44
+
 #endif /* !JOS_INC_TRAP_H */
 #endif /* LAB >= 3 */
