@@ -25,6 +25,6 @@
 
 u_int mc146818_read(void *sc, u_int reg);
 void mc146818_write(void *sc, u_int reg, u_int datum);
-void clock_init (void);
+void kclock_init(void);
 
 #endif

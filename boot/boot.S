@@ -10,9 +10,9 @@
 # ENTRY POINT	
 #   This code should be stored in the first sector of the hard disk.  When the  
 #   BIOS runs, it loads this code at physical address 0x7c00 - 0x7d00 (512 bytes).
-#   Then jumps to the beginning of it, in real-mode (BIOS runs in real mode).  
+#   Then jumps to the beginning of it, in real-mode(BIOS runs in real mode).  
 #	
-# This code switches into protected mode (32-bit mode) so that all of
+# This code switches into protected mode(32-bit mode) so that all of
 # memory can accessed, then calls into C.
 ###################################################################################
 	
@@ -24,7 +24,7 @@ start:		.code16				# This runs in real mode
 		movw	%ax,%es			# Address
 		movw	%ax,%ds			#  data
 		movw	%ax,%ss			# Set up
-		movw	$start,%sp         	#  stack (grows down)
+		movw	$start,%sp         	#  stack(grows down)
 	
 #### Enable A20:
 ####   Address line 20 is tied to low when the machine boots, 
@@ -59,7 +59,7 @@ real_to_prot:	cli				# Mandatory since we dont set up an IDT
 		### loads CS with $PROT_MODE_CSEG.
 		ljmp	$PROT_MODE_CSEG, $protcseg
 	
-#### we are in protected mode (hence the .code32)
+#### we are in protected mode(hence the .code32)
 .code32
 protcseg:	
 		movw	$PROT_MODE_DSEG, %ax	# set up data segment registers
@@ -80,6 +80,6 @@ gdt:
 	SEG(STA_W, 0x0, 0xffffffff)	        # data seg
 	
 gdtdesc:
-	.word	0x17			# sizeof (gdt) - 1
+	.word	0x17			# sizeof(gdt) - 1
 	.long	gdt			# address gdt
 ///END

@@ -8,11 +8,11 @@
 #include <kern/picirq.h>
 
 ###################################################################
-# The kernel (this code) is linked at address ~(KERNBASE + 1 Meg), 
+# The kernel(this code) is linked at address ~(KERNBASE + 1 Meg), 
 # but the bootloader load it at address	~1 Meg.
 #	
 # RELOC(x) maps a symbol x from its link address to its actual
-# location in physical memory (its load address).	 
+# location in physical memory(its load address).	 
 ###################################################################
 	
 #define	RELOC(x) ((x) - KERNBASE)
@@ -47,7 +47,7 @@ mygdt:
 	SEG(STA_X|STA_R, -KERNBASE, 0xffffffff)	# code seg
 	SEG(STA_W, -KERNBASE, 0xffffffff)	# data seg
 mygdtdesc:
-	.word	0x17			# sizeof (mygdt) - 1
+	.word	0x17			# sizeof(mygdt) - 1
 	.long	RELOC(mygdt)		# address mygdt
 	
 ###################################################################
@@ -69,7 +69,7 @@ relocated:
 #///LAB200	
 	# XXX use sizeof(.)
 #///END	
-        # Leave a few words on the stack for a user utf trap frame 
+        # Leave a few words on the stack for the user trap frame UTF
 	movl	$(_bootstacktop-0x40),%esp	# set the stack pointer 
 
 	/* Zero the BSS */
@@ -77,7 +77,7 @@ relocated:
 	cld					# d=0 string op is ascending
 	movl	$_edata,%edi			# destination of string op
 	movl	$(3 + _end),%ecx		# repeat count for "rep"
-	subl	$_edata,%ecx			#  = ceil ((_end-_edata)/4)
+	subl	$_edata,%ecx			#  = ceil((_end-_edata)/4)
 	shr	$2, %ecx
 	rep
 	 stosl					# store it!

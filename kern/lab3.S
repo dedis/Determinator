@@ -3,52 +3,52 @@
 
 .global _div0_start
 _div0_start:
-.space 0x20  # pretend there is an a.out header here	
-xorl %eax, %eax
-divl %eax, %eax
+	.space 0x20  # pretend there is an a.out header here	
+	xorl %eax, %eax
+	divl %eax, %eax
 .global _div0_end
 _div0_end:
 
 .global _brkpt_start
 _brkpt_start:
-.space 0x20
-int $3
+	.space 0x20
+	int $3
 .global _brkpt_end
 _brkpt_end:
 	
 .global _badds_start
 _badds_start:
-.space 0x20  # pretend there is an a.out header here	
-xorl %eax, %eax
-movw %ax, %ds
+	.space 0x20  # pretend there is an a.out header here	
+	xorl %eax, %eax
+	movw %ax, %ds
 .global _badds_end
 _badds_end:
 
 .global _pgfault_rd_nopage_start
 _pgfault_rd_nopage_start:
-.space 0x20  # pretend there is an a.out header here	
-movl 0x1000, %eax
+	.space 0x20  # pretend there is an a.out header here	
+	movl 0x1000, %eax
 .global _pgfault_rd_nopage_end
 _pgfault_rd_nopage_end:
 
 .global _pgfault_rd_noperms_start
 _pgfault_rd_noperms_start:
-.space 0x20  # pretend there is an a.out header here	
-movl 0xffffffff, %eax
+	.space 0x20  # pretend there is an a.out header here	
+	movl 0xffffffff, %eax
 .global _pgfault_rd_noperms_end
 _pgfault_rd_noperms_end:
 
 .global _pgfault_wr_nopage_start
 _pgfault_wr_nopage_start:
-.space 0x20  # pretend there is an a.out header here	
-movl %eax, 0x1000
+	.space 0x20  # pretend there is an a.out header here	
+	movl %eax, 0x1000
 .global _pgfault_wr_nopage_end
 _pgfault_wr_nopage_end:
 
 .global _pgfault_wr_noperms_start
 _pgfault_wr_noperms_start:
-.space 0x20  # pretend there is an a.out header here	
-movl %eax, 0xffffffff
+	.space 0x20  # pretend there is an a.out header here	
+	movl %eax, 0xffffffff
 .global _pgfault_wr_noperms_end
 _pgfault_wr_noperms_end:
 
@@ -57,7 +57,7 @@ _pgfault_wr_noperms_end:
 
 .global _alice_start
 _alice_start:
-.space 0x20  # pretend there is an a.out header here	
+	.space 0x20  # pretend there is an a.out header here	
 	movl	$1,%edi	
 	movl	$2,%esi	
 	movl	$3,%ebp
@@ -110,7 +110,7 @@ _alice_end:
 
 .global _bob_start
 _bob_start:
-.space 0x20  # pretend there is an a.out header here	
+	.space 0x20  # pretend there is an a.out header here	
 	movl	$11,%edi	
 	movl	$12,%esi	
 	movl	$13,%ebp
@@ -161,7 +161,7 @@ _bob_end:
 
 .global _spin_start
 _spin_start:
-.space 0x20  # pretend there is an a.out header here	
+	.space 0x20  # pretend there is an a.out header here	
 1:	jmp 1b		
 .global _spin_end
 _spin_end:

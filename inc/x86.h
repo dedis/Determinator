@@ -93,83 +93,83 @@ outl(int port, u_int32_t data)
 static __inline void 
 invlpg(u_int addr)
 { 
-  __asm __volatile("invlpg (%0)" : : "r" (addr) : "memory");
+	__asm __volatile("invlpg(%0)" : : "r" (addr) : "memory");
 }  
 
 static __inline void
 lidt(void *p)
 {
-  __asm __volatile("lidt (%0)" : : "r" (p));
+	__asm __volatile("lidt(%0)" : : "r" (p));
 }
 
 static __inline void
 lldt(u_short sel)
 {
-  __asm __volatile("lldt %0" : : "r" (sel));
+	__asm __volatile("lldt %0" : : "r" (sel));
 }
 
 static __inline void
 ltr(u_short sel)
 {
-  __asm __volatile("ltr %0" : : "r" (sel));
+	__asm __volatile("ltr %0" : : "r" (sel));
 }
 
 static __inline void
 lcr0(u_int val)
 {
-  __asm __volatile("movl %0,%%cr0" : : "r" (val));
+	__asm __volatile("movl %0,%%cr0" : : "r" (val));
 }
 
 static __inline u_int
 rcr0(void)
 {
-  u_int val;
-  __asm __volatile("movl %%cr0,%0" : "=r" (val));
-  return val;
+	u_int val;
+	__asm __volatile("movl %%cr0,%0" : "=r" (val));
+	return val;
 }
 
 static __inline u_int
 rcr2(void)
 {
-  u_int val;
-  __asm __volatile("movl %%cr2,%0" : "=r" (val));
-  return val;
+	u_int val;
+	__asm __volatile("movl %%cr2,%0" : "=r" (val));
+	return val;
 }
 
 static __inline void
 lcr3(u_int val)
 {
-  __asm __volatile("movl %0,%%cr3" : : "r" (val));
+	__asm __volatile("movl %0,%%cr3" : : "r" (val));
 }
 
 static __inline u_int
 rcr3(void)
 {
-  u_int val;
-  __asm __volatile("movl %%cr3,%0" : "=r" (val));
-  return val;
+	u_int val;
+	__asm __volatile("movl %%cr3,%0" : "=r" (val));
+	return val;
 }
 
 static __inline void
 lcr4(u_int val)
 {
-  __asm __volatile("movl %0,%%cr4" : : "r" (val));
+	__asm __volatile("movl %0,%%cr4" : : "r" (val));
 }
 
 static __inline u_int
 rcr4(void)
 {
-  u_int val;
-  __asm __volatile("movl %%cr4,%0" : "=r" (val));
-  return val;
+	u_int val;
+	__asm __volatile("movl %%cr4,%0" : "=r" (val));
+	return val;
 }
 
 static __inline void
 tlbflush(void)
 {
-  u_int val;
-  __asm __volatile("movl %%cr3,%0" : "=r" (val));
-  __asm __volatile("movl %0,%%cr3" : : "r" (val));
+	u_int val;
+	__asm __volatile("movl %%cr3,%0" : "=r" (val));
+	__asm __volatile("movl %0,%%cr3" : : "r" (val));
 }
 
 static __inline u_int
@@ -177,7 +177,7 @@ read_eflags(void)
 {
         u_int   ef;
         __asm __volatile("pushfl; popl %0" : "=r" (ef));
-        return (ef);
+        return(ef);
 }
 
 
@@ -190,14 +190,14 @@ write_eflags(u_int ef)
 static __inline void
 cpuid(u_int info, u_int *eaxp, u_int *ebxp, u_int *ecxp, u_int *edxp)
 {
-  u_int eax, ebx, ecx, edx;
-  asm volatile ("cpuid" 
+	u_int eax, ebx, ecx, edx;
+	asm volatile("cpuid" 
 		: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
 		: "a" (info));
-  if (eaxp) *eaxp = eax;
-  if (ebxp) *ebxp = ebx;
-  if (ecxp) *ecxp = ecx;
-  if (edxp) *edxp = edx;
+	if (eaxp) *eaxp = eax;
+	if (ebxp) *ebxp = ebx;
+	if (ecxp) *ecxp = ecx;
+	if (edxp) *edxp = edx;
 }
 
 #endif /* _X86_H_ */

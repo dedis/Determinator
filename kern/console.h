@@ -14,9 +14,7 @@
 #define CRT_COLS 80
 #define CRT_SIZE (CRT_ROWS * CRT_COLS)
 
-void cninit (void);
-void kbd_init (void);
-void cnputc (short int c);
-u_int cb_copybuf (char *buf, u_int maxlen);
+void cons_init(void);
+void cons_putc(short int c);
 
 #endif /* _CONSOLE_H_ */

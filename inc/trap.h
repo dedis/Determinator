@@ -32,37 +32,31 @@
 
 #include <inc/types.h>
 
-extern struct gate_desc idt[];
-void idt_init ();
-
 struct Trapframe {
-  u_int tf_edi;
-  u_int tf_esi;
-  u_int tf_ebp;
-  u_int tf_oesp;                      /* Useless */
-  u_int tf_ebx;
-  u_int tf_edx;
-  u_int tf_ecx;
-  u_int tf_eax;
-  u_short tf_es;
-  u_int : 0;
-  u_short tf_ds;
-  u_int : 0;
-  u_int tf_trapno;
-  /* below here defined by x86 hardware */
-  u_int tf_err;
-  u_int tf_eip;
-  u_short tf_cs;
-  u_int : 0;
-  u_int tf_eflags;
-  /* below only when crossing rings (e.g. user to kernel) */
-  u_int tf_esp;
-  u_short tf_ss;
-  u_int : 0;
+	u_int tf_edi;
+	u_int tf_esi;
+	u_int tf_ebp;
+	u_int tf_oesp;		/* Useless */
+	u_int tf_ebx;
+	u_int tf_edx;
+	u_int tf_ecx;
+	u_int tf_eax;
+	u_short tf_es;
+	u_int : 0;
+	u_short tf_ds;
+	u_int : 0;
+	u_int tf_trapno;
+	/* below here defined by x86 hardware */
+	u_int tf_err;
+	u_int tf_eip;
+	u_short tf_cs;
+	u_int : 0;
+	u_int tf_eflags;
+	/* below only when crossing rings(e.g. user to kernel) */
+	u_int tf_esp;
+	u_short tf_ss;
+	u_int : 0;
 };
-
-/* The user trap frame is always at the top of the kernel stack */
-#define utf ((struct Trapframe *) (KSTACKTOP-sizeof(struct Trapframe)))
 
 #endif /* !__ASSEMBLER__ */
 

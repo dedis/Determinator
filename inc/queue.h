@@ -5,7 +5,7 @@
  * This file defines three types of data structures: lists, tail queues,
  * and circular queues.
  *
- * A list is headed by a single forward pointer (or an array of forward
+ * A list is headed by a single forward pointer(or an array of forward
  * pointers for a hash table header). The elements are doubly linked
  * so that an arbitrary element can be removed without a need to
  * traverse the list. New elements can be added to the list before

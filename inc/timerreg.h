@@ -13,22 +13,22 @@
  * To write a value into the countdown register, the mode register
  * is first programmed with a command indicating the which byte of
  * the two byte register is to be modified.  The three possibilities
- * are load msb (TMR_MR_MSB), load lsb (TMR_MR_LSB), or load lsb then
- * msb (TMR_MR_BOTH).
+ * are load msb(TMR_MR_MSB), load lsb(TMR_MR_LSB), or load lsb then
+ * msb(TMR_MR_BOTH).
  *
- * To read the current value ("on the fly") from the countdown register,
+ * To read the current value("on the fly") from the countdown register,
  * you write a "latch" command into the mode register, then read the stable
  * value from the corresponding I/O port.  For example, you write
  * TMR_MR_LATCH into the corresponding mode register.  Presumably,
  * after doing this, a write operation to the I/O port would result
- * in undefined behavior (but hopefully not fry the chip).
+ * in undefined behavior(but hopefully not fry the chip).
  * Reading in this manner has no side effects.
  *
  * The outputs of the three timers are connected as follows:
  *
  *	 timer 0 -> irq 0
  *	 timer 1 -> dma chan 0 (for dram refresh)
- * 	 timer 2 -> speaker (via keyboard controller)
+ * 	 timer 2 -> speaker(via keyboard controller)
  *
  * Timer 0 is used to call hardclock.
  * Timer 2 is used to generate console beeps.
@@ -38,10 +38,8 @@
  * Frequency of all three count-down timers; (TIMER_FREQ/freq) is the
  * appropriate count to generate a frequency of freq hz.
  */
-#ifndef TIMER_FREQ
 #define	TIMER_FREQ	1193182
-#endif
-#define TIMER_DIV(x) ((TIMER_FREQ+(x)/2)/(x))
+#define TIMER_DIV(x)	((TIMER_FREQ+(x)/2)/(x))
 
 /*
  * Macros for specifying values to be written into a mode register.

@@ -6,7 +6,7 @@
 #include <inc/env.h>
 
 LIST_HEAD(Env_list, Env);
-extern struct Env *__envs;		/* All environments */
+extern struct Env *envs;		/* All environments */
 extern struct Env *curenv;	        /* the current env */
 
 void env_init (void);

@@ -1,6 +1,6 @@
+///LAB2
 /* See COPYRIGHT for copyright information. */
 
-///LAB2
 #include <inc/x86.h>
 #include <inc/mmu.h>
 #include <inc/error.h>
@@ -18,13 +18,13 @@ struct Env *curenv = NULL;	        /* the current env */
 // Calculates the envid for env e.  
 //
 static u_int
-mkenvid (struct Env *e)
+mkenvid(struct Env *e)
 {
-  static u_long next_env_id = 0;
-  // lower bits of envid hold e's position in the __envs array
-  u_int idx = e - __envs;
-  // high bits of envid hold an increasing number
-  return (next_env_id++ << (1 + LOG2NENV)) | idx;
+	static u_long next_env_id = 0;
+	// lower bits of envid hold e's position in the __envs array
+	u_int idx = e - __envs;
+	// high bits of envid hold an increasing number
+	return(next_env_id++ << (1 + LOG2NENV)) | idx;
 }
 
 //
@@ -35,16 +35,16 @@ mkenvid (struct Env *e)
 //   NULL -- on failure, and sets *error = the error number
 //
 struct Env *
-envid2env (u_int envid, int *error)
+envid2env(u_int envid, int *error)
 {
-  struct Env *e = &__envs[envidx (envid)];
-  if (e->env_status == ENV_FREE || e->env_id != envid) {
-    *error = -E_BAD_ENV;
-    return NULL;
-  } else {
-    *error = 0;
-    return e;
-  }
+	struct Env *e = &__envs[envidx(envid)];
+	if (e->env_status == ENV_FREE || e->env_id != envid) {
+		*error = -E_BAD_ENV;
+		return NULL;
+	} else {
+		*error = 0;
+		return e;
+	}
 }
 
 //
@@ -53,30 +53,30 @@ envid2env (u_int envid, int *error)
 //   One page for the stack is mapped at VA USTACKTOP - NBPG.
 //
 void
-load_aout (struct Env* e, u_char *binary, u_int size)
+load_aout(struct Env* e, u_char *binary, u_int size)
 {
-  // Hint: 
-  //  Use ppage_alloc, ppage_insert, pp2va and e->env_pgdir
+	// Hint: 
+	//  Use ppage_alloc, ppage_insert, pp2va and e->env_pgdir
 
 ///SOL3
-  int i, r;
-  struct Ppage *pp;
+	int i, r;
+	struct Page *pp;
 
-  // Allocate and map physical pages
-  for (i = 0; i < size; i += NBPG) {
-    if ((r = ppage_alloc (&pp)) < 0)
-      panic ("load_aout: could not alloc page. Errno %d\n", r);
-    bcopy (&binary[i], pp2va (pp), min (NBPG, size - i));
-    if ((r = ppage_insert (e->env_pgdir, pp, UTEXT + i, PG_P|PG_W|PG_U)) < 0)
-      panic ("load_aout: could not map page. Errno %d\n", r);
-  }
-  
+	// Allocate and map physical pages
+	for (i = 0; i < size; i += NBPG) {
+		if ((r = ppage_alloc(&pp)) < 0)
+			panic("load_aout: could not alloc page. Errno %d\n", r);
+		bcopy(&binary[i], pp2va(pp), min(NBPG, size - i));
+		if ((r = ppage_insert(e->env_pgdir, pp, UTEXT + i, PG_P|PG_W|PG_U)) < 0)
+			panic("load_aout: could not map page. Errno %d\n", r);
+	}
+	
 
-  /* Give it a stack */
-  if ((r = ppage_alloc (&pp)) < 0)
-    panic ("load_aout: could not alloc page. Errno %d\n", r);
-  if ((r = ppage_insert (e->env_pgdir, pp, USTACKTOP - NBPG, PG_P|PG_W|PG_U)) < 0)
-    panic ("load_aout: could not map page. Errno %d\n", r);
+	/* Give it a stack */
+	if ((r = ppage_alloc(&pp)) < 0)
+		panic("load_aout: could not alloc page. Errno %d\n", r);
+	if ((r = ppage_insert(e->env_pgdir, pp, USTACKTOP - NBPG, PG_P|PG_W|PG_U)) < 0)
+		panic("load_aout: could not map page. Errno %d\n", r);
 ///END
 }
 
@@ -92,15 +92,15 @@ load_aout (struct Env* e, u_char *binary, u_int size)
 // the first call to env_alloc() returns __envs[0].
 //
 void
-env_init (void)
+env_init(void)
 {
 ///SOL3
-  int i;
-  LIST_INIT (&env_free_list);
-  for (i = NENV - 1; i >= 0; i--) {
-    __envs[i].env_status = ENV_FREE;    
-    LIST_INSERT_HEAD (&env_free_list, &__envs[i], env_link);
-  }
+	int i;
+	LIST_INIT (&env_free_list);
+	for (i = NENV - 1; i >= 0; i--) {
+		__envs[i].env_status = ENV_FREE;    
+		LIST_INSERT_HEAD (&env_free_list, &__envs[i], env_link);
+	}
 ///END
 }
 
@@ -117,41 +117,41 @@ env_init (void)
 //   <0 -- otherwise 
 //
 static int
-env_setup_vm (struct Env *e)
+env_setup_vm(struct Env *e)
 {
-  // Hint:
+	// Hint:
 
-  int i, r;
-  struct Ppage *pp1 = NULL;
+	int i, r;
+	struct Page *pp1 = NULL;
 
-  /* Allocate a page for the page directory */
-  if ((r = ppage_alloc (&pp1)) < 0)
-    return r;
-  // Hint:
-  //    - The VA space of all envs is identical above UTOP
-  //      (except at VPT and UVPT) 
-  //    - Use p0pgdir_boot
-  //    - Do not make any calls to ppage_alloc 
-  //    - Note: pp_refcnt is not maintained for physical pages mapped above UTOP.
+	/* Allocate a page for the page directory */
+	if ((r = ppage_alloc(&pp1)) < 0)
+		return r;
+	// Hint:
+	//    - The VA space of all envs is identical above UTOP
+	//      (except at VPT and UVPT) 
+	//    - Use p0pgdir_boot
+	//    - Do not make any calls to ppage_alloc 
+	//    - Note: pp_refcnt is not maintained for physical pages mapped above UTOP.
 
 ///SOL3
-  e->env_cr3 = pp2pa (pp1);
-  e->env_pgdir = pp2va (pp1);
-  bzero (e->env_pgdir, NBPG);
+	e->env_cr3 = pp2pa(pp1);
+	e->env_pgdir = pp2va(pp1);
+	bzero(e->env_pgdir, NBPG);
 
-  /* The VA space of all envs is identical above UTOP...*/
-  StaticAssert (UTOP % NBPD == 0);
-  for (i = PDENO (UTOP); i < NLPG; i++)
-    e->env_pgdir[i] = p0pgdir_boot[i];
+	/* The VA space of all envs is identical above UTOP...*/
+	static_assert(UTOP % NBPD == 0);
+	for (i = PDENO (UTOP); i < NLPG; i++)
+		e->env_pgdir[i] = p0pgdir_boot[i];
 
 ///END
 
-  /* ...except at VPT and UVPT.  These map the env's own page table */  
-  e->env_pgdir[PDENO(VPT)]   = e->env_cr3 | PG_P | PG_W;
-  e->env_pgdir[PDENO(UVPT)]  = e->env_cr3 | PG_P | PG_U;
+	/* ...except at VPT and UVPT.  These map the env's own page table */  
+	e->env_pgdir[PDENO(VPT)]   = e->env_cr3 | PG_P | PG_W;
+	e->env_pgdir[PDENO(UVPT)]  = e->env_cr3 | PG_P | PG_U;
 
-  /* success */
-  return 0;
+	/* success */
+	return 0;
 }
 
 //
@@ -162,50 +162,50 @@ env_setup_vm (struct Env *e)
 //   <0 -- on failure
 //
 int
-env_alloc (struct Env **new, u_int parent_id)
+env_alloc(struct Env **new, u_int parent_id)
 {
-  int r;
-  struct Env *e;
+	int r;
+	struct Env *e;
 
-  if (!(e = LIST_FIRST (&env_free_list)))
-    return -E_NO_FREE_ENV;
+	if (!(e = LIST_FIRST (&env_free_list)))
+		return -E_NO_FREE_ENV;
 
-  if ((r = env_setup_vm (e)) < 0)
-    return r;
+	if ((r = env_setup_vm(e)) < 0)
+		return r;
 
-  e->env_id = mkenvid (e);
-  e->env_parent_id = parent_id;
-  e->env_status = ENV_OK;
+	e->env_id = mkenvid(e);
+	e->env_parent_id = parent_id;
+	e->env_status = ENV_OK;
 
-  /* Set initial values of registers */
-  /*  (lower 2 bits of the seg regs is the RPL -- 3 means user process) */
-  e->env_tf.tf_ds = GD_UD | 3;
-  e->env_tf.tf_es = GD_UD | 3;
-  e->env_tf.tf_ss = GD_UD | 3;
-  e->env_tf.tf_esp = USTACKTOP;
-  e->env_tf.tf_cs = GD_UT | 3;
-  // You also need to set tf_eip to the correct value.
-  // Hint: see load_aout
+	/* Set initial values of registers */
+	/*  (lower 2 bits of the seg regs is the RPL -- 3 means user process) */
+	e->env_tf.tf_ds = GD_UD | 3;
+	e->env_tf.tf_es = GD_UD | 3;
+	e->env_tf.tf_ss = GD_UD | 3;
+	e->env_tf.tf_esp = USTACKTOP;
+	e->env_tf.tf_cs = GD_UT | 3;
+	// You also need to set tf_eip to the correct value.
+	// Hint: see load_aout
 
 ///SOL3
-  e->env_tf.tf_eip = UTEXT + 0x20; // right past a.out header
-  e->env_tf.tf_eflags = FL_IF; // interrupts enabled
+	e->env_tf.tf_eip = UTEXT + 0x20; // right past a.out header
+	e->env_tf.tf_eflags = FL_IF; // interrupts enabled
 ///ELSE
-  e->env_tf.tf_eflags = 0;
+	e->env_tf.tf_eflags = 0;
 ///END
 
-  e->env_ipc_blocked = 0;
-  e->env_ipc_value = 0;
-  e->env_ipc_from = 0;
+	e->env_ipc_blocked = 0;
+	e->env_ipc_value = 0;
+	e->env_ipc_from = 0;
 
-  e->env_pgfault_handler = 0;
-  e->env_xstacktop = 0;
+	e->env_pgfault_handler = 0;
+	e->env_xstacktop = 0;
 
-  /* commit the allocation */
-  LIST_REMOVE (e, env_link);
-  *new = e;
+	/* commit the allocation */
+	LIST_REMOVE (e, env_link);
+	*new = e;
 
-  return 0; /* success */
+	return 0; /* success */
 }
 
 
@@ -215,14 +215,14 @@ env_alloc (struct Env **new, u_int parent_id)
 // Allocates a new env and loads the a.out binary into it.
 //  - new env's  parent env id is 0
 void
-env_create (u_char *binary, int size)
+env_create(u_char *binary, int size)
 {
 ////SOL3
-  int r;
-  struct Env *e;
-  if ((r = env_alloc (&e, 0)) < 0)
-    panic ("env_create: could not allocate env.  Error %d\n", r);
-  load_aout (e, binary, size);
+	int r;
+	struct Env *e;
+	if ((r = env_alloc(&e, 0)) < 0)
+		panic("env_create: could not allocate env.  Error %d\n", r);
+	load_aout(e, binary, size);
 ////END
 }
 
@@ -231,31 +231,31 @@ env_create (u_char *binary, int size)
 // Frees env e and all memory it uses.
 // 
 void
-env_free (struct Env *e)
+env_free(struct Env *e)
 {
 ///SOL3
-  Pte *pt;
-  u_int pdeno, pteno;
+	Pte *pt;
+	u_int pdeno, pteno;
 
-  StaticAssert ( (UTOP % NBPD) == 0);
-  /* Flush all pages */
-  for (pdeno = 0; pdeno < PDENO (UTOP); pdeno++) {
-    if (!(e->env_pgdir[pdeno] & PG_P))
-      continue;
-    pt = ptov (e->env_pgdir[pdeno] & ~PGMASK);
-    for (pteno = 0; pteno < NLPG; pteno++)
-      if (pt[pteno] & PG_P)
-	ppage_remove (e->env_pgdir, (pdeno << PDSHIFT) | (pteno << PGSHIFT));
-    ppage_free (kva2pp ((u_long) pt));
-  }
-  ppage_free (kva2pp ((u_long) (e->env_pgdir)));
+	static_assert( (UTOP % NBPD) == 0);
+	/* Flush all pages */
+	for (pdeno = 0; pdeno < PDENO (UTOP); pdeno++) {
+		if (!(e->env_pgdir[pdeno] & PG_P))
+			continue;
+		pt = ptov(e->env_pgdir[pdeno] & ~PGMASK);
+		for (pteno = 0; pteno < NLPG; pteno++)
+			if (pt[pteno] & PG_P)
+				ppage_remove(e->env_pgdir, (pdeno << PDSHIFT) | (pteno << PGSHIFT));
+		ppage_free(kva2pp((u_long) pt));
+	}
+	ppage_free(kva2pp((u_long) (e->env_pgdir)));
 ///END 
 
-  // For lab 3, env_free () doesn't really do
-  // anything (except leak memory).  We'll fix
-  // this in later labs.
-  e->env_status = ENV_FREE;
-  LIST_INSERT_HEAD (&env_free_list, e, env_link);
+	// For lab 3, env_free() doesn't really do
+	// anything(except leak memory).  We'll fix
+	// this in later labs.
+	e->env_status = ENV_FREE;
+	LIST_INSERT_HEAD (&env_free_list, e, env_link);
 }
 
 
@@ -264,13 +264,13 @@ env_free (struct Env *e)
 // if e is the current env.
 //
 void
-env_destroy (struct Env *e) 
+env_destroy(struct Env *e) 
 {
-  env_free (e);
-  if (curenv == e) {
-    curenv = NULL;
-    yield ();
-  }
+	env_free(e);
+	if (curenv == e) {
+		curenv = NULL;
+		sched_yield();
+	}
 }
 
 
@@ -279,20 +279,20 @@ env_destroy (struct Env *e)
 //  (does not return)
 //
 void
-env_pop_tf (struct Trapframe *tf)
+env_pop_tf(struct Trapframe *tf)
 {
 #if 0
-  printf (" --> %d 0x%x\n", envidx (curenv->env_id), tf->tf_eip);
+	printf(" --> %d 0x%x\n", envidx(curenv->env_id), tf->tf_eip);
 #endif
 
-  asm volatile ("movl %0,%%esp\n"
+	asm volatile("movl %0,%%esp\n"
 		"\tpopal\n"
 		"\tpopl %%es\n"
 		"\tpopl %%ds\n"
 		"\taddl $0x8,%%esp\n" /* skip tf_trapno and tf_errcode */
 		"\tiret"
 		:: "g" (tf) : "memory");
-  panic ("iret failed");  /* mostly to placate the compiler */
+	panic("iret failed");  /* mostly to placate the compiler */
 }
 
 
@@ -301,25 +301,25 @@ env_pop_tf (struct Trapframe *tf)
 // Note: is this is the first call to env_run, curenv is NULL.
 //  (This function does not return.)
 void
-env_run (struct Env *e)
+env_run(struct Env *e)
 {
-  // step 1: save register state of curenv
-  // step 2: set curenv
-  // step 3: use lcr3
-  // step 4: use env_pop_tf ()
+	// step 1: save register state of curenv
+	// step 2: set curenv
+	// step 3: use lcr3
+	// step 4: use env_pop_tf()
 
-  // Hint: Skip step 1 until exercise 4.  You don't
-  // need it for exercise 1, and in exercise 4 you'll better
-  // understand what you need to do.
+	// Hint: Skip step 1 until exercise 4.  You don't
+	// need it for exercise 1, and in exercise 4 you'll better
+	// understand what you need to do.
 ///SOL3
-  // save register state of currently executing env
-  if (curenv)
-    curenv->env_tf = *utf;
-  curenv = e;
-  // switch to e's addressing context
-  lcr3 (e->env_cr3);
-  // restore e's register state
-  env_pop_tf (&e->env_tf);
+	// save register state of currently executing env
+	if (curenv)
+		curenv->env_tf = *utf;
+	curenv = e;
+	// switch to e's addressing context
+	lcr3 (e->env_cr3);
+	// restore e's register state
+	env_pop_tf(&e->env_tf);
 ///END
 }
 

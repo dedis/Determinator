@@ -21,9 +21,9 @@
  */
 #define SRL(val, shamt) (((val) >> (shamt)) & ~(-1 << (32 - (shamt))))
 
-#define DEF_SYM(symbol, addr)                   \
-     asm (".globl _" #symbol "\n"               \
-          "\t.set _" #symbol ",%P0"             \
-          :: "i" (addr))
+#define DEF_SYM(symbol, addr)              \
+	asm(".globl _" #symbol "\n"        \
+	    "\t.set _" #symbol ",%P0"      \
+	    :: "i" (addr))
 
 #endif /* _ASM_H_ */
