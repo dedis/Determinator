@@ -98,20 +98,23 @@ KERN_BINFILES := $(addprefix $(OBJDIR)/, $(KERN_BINFILES))
 
 # How to build the kernel itself
 $(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
-	$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) -b binary $(KERN_BINFILES)
-	$(OBJDUMP) -S $@ > $@.asm
-	$(NM) -n $@ > $@.sym
+	@echo ld $@
+	@$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) -b binary $(KERN_BINFILES)
+	@$(OBJDUMP) -S $@ > $@.asm
+	@$(NM) -n $@ > $@.sym
 
 # How to build the Bochs disk image
 $(OBJDIR)/kern/bochs.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/boot
-	dd if=/dev/zero of=$(OBJDIR)/kern/bochs.img~ count=10000 2>/dev/null
-	dd if=$(OBJDIR)/boot/boot of=$(OBJDIR)/kern/bochs.img~ conv=notrunc 2>/dev/null
-	dd if=$(OBJDIR)/kern/kernel of=$(OBJDIR)/kern/bochs.img~ seek=1 conv=notrunc 2>/dev/null
-	mv $(OBJDIR)/kern/bochs.img~ $(OBJDIR)/kern/bochs.img
+	@echo mk $@
+	@dd if=/dev/zero of=$(OBJDIR)/kern/bochs.img~ count=10000 2>/dev/null
+	@dd if=$(OBJDIR)/boot/boot of=$(OBJDIR)/kern/bochs.img~ conv=notrunc 2>/dev/null
+	@dd if=$(OBJDIR)/kern/kernel of=$(OBJDIR)/kern/bochs.img~ seek=1 conv=notrunc 2>/dev/null
+	@mv $(OBJDIR)/kern/bochs.img~ $(OBJDIR)/kern/bochs.img
 
 all: $(OBJDIR)/kern/bochs.img
 
 grub: $(OBJDIR)/jos-grub
 
 $(OBJDIR)/jos-grub: $(OBJDIR)/kern/kernel
-	objcopy --adjust-vma=0x10000000 $^ $@
+	@echo oc $@
+	@objcopy --adjust-vma=0x10000000 $^ $@

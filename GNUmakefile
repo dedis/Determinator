@@ -95,14 +95,14 @@ all:
 
 # Rules for building regular object files
 $(OBJDIR)/%.o: %.c
-#	@echo cc $<
+	@echo cc $<
 	@mkdir -p $(@D)
-	$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
+	@$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/%.o: %.S
-#	@echo as $<
+	@echo as $<
 	@mkdir -p $(@D)
-	$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
+	@$(CC) -nostdinc $(CFLAGS) -c -o $@ $<
 
 
 # Setup a prefix for the GCC tools if we're cross-compiling.
