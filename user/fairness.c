@@ -14,13 +14,13 @@ umain(void)
 
 	if (env == &envs[1]) {
 		for (;;) {
-			ipc_recv(&who);
+			ipc_recv(&who, 0, 0);
 			printf("%x recv from %x\n", id, who);
 		}
 	} else {
 		printf("%x loop sending to %x\n", id, envs[1].env_id);
 		for (;;)
-			ipc_send(envs[1].env_id, 0);
+			ipc_send(envs[1].env_id, 0, 0, 0);
 	}
 }
 

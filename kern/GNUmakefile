@@ -38,6 +38,7 @@ SRCFILES += $(shell test -f ../trap.c && echo "trap.c")
 SRCFILES += $(shell test -f ../lab3.S && echo "lab3.S")
 SRCFILES += $(shell test -f ../sched.c && echo "sched.c")
 SRCFILES += $(shell test -f ../syscall.c && echo "syscall.c")
+SRCFILES += $(shell test -f ../ide.c && echo "ide.c")
 
 EXTRAOBJ = 
 EXTRAOBJ += $(shell test -f ../../user/kenv0/kenv0.b.s && echo "kenv0.b.o")

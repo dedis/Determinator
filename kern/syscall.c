@@ -49,13 +49,17 @@ sys_env_destroy(void)
 // Block until a value is ready.  Record that you want to receive,
 // mark yourself not runnable, and then give up the CPU.
 static void
-sys_ipc_recv(void)
+sys_ipc_recv(u_int dstva)
 {
 #if SOL >= 4
 	if(curenv->env_ipc_recving)
 		panic("already recving!");
 
+	if (dstva >= UTOP)
+		panic("invalid dstva");
+
 	curenv->env_ipc_recving = 1;
+	curenv->env_ipc_dstva = dstva;
 	curenv->env_status = ENV_NOT_RUNNABLE;
 	sched_yield();
 #else
@@ -65,6 +69,8 @@ sys_ipc_recv(void)
 }
 
 // Try to send 'value' to the target env 'envid'.
+// If va != 0, then also send page currently mapped at va,
+// so that receiver gets a duplicate mapping of the same page.
 //
 // The send fails with a return value of -E_IPC_NOT_RECV if the
 // target has not requested IPC with sys_ipc_recv.
@@ -78,18 +84,42 @@ sys_ipc_recv(void)
 //
 // Return 0 on success, < 0 on error.
 //
-// Hint: the only function you need to call is envid2env.
+// If the sender sends a page but the receiver isn't asking for one,
+// then no page mapping is transferred but no error occurs.
+//
+// Hint: you will find envid2env() useful.
 static int
-sys_ipc_can_send(u_int envid, u_int value)
+sys_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm)
 {
 #if SOL >= 4
 	int r;
 	struct Env *e;
+	struct Page *p;
 
 	if ((r=envid2env(envid, &e, 0)) < 0)
 		return r;
 	if (!e->env_ipc_recving)
 		return -E_IPC_NOT_RECV;
+
+	if (srcva != 0 && e->env_ipc_dstva != 0) {
+
+		if (srcva >= UTOP)
+			return -E_INVAL;
+		if (((~perm)&(PTE_U|PTE_P)) ||
+		    (perm&~(PTE_U|PTE_P|PTE_AVAIL|PTE_W)))
+			return -E_INVAL;
+
+		p = page_lookup(curenv->env_pgdir, srcva, 0);
+		if (p == 0)
+			return -E_INVAL;
+		r = page_insert(e->env_pgdir, p, e->env_ipc_dstva, perm);
+		if (r < 0)
+			return r;
+
+		e->env_ipc_perm = perm;
+	} else {
+		e->env_ipc_perm = 0;
+	}
 
 	e->env_ipc_recving = 0;
 	e->env_ipc_from = curenv->env_id;
@@ -276,49 +306,6 @@ sys_set_env_status(u_int envid, u_int status)
 #endif
 }
 
-#if LAB >= 5
-#define BY2SECT 512
-
-static void
-read_block(u_int diskno, u_int blockno, void *dst)
-{
-	u_int n;
-
-	while(inb(0x1F7)&0x80);
-
-	outb(0x1F2, BY2PG/BY2SECT);
-	n = blockno*(BY2PG/BY2SECT);
-	outb(0x1F3, n & 0xFF);
-	outb(0x1F4, (n>>8) & 0xFF);
-	outb(0x1F5, (n>>16) & 0xFF);
-	outb(0x1F6, 0xE0 | ((diskno&1)<<4) | ((n>>24)&0x0F));
-	outb(0x1F7, 0x20);	// CMD 0x20 means read sector
-
-	while(inb(0x1F7)&0x80);
-
-	insl(0x1F0, dst, BY2PG/4);
-}
-
-static int
-sys_disk_read(u_int diskno, u_int blockno, u_int va)
-{
-	int ret;
-#if 0
-	warn("diskno %d, blockno %d, va 0x%x\n", diskno, blockno, va);
-#endif
-
-	if (va >= UTOP)
-		return -E_INVAL;
-
-	ret = sys_mem_alloc(0, va, PTE_U|PTE_W|PTE_P);
-	if (ret < 0)
-		return ret;
-
-	read_block(diskno, blockno, (char *)va);
-	return 0;
-}
-#endif
-
 // Dispatches to the correct kernel function, passing the arguments.
 int
 syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
@@ -341,9 +328,9 @@ syscall(u_int sn, u_int a1, u_int a2, u_int a3, u_int a4, u_int a5)
 	case SYS_env_alloc:
 		return sys_env_alloc();
 	case SYS_ipc_can_send:
-		return sys_ipc_can_send(a1, a2);
+		return sys_ipc_can_send(a1, a2, a3, a4);
 	case SYS_ipc_recv:
-		sys_ipc_recv();
+		sys_ipc_recv(a1);
 		return 0;
 	case SYS_set_pgfault_handler:
 		return sys_set_pgfault_handler(a1, a2, a3);

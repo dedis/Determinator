@@ -16,16 +16,16 @@ umain(void)
 		printf("i am %08x; env is %p\n", sys_getenvid(), env);
 		// get the ball rolling
 		printf("send 0 from %x to %x\n", sys_getenvid(), who);
-		ipc_send(who, 0);
+		ipc_send(who, 0, 0, 0);
 	}
 
 	for (;;) {
-		ipc_recv(&who);
+		ipc_recv(&who, 0, 0);
 		printf("%x got %d from %x (env is %p %x)\n", sys_getenvid(), val, who, env, env->env_id);
 		if (val == 10)
 			return;
 		++val;
-		ipc_send(who, 0);
+		ipc_send(who, 0, 0, 0);
 		if (val == 10)
 			return;
 	}

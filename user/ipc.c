@@ -9,12 +9,12 @@
 //
 // Hint: use sys_yield() to be CPU-friendly.
 void
-ipc_send(u_int whom, u_int val)
+ipc_send(u_int whom, u_int val, u_int srcva, u_int perm)
 {
 #if SOL >= 4
 	int r;
 
-	while ((r=sys_ipc_can_send(whom, val)) == -E_IPC_NOT_RECV)
+	while ((r=sys_ipc_can_send(whom, val, srcva, perm)) == -E_IPC_NOT_RECV)
 		sys_yield();
 	if(r == 0)
 		return;
@@ -30,11 +30,14 @@ ipc_send(u_int whom, u_int val)
 //
 // Hint: use env to discover the value and who sent it.
 u_int
-ipc_recv(u_int *whom)
+ipc_recv(u_int *whom, u_int dstva, u_int *perm)
 {
 #if SOL >= 4
-	sys_ipc_recv();
-	*whom = env->env_ipc_from;
+	sys_ipc_recv(dstva);
+	if (whom)
+		*whom = env->env_ipc_from;
+	if (perm)
+		*perm = env->env_ipc_perm;
 	return env->env_ipc_value;
 #else
 	// Your code here

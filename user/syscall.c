@@ -59,10 +59,10 @@ sys_getenvid(void)
 }
 
 int
-sys_ipc_can_send(u_int a1, u_int a2)
+sys_ipc_can_send(u_int envid, u_int value, u_int srcva, u_int perm)
 {
 #if SOL >= 4
-	return syscall(SYS_ipc_can_send, a1, a2, 0, 0, 0);
+	return syscall(SYS_ipc_can_send, envid, value, srcva, perm, 0);
 #else
 	// Your code here.
 	panic("sys_ipc_can_send not implemented");
@@ -70,10 +70,10 @@ sys_ipc_can_send(u_int a1, u_int a2)
 }
 
 void
-sys_ipc_recv(void)
+sys_ipc_recv(u_int dstva)
 {
 #if SOL >= 4
-	syscall(SYS_ipc_recv, 0, 0, 0, 0, 0);
+	syscall(SYS_ipc_recv, dstva, 0, 0, 0, 0);
 #else
 	// Your code here.
 	panic("sys_ipc_recv not implemented");

@@ -15,3 +15,8 @@ After this year's class is over (fall 2003), we should:
   so that conditional "#if LAB >= N" ones are at the end.
 
 - Get rid of xstacktop parameter to sys_set_pgfault_handler
+
+- Organize all the test programs in user/ a bit better,
+  maybe in a separate test/ directory?
+
+- Update lab4 so IPC can transfer page mappings

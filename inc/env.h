@@ -30,6 +30,8 @@ struct Env {
 	u_int env_ipc_value;            // data value sent to us 
 	u_int env_ipc_from;             // envid of the sender  
 	u_int env_ipc_recving;          // env is blocked receiving
+	u_int env_ipc_dstva;		// va at which to map received page
+	u_int env_ipc_perm;		// perm of page mapping received
 
 	// Lab 4 fault handling
 	u_int env_pgfault_handler;      // page fault state
