@@ -39,7 +39,7 @@ page2pa(struct Page *pp)
 static inline struct Page *
 pa2page(u_long pa)
 {
-	if (pa >= npage)
+	if (PPN(pa) >= npage)
 		panic("pa2page called with invalid pa");
 	return &pages[PPN(pa)];
 }
