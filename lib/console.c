@@ -3,7 +3,8 @@
 #include <inc/string.h>
 #include <inc/lib.h>
 
-void putchar(int ch)
+void
+putchar(int ch)
 {
 #if LAB >= 6
 	unsigned char c = ch;
@@ -22,7 +23,8 @@ void putchar(int ch)
 #endif	// not LAB >= 6
 }
 
-int getchar(void)
+int
+getchar(void)
 {
 #if LAB >= 6
 	unsigned char c;
