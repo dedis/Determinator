@@ -76,11 +76,11 @@
  *	@(#)subr_prf.c	8.3 (Berkeley) 1/21/94
  */
 
-#include <kern/inc/stdarg.h>
-#include <kern/inc/types.h>
-#include <kern/inc/picirq.h>
-#include <kern/inc/console.h>
-#include <kern/inc/printf.h>
+#include <inc/stdarg.h>
+#include <inc/types.h>
+#include <kern/picirq.h>
+#include <kern/console.h>
+#include <kern/printf.h>
 
 /*
  * Put a number (base <= 16) in a buffer in reverse order; return an

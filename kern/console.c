@@ -79,13 +79,13 @@
  * hence the above copyright probably applies.
  */
 
-#include <kern/inc/x86.h>
-#include <kern/inc/pmap.h>
-#include <kern/inc/console.h>
-#include <kern/inc/mmu.h>
-#include <kern/inc/printf.h>
-#include <kern/inc/picirq.h>
-#include <kern/inc/kbdreg.h>
+#include <inc/x86.h>
+#include <inc/mmu.h>
+#include <inc/kbdreg.h>
+#include <kern/pmap.h>
+#include <kern/console.h>
+#include <kern/printf.h>
+#include <kern/picirq.h>
 
 static unsigned addr_6845;
 static unsigned short *crt_buf;

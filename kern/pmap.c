@@ -35,14 +35,14 @@
  * the copyright notices, if any, listed below.
  */
 
-#include <kern/inc/x86.h>
-#include <kern/inc/pmap.h>
-#include <kern/inc/mmu.h>
-#include <kern/inc/env.h>
-#include <kern/inc/syscall.h>
-#include <kern/inc/scheduler.h>
-#include <kern/inc/printf.h>
-#include <kern/inc/kclock.h>
+#include <inc/x86.h>
+#include <inc/mmu.h>
+#include <kern/pmap.h>
+#include <kern/env.h>
+#include <kern/syscall.h>
+#include <kern/sched.h>
+#include <kern/printf.h>
+#include <kern/kclock.h>
 
 unsigned int freemem;           /* Pointer to next byte of free mem */
 unsigned int p0cr3_boot;        /* Physical address of boot time pg dir */  

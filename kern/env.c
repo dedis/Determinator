@@ -35,13 +35,13 @@
  * the copyright notices, if any, listed below.
  */
 
-#include <kern/inc/mmu.h>
-#include <kern/inc/env.h>
-#include <kern/inc/pmap.h>
-#include <kern/inc/syscall.h>
-#include <kern/inc/scheduler.h>
-#include <kern/inc/printf.h>
-#include <kern/inc/x86.h>
+#include <inc/x86.h>
+#include <inc/mmu.h>
+#include <kern/env.h>
+#include <kern/pmap.h>
+#include <kern/syscall.h>
+#include <kern/sched.h>
+#include <kern/printf.h>
 
 struct Env *__envs = NULL;		/* All environments */
 static struct Env_list env_free_list;	/* Free list */

@@ -3,8 +3,8 @@
 #ifndef _SYSCALL_H_
 #define _SYSCALL_H_
 
-#include <kern/inc/types.h>
-#include <kern/inc/trap.h>
+#include <inc/types.h>
+#include <kern/trap.h>
 
 /* system call numbers */
 #define SYS_getenvid              0
@@ -44,36 +44,8 @@
 				   the maximum allowed */
 #define E_IPC_BLOCKED   6       /* Attempt to ipc to env blocking ipc's */
 
-#ifdef KERNEL
-// These prototypes are seen by the kernel.
 
-
-///BEGIN 200
-#if 0
-///END
-int dispatch_syscall (u_int, u_int, u_int, u_int);
-///BEGIN 200
-#endif
-int dispatch_syscall (u_int, u_int, u_int, u_int, u_int);
-///END
-u_int sys_getenvid ();
-void sys_cputu (u_int);
-void sys_cputs (char *);
-void sys_yield ();
-void sys_env_destroy ();
-int sys_env_alloc (u_int, u_int);
-int sys_ipc_send (u_int, u_int);
-void sys_ipc_unblock ();
-void sys_set_pgfault_handler (u_int, u_int);
-int sys_mod_perms (u_int, u_int, u_int);
-int sys_set_env_status (u_int, u_int);
-int sys_mem_unmap (u_int, u_int);
-int sys_mem_alloc (u_int, u_int, u_int);
-int sys_mem_remap (u_int, u_int, u_int, u_int);
-int sys_disk_read (u_int, u_int, u_int);
-
-
-#else
+#ifdef INLINE_SYSCALLS
 
 // These functions are seen by user processes.
 
@@ -272,8 +244,8 @@ sys_disk_read (u_int a1, u_int a2, u_int a3)
 
 ///END
 
+#endif /* INLINE_SYSCALLS */
 
-#endif /* KERNEL */
 
 #endif /* !_SYSCALL_H_ */
 ///END

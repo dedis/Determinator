@@ -1,8 +1,8 @@
 ///BEGIN 3
-#include <kern/inc/env.h>
-#include <kern/inc/pmap.h>
-#include <kern/inc/picirq.h>
-#include <kern/inc/printf.h>
+#include <kern/env.h>
+#include <kern/pmap.h>
+#include <kern/picirq.h>
+#include <kern/printf.h>
 
 void
 clock ()

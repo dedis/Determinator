@@ -35,23 +35,27 @@
  * the copyright notices, if any, listed below.
  */
 
-#ifndef _CONSOLE_H_
-#define _CONSOLE_H_
+#ifndef _KERN_ENV_H_
+#define _KERN_ENV_H_
 
-#include <kern/inc/types.h>
+#include <inc/env.h>
 
-#define MONO_BASE 0x3b4
-#define MONO_BUF 0xb0000
-#define CGA_BASE 0x3d4
-#define CGA_BUF 0xb8000
 
-#define CRT_ROWS 25
-#define CRT_COLS 80
-#define CRT_SIZE (CRT_ROWS * CRT_COLS)
+LIST_HEAD(Env_list, Env);
+extern struct Env *__envs;		/* All environments */
+extern struct Env *curenv;	        /* the current env */
 
-void cninit (void);
-void kbd_init (void);
-void cnputc (short int c);
-u_int cb_copybuf (char *buf, u_int maxlen);
 
-#endif /* _CONSOLE_H_ */
+void env_init (void);
+int env_alloc (struct Env **e, u_int parent_id);
+void env_free (struct Env *);
+void env_create (u_char *binary, int size);
+void env_destroy (struct Env *e);
+
+struct Env *envid2env (u_int envid, int *error);
+void load_aout (struct Env* e, u_char *binary, u_int size);
+void env_run (struct Env *e);
+void env_pop_tf (struct Trapframe *tf);
+
+
+#endif /* !_KERN_ENV_H_ */

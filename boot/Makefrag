@@ -1,0 +1,20 @@
+#///BEGIN 1
+#
+# Makefile fragment for 6.828 kernel.
+# This is NOT a complete makefile;
+# you must run GNU make in the top-level directory
+# where the GNUmakefile is located.
+#
+
+OBJDIRS += boot
+CLEAN_FILES += boot/boot boot/boot.out
+
+BOOT_OBJS := boot/boot.o boot/main.o
+
+
+boot/boot: $(BOOT_OBJS)
+	i386-osclass-aout-ld -N -e start -Ttext 0x7C00 -o $@.out $^
+	i386-osclass-aout-objcopy -S -O binary $@.out $@
+
+
+#///END

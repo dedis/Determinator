@@ -1,4 +1,4 @@
-///BEGIN 2
+
 /*
  * Copyright (C) 1997 Massachusetts Institute of Technology 
  *
@@ -35,43 +35,23 @@
  * the copyright notices, if any, listed below.
  */
 
-/* The Run Time Clock and other NVRAM access functions that go with it. */
-/* The run time clock is hard-wired to IRQ8. */
+#ifndef _CONSOLE_H_
+#define _CONSOLE_H_
 
-#include <inc/x86.h>
-#include <inc/isareg.h>
-#include <inc/timerreg.h>
-#include <kern/picirq.h>
-#include <kern/env.h>
-#include <kern/printf.h>
-#include <kern/kclock.h>
+#include <inc/types.h>
 
+#define MONO_BASE 0x3b4
+#define MONO_BUF 0xb0000
+#define CGA_BASE 0x3d4
+#define CGA_BUF 0xb8000
 
-u_int
-mc146818_read(void *sc, u_int reg)
-{
-  outb(IO_RTC, reg);
-  return (inb(IO_RTC+1));
-}
+#define CRT_ROWS 25
+#define CRT_COLS 80
+#define CRT_SIZE (CRT_ROWS * CRT_COLS)
 
-void
-mc146818_write(void *sc, u_int reg, u_int datum)
-{
-  outb(IO_RTC, reg);
-  outb(IO_RTC+1, datum);
-}
+void cninit (void);
+void kbd_init (void);
+void cnputc (short int c);
+u_int cb_copybuf (char *buf, u_int maxlen);
 
-
-void
-clock_init()
-{
-  /* initialize 8253 clock to interrupt 100 times/sec */
-  outb(TIMER_MODE, TIMER_SEL0|TIMER_RATEGEN|TIMER_16BIT);
-  outb(IO_TIMER1, TIMER_DIV(100) % 256);
-  outb(IO_TIMER1, TIMER_DIV(100) / 256);
-  printf ("  Setup timer interrupts via 8259A\n");
-  irq_setmask_8259A (irq_mask_8259A & 0xfffa);
-  printf ("  unmasked timer interrupt\n");
-}
-
-///END
+#endif /* _CONSOLE_H_ */

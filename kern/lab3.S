@@ -1,5 +1,5 @@
 #///BEGIN 3	
-#include <kern/inc/mmu.h>
+#include <inc/mmu.h>
 
 .global _div0_start
 _div0_start:

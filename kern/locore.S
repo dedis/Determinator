@@ -36,10 +36,10 @@
  */
 
 
-#include <kern/inc/asm.h>
-#include <kern/inc/mmu.h>
-#include <kern/inc/trap.h>
-#include <kern/inc/picirq.h>
+#include <inc/asm.h>
+#include <inc/mmu.h>
+#include <kern/trap.h>
+#include <kern/picirq.h>
 
 ###################################################################
 # The kernel (this code) is linked at address ~(KERNBASE + 1 Meg), 

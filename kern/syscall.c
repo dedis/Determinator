@@ -35,12 +35,12 @@
  * the copyright notices, if any, listed below.
  */
 
-#include <kern/inc/env.h>
-#include <kern/inc/pmap.h>
-#include <kern/inc/syscall.h>
-#include <kern/inc/console.h>
-#include <kern/inc/printf.h>
-#include <kern/inc/x86.h>
+#include <inc/x86.h>
+#include <kern/env.h>
+#include <kern/pmap.h>
+#include <kern/syscall.h>
+#include <kern/console.h>
+#include <kern/printf.h>
 
 ///BEGIN 200
 u_int (*sctab[MAX_SYSCALL + 1])() = {

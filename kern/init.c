@@ -35,15 +35,15 @@
  * the copyright notices, if any, listed below.
  */
 
-#include <kern/inc/pmap.h>
-#include <kern/inc/env.h>
-#include <kern/inc/trap.h>
-#include <kern/inc/scheduler.h>
-#include <kern/inc/console.h>
-#include <kern/inc/printf.h>
-#include <kern/inc/picirq.h>
-#include <kern/inc/kclock.h>
-#include <kern/inc/asm.h>
+#include <inc/asm.h>
+#include <kern/pmap.h>
+#include <kern/env.h>
+#include <kern/trap.h>
+#include <kern/sched.h>
+#include <kern/console.h>
+#include <kern/printf.h>
+#include <kern/picirq.h>
+#include <kern/kclock.h>
 ///END
 
 
@@ -87,16 +87,24 @@ i386_init (void)
 #endif
 ///END
 
+#if 0
 ///BEGIN 5
   {
-    extern u_char simple_bin[];	/* the binary for the user prog */
-    extern const u_int simple_bin_size;
-    extern u_char kenv0_bin[];	/* the binary for the idle loop */
-    extern const u_int kenv0_bin_size;
-    env_create (kenv0_bin, kenv0_bin_size);
-    env_create (simple_bin, simple_bin_size);
+    /* the binary for the user prog */
+    extern u_char binary_user_simple_simple_start[];
+    extern u_char binary_user_simple_simple_size[];
+
+    /* the binary for the idle loop */
+    extern u_char binary_user_kenv0_kenv0_start[];
+    extern u_char binary_user_kenv0_kenv0_size[];
+
+    env_create (binary_user_kenv0_kenv0_start,
+		(u_int)binary_user_kenv0_kenv0_size);
+    env_create (binary_user_simple_simple_start,
+		(u_int)binary_user_simple_simple_size);
   }
 ///END
+#endif
 
   yield ();
 ///END  

@@ -1,0 +1,10 @@
+#///BEGIN 4
+
+OBJDIRS += tools/mkimg
+
+tools/mkimg/mkimg: tools/mkimg/mkimg.c
+	$(NCC) $(CFLAGS) -o $@ $<
+
+all: tools/mkimg/mkimg
+
+#///END

@@ -1,14 +1,14 @@
 ///BEGIN 3
-#include <kern/inc/pmap.h>
-#include <kern/inc/mmu.h>
-#include <kern/inc/trap.h>
-#include <kern/inc/env.h>
-#include <kern/inc/syscall.h>
-#include <kern/inc/scheduler.h>
-#include <kern/inc/console.h>
-#include <kern/inc/printf.h>
-#include <kern/inc/picirq.h>
-#include <kern/inc/kclock.h>
+#include <inc/mmu.h>
+#include <kern/pmap.h>
+#include <kern/trap.h>
+#include <kern/env.h>
+#include <kern/syscall.h>
+#include <kern/sched.h>
+#include <kern/console.h>
+#include <kern/printf.h>
+#include <kern/picirq.h>
+#include <kern/kclock.h>
 
 u_int page_fault_mode = PFM_NONE;
 static struct Ts ts;

@@ -168,7 +168,7 @@
 
 #ifndef __ASSEMBLER__
 
-#include <kern/inc/types.h>
+#include <inc/types.h>
 
 /* These macros take a user supplied address and turn it into
  * something that will cause a fault if it is a kernel address.  ULIM

@@ -1,4 +1,4 @@
-///BEGIN 2
+
 /*
  * Copyright (C) 1997 Massachusetts Institute of Technology 
  *
@@ -35,43 +35,54 @@
  * the copyright notices, if any, listed below.
  */
 
-/* The Run Time Clock and other NVRAM access functions that go with it. */
-/* The run time clock is hard-wired to IRQ8. */
+#ifndef _KERN_PMAP_H_
+#define _KERN_PMAP_H_
 
-#include <inc/x86.h>
-#include <inc/isareg.h>
-#include <inc/timerreg.h>
-#include <kern/picirq.h>
-#include <kern/env.h>
+#include <inc/pmap.h>
 #include <kern/printf.h>
-#include <kern/kclock.h>
+#include <kern/trap.h>
 
+extern struct seg_desc gdt[];
+extern struct pseudo_desc gdt_pd;
+extern struct Ppage *ppages;
+extern u_long nppage;
+extern unsigned int p0cr3_boot;
+extern Pde *p0pgdir_boot;
 
-u_int
-mc146818_read(void *sc, u_int reg)
+void i386_vm_init ();
+void i386_detect_memory ();
+void ppage_init (void);
+int  ppage_alloc (struct Ppage **);
+void ppage_free (struct Ppage *);
+int  ppage_insert (Pde *, struct Ppage *, u_int, u_int);
+void ppage_remove (Pde *, u_int va);
+void tlb_invalidate (u_int, Pde *);
+
+/* translates from a Ppage structure to a physical address */
+#define pp2pa(ppage_p) ((u_long) (pp2ppn (ppage_p) << PGSHIFT))
+
+/* translates from a Ppage structure to a virtual address */
+#define pp2va(ppage_p) ((void *) (KERNBASE + pp2pa (ppage_p)))
+
+static inline int 
+pp2ppn(struct Ppage* pp)
 {
-  outb(IO_RTC, reg);
-  return (inb(IO_RTC+1));
+  return ((pp) - ppages);
 }
 
-void
-mc146818_write(void *sc, u_int reg, u_int datum)
+static inline struct Ppage* 
+kva2pp(u_long kva)
 {
-  outb(IO_RTC, reg);
-  outb(IO_RTC+1, datum);
+  u_long ppn = ((u_long) (kva) - KERNBASE) >> PGSHIFT;
+  if (ppn >= nppage)
+    panic ("%s:%d: kva2pp called with invalid kva",
+	   __FUNCTION__, __LINE__);
+  return &ppages[ppn];
 }
 
+int pgdir_check_and_alloc (Pde *pgdir, u_int va);
+Pte *pgdir_get_ptep (Pde *pgdir, u_int va);
+int pmap_insert_pte (Pde *pd, u_int va, Pte pte);
 
-void
-clock_init()
-{
-  /* initialize 8253 clock to interrupt 100 times/sec */
-  outb(TIMER_MODE, TIMER_SEL0|TIMER_RATEGEN|TIMER_16BIT);
-  outb(IO_TIMER1, TIMER_DIV(100) % 256);
-  outb(IO_TIMER1, TIMER_DIV(100) / 256);
-  printf ("  Setup timer interrupts via 8259A\n");
-  irq_setmask_8259A (irq_mask_8259A & 0xfffa);
-  printf ("  unmasked timer interrupt\n");
-}
+#endif /* _KERN_PMAP_H_ */
 
-///END

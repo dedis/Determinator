@@ -1,7 +1,7 @@
 #ifndef _X86_H_
 #define _X86_H_
 
-#include <kern/inc/types.h>
+#include <inc/types.h>
 
 static __inline u_int8_t
 inb(int port)

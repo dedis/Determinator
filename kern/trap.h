@@ -68,7 +68,7 @@
 
 #ifndef __ASSEMBLER__
 
-#include <kern/inc/types.h>
+#include <inc/types.h>
 
 extern struct gate_desc idt[];
 void idt_init ();

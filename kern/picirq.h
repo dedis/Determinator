@@ -49,8 +49,8 @@
 
 #ifndef __ASSEMBLER__
 
-#include <kern/inc/types.h>
-#include <kern/inc/x86.h>
+#include <inc/types.h>
+#include <inc/x86.h>
 
 extern u_short irq_mask_8259A;
 void pic_init (void);

@@ -1,0 +1,19 @@
+#///BEGIN 4
+
+USER_SUBDIRS := kenv0 simple ls
+CLEAN_FILES += user/bochs.img
+
+include user/kenv0/Makefrag
+include user/simple/Makefrag
+include user/ls/Makefrag
+
+
+user/bochs.img: $(foreach sub,$(USER_SUBDIRS),user/$(sub)/$(sub)) \
+		tools/mkimg/mkimg
+	(cd user; ../tools/mkimg/mkimg bochs.img~ -c)
+	(cd user; ../tools/mkimg/mkimg bochs.img~ -a $(USER_SUBDIRS))
+	mv user/bochs.img~ user/bochs.img
+
+all: user/bochs.img
+
+#///END

@@ -35,7 +35,7 @@
  * the copyright notices, if any, listed below.
  */
 
-#include <kern/inc/picirq.h>
+#include <kern/picirq.h>
 
 /* Keep copy of current IRQ mask */
 u_short irq_mask_8259A;
