@@ -55,6 +55,39 @@ include boot/Makefrag
 	$(TOP)/tools/bintoc/bintoc -S $< $*_bin > $@~ && $(MV) -f $@~ $@
 
 
+#///LAB200
+# Find all potentially exportable files
+LAB_PATS := Makefrag *.c *.h *.S
+LAB_DIRS := inc user $(OBJDIRS)
+LAB_FILES := GNUmakefile .bochsrc mergedep.pl grade.sh \
+	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
+
+BIOS_FILES := bios/BIOS-bochs-latest bios/VGABIOS-elpin-2.40
+
+CLEAN_FILES += bios lab? sol?
+
+# Fake targets to export the student lab handout and solution trees.
+# It's important that these aren't just called 'lab%' and 'sol%',
+# because that causes 'lab%' to match 'kern/lab3.S' and delete it - argh!
+export-lab%: $(BIOS_FILES)
+	rm -rf lab$*
+	$(PERL) mklab.pl $* 0 $(LAB_FILES)
+	cp -R bios lab$*/
+export-sol%: $(BIOS_FILES)
+	rm -rf sol$*
+	$(PERL) mklab.pl $* 1 $(LAB_FILES)
+	cp -R bios sol$*/
+
+# Distribute the BIOS images Bochs needs with the lab trees
+# in order to avoid absolute pathname dependencies in .bochsrc.
+bios:
+	mkdir $@
+bios/%: /usr/local/share/bochs/bios/% bios
+	cp $< $@
+all: $(BIOS_FILES)
+#///END
+
+
 # For cleaning the source tree
 clean:
 	rm -rf $(CLEAN_FILES) $(foreach dir,$(OBJDIRS), \
@@ -77,34 +110,3 @@ handin: clean
 
 -include .deps
 
-
-#///LAB200
-
-# Find all potentially exportable files
-LAB_PATS := Makefrag *.c *.h *.S
-LAB_DIRS := inc user $(OBJDIRS)
-LAB_FILES := GNUmakefile .bochsrc mergedep.pl grade.sh \
-	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
-
-
-# Fake targets to export the student lab handout and solution trees.
-# It's important that these aren't just called 'lab%' and 'sol%',
-# because that causes 'lab%' to match 'kern/lab3.S' and delete it - argh!
-export-lab%: bios
-	rm -rf lab$*
-	$(PERL) mklab.pl $* 0 $(LAB_FILES)
-	cp -R bios lab$*/
-export-sol%: bios
-	rm -rf sol$*
-	$(PERL) mklab.pl $* 1 $(LAB_FILES)
-	cp -R bios sol$*/
-
-# Distribute the BIOS images Bochs needs with the lab trees
-# in order to avoid absolute pathname dependencies in .bochsrc.
-bios:
-	mkdir $@
-bios/%: /usr/local/share/bochs/bios/% bios
-	cp $< $@
-all: bios/BIOS-bochs-latest bios/VGABIOS-elpin-2.40
-
-#///END
