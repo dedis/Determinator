@@ -16,5 +16,11 @@
 
 #define MAXERROR 6
 
+
+// File system error codes
+#define E_NO_SPACE	100	// No free space left on disk
+#define E_MAX_OPEN	101	// Open-file limit reached
+
+
 #endif // _ERROR_H_
 #endif // LAB >= 2
