@@ -1,6 +1,5 @@
 #if LAB >= 6
 
-#include <inc/stdio.h>
 #include <inc/lib.h>
 
 int debug = 0;
@@ -260,15 +259,19 @@ umain(int argc, char **argv)
 		char *buf;
 
 		buf = readline(interactive ? "$ " : NULL);
-		if (buf == NULL)
+		if (buf == NULL){
+			if (debug) printf("EXITING\n");
 			exit();	// end of file
+		}
 		if (debug) printf("LINE: %s\n", buf);
 		if (buf[0] == '#')
 			continue;
 		if (echocmds)
 			fprintf(1, "# %s\n", buf);
+		if (debug) printf("BEFORE FORK\n");
 		if ((r = fork()) < 0)
 			panic("fork: %e", r);
+		if (debug) printf("FORK: %d\n", r);
 		if (r == 0) {
 			runcmd(buf);
 			exit();
