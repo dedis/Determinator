@@ -50,6 +50,8 @@ malloc(u_int n)
 	if(mptr == 0)
 		mptr = mbegin;
 
+	n = ROUND(n, 4);
+
 	if(n >= MAXMALLOC)
 		return 0;
 
