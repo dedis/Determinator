@@ -62,7 +62,7 @@ alloc_range(int initaddr, int maxpa, int startn) {
   // - limit to 256 M worth of pages
   for (va = initva; va < maxva; va += BY2PG, n++) { 
     // alloc a page 
-    if ((r = sys_mem_alloc(0, va, PTE_P | PTE_U | PTE_W | PTE_USER)) < 0) { 
+    if ((r = sys_mem_alloc(0, va, PTE_P | PTE_U | PTE_W | PTE_AVAIL)) < 0) { 
       //printf("\nsys_mem_alloc failed: %e", r);
       break;
     }
@@ -101,7 +101,7 @@ test_range(int startva, int endva, int startn) {
       failures++;
     } else {
       Pte pte = vpt[VPN(va)];
-      int perm = (PTE_U | PTE_P | PTE_W | PTE_USER);
+      int perm = (PTE_U | PTE_P | PTE_W | PTE_AVAIL);
 
       if ((pte & perm) != perm) {
 	printf("\n[%08x] unexpected PTE permissions [04x] for address [%08x]\n {", env->env_id, pte & perm, va);
