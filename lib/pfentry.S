@@ -21,7 +21,7 @@
 //	trap-time errcode
 //	trap-time va		<-- %esp
 //
-// We then have to save additional callee-saved registers
+// We then have to save additional caller-saved registers
 // and call up to the appropriate page fault handler in C code,
 // pointed to by the global variable '_pgfault_handler' declared above.
 
