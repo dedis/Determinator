@@ -24,6 +24,15 @@ strcpy(char *dst, const char *src)
 	return ret;
 }
 
+const char*
+strchr(const char *s, char c)
+{
+	for(; *s; s++)
+		if(*s == c)
+			return s;
+	return 0;
+}
+
 void
 bzero(void *v, u_int n)
 {

@@ -26,6 +26,7 @@ void	bzero(void*, u_int);
 char*	strcpy(char*, const char*);
 int	strlen(const char*);
 int	strcmp(const char*, const char*);
+const char*	strchr(const char*, char);
 
 // libos.c or entry.S
 extern struct Env *env;
@@ -37,6 +38,9 @@ void	exit(void);
 #define	PTE_SHARED	0x400
 int	fork(void);
 int	sfork(void);	// Challenge!
+
+// wait.c
+void	wait(u_int);
 
 // pgfault.c
 void	set_pgfault_handler(void(*)(u_int va, u_int err));
@@ -99,6 +103,7 @@ void	fd_close_all(void);
 void	fd_fork_all(void);
 int	pipe(int[2]);
 int	readn(int fd, void *buf, u_int nbytes);
+int	dup(int oldfd, int newfd);
 
 // spawn.c
 int	spawn(char*, char**);

@@ -86,6 +86,23 @@ fd_close_all(void)
 		close(i);
 }
 
+int
+movefd(int oldfd, int newfd)
+{
+	int r;
+	struct Fileinfo *fi;
+
+	if ((r = fd_lookup(oldfd, &fi)) < 0)
+		return r;
+	if (newfd < 0 || newfd >= MAXFD)
+		return -E_INVAL;
+	if (oldfd == newfd)
+		return 0;
+	close(newfd);
+	fdtab[newfd] = *fi;
+	fi->fi_busy = 0;
+}
+
 // Open a file (or directory),
 // returning the file descriptor on success, < 0 on failure.
 int
