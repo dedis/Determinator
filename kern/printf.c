@@ -4,6 +4,7 @@
 
 #include <inc/stdarg.h>
 #include <inc/types.h>
+#include <inc/error.h>
 #include <kern/picirq.h>
 #include <kern/console.h>
 #include <kern/printf.h>
@@ -169,10 +170,10 @@ kprintf(const char *fmt, va_list ap)
 			n = va_arg(ap, int);
 			if(n < 0)
 				n = -n;
-			if(n > NERROR || (p = error_string[n]) == NULL)
-				kprintf("error %d", n);
+			if(n > NERRORS || (p = error_string[n]) == NULL)
+				printf("error %d", n);
 			else
-				kprintf("%s", p);
+				printf("%s", p);
 			break;
 		case 'r':
 			p = va_arg(ap, char *);
