@@ -163,8 +163,12 @@ int
 close(int fdnum)
 {
 	struct Fd *fd;
-	(void) fd_lookup(fdnum, &fd);
-	return fd_close(fd, 1);
+	int r;
+
+	if ((r = fd_lookup(fdnum, &fd)) < 0)
+		return r;
+	else
+		return fd_close(fd, 1);
 }
 
 void
