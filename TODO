@@ -18,10 +18,40 @@ Post-2004 TODOs:
   (3) [6.824] Give students accounts on PDOS machines and basically do
       the same thing as (2) above.
 
+- get rid of inc/args.h bogosity --E
+
+- merge kern/*.h into kern/private.h --E
+
+- no header files with the same name in kern/ and inc/ ? --E
+
+- fewer header files! --E
+
+- make all macros either smart or dumb --E
+
+- add env_runs to earlier labs --E
+
+- regularize int vs. unsigned for perm --E
+
+- lab2: check that page_insert of same page on itself with different
+  permissions actually changes permissions --E
+
+- UTEMP should be a void* --E
+
+- remove ROUND32 in favor of ROUNDUP32 --E
+
+- delete #if 0...#endif debug block in env_pop_tf, as of lab4 it breaks
+  peoples' code --E
+
+- rename 'make patch' => 'make diff', 'make apply-patch' => 'make patch' --E
+
+- rename 'page_clear' => 'page_initpp' or something else --E
+
 - get rid of redundant page_initpp() in kern/pmap.c
 
 - get rid of size parameter to load_icode,
   which is no longer needed now that we're using ELF.
+
+  (No, keep it for potential sanity checking -- E)
 
 - get rid of -Ttext 0x800020 for user programs
   (and maybe UTEXT #define?)
@@ -101,6 +131,7 @@ New TODO items for Fall 2004:
 - change kernel link address from 0xf0100020 to 0xf0100000;
 	we no longer need to reserve the 0x20 for the a.out header
 	since we're now using ELF!
+
 
 - decide on one of u_int and u_long, and only use it.  Also add some
 	sort of paddr_t and use it for physical addresses.  Maybe do
