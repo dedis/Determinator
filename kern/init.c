@@ -2,7 +2,7 @@
 
 ///LAB2
 #include <inc/asm.h>
-#include <inc/trap.h>
+#include <kern/trap.h>
 #include <kern/pmap.h>
 #include <kern/env.h>
 #include <kern/console.h>
