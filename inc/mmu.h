@@ -35,12 +35,12 @@
 
 #define PDE2PD		1024		/* page directory entries to a (per) page directory */
 #define PTE2PT		1024		/* page table entries to a page table */
-
 #define BY2PG		4096		/* bytes to a page */
+#define PGSHIFT		12			/* log(BY2PG) */
 
+/* PDMAP is a crummy name, but I can't think of a better one.  -rsc */
 #define PDMAP		(4*1024*1024)	/* bytes mapped by a page directory entry */
 
-#define PGSHIFT		12			/* log(BY2PG) */
 
 /* At IOPHYSMEM (640K) there is a 384K hole for I/O.  From the kernel,
  * IOPHYSMEM can be addressed at KERNBASE + IOPHYSMEM.  The hole ends
@@ -322,11 +322,11 @@ struct Pseudodesc {
  *    UPAGES    ---->  +------------------------------+
  *                     |        R/O ENVS              | R-/R-    PDMAP
  * UTOP,UENVS -------> +------------------------------+
- * UXSTACKTOP -/       |      user exception stack    | RW/RW   PGSIZE  
+ * UXSTACKTOP -/       |      user exception stack    | RW/RW   BY2PG  
  *                     +------------------------------+
- *                     |       Invalid memory         | --/--   PGSIZE
+ *                     |       Invalid memory         | --/--   BY2PG
  *    USTACKTOP  ----> +------------------------------+
- *                     |     normal user stack        | RW/RW   PGSIZE
+ *                     |     normal user stack        | RW/RW   BY2PG
  *                     +------------------------------+
  *                     |                              |
  *                     |                              |
