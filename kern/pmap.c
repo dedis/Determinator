@@ -542,7 +542,7 @@ page_decref(struct Page *pp)
 // Unlike boot_pgdir_walk, pgdir_walk can fail, so we have to
 // return pte via a pointer parameter.
 //
-// Stores address of page table entry in *pte.
+// Stores address of page table entry in *ppte.
 // Stores 0 if there is no such entry or on error.
 // 
 // RETURNS: 
@@ -748,6 +748,7 @@ page_check(void)
 	assert(PTE_ADDR(boot_pgdir[0]) == page2pa(pp0));
 	assert(va2pa(boot_pgdir, 0x0) == page2pa(pp1));
 	assert(pp1->pp_ref == 1);
+	assert(pp0->pp_ref == 1);
 
 	// should be able to map pp2 at BY2PG because pp0 is already allocated for page table
 	assert(page_insert(boot_pgdir, pp2, BY2PG, 0) == 0);
