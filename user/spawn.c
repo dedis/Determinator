@@ -75,6 +75,11 @@ error:
 	return r;
 }
 
+// Spawn a child process from a program image loaded from the file system.
+// prog: the pathname of the program to run.
+// argv: pointer to null-terminated array of pointers to strings,
+// 	 which will be passed to the child as its command-line arguments.
+// Returns child envid on success, < 0 on failure.
 int
 spawn(char *prog, char **argv)
 {
@@ -88,6 +93,7 @@ spawn(char *prog, char **argv)
 		return r;
 	fd = r;
 
+	// Read a.out header
 	if (read(fd, &aout, sizeof(aout)) != sizeof(aout)
 			|| aout.a_magic != AOUT_MAGIC) {
 		close(fd);
@@ -95,6 +101,7 @@ printf("aout magic %08x want %08x\n", aout.a_magic, AOUT_MAGIC);
 		return -E_NOT_EXEC;
 	}
 
+	// Create new child environment
 	if ((r = sys_env_alloc()) < 0)
 		return r;
 	child = r;
@@ -103,7 +110,7 @@ printf("aout magic %08x want %08x\n", aout.a_magic, AOUT_MAGIC);
 	if ((r = init_stack(child, argv, &init_esp)) < 0)
 		return r;
 
-	// Set up text, data, bss
+	// Set up program text, data, bss
 	text = UTEXT;
 	for (i=0; i<aout.a_text; i+=BY2PG) {
 		if ((r = read_map(fd, i, &blk)) < 0)
@@ -144,9 +151,9 @@ error:
 	sys_env_destroy(child);
 	close(fd);
 	return r;
-
 }
 
+// Spawn, taking command-line arguments array directly on the stack.
 int
 spawnl(char *prog, char *args, ...)
 {
