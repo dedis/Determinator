@@ -333,7 +333,7 @@ umain(int argc, char** argv)
 	if (argc == 1) {
 		close(0);
 		if ((r = open(argv[1], O_RDONLY)) < 0)
-			panic("open %s: %e", r);
+			panic("open %s: %e", argv[1], r);
 		assert(r==0);
 	}
 	if (interactive == '?')
