@@ -256,7 +256,7 @@ bochs: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 
 # For deleting the build
 clean:
-	rm -rf $(OBJDIR)
+	rm -rf $(OBJDIR) lab$(LAB).tar.gz
 
 grade:
 	$(V)$(MAKE) clean >/dev/null 2>/dev/null
@@ -270,6 +270,8 @@ HANDIN_CMD = tar cf - . | gzip | uuencode lab$(LAB).tar.gz | mail $(HANDIN_EMAIL
 #endif
 handin: clean
 	$(HANDIN_CMD)
+tarball: clean
+	tar cf - `ls -a | grep -v '^\.*$$' | grep -v '^lab$(LAB)\.tar\.gz'` | gzip > lab$(LAB).tar.gz
 
 # For test runs
 run-%:
@@ -322,4 +324,4 @@ apply-patch:
 
 always:
 
-.PHONY: all always patch apply-patch
+.PHONY: all always patch apply-patch handin tarball
