@@ -220,43 +220,34 @@ env_alloc(struct Env **new, u_int parent_id)
 }
 
 // Allocate and map all required pages into an env's address space
-// to cover virtual addresses va through va+len-1 inclusive,
-// and initialize these pages so the range va through va+len-1
-// contains the data from src to src+len-1 (in the kernel's address space).
-// Make all mappings read/write and user-accessible.
+// to cover virtual addresses va through va+len-1 inclusive.
+// Does not zero or otherwise initialize the mapped pages in any way.
 // Panic if any allocation attempt fails.
 //
 // Warning: Neither va nor len are necessarily page-aligned!
 // You may assume, however, that nothing is already mapped
 // in the pages touched by the specified virtual address range.
 static void
-map_segment(struct Env *e, u_int va, u_int len, u_char *src)
+map_segment(struct Env *e, u_int va, u_int len)
 {
 #if SOL >= 3
 	int r;
 	struct Page *p;
-	u_int endva, copylen;
+	u_int endva = va+len;
 
-	while (len > 0) {
+	while (va < endva) {
+
 		// Allocate and map a page covering virtual address va.
 		if ((r = page_alloc(&p)) < 0)
 			panic("map_segment: could not alloc page: %e\n", r);
+
+		// Insert the page into the env's address space
 		if ((r = page_insert(e->env_pgdir, p, va, PTE_P|PTE_W|PTE_U))
 				< 0)
 			panic("map_segment: could not insert page: %e\n", r);
 
-		// Copy data from src into (the appropriate part of) this page,
-		// up to 'len' bytes or to the end of the current page.
-		endva = (va + BY2PG) & ~(BY2PG-1);
-		if (endva > va+len)
-			endva = va+len;
-		copylen = endva-va;
-		memcpy((void*)page2kva(p) + PGOFF(va), src, copylen);
-
-		// Move on to the next page.
-		va += copylen;
-		src += copylen;
-		len -= copylen;
+		// Move on to start of next page
+		va = (va + BY2PG) & ~(BY2PG-1);
 	}	
 #else
 	// Your code here.
@@ -265,6 +256,8 @@ map_segment(struct Env *e, u_int va, u_int len, u_char *src)
 
 //
 // Set up the the initial stack and program binary for a user process.
+// This function is ONLY called during kernel initialization,
+// before running the first user-mode environment.
 //
 // This function loads the complete binary image, including elf header,
 // into the environment's user memory starting at virtual address UTEXT,
@@ -278,10 +271,13 @@ static void
 load_icode(struct Env *e, u_char *binary, u_int size)
 {
 #if SOL >= 3
-	int i, r;
+	int i;
 	struct Elf *elf;
-	struct Page *p;
 	struct Proghdr *ph;
+
+	// Switch to this new environment's address space,
+	// so that we can use virtual addresses to load the program segments.
+	lcr3(e->env_cr3);
 
 	// Check magic number on binary
 	elf = (struct Elf*)binary;
@@ -292,7 +288,7 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 	e->env_tf.tf_eip = elf->e_entry;
 	printf("load_icode: entry is 0x%x\n", e->env_tf.tf_eip);
 
-	// Map segments as directed.
+	// Map and load segments as directed.
 	ph = (struct Proghdr*)(binary + elf->e_phoff);
 	for (i = 0; i < elf->e_phnum; i++, ph++) {
 		if(ph->p_type != ELF_PROG_LOAD)
@@ -300,30 +296,39 @@ load_icode(struct Env *e, u_char *binary, u_int size)
 		if(ph->p_va + ph->p_memsz < ph->p_va)
 			panic("load_icode: overflow in elf header segment");
 		if(ph->p_va + ph->p_memsz >= UTOP)
-			panic("load_icode: icode wants to be loaded above UTOP");
-		map_segment(e, ph->p_va, ph->p_memsz, binary+ph->p_offset);
+			panic("load_icode: icode wants to be above UTOP");
+
+		// Map pages for the segment
+		map_segment(e, ph->p_va, ph->p_memsz);
+
+		// Load/clear the segment
+		memcpy((char*)ph->p_va, binary+ph->p_offset, ph->p_filesz);
+		memset((char*)ph->p_va+ph->p_filesz, 0,
+			ph->p_memsz - ph->p_filesz);
 	}
 
 	// Give environment a stack
-	if ((r = page_alloc(&p)) < 0)
-		panic("load_icode: could not alloc page: %e\n", r);
-	if ((r = page_insert(e->env_pgdir, p, USTACKTOP - BY2PG,
-				PTE_P|PTE_W|PTE_U)) < 0)
-		panic("load_icode: could not map page: %e\n", r);
+	map_segment(e, USTACKTOP - BY2PG, BY2PG);
 #else /* not SOL >= 3 */
 	// Hint: 
-	//  Use map_segment() for loading the program segments.
+	//  Use map_segment() to map memory for each program segment.
 	//  Only use segments with ph->p_type == ELF_PROG_LOAD.
-	//  For mapping the stack, use page_alloc, page_insert, and
-	//  e->env_pgdir.
-	//  You must figure out which permissions you'll need for the
-	//  different mappings you create.
+	//  Each segment's virtual address can be found in ph->p_va
+	//  and its size in memory can be found in ph->p_memsz.
+	//  For each segment, load the first ph->p_filesz bytes from the ELF
+	//  binary and clear any remaining bytes in the segment to zero.
+	//
+	// Hint:
+	//  Loading the segments is much simpler if you set things up
+	//  so that you can access them via the user's virtual addresses!
 #endif /* not SOL >= 3 */
 }
 
 //
 // Allocates a new env and loads the elf binary into it.
-//  - new env's parent env id is 0
+// This function is ONLY called during kernel initialization,
+// before running the first user-mode environment.
+// The new env's parent env id is set to 0.
 void
 env_create(u_char *binary, int size)
 {

@@ -33,23 +33,15 @@ fdtab:
 .text
 .globl _start
 _start:
-	// push empty argc, argv if none present
+	// See if we were started with arguments on the stack
 	cmpl $USTACKTOP, %esp
 	jne args_exist
-	pushl $0
-	pushl $0
 
-	// If no args, kernel set us up -- clear the bss
-	// since the kernel did not.  This depends on the
-	// bss not extending into a new page, since otherwise
-	// we will page fault and die.
-	movl $(end), %eax
-	subl $(edata), %eax
-	pushl %eax
+	// If not, push dummy argc/argv arguments.
+	// This happens when we are loaded by the kernel,
+	// because the kernel does not know about passing arguments.
 	pushl $0
-	pushl $(edata)
-	call memset
-	addl $12, %esp
+	pushl $0
 
 args_exist:
 	call libmain

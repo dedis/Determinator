@@ -129,9 +129,10 @@ alloc(u_int n, u_int align, int clear)
 }
 
 //
-// Given pgdir, the current page directory base,
+// Given pgdir, a pointer to a page directory,
 // walk the 2-level page table structure to find
-// the Pte for virtual address va.  Return a pointer to it.
+// the page table entry (PTE) for virtual address va.
+// Return a pointer to this PTE.
 //
 // If there is no such page table page:
 //	- if create == 0, return 0.
@@ -477,6 +478,8 @@ page_initpp(struct Page *pp)
 
 //
 // Allocates a physical page.
+// Does NOT clear the contents of the page to zero -
+// the caller must do that if necessary.
 //
 // *pp -- is set to point to the Page struct of the newly allocated
 // page

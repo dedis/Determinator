@@ -175,10 +175,12 @@ trap(struct Trapframe *tf)
 	// print_trapframe(tf);
 
 	// Handle processor exceptions
+#if SOL >= 4
 	if (tf->tf_trapno == T_PGFLT) {
 		page_fault_handler(tf);
 		return;
 	}
+#endif
 #if SOL >= 3
 	if (tf->tf_trapno == T_SYSCALL) {
 		// handle system call

@@ -71,6 +71,7 @@ ifdef LAB3
 KERN_BINFILES := \
 	user/hello \
 	user/buggyhello \
+	user/testbss \
 	user/exit \
 	user/fault \
 	user/faultdie \
