@@ -4,6 +4,8 @@ Post-2004 TODOs:
 
 - suggest that page_alloc() fill the page with 0xDEADBEEF
 
+- va2pa() promoted to a kernel function
+
 - check that after a fork() or spawn(), PTE_SHARE pages are PTE_SHARE in
   the child as well as the parent --E
 
