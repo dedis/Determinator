@@ -8,28 +8,32 @@ static char buf[BUFLEN];
 char *
 readline(const char *prompt)
 {
-	int i = 0;
+	int i, c, echoing;
 
 	if (prompt != NULL)
 		printf("%s", prompt);
 
-	while (1) {
-		int c = getchar();
-			; // spin
+	i = 0;
+	echoing = iscons(0);
+	for(;;) {
+		c = getchar();
 		if (c < 0) {
 			printf("read error: %e", c);
 			return NULL;
 		}
 		else if (c >= ' ' && i < BUFLEN-1) {
-			putchar(c);
+			if(echoing)
+				putchar(c);
 			buf[i++] = c;
 		}
 		else if (c == '\b' && i > 0) {
-			putchar(c);
+			if(echoing)
+				putchar(c);
 			i--;
 		}
 		else if (c == '\n') {
-			putchar(c);
+			if(echoing)
+				putchar(c);
 			buf[i] = 0;
 			return buf;
 		}

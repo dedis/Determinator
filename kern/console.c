@@ -365,20 +365,28 @@ cons_init(void)
 
 
 
-/***** High-level console read/write primitives *****/
-// used by readline() in particular
+// `High'-level console I/O.  Used by readline and printf.
 
-void putchar(int c)
+void
+putchar(int c)
 {
 	cons_putc(c);
 }
 
-int getchar(void)
+int
+getchar(void)
 {
 	int c;
 
 	while ((c = cons_getc()) == 0)
 		; // spin
 	return c;
+}
+
+int
+iscons(int fdnum)
+{
+	// used by readline
+	return 1;
 }
 
