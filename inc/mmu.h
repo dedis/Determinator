@@ -296,27 +296,27 @@ struct Pseudodesc {
  *                                                    kernel/user
  *
  *    4 Gig -------->  +------------------------------+
- *		       |			      | RW/--
- *		       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *                     |                              | RW/--
+ *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *                     :              .               :
  *                     :              .               :
  *                     :              .               :
- *  		       |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~| RW/--
- *		       |			      | RW/--
- *		       |  Physical Memory	      | RW/--
- *		       |			      | RW/--
+ *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~| RW/--
+ *                     |                              | RW/--
+ *                     |  Physical Memory             | RW/--
+ *                     |                              | RW/--
  *    KERNBASE ----->  +------------------------------+
- *		       |  Kernel Virtual Page Table   | RW/--   PGSIZE
+ *                     |  Kernel Virtual Page Table   | RW/--    PDMAP
  *    VPT,KSTACKTOP--> +------------------------------+                 --+
- *             	       |        Kernel Stack          | RW/--  KSTKSIZE   |
+ *                     |        Kernel Stack          | RW/--  KSTKSIZE   |
  *                     | - - - - - - - - - - - - - - -|                 PDMAP
- *		       |       Invalid memory 	      | --/--             |
+ *                     |       Invalid memory         | --/--             |
  *    ULIM     ------> +------------------------------+                 --+
- *       	       |      R/O User VPT            | R-/R-   PGSIZE
+ *                     |      R/O User VPT            | R-/R-    PDMAP
  *    UVPT      ---->  +------------------------------+
- *                     |        R/O PAGES             | R-/R-   PGSIZE
+ *                     |        R/O PAGES             | R-/R-    PDMAP
  *    UPAGES    ---->  +------------------------------+
- *                     |        R/O ENVS              | R-/R-   PGSIZE
+ *                     |        R/O ENVS              | R-/R-    PDMAP
  * UTOP,UENVS -------> +------------------------------+
  * UXSTACKTOP -/       |      user exception stack    | RW/RW   PGSIZE  
  *                     +------------------------------+
@@ -326,12 +326,12 @@ struct Pseudodesc {
  *                     +------------------------------+
  *                     |                              |
  *                     |                              |
- *		       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *                     .                              .
  *                     .                              .
  *                     .                              .
- *  		       |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
- *		       |                              |
+ *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+ *                     |                              |
  *    UTEXT ------->   +------------------------------+
  *                     |                              |  2 * PDMAP
  *    0 ------------>  +------------------------------+
@@ -346,7 +346,7 @@ struct Pseudodesc {
  * the PD itself, thereby turning the PD into a page table which
  * maps all PTEs over the last 4 Megs of the virtual address space
  */
-#define VPT (KERNBASE - PGSIZE)
+#define VPT (KERNBASE - PDMAP)
 #define KSTACKTOP VPT
 #define KSTKSIZE (8 * PGSIZE)   		/* size of a kernel stack */
 #define ULIM (KSTACKTOP - PDMAP) 
