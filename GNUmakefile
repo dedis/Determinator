@@ -16,7 +16,8 @@ PERL	:= perl
 # Compiler flags
 # Note that -O2 is required for the boot loader to fit within 512 bytes;
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
-CFLAGS	:= $(CFLAGS) -O2 -fno-builtin -I$(TOP) -MD -MP -Wall -ggdb
+DEFS	:=
+CFLAGS	:= $(CFLAGS) $(DEFS) -O2 -fno-builtin -I$(TOP) -MD -MP -Wall -ggdb
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
@@ -55,7 +56,7 @@ include boot/Makefrag
 	$(TOP)/tools/bintoc/bintoc -S $< $*_bin > $@~ && $(MV) -f $@~ $@
 
 
-#///LAB200
+#if LAB >= 999
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S
 LAB_DIRS := inc user $(OBJDIRS)
@@ -93,7 +94,7 @@ bios:
 bios/%: /usr/local/share/bochs/bios/% bios
 	cp $< $@
 all: $(BIOS_FILES)
-#///END
+#endif
 
 
 # For cleaning the source tree

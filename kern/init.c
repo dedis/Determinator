@@ -39,7 +39,22 @@ i386_init(void)
 #if LAB >= 4
 #else
 	// Temporary test code specific to LAB 3
+#if defined(TEST_START)
 	{
+		// Don't touch this!  Used by the grading script.
+		extern u_char TEST_START, TEST_END;
+		env_create(&TEST_START, &TEST_END - &TEST_START);
+	}
+#elif defined(TEST_ALICEBOB)
+	{
+		// Don't touch this!  Used by the grading script.
+		extern u_char alice_start, alice_end, bob_start, bob_end;
+		env_create(&alice_start, &alice_end - &alice_start);
+		env_create(&bob_start, &bob_end - &bob_start);
+	}
+#else
+	{
+		// Do whatever you want here for your own testing purposes.
 		extern u_char spin_start;
 		extern u_char spin_end;
 		env_create(&spin_start, &spin_end - &spin_start);

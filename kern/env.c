@@ -173,11 +173,16 @@ env_alloc(struct Env **new, u_int parent_id)
 
 //
 // Sets up the the initial stack and program binary for a user process.
-//   This function loads the binary image at virtual address UTEXT
-//   and maps one page for the program's initial stack
-//   at virtual address USTACKTOP - BY2PG.
-// Ignore the a.out header -- assume the binary is the given size,
-// begins at UTEXT+0x20, doesn't need its bss cleared, and so on.
+//
+// This function loads the complete binary image, including a.out header,
+// into the environment's user memory starting at virtual address UTEXT,
+// and maps one page for the program's initial stack
+// at virtual address USTACKTOP - BY2PG.
+// Since the a.out header from the binary is mapped at virtual address UTEXT,
+// the actual program text starts at virtual address UTEXT+0x20.
+//
+// This function does not allocate or clear the bss of the loaded program,
+// and all mappings are read/write including those of the text segment.
 //
 static void
 load_icode(struct Env *e, u_char *binary, u_int size)

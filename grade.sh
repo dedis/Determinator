@@ -4,10 +4,10 @@
 
 fault() {
 	perl -e "print '$1: '"
-	sed -e "s/spin/$2/g" <kern/init-proto.c >kern/init-test.c
 	(
-		rm kern/kernel
-		gmake 'INIT=init-test'
+		rm kern/init.o
+		echo gmake "DEFS=-DTEST_START=$2_start -DTEST_END=$2_end"
+		gmake "DEFS=-DTEST_START=$2_start -DTEST_END=$2_end"
 		ulimit -t 10
 		(echo c; echo quit) | bochs-nogui 'parport1: enable=1, file="bochs.out"'
 	) >/dev/null 2>/dev/null
@@ -43,11 +43,10 @@ preempt() {
 		panic("iret failed");  /* mostly to placate the compiler */
 	}
 	
-	
 	') >kern/env-test.c
 	(	
 		rm kern/kernel
-		gmake 'INIT=init-alicebob' 'ENV=env-test'
+		gmake 'DEFS=-DTEST_ALICEBOB' 'ENV=env-test'
 		ulimit -t 10
 		(echo c; echo quit) | bochs-nogui 'parport1: enable=1, file="bochs.out"'
 	) >/dev/null 2>/dev/null
