@@ -13,3 +13,5 @@ After this year's class is over (fall 2003), we should:
 
 - Clean up #include blocks at the beginning of header files,
   so that conditional "#if LAB >= N" ones are at the end.
+
+- Get rid of xstacktop parameter to sys_set_pgfault_handler
