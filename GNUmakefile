@@ -45,10 +45,10 @@ TOP = .
 # Users of 32-bit x86 ELF platforms can leave GCCPREFIX empty,
 # so that they can use the native compilers for their systems.
 # People on other systems (e.g., x86-64 or Mac OS X) will need
-# to install an i386-elf-osclass tool chain and set GCCPREFIX
+# to install an i386-osclass-elf tool chain and set GCCPREFIX
 # by doing
 #
-#	make 'GCCPREFIX=i386-elf-osclass' gccsetup
+#	make 'GCCPREFIX=i386-osclass-elf' gccsetup
 #
 
 CC	:= $(GCCPREFIX)gcc -pipe
