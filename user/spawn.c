@@ -2,7 +2,8 @@
 #include "lib.h"
 #include <inc/aout.h>
 
-#define TMPSTACKTOP	(2*BY2PG)
+#define TMPPAGE		(BY2PG)
+#define TMPPAGETOP	(TMPPAGE+BY2PG)
 
 // Set up the initial stack page for the new child process with envid 'child',
 // using the arguments array pointed to by 'argv',
@@ -30,48 +31,54 @@ init_stack(u_int child, char **argv, u_int *init_esp)
 		return -E_NO_MEM;
 
 	// Determine where to place the strings and the args array
-	strings = (char*)TMPSTACKTOP - tot;
-	args = (u_int*)(TMPSTACKTOP - ROUND(tot, 4) - 4*(argc+1));
+	strings = (char*)TMPPAGETOP - tot;
+	args = (u_int*)(TMPPAGETOP - ROUND(tot, 4) - 4*(argc+1));
 
-	if ((r = sys_mem_alloc(0, TMPSTACKTOP-BY2PG, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r = sys_mem_alloc(0, TMPPAGE, PTE_P|PTE_U|PTE_W)) < 0)
 		return r;
 
 #if SOL >= 5
 	for (i=0; i<argc; i++) {
-		args[i] = (u_int)strings + USTACKTOP - TMPSTACKTOP;
+		args[i] = (u_int)strings + USTACKTOP - TMPPAGETOP;
 		strcpy(strings, argv[i]);
 		strings += strlen(argv[i])+1;
 	}
 	args[i] = 0;
-	assert(strings == (char*)TMPSTACKTOP);
+	assert(strings == (char*)TMPPAGETOP);
 
-	args[-1] = (u_int)args + USTACKTOP - TMPSTACKTOP;
+	args[-1] = (u_int)args + USTACKTOP - TMPPAGETOP;
 	args[-2] = argc;
 
-	*init_esp = (u_int)&args[-2] + USTACKTOP - TMPSTACKTOP;
-#else /* not SOL >= 5 */
+	*init_esp = (u_int)&args[-2] + USTACKTOP - TMPPAGETOP;
+#else // not SOL >= 5
 	// Replace this with your code to:
+	//
 	//	- copy the argument strings into the stack page at 'strings'
+	//
 	//	- initialize args[0..argc-1] to be pointers to these strings
 	//	  that will be valid addresses for the child environment
 	//	  (for whom this page will be at USTACKTOP-BY2PG!).
+	//
 	//	- set args[argc] to 0 to null-terminate the args array.
+	//
 	//	- push two more words onto the child's stack below 'args',
 	//	  containing the argc and argv parameters to be passed
 	//	  to the child's umain() function.
+	//
 	//	- set *init_esp to the initial stack pointer for the child
+	//
 	*init_esp = USTACKTOP;	// Change this!
-#endif /* not SOL >= 5 */
+#endif // not SOL >= 5
 
-	if ((r = sys_mem_map(0, TMPSTACKTOP-BY2PG, child, USTACKTOP-BY2PG, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r = sys_mem_map(0, TMPPAGE, child, USTACKTOP-BY2PG, PTE_P|PTE_U|PTE_W)) < 0)
 		goto error;
-	if ((r = sys_mem_unmap(0, TMPSTACKTOP-BY2PG)) < 0)
+	if ((r = sys_mem_unmap(0, TMPPAGE)) < 0)
 		goto error;
 
 	return 0;
 
 error:
-	sys_mem_unmap(0, TMPSTACKTOP-BY2PG);
+	sys_mem_unmap(0, TMPPAGE);
 	return r;
 }
 
@@ -83,6 +90,7 @@ error:
 int
 spawn(char *prog, char **argv)
 {
+#if SOL >= 5
 	int child, fd, i, r;
 	u_int text, data, bss, init_esp;
 	void *blk;
@@ -120,12 +128,18 @@ printf("aout magic %08x want %08x\n", aout.a_magic, AOUT_MAGIC);
 	}
 
 	data = text+i;
+	if ((r = seek(fd, aout.a_text)) < 0)
+		goto error;
 	for (i=0; i<aout.a_data; i+=BY2PG) {
-		if ((r = read_map(fd, aout.a_text+i, &blk)) < 0)
+		if ((r = sys_mem_alloc(0, TMPPAGE, PTE_P|PTE_U|PTE_W)) < 0)
 			goto error;
-		if ((r = sys_mem_map(0, (u_int)blk, child, data+i, PTE_P|PTE_U|PTE_W)) < 0)
+		if ((r = read(fd, (void*)TMPPAGE, BY2PG)) < 0)
+			goto error;
+		if ((r = sys_mem_map(0, TMPPAGE, child, data+i,
+					PTE_P|PTE_U|PTE_W)) < 0)
 			panic("spawn: sys_mem_map data: %e", r);
 	}
+	sys_mem_unmap(0, TMPPAGE);
 
 	bss = data+i;
 	for (i=0; i<aout.a_bss; i+=BY2PG) {
@@ -151,6 +165,46 @@ error:
 	sys_env_destroy(child);
 	close(fd);
 	return r;
+#else /* not SOL >= 5 */
+	// Insert your code, following approximately this procedure:
+	//
+	//	- Open the program file and read the a.out header.
+	//
+	//	- Use sys_env_alloc() to create a new environment.
+	//
+	//	- Call the init_stack() function above to set up
+	//	  the initial stack page for the child environment.
+	//
+	//	- Map the program's text segment, from file offset 0
+	//	  through file offset aout.a_text-1, starting at
+	//	  virtual address UTEXT in the child.
+	//	  Use read_map() and map the pages it returns directly
+	//	  into the child so that multiple instances of the
+	//	  same program will share the same copy of the program text.
+	//	  Be sure to map the program text read-only in the child.
+	//
+	//	- Set up the child process's data segment.  For each page,
+	//	  allocate a page in the parent temporarily at TMPPAGE,
+	//	  read() the appropriate block of the file into that page,
+	//	  and then insert that page mapping into the child.
+	//	  Look at init_stack() for inspiration.
+	//	  Be sure you understand why you can't use read_map() here.
+	//
+	//	- Set up the child process's bss segment.
+	//	  All you need to do here is sys_mem_alloc() the pages
+	//	  directly into the child's address space, because
+	//	  sys_mem_alloc() automatically zeroes the pages it allocates.
+	//
+	//	- Use the new sys_set_trapframe() call to set up the
+	//	  correct initial eip and esp register values in the child.
+	//	  You can use envs[ENVX(child)].env_tf as a template trapframe
+	//	  in order to get the initial segment registers and such.
+	//
+	//	- Start the child process running with sys_set_env_status().
+	//
+	// Set up program text, data, bss
+	panic("spawn unimplemented!");
+#endif /* not SOL >= 5 */
 }
 
 // Spawn, taking command-line arguments array directly on the stack.
