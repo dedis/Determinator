@@ -1,5 +1,12 @@
 Post-2004 TODOs:
 
+- symbolic debugging appears in lab 2
+
+- suggest that page_alloc() fill the page with 0xDEADBEEF
+
+- check that after a fork() or spawn(), PTE_SHARE pages are PTE_SHARE in
+  the child as well as the parent --E
+
 - definitely set V = @ at UCLA; "V =" was a mistake --E
 
 - consider -Werror --E
