@@ -59,8 +59,8 @@ malloc(u_int n)
 		 * allocated page - can we add this chunk?
 		 * the +4 below is for the ref count.
 		 */
+		ref = (u_int*)(mptr - (u_int)mptr%BY2PG + BY2PG-4);
 		if((u_int)mptr/BY2PG == (u_int)(mptr+n-1+4)/BY2PG){
-			ref = (u_int*)(mptr - (u_int)mptr%BY2PG + BY2PG-4);
 			(*ref)++;
 			v = mptr;
 			mptr += n;
@@ -69,6 +69,7 @@ malloc(u_int n)
 		/*
 		 * stop working on this page and move on.
 		 */
+		free(mptr);	/* drop reference to this page */
 		mptr += BY2PG - (u_int)mptr%BY2PG;
 	}
 
@@ -103,7 +104,7 @@ malloc(u_int n)
 	}
 
 	ref = (u_int*)(mptr+i-4);
-	(*ref)++;
+	(*ref) = 2;	/* reference for mptr, reference for returned block */
 	v = mptr;
 	mptr += n;
 	return v;
