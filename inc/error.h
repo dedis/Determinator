@@ -1,3 +1,5 @@
+/* See COPYRIGHT for copyright information. */
+
 ///LAB2
 #ifndef _ERROR_H_
 #define _ERROR_H_
