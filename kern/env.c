@@ -193,7 +193,7 @@ env_alloc(struct Env **new, u_int parent_id)
 
 #if LAB >= 4
 	// Clear the page fault handler until user installs one.
-	e->env_pgfault_handler = 0;
+	e->env_pgfault_entry = 0;
 
 	// Also clear the IPC receiving flag.
 	e->env_ipc_recving = 0;

@@ -139,15 +139,17 @@ fork(void)
 		}
 	}
 
-	// Copy the exception handler.
-	if ((r=sys_mem_alloc(envid, env->env_xstacktop-1, PTE_P|PTE_U|PTE_W)) < 0)
+	// The child needs to start out with a valid exception stack.
+	if ((r=sys_mem_alloc(envid, UXSTACKTOP-BY2PG, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("allocating exception stack: %e", r);
-	if ((r=sys_set_pgfault_handler(envid, env->env_pgfault_handler, env->env_xstacktop)) < 0)
-		panic("set_pgfault_handler: %e", r);
+
+	// Copy the user-mode exception entrypoint.
+	if ((r=sys_set_pgfault_entry(envid, env->env_pgfault_entry)) < 0)
+		panic("sys_set_pgfault_entry: %e", r);
 
 
 	// Okay, the child is ready for life on its own.
-	if ((r=sys_set_env_status(envid, ENV_RUNNABLE)) < 0)
+	if ((r=sys_set_status(envid, ENV_RUNNABLE)) < 0)
 		panic("sys_set_env_status: %e", r);
 
 	return envid;

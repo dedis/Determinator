@@ -2,6 +2,15 @@ Post-2004 TODOs:
 
 - get rid of redundant page_initpp() in kern/pmap.c
 
+- get rid of size parameter to load_icode,
+  which is no longer needed now that we're using ELF.
+
+- get rid of -Ttext 0x800020 for user programs
+  (and maybe UTEXT #define?)
+
+- rename alloc() to boot_alloc() in kern/pmap.c.
+
+- get rid of unnecessary GATE macro in inc/mmu.h?
 
 After this year's class is over (fall 2003), we should:
 

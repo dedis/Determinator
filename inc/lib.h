@@ -34,7 +34,7 @@ extern struct Page pages[];
 void	exit(void);
 
 // pgfault.c
-void	set_pgfault_entry(void(*)(u_int va, u_int err));
+void	set_pgfault_handler(void(*)(u_int va, u_int err));
 
 // readline.c
 char *	readline(const char *buf);

@@ -264,7 +264,7 @@ sys_set_status(u_int envid, u_int status)
 static int
 sys_set_pgfault_entry(u_int envid, u_int func)
 {
-#if SOL >= 3
+#if SOL >= 4
 	int r;
 	struct Env *e;
 

@@ -68,8 +68,8 @@ dumbfork(void)
 	for (addr=UTEXT; addr<(u_int)end; addr+=BY2PG)
 		duppage(envid, addr);
 	duppage(envid, ROUNDDOWN((u_int)&addr, BY2PG));
-	if ((r=sys_set_env_status(envid, ENV_RUNNABLE)) < 0)
-		panic("sys_set_env_status: %e", r);
+	if ((r=sys_set_status(envid, ENV_RUNNABLE)) < 0)
+		panic("sys_set_status: %e", r);
 	return envid;
 }
 

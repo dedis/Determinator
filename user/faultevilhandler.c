@@ -7,7 +7,7 @@
 void
 umain(void)
 {
-	sys_set_pgfault_handler(0, 0xF0100020);
+	sys_set_pgfault_entry(0, 0xF0100020);
 	*(int*)0 = 0;
 }
 #endif

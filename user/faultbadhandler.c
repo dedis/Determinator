@@ -10,7 +10,7 @@
 void
 umain(void)
 {
-	sys_set_pgfault_handler(0, 0xDeadBeef);
+	sys_set_pgfault_entry(0, 0xDeadBeef);
 	*(int*)0 = 0;
 }
 #endif

@@ -5,8 +5,12 @@
 
 #include <inc/lib.h>
 
-extern void (*_pgfault_handler)(u_int, u_int);
+
+// Assembly language pgfault entrypoint defined in lib/pgfaultentry.S.
 extern void _pgfault_entry(void);
+
+// Pointer to currently installed C-language pgfault handler.
+void (*_pgfault_handler)(u_int, u_int);
 
 //
 // Set the page fault handler function.
