@@ -8,6 +8,8 @@ umain(void)
 	int fd, n, r;
 	char buf[512+1];
 
+	sys_cputs("icode startup\n");
+
 	// need to do some of the initialization here, 
 	//because we are not called from init or the shell.
 	binaryname = "icode";
