@@ -159,7 +159,7 @@ struct Segdesc {
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
     type, 1, dpl, 1, (unsigned) (unsigned) (lim) >> 28, 0, 0, 1, 1,	\
     (unsigned) (base) >> 24 }
-#define SEG16(type, base, lim, dpl) (struct SEgdesc)			\
+#define SEG16(type, base, lim, dpl) (struct Segdesc)			\
 { (lim) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,		\
     type, 1, dpl, 1, (unsigned) (unsigned) (lim) >> 16, 0, 0, 1, 0,	\
     (unsigned) (base) >> 24 }
@@ -277,12 +277,12 @@ struct Pseudodesc {
 #define STS_CG16 0x4           /* 16-bit Call Gate */
 #define STS_TG 0x5             /* Task Gate / Coum Transmitions */
 #define STS_IG16 0x6           /* 16-bit Interrupt Gate */
-#define STS_TG16 0x6           /* 16-bit Trap Gate */
+#define STS_TG16 0x7           /* 16-bit Trap Gate */
 #define STS_T32A 0x9           /* Available 32-bit TSS */
 #define STS_T32B 0xb           /* Busy 32-bit TSS */
 #define STS_CG32 0xc           /* 32-bit Call Gate */
 #define STS_IG32 0xe           /* 32-bit Interrupt Gate */
-#define STS_TG32 0xf           /* 32-bit Task Gate */
+#define STS_TG32 0xf           /* 32-bit Trap Gate */
 
 /*
  * Part 2.  Our conventions.
