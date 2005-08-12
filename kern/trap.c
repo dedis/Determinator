@@ -175,8 +175,8 @@ print_trapframe(struct Trapframe *tf)
 	printf("  ss   0x----%04x\n", tf->tf_ss);
 }
 
-void
-trap(struct Trapframe *tf)
+static void
+trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 #if SOL >= 3
@@ -248,6 +248,38 @@ trap(struct Trapframe *tf)
 		env_destroy(curenv);
 		return;
 	}
+}
+
+void
+trap(struct Trapframe *tf)
+{
+#if LAB == 3
+	printf("Incoming TRAP frame at %p\n", tf);
+
+#endif
+	// Copy trap frame (which is currently on the stack) in to the
+	// current environment.  After this point, the trapframe on
+	// the stack should be ignored.
+	assert(curenv);
+	curenv->env_tf = *tf;
+
+	// Dispatch based on what type of trap occurred
+	trap_dispatch(&curenv->env_tf);
+
+#if LAB >= 4
+	// If we made it to this point, then no other environment was
+	// scheduled, so we should return to the current environment
+	// if doing so makes sense.
+	if (curenv && curenv->env_status == ENV_RUNNABLE)
+		env_run(curenv);
+	else
+		sched_yield();
+#else
+        // Return to the current environment after ensuring that this
+        // is a sane thing to do.
+        assert(curenv && curenv->env_status == ENV_RUNNABLE);
+        env_run(curenv);
+#endif
 }
 
 

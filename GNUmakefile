@@ -231,8 +231,8 @@ export-sol%: always
 	echo >sol$*/conf/lab.mk "LAB=$*"
 export-prep%: always
 	rm -rf prep$*
-	num=`echo $$(($*-$(LABADJUST)))`;
-		$(MKLABENV) $(PERL) mklab.pl $num `expr $num - 1` prep$* $(LAB_FILES)
+	num=`echo $$(($*-$(LABADJUST)))`; \
+		$(MKLABENV) $(PERL) mklab.pl $$num `expr $$num - 1` prep$* $(LAB_FILES)
 	echo >prep$*/conf/lab.mk "LAB=$*"
 
 lab%.tar.gz: always
@@ -246,10 +246,15 @@ build-sol%: export-sol% always
 build-prep%: export-prep% always
 	cd prep$*; $(MAKE)
 
+grade-sol%: export-sol% always
+	cd sol$*; $(MAKE) grade
+
+grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 always
+
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
 bochs: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
-	bochs-nogui
+	bochs 'display_library: nogui'
 
 # For deleting the build
 clean:

@@ -97,7 +97,7 @@ sys_exofork(void)
 	if ((r = env_alloc(&e, curenv->env_id)) < 0)
 		return r;
 	e->env_status = ENV_NOT_RUNNABLE;
-	e->env_tf = *UTF;
+	e->env_tf = curenv->env_tf;
 	e->env_tf.tf_eax = 0;
 	return e->env_id;
 #else
@@ -170,15 +170,9 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 
 	if ((r = envid2env(envid, &e, 1)) < 0)
 		return r;
-	if (e == curenv)
-		*UTF = ltf;
-	else
-		e->env_tf = ltf;
+	e->env_tf = ltf;
 	return 0;
 #else
-	// Hint: You must do something special if 'envid' is the current
-	// environment!
-
 	// LAB 4: Your code here.
 	panic("sys_set_trapframe not implemented");
 #endif

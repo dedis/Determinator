@@ -208,7 +208,12 @@ timeout=60
 runtest1 -tag 'shell [testshell]' testshell \
 	'shell ran correctly' \
 
-echo SCORE: $score/100
+echo "Score: $score/100"
+
+if [ $score -lt 100 ]; then
+    exit 1
+fi
+
 
 #elif LAB >= 5		/******************** LAB 5 ********************/
 score=0
@@ -261,6 +266,8 @@ quicktest 'serv_* [testfsipc]' \
 
 echo PART A SCORE: $score/55
 
+partascore=$score
+
 score=0
 pts=10
 runtest1 -tag 'motd display [writemotd]' writemotd \
@@ -291,7 +298,9 @@ runtest1 -tag 'spawn via icode [icode]' icode \
 
 echo PART B SCORE: $score/45
 
-exit 0
+if [ $partascore -lt 55 -or $score -lt 45 ]; then
+    exit 1
+fi
 
 #elif LAB >= 4		/******************** LAB 4 ********************/
 
@@ -316,14 +325,14 @@ echo PART A SCORE: $score/5
 runtest1 faultread \
 	! 'I read ........ from location 0!' \
 	'.00001001. user fault va 00000000 ip 008.....' \
-	'TRAP frame at 0xefbfffbc' \
+        'TRAP frame at 0xf.......' \
 	'  trap 0x0000000e Page Fault' \
 	'  err  0x00000004' \
 	'.00001001. free env 00001001'
 
 runtest1 faultwrite \
 	'.00001001. user fault va 00000000 ip 008.....' \
-	'TRAP frame at 0xefbfffbc' \
+        'TRAP frame at 0xf.......' \
 	'  trap 0x0000000e Page Fault' \
 	'  err  0x00000006' \
 	'.00001001. free env 00001001'
@@ -367,8 +376,8 @@ runtest1 forktree \
 	'....: I am .111.' \
 	'....: I am .011.' \
 	'....: I am .001.' \
-	'.00002001. exiting gracefully' \
-	'.0000100.. exiting gracefully' \
+	'.00001001. exiting gracefully' \
+	'.00001002. exiting gracefully' \
 	'.0000200.. exiting gracefully' \
 	'.0000200.. free env 0000200.'
 
@@ -414,6 +423,10 @@ runtest1 primes \
 
 echo PART C SCORE: $score/65
 
+if [ $score -lt 65 ]; then
+    exit 1
+fi
+
 
 #elif LAB >= 3		/******************** LAB 3 ********************/
 
@@ -442,7 +455,8 @@ runtest1 evilhello \
 
 runtest1 divzero \
 	! '1/0 is ........!' \
-	'TRAP frame at 0xefbfff..' \
+	'Incoming TRAP frame at 0xefbfff..' \
+        'TRAP frame at 0xf.......' \
 	'  trap 0x00000000 Divide error' \
 	'  eip  0x008.....' \
 	'  ss   0x----0023' \
@@ -450,7 +464,8 @@ runtest1 divzero \
 
 runtest1 breakpoint \
 	'Welcome to the JOS kernel monitor!' \
-	'TRAP frame at 0xefbfffbc' \
+	'Incoming TRAP frame at 0xefbfffbc' \
+        'TRAP frame at 0xf.......' \
 	'  trap 0x00000003 Breakpoint' \
 	'  eip  0x008.....' \
 	'  ss   0x----0023' \
@@ -458,14 +473,16 @@ runtest1 breakpoint \
 
 runtest1 softint \
 	'Welcome to the JOS kernel monitor!' \
-	'TRAP frame at 0xefbfffbc' \
+	'Incoming TRAP frame at 0xefbfffbc' \
+        'TRAP frame at 0xf.......' \
 	'  trap 0x0000000d General Protection' \
 	'  eip  0x008.....' \
 	'  ss   0x----0023' \
 	'.00001000. free env 00001000'
 
 runtest1 badsegment \
-	'TRAP frame at 0xefbfffbc' \
+	'Incoming TRAP frame at 0xefbfffbc' \
+        'TRAP frame at 0xf.......' \
 	'  trap 0x0000000d General Protection' \
 	'  err  0x0000001c' \
 	'  eip  0x008.....' \
@@ -475,7 +492,8 @@ runtest1 badsegment \
 runtest1 faultread \
 	! 'I read ........ from location 0!' \
 	'.00001000. user fault va 00000000 ip 008.....' \
-	'TRAP frame at 0xefbfffbc' \
+	'Incoming TRAP frame at 0xefbfffbc' \
+        'TRAP frame at 0xf.......' \
 	'  trap 0x0000000e Page Fault' \
 	'  err  0x00000004' \
 	'.00001000. free env 00001000'
@@ -483,21 +501,24 @@ runtest1 faultread \
 runtest1 faultreadkernel \
 	! 'I read ........ from location 0xf0100000!' \
 	'.00001000. user fault va f0100000 ip 008.....' \
-	'TRAP frame at 0xefbfffbc' \
+	'Incoming TRAP frame at 0xefbfffbc' \
+        'TRAP frame at 0xf.......' \
 	'  trap 0x0000000e Page Fault' \
 	'  err  0x00000005' \
 	'.00001000. free env 00001000' \
 
 runtest1 faultwrite \
 	'.00001000. user fault va 00000000 ip 008.....' \
-	'TRAP frame at 0xefbfffbc' \
+	'Incoming TRAP frame at 0xefbfffbc' \
+        'TRAP frame at 0xf.......' \
 	'  trap 0x0000000e Page Fault' \
 	'  err  0x00000006' \
 	'.00001000. free env 00001000'
 
 runtest1 faultwritekernel \
 	'.00001000. user fault va f0100000 ip 008.....' \
-	'TRAP frame at 0xefbfffbc' \
+	'Incoming TRAP frame at 0xefbfffbc' \
+        'TRAP frame at 0xf.......' \
 	'  trap 0x0000000e Page Fault' \
 	'  err  0x00000007' \
 	'.00001000. free env 00001000'
@@ -510,9 +531,11 @@ runtest1 testbss \
 
 
 
-echo Score: $score/60
+echo "Score: $score/60"
 
-score=0
+if [ $score -lt 60 ]; then
+    exit 1
+fi
 
 
 #elif LAB >= 2		/******************** LAB 2 ********************/
@@ -541,6 +564,10 @@ echo_n "Page management: "
  fi
 
 echo "Score: $score/50"
+
+if [ $score -lt 50 ]; then
+    exit 1
+fi
 
 #elif LAB >= 1		/******************** LAB 1 ********************/
 
@@ -583,6 +610,10 @@ END { printf("\n") }' | grep '^00000000 00000000 00000001 00000002 00000003 0000
 	fi
 
 echo "Score: $score/50"
+
+if [ $score -lt 50 ]; then
+    exit 1
+fi
 
 #endif
 

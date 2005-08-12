@@ -4,7 +4,9 @@
 #include <inc/asm.h>
 #include <inc/mmu.h>
 #include <inc/pmap.h>
+#if LAB >= 3
 #include <inc/trap.h>
+#endif
 
 
 ###################################################################
@@ -61,7 +63,7 @@ relocated:
 	movl	$0x0,%ebp			# nuke frame pointer
 
 #if LAB >= 3
-        # Leave a few words on the stack for the user trap frame UTF
+        # Leave a few words on the stack for the user trap frame
 	movl	$(bootstacktop-SIZEOF_STRUCT_TRAPFRAME),%esp
 #else
         # Set the stack pointer

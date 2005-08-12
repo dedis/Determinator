@@ -481,40 +481,29 @@ env_pop_tf(struct Trapframe *tf)
 void
 env_run(struct Env *e)
 {
-#if LAB >= 4
-	// save the register state of the previously executing environment
-	if (curenv) {
-#if SOL >= 4
-		curenv->env_tf = *UTF;
-#else
-		// Save the register state of the
-		// previously executing environment.
-		//
-		// Hint: This can be done in a single line of code!
-		//   Check out the symbol UTF defined in kern/trap.h.
-		
-		// LAB 4: Your code here.
-		panic("need to save previous env's register state!");
-#endif
-	}
-#endif // LAB >= 4
-
 #if SOL >= 3
-	// keep track of which environment we're currently running
-	curenv = e;
-	e->env_runs++;
+	// Is this a context switch or just a return?
+	if (curenv != e) {
+		// keep track of which environment we're currently
+		// running
+		curenv = e;
+		e->env_runs++;
 
-	// restore e's address space
-	lcr3(e->env_cr3);
+		// restore e's address space
+		lcr3(e->env_cr3);
+	}
 
 	// restore e's register state
 	env_pop_tf(&e->env_tf);
 #else /* not SOL >= 3 */
 	// Step 1: Set 'curenv' to the new environment to be run,
-	//	and update the 'env_runs' counter.
-	// Step 2: Use lcr3() to switch to the new environment's address space.
-	// Step 3: Use env_pop_tf() to restore the new environment's registers
-	//	and drop into user mode in the new environment.
+	//	   and update the 'env_runs' counter if this is a
+	//	   context switch.
+	// Step 2: Use lcr3() to switch to the new environment's
+	//         address space if this is a context switch.
+	// Step 3: Use env_pop_tf() to restore the environment's
+	//         registers and drop into user mode in the
+	//         environment.
 
 	// Hint: This function loads the new environment's state from
 	//	e->env_tf.  Go back through the code you wrote above

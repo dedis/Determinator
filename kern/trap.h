@@ -11,9 +11,6 @@
 #include <inc/mmu.h>
 
 
-/* The user trap frame is always at the top of the kernel stack */
-#define UTF	((struct Trapframe*)(KSTACKTOP - sizeof(struct Trapframe)))
-
 /* The kernel's interrupt descriptor table */
 extern struct Gatedesc idt[];
 

@@ -83,13 +83,8 @@ _alltraps:
 	movw %ax,%ds		#  kernel
 	movw %ax,%es		#  segments
 	pushl %esp		# pass pointer to this trapframe 
-	call	trap		#  and call trap
-	addl $0x4,%esp		# deallocate arg.
-	popal			# restore
-	popl %es		#  registers
-	popl %ds		#
-	addl $0x8,%esp		# skip trapno and errcode
-	iret			# go back..
+	call	trap		#  and call trap (does not return)
+spin:	jmp spin
 #endif // SOL >= 3
 
 #endif // LAB >= 3
