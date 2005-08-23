@@ -1,7 +1,7 @@
 #if LAB >= 6
 #include <inc/lib.h>
 
-#define VA ((char *) 0xA0000000)
+#define VA	((char *) 0xA0000000)
 char *msg = "hello, world\n";
 char *msg2 = "goodbye, world\n";
 

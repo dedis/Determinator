@@ -52,7 +52,7 @@ again:
 				cprintf("open %s for read: %e", t, fd);
 				exit();
 			}
-			if(fd != 0){
+			if (fd != 0) {
 				dup(fd, 0);
 				close(fd);
 			}
@@ -81,7 +81,7 @@ again:
 				cprintf("open %s for write: %e", t, fd);
 				exit();
 			}
-			if(fd != 1){
+			if (fd != 1) {
 				dup(fd, 1);
 				close(fd);
 			}
@@ -101,13 +101,13 @@ again:
 			
 		case '|':	// Pipe
 #if SOL >= 6
-			if ((r=pipe(p)) < 0){
+			if ((r = pipe(p)) < 0) {
 				cprintf("pipe: %e", r);
 				exit();
 			}
 			if (debug)
 				cprintf("PIPE: %d %d\n", p[0], p[1]);
-			if ((r=fork()) < 0) {
+			if ((r = fork()) < 0) {
 				cprintf("fork: %e", r);
 				exit();
 			}
@@ -120,7 +120,7 @@ again:
 				goto again;
 			} else {
 				pipe_child = r;
-				if(p[1] != 1){
+				if (p[1] != 1) {
 					dup(p[1], 1);
 					close(p[1]);
 				}
@@ -239,7 +239,7 @@ runit:
 #define SYMBOLS "<|>&;()"
 
 int
-_gettoken(char* s, char** p1, char** p2)
+_gettoken(char *s, char **p1, char **p2)
 {
 	int t;
 
@@ -285,7 +285,7 @@ _gettoken(char* s, char** p1, char** p2)
 }
 
 int
-gettoken(char* s, char** p1)
+gettoken(char *s, char **p1)
 {
 	static int c, nc;
 	static char* np1, *np2;
@@ -309,7 +309,7 @@ usage(void)
 }
 
 void
-umain(int argc, char** argv)
+umain(int argc, char **argv)
 {
 	int r, interactive, echocmds;
 
@@ -335,7 +335,7 @@ umain(int argc, char** argv)
 		close(0);
 		if ((r = open(argv[1], O_RDONLY)) < 0)
 			panic("open %s: %e", argv[1], r);
-		assert(r==0);
+		assert(r == 0);
 	}
 	if (interactive == '?')
 		interactive = iscons(0);

@@ -1,5 +1,4 @@
 #if LAB >= 5
-
 #include <inc/lib.h>
 
 void
@@ -12,10 +11,9 @@ usage(void)
 void
 umain(int argc, char **argv)
 {
-	int i, usefprint;
+	int i, usefprint = 0;
 	struct Stat st;
 
-	usefprint = 0;
 	ARGBEGIN{
 	default:
 		usage();
