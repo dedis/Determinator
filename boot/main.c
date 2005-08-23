@@ -30,9 +30,8 @@
  *  * cmain() in this file takes over, reads in the kernel and jumps to it.
  **********************************************************************/
 
-#define  SECTOR_SIZE    512
-
-static uint8_t *sect = (uint8_t*) 0x10000;	// scratch space
+#define SECTSIZE	512
+#define ELFHDR		((struct Elf *) 0x10000) // scratch space
 
 void readsect(void*, uint32_t);
 void readseg(uint32_t, uint32_t, uint32_t);
@@ -40,27 +39,24 @@ void readseg(uint32_t, uint32_t, uint32_t);
 void
 cmain(void)
 {
-	uint32_t entry, i;
-	struct Elf *elf;
-	struct Proghdr *ph;
+	struct Proghdr *ph, *eph;
 
 	// read 1st page off disk
-	for (i = 0; i < 8; i++)
-		readsect(sect + 512*i, i + 1);
+	readseg((uint32_t) ELFHDR, SECTSIZE*8, 0);
 
-	// look at ELF header - ignores ph flags
-	elf = (struct Elf*) sect;
-	if (elf->e_magic != ELF_MAGIC)
+	// is this a valid ELF?
+	if (ELFHDR->e_magic != ELF_MAGIC)
 		goto bad;
 
-	entry = elf->e_entry;
-	ph = (struct Proghdr*) (sect + elf->e_phoff);
-	for (i = 0; i < elf->e_phnum; i++, ph++)
+	// load each program segment (ignores ph flags)
+	ph = (struct Proghdr *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
+	eph = ph + ELFHDR->e_phnum;
+	for (; ph < eph; ph++)
 		readseg(ph->p_va, ph->p_memsz, ph->p_offset);
 
-	entry &= 0xFFFFFF;
-	((void(*)(void)) entry)();
-	/* DOES NOT RETURN */
+	// call the entry point from the ELF header
+	// note: does not return!
+	((void (*)(void)) (ELFHDR->e_entry & 0xFFFFFF))();
 
 bad:
 	outw(0x8A00, 0x8A00);
@@ -80,17 +76,17 @@ readseg(uint32_t va, uint32_t count, uint32_t offset)
 	end_va = va + count;
 	
 	// round down to sector boundary
-	va &= ~511;
+	va &= ~(SECTSIZE - 1);
 
 	// translate from bytes to sectors, and kernel starts at sector 1
-	offset = (offset / 512) + 1;
+	offset = (offset / SECTSIZE) + 1;
 
 	// If this is too slow, we could read lots of sectors at a time.
 	// We'd write more to memory than asked, but it doesn't matter --
 	// we load in increasing order.
 	while (va < end_va) {
 		readsect((uint8_t*) va, offset);
-		va += 512;
+		va += SECTSIZE;
 		offset++;
 	}
 }
@@ -120,7 +116,7 @@ readsect(void *dst, uint32_t offset)
 	waitdisk();
 
 	// read a sector
-	insl(0x1F0, dst, 512/4);
+	insl(0x1F0, dst, SECTSIZE/4);
 }
 
 #endif /* LAB >= 1 */
