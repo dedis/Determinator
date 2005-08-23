@@ -5,6 +5,7 @@
 
 #include <inc/types.h>
 #include <inc/stdio.h>
+#include <inc/string.h>
 #include <inc/stdarg.h>
 #include <inc/error.h>
 
@@ -18,7 +19,7 @@
  * so that -E_NO_MEM and E_NO_MEM are equivalent.
  */
 
-static char *error_string[MAXERROR + 1] =
+static const char * const error_string[MAXERROR + 1] =
 {
 	NULL,
 	"unspecified error",
@@ -48,7 +49,7 @@ printnum(void (*putch)(int, void*), void *putdat,
 {
 	// first recursively print all preceding (more significant) digits
 	if (num >= base) {
-		printnum(putch, putdat, num / base, base, width-1, padc);
+		printnum(putch, putdat, num / base, base, width - 1, padc);
 	} else {
 		// print any needed pad characters before first digit
 		while (--width > 0)
@@ -92,10 +93,10 @@ void printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...);
 void
 vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 {
-	register char *p;
+	register const char *p;
 	register int ch, err;
 	unsigned long long num;
-	int base, lflag, width;
+	int base, lflag, width, precision, altflag;
 	char padc;
 
 	while (1) {
@@ -107,11 +108,18 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		// Process a %-escape sequence
 		padc = ' ';
-		width = 0;
+		width = -1;
+		precision = -1;
 		lflag = 0;
+		altflag = 0;
 	reswitch:
 		switch (ch = *(unsigned char *) fmt++) {
 
+		// flag to pad on the right
+		case '-':
+			padc = '-';
+			goto reswitch;
+			
 		// flag to pad with 0's instead of spaces
 		case '0':
 			padc = '0';
@@ -127,12 +135,30 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		case '7':
 		case '8':
 		case '9':
-			for (width = 0;; ++fmt) {
-				width = width * 10 + ch - '0';
+			for (precision = 0; ; ++fmt) {
+				precision = precision * 10 + ch - '0';
 				ch = *fmt;
 				if (ch < '0' || ch > '9')
 					break;
 			}
+			goto process_precision;
+
+		case '*':
+			precision = va_arg(ap, int);
+			goto process_precision;
+
+		case '.':
+			if (width < 0)
+				width = 0;
+			goto reswitch;
+
+		case '#':
+			altflag = 1;
+			goto reswitch;
+
+		process_precision:
+			if (width < 0)
+				width = precision, precision = -1;
 			goto reswitch;
 
 		// long flag (doubled for long long)
@@ -159,9 +185,17 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		// string
 		case 's':
 			if ((p = va_arg(ap, char *)) == NULL)
-					p = "(null)";
-			while ((ch = *p++) != '\0')
-				putch(ch, putdat);
+				p = "(null)";
+			if (width > 0 && padc != '-')
+				for (width -= strnlen(p, precision); width > 0; width--)
+					putch(padc, putdat);
+			for (; (ch = *p++) != '\0' && (precision < 0 || --precision >= 0); width--)
+				if (altflag && (ch < ' ' || ch > '~'))
+					putch('?', putdat);
+				else
+					putch(ch, putdat);
+			for (; width > 0; width--)
+				putch(' ', putdat);
 			break;
 
 		// (signed) decimal
