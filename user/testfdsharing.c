@@ -3,17 +3,6 @@
 
 char buf[512], buf2[512];
 
-int 
-memcmp(char *a, char *b, int n)
-{
-	int i;
-
-	for(i=0; i<n; i++)
-		if(a[i] != b[i])
-			return 1;
-	return 0;
-}
-
 void
 umain(void)
 {
@@ -32,7 +21,7 @@ umain(void)
 		cprintf("going to read in child (might page fault if your sharing is buggy)\n");
 		if ((n2 = readn(fd, buf2, sizeof buf2)) != n2)
 			panic("read in parent got %d, read in child got %d", n, n2);
-		if(memcmp(buf, buf2, n) != 0)
+		if (memcmp(buf, buf2, n) != 0)
 			panic("read in parent got different bytes from read in child");
 		cprintf("read in child succeeded\n");
 		seek(fd, 0);

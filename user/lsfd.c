@@ -24,7 +24,7 @@ umain(int argc, char **argv)
 		break;
 	}ARGEND
 
-	for (i=0; i<32; i++)
+	for (i = 0; i < 32; i++)
 		if (fstat(i, &st) >= 0) {
 			if (usefprint)
 				fprintf(1, "fd %d: name %s isdir %d size %d dev %s\n",

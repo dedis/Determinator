@@ -1,5 +1,4 @@
 #if LAB >= 5
-
 #include <inc/lib.h>
 
 char buf[8192];
@@ -23,17 +22,17 @@ umain(int argc, char **argv)
 	int f, i;
 
 	argv0 = "cat";
-	if(argc == 1)
+	if (argc == 1)
 		cat(0, "<stdin>");
-	else for(i=1; i<argc; i++){
-		f = open(argv[i], O_RDONLY);
-		if(f < 0)
-			panic("can't open %s: %e", argv[i], f);
-		else{
-			cat(f, argv[i]);
-			close(f);
+	else
+		for (i = 1; i < argc; i++) {
+			f = open(argv[i], O_RDONLY);
+			if (f < 0)
+				panic("can't open %s: %e", argv[i], f);
+			else {
+				cat(f, argv[i]);
+				close(f);
+			}
 		}
-	}
 }
-
 #endif

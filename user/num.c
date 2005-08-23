@@ -16,7 +16,7 @@ num(int f, char *s)
 			fprintf(1, "%5d ", ++line);
 			bol = 0;
 		}
-		if ((r=write(1, &c, 1)) != 1)
+		if ((r = write(1, &c, 1)) != 1)
 			panic("write error copying %s: %e", s, r);
 		if (c == '\n')
 			bol = 1;
