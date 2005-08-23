@@ -12,29 +12,29 @@ umain(void)
 		panic("open /newmotd: %e", rfd);
 	if ((wfd = open("/motd", O_RDWR)) < 0)
 		panic("open /motd: %e", wfd);
-	printf("file descriptors %d %d\n", rfd, wfd);
+	cprintf("file descriptors %d %d\n", rfd, wfd);
 	if (rfd == wfd)
 		panic("open /newmotd and /motd give same file descriptor");
 
-	printf("OLD MOTD\n===\n");
+	cprintf("OLD MOTD\n===\n");
 	while ((n = read(wfd, buf, sizeof buf-1)) > 0) {
 		buf[n] = 0;
 		sys_cputs(buf);
 	}
-	printf("===\n");
+	cprintf("===\n");
 	seek(wfd, 0);
 
 	if ((r = ftruncate(wfd, 0)) < 0)
 		panic("truncate /motd: %e", r);
 
-	printf("NEW MOTD\n===\n");
+	cprintf("NEW MOTD\n===\n");
 	while ((n = read(rfd, buf, sizeof buf-1)) > 0) {
 		buf[n] = 0;
 		sys_cputs(buf);
 		if ((r = write(wfd, buf, n)) != n)
 			panic("write /motd: %e", r);
 	}
-	printf("===\n");
+	cprintf("===\n");
 
 	if (n < 0)
 		panic("read /newmotd: %e", n);

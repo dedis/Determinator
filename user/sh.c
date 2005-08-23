@@ -35,7 +35,7 @@ again:
 
 		case 'w':	// Add an argument
 			if (argc == MAXARGS) {
-				printf("too many arguments\n");
+				cprintf("too many arguments\n");
 				exit();
 			}
 			argv[argc++] = t;
@@ -44,12 +44,12 @@ again:
 		case '<':	// Input redirection
 			// Grab the filename from the argument list
 			if (gettoken(0, &t) != 'w') {
-				printf("syntax error: < not followed by word\n");
+				cprintf("syntax error: < not followed by word\n");
 				exit();
 			}
 #if SOL >= 6
 			if ((fd = open(t, O_RDONLY)) < 0) {
-				printf("open %s for read: %e", t, fd);
+				cprintf("open %s for read: %e", t, fd);
 				exit();
 			}
 			if(fd != 0){
@@ -73,12 +73,12 @@ again:
 		case '>':	// Output redirection
 			// Grab the filename from the argument list
 			if (gettoken(0, &t) != 'w') {
-				printf("syntax error: > not followed by word\n");
+				cprintf("syntax error: > not followed by word\n");
 				exit();
 			}
 #if SOL >= 6
 			if ((fd = open(t, O_WRONLY)) < 0) {
-				printf("open %s for write: %e", t, fd);
+				cprintf("open %s for write: %e", t, fd);
 				exit();
 			}
 			if(fd != 1){
@@ -101,23 +101,24 @@ again:
 			
 		case '|':	// Pipe
 #if SOL >= 6
-			if((r=pipe(p)) < 0){
-				printf("pipe: %e", r);
+			if ((r=pipe(p)) < 0){
+				cprintf("pipe: %e", r);
 				exit();
 			}
-			if (debug) printf("PIPE: %d %d\n", p[0], p[1]);
-			if((r=fork()) < 0){
-				printf("fork: %e", r);
+			if (debug)
+				cprintf("PIPE: %d %d\n", p[0], p[1]);
+			if ((r=fork()) < 0) {
+				cprintf("fork: %e", r);
 				exit();
 			}
-			if(r == 0){
-				if(p[0] != 0){
+			if (r == 0) {
+				if (p[0] != 0) {
 					dup(p[0], 0);
 					close(p[0]);
 				}
 				close(p[1]);
 				goto again;
-			}else{
+			} else {
 				pipe_child = r;
 				if(p[1] != 1){
 					dup(p[1], 1);
@@ -170,7 +171,7 @@ runit:
 	// Return immediately if command line was empty.
 	if(argc == 0) {
 		if (debug)
-			printf("EMPTY COMMAND\n");
+			cprintf("EMPTY COMMAND\n");
 		return;
 	}
 
@@ -187,35 +188,35 @@ runit:
 	
 	// Print the command.
 	if (debug) {
-		printf("[%08x] SPAWN:", env->env_id);
+		cprintf("[%08x] SPAWN:", env->env_id);
 		for (i = 0; argv[i]; i++)
-			printf(" %s", argv[i]);
-		printf("\n");
+			cprintf(" %s", argv[i]);
+		cprintf("\n");
 	}
 
 	// Spawn the command!
 	if ((r = spawn(argv0buf, (const char**) argv)) < 0)
-		printf("spawn %s: %e\n", argv[0], r);
+		cprintf("spawn %s: %e\n", argv[0], r);
 
 	// In the parent, close all file descriptors and wait for the
 	// spawned command to exit.
 	close_all();
 	if (r >= 0) {
 		if (debug)
-			printf("[%08x] WAIT %s %08x\n", env->env_id, argv[0], r);
+			cprintf("[%08x] WAIT %s %08x\n", env->env_id, argv[0], r);
 		wait(r);
 		if (debug)
-			printf("[%08x] wait finished\n", env->env_id);
+			cprintf("[%08x] wait finished\n", env->env_id);
 	}
 
 	// If we were the left-hand part of a pipe,
 	// wait for the right-hand part to finish.
 	if (pipe_child) {
 		if (debug)
-			printf("[%08x] WAIT pipe_child %08x\n", env->env_id, pipe_child);
+			cprintf("[%08x] WAIT pipe_child %08x\n", env->env_id, pipe_child);
 		wait(pipe_child);
 		if (debug)
-			printf("[%08x] wait finished\n", env->env_id);
+			cprintf("[%08x] wait finished\n", env->env_id);
 	}
 
 	// Done!
@@ -244,12 +245,12 @@ _gettoken(char* s, char** p1, char** p2)
 
 	if (s == 0) {
 		if (debug > 1)
-			printf("GETTOKEN NULL\n");
+			cprintf("GETTOKEN NULL\n");
 		return 0;
 	}
 
 	if (debug > 1)
-		printf("GETTOKEN: %s\n", s);
+		cprintf("GETTOKEN: %s\n", s);
 
 	*p1 = 0;
 	*p2 = 0;
@@ -258,7 +259,7 @@ _gettoken(char* s, char** p1, char** p2)
 		*s++ = 0;
 	if (*s == 0) {
 		if (debug > 1)
-			printf("EOL\n");
+			cprintf("EOL\n");
 		return 0;
 	}
 	if (strchr(SYMBOLS, *s)) {
@@ -267,7 +268,7 @@ _gettoken(char* s, char** p1, char** p2)
 		*s++ = 0;
 		*p2 = s;
 		if (debug > 1)
-			printf("TOK %c\n", t);
+			cprintf("TOK %c\n", t);
 		return t;
 	}
 	*p1 = s;
@@ -277,7 +278,7 @@ _gettoken(char* s, char** p1, char** p2)
 	if (debug > 1) {
 		t = **p2;
 		**p2 = 0;
-		printf("WORD: %s\n", *p1);
+		cprintf("WORD: %s\n", *p1);
 		**p2 = t;
 	}
 	return 'w';
@@ -303,7 +304,7 @@ gettoken(char* s, char** p1)
 void
 usage(void)
 {
-	printf("usage: sh [-dix] [command-file]\n");
+	cprintf("usage: sh [-dix] [command-file]\n");
 	exit();
 }
 
@@ -345,21 +346,21 @@ umain(int argc, char** argv)
 		buf = readline(interactive ? "$ " : NULL);
 		if (buf == NULL) {
 			if (debug)
-				printf("EXITING\n");
+				cprintf("EXITING\n");
 			exit();	// end of file
 		}
 		if (debug)
-			printf("LINE: %s\n", buf);
+			cprintf("LINE: %s\n", buf);
 		if (buf[0] == '#')
 			continue;
 		if (echocmds)
 			fprintf(1, "# %s\n", buf);
 		if (debug)
-			printf("BEFORE FORK\n");
+			cprintf("BEFORE FORK\n");
 		if ((r = fork()) < 0)
 			panic("fork: %e", r);
 		if (debug)
-			printf("FORK: %d\n", r);
+			cprintf("FORK: %d\n", r);
 		if (r == 0) {
 			runcmd(buf);
 			exit();

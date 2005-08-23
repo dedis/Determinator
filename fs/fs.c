@@ -232,7 +232,7 @@ read_super(void)
 	if (super->s_nblocks > DISKSIZE/BLKSIZE)
 		panic("file system is too large");
 
-	printf("superblock is good\n");
+	cprintf("superblock is good\n");
 }
 
 // Read and validate the file system bitmap.
@@ -286,7 +286,7 @@ read_bitmap(void)
 	// LAB 5: Your code here.
 
 #endif
-	printf("read_bitmap is good\n");
+	cprintf("read_bitmap is good\n");
 }
 
 // Test that write_block works, by smashing the superblock and reading it back.
@@ -318,7 +318,7 @@ check_write_block(void)
 	write_block(1);
 	super = (struct Super*)diskaddr(1);
 
-	printf("write_block is good\n");
+	cprintf("write_block is good\n");
 }
 
 // Initialize the file system
@@ -635,7 +635,7 @@ file_truncate_blocks(struct File *f, off_t newsize)
 	new_nblocks = (newsize + BLKSIZE - 1) / BLKSIZE;
 	for (bno = new_nblocks; bno < old_nblocks; bno++)
 		if ((r = file_clear_block(f, bno)) < 0)
-			printf("warning: file_clear_block: %e", r);
+			cprintf("warning: file_clear_block: %e", r);
 
 	if (new_nblocks <= NDIRECT && f->f_indirect) {
 		free_block(f->f_indirect);

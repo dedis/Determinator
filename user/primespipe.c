@@ -21,7 +21,7 @@ top:
 	if ((r = readn(fd, &p, 4)) != 4)
 		panic("primeproc could not read initial prime: %d, %e", r, r >= 0 ? 0 : r);
 
-	printf("%d\n", p);
+	cprintf("%d\n", p);
 
 	// fork a right neighbor to continue the chain
 	if ((i=pipe(pfd)) < 0)

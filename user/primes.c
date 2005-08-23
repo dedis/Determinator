@@ -20,7 +20,7 @@ primeproc(void)
 	// fetch a prime from our left neighbor
 top:
 	p = ipc_recv(&envid, 0, 0);
-	printf("%d ", p);
+	cprintf("%d ", p);
 
 	// fork a right neighbor to continue the chain
 	if ((id = fork()) < 0)

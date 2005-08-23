@@ -9,7 +9,7 @@ umain(void)
 	struct Fd *fd;
 	struct Env *kid;
 
-	printf("testing for dup race...\n");
+	cprintf("testing for dup race...\n");
 	if ((r = pipe(p)) < 0)
 		panic("pipe: %e", r);
 	max = 200;
@@ -37,7 +37,7 @@ umain(void)
 		//
 		for (i=0; i<max; i++) {
 			if(pipeisclosed(p[0])){
-				printf("RACE: pipe appears closed\n");
+				cprintf("RACE: pipe appears closed\n");
 				exit();
 			}
 			sys_yield();
@@ -46,23 +46,23 @@ umain(void)
 		ipc_recv(0,0,0);
 	}
 	pid = r;
-	printf("pid is %d\n", pid);
+	cprintf("pid is %d\n", pid);
 	va = 0;
 	kid = &envs[ENVX(pid)];
-	printf("kid is %d\n", kid-envs);
+	cprintf("kid is %d\n", kid-envs);
 	dup(p[0], 10);
 	while (kid->env_status == ENV_RUNNABLE)
 		dup(p[0], 10);
 
-	printf("child done with loop\n");
+	cprintf("child done with loop\n");
 	if (pipeisclosed(p[0]))
 		panic("somehow the other end of p[0] got closed!");
 	if ((r = fd_lookup(p[0], &fd)) < 0)
 		panic("cannot look up p[0]: %e", r);
 	va = fd2data(fd);
 	if (pageref(va) != 3+1)
-		printf("\nchild detected race\n");
+		cprintf("\nchild detected race\n");
 	else
-		printf("\nrace didn't happen\n", max);
+		cprintf("\nrace didn't happen\n", max);
 }
 #endif

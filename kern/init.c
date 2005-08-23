@@ -26,12 +26,12 @@
 void
 test_backtrace(int x)
 {
-	printf("entering test_backtrace %d\n", x);
+	cprintf("entering test_backtrace %d\n", x);
 	if (x > 0)
 		test_backtrace(x-1);
 	else
 		mon_backtrace(0, 0, 0);
-	printf("leaving test_backtrace %d\n", x);
+	cprintf("leaving test_backtrace %d\n", x);
 }
 #endif
 
@@ -46,13 +46,13 @@ i386_init(void)
 	memset(edata, 0, end - edata);
 
 	// Initialize the console.
-	// Can't call printf until after we do this!
+	// Can't call cprintf until after we do this!
 	cons_init();
 
 #ifndef ENV_CLASS_NYU
-	printf("6828 decimal is %o octal!\n", 6828);
+	cprintf("6828 decimal is %o octal!\n", 6828);
 #else /* !ENV_CLASS_NYU */
-	printf("480 decimal is %o octal!\n", 480);
+	cprintf("480 decimal is %o octal!\n", 480);
 #endif /* !ENV_CLASS_NYU */
 
 #if LAB >= 2
@@ -179,9 +179,9 @@ _panic(const char *file, int line, const char *fmt,...)
 	panicstr = fmt;
 
 	va_start(ap, fmt);
-	printf("kernel panic at %s:%d: ", file, line);
-	vprintf(fmt, ap);
-	printf("\n");
+	cprintf("kernel panic at %s:%d: ", file, line);
+	vcprintf(fmt, ap);
+	cprintf("\n");
 	va_end(ap);
 
 dead:
@@ -197,9 +197,9 @@ _warn(const char *file, int line, const char *fmt,...)
 	va_list ap;
 
 	va_start(ap, fmt);
-	printf("kernel warning at %s:%d: ", file, line);
-	vprintf(fmt, ap);
-	printf("\n");
+	cprintf("kernel warning at %s:%d: ", file, line);
+	vcprintf(fmt, ap);
+	cprintf("\n");
 	va_end(ap);
 }
 

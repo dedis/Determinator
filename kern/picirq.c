@@ -82,11 +82,11 @@ irq_setmask_8259A(uint16_t mask)
 		return;
 	outb(IO_PIC1+1, (char)mask);
 	outb(IO_PIC2+1, (char)(mask >> 8));
-	printf("enabled interrupts:");
+	cprintf("enabled interrupts:");
 	for (i = 0; i < 16; i++)
 		if (~mask & (1<<i))
-			printf(" %d", i);
-	printf("\n");
+			cprintf(" %d", i);
+	cprintf("\n");
 }
 
 #endif /* LAB >= 3 */

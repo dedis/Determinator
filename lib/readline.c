@@ -1,6 +1,6 @@
 #if LAB >= 1
-
 #include <inc/stdio.h>
+#include <inc/error.h>
 
 #define BUFLEN 1024
 static char buf[BUFLEN];
@@ -10,30 +10,42 @@ readline(const char *prompt)
 {
 	int i, c, echoing;
 
+#if LAB >= 5
+#if JOS_KERNEL
 	if (prompt != NULL)
-		printf("%s", prompt);
+		cprintf("%s", prompt);
+#else
+	if (prompt != NULL)
+		fprintf(1, "%s", prompt);
+#endif
+#else
+	if (prompt != NULL)
+		cprintf("%s", prompt);
+#endif
 
 	i = 0;
 	echoing = iscons(0);
 	while (1) {
 		c = getchar();
 		if (c < 0) {
-			printf("read error: %e\n", c);
+#if LAB >= 5
+			if (c != -E_EOF)
+				cprintf("read error: %e\n", c);
+#else
+			cprintf("read error: %e\n", c);
+#endif
 			return NULL;
-		}
-		else if (c >= ' ' && i < BUFLEN-1) {
+		} else if (c >= ' ' && i < BUFLEN-1) {
 			if (echoing)
-				putchar(c);
+				cputchar(c);
 			buf[i++] = c;
-		}
-		else if (c == '\b' && i > 0) {
+		} else if (c == '\b' && i > 0) {
 			if (echoing)
-				putchar(c);
+				cputchar(c);
 			i--;
-		}
-		else if (c == '\n' || c == '\r') {
+		} else if (c == '\n' || c == '\r') {
 			if (echoing)
-				putchar(c);
+				cputchar(c);
 			buf[i] = 0;
 			return buf;
 		}

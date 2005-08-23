@@ -30,10 +30,10 @@ umain(int argc, char **argv)
 		else if (memcmp(buf, "malloc ", 7) == 0){
 			n = strtol(buf + 7, 0, 0);
 			v = malloc(n);
-			printf("\t0x%x\n", (size_t) v);
+			cprintf("\t0x%x\n", (size_t) v);
 		}
 		else
-			printf("?unknown command\n");
+			cprintf("?unknown command\n");
 	}
 }
 #endif

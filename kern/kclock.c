@@ -18,14 +18,14 @@
 
 
 unsigned
-mc146818_read(void *sc, unsigned reg)
+mc146818_read(unsigned reg)
 {
 	outb(IO_RTC, reg);
 	return inb(IO_RTC+1);
 }
 
 void
-mc146818_write(void *sc, unsigned reg, unsigned datum)
+mc146818_write(unsigned reg, unsigned datum)
 {
 	outb(IO_RTC, reg);
 	outb(IO_RTC+1, datum);
@@ -40,9 +40,9 @@ kclock_init(void)
 	outb(TIMER_MODE, TIMER_SEL0 | TIMER_RATEGEN | TIMER_16BIT);
 	outb(IO_TIMER1, TIMER_DIV(100) % 256);
 	outb(IO_TIMER1, TIMER_DIV(100) / 256);
-	printf("	Setup timer interrupts via 8259A\n");
+	cprintf("	Setup timer interrupts via 8259A\n");
 	irq_setmask_8259A(irq_mask_8259A & ~(1<<0));
-	printf("	unmasked timer interrupt\n");
+	cprintf("	unmasked timer interrupt\n");
 }
 #endif /* LAB >= 4 */
 

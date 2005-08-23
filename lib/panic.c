@@ -18,13 +18,13 @@ _panic(const char *file, int line, const char *fmt,...)
 
 	// Print the panic message
 	if (argv0)
-		printf("%s: ", argv0);
-	printf("user panic in %s at %s:%d: ", binaryname, file, line);
-	vprintf(fmt, ap);
-	printf("\n");
+		cprintf("%s: ", argv0);
+	cprintf("user panic in %s at %s:%d: ", binaryname, file, line);
+	vcprintf(fmt, ap);
+	cprintf("\n");
 
 	// Cause a breakpoint exception
-	for (;;)
+	while (1)
 		asm volatile("int3");
 }
 

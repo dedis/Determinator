@@ -22,10 +22,10 @@ sys_cputs(const char *s)
 {
 #if SOL >= 3
 	page_fault_mode = PFM_KILL;
-	printf("%s", TRUP(s));
+	cprintf("%s", TRUP(s));
 	page_fault_mode = PFM_NONE;
 #else
-	printf("%s", s);
+	cprintf("%s", s);
 #endif
 }
 
@@ -67,9 +67,9 @@ sys_env_destroy(envid_t envid)
 #if LAB >= 5
 #else
 	if (e == curenv)
-		printf("[%08x] exiting gracefully\n", curenv->env_id);
+		cprintf("[%08x] exiting gracefully\n", curenv->env_id);
 	else
-		printf("[%08x] destroying %08x\n", curenv->env_id, e->env_id);
+		cprintf("[%08x] destroying %08x\n", curenv->env_id, e->env_id);
 #endif
 	env_destroy(e);
 	return 0;
@@ -386,19 +386,19 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	if (srcva < (void*) UTOP && e->env_ipc_dstva < (void*) UTOP) {
 
 		if ((~perm & (PTE_U|PTE_P)) || (perm & ~PTE_USER)) {
-			printf("[%08x] bad perm %x in sys_ipc_try_send\n", curenv->env_id, perm);
+			cprintf("[%08x] bad perm %x in sys_ipc_try_send\n", curenv->env_id, perm);
 			return -E_INVAL;
 		}
 
 		pp = page_lookup(curenv->env_pgdir, srcva, 0);
 		if (pp == 0) {
-			printf("[%08x] page_lookup %08x failed in sys_ipc_try_send\n", curenv->env_id, srcva);
+			cprintf("[%08x] page_lookup %08x failed in sys_ipc_try_send\n", curenv->env_id, srcva);
 			return -E_INVAL;
 		}
 		
 		r = page_insert(e->env_pgdir, pp, e->env_ipc_dstva, perm);
 		if (r < 0) {
-			printf("[%08x] page_insert %08x failed in sys_ipc_try_send (%e)\n", curenv->env_id, srcva, r);
+			cprintf("[%08x] page_insert %08x failed in sys_ipc_try_send (%e)\n", curenv->env_id, srcva, r);
 			return r;
 		}
 		
@@ -455,7 +455,7 @@ sys_ipc_recv(void *dstva)
 uint32_t
 syscall(uint32_t sn, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
 {
-	// printf("syscall %d %x %x %x from env %08x\n", sn, a1, a2, a3, curenv->env_id);
+	// cprintf("syscall %d %x %x %x from env %08x\n", sn, a1, a2, a3, curenv->env_id);
 
 #if SOL >= 3
 	switch (sn) {

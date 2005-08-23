@@ -43,7 +43,7 @@ spawn(const char *prog, const char **argv)
 	if (read(fd, elf_buf, sizeof(elf_buf)) != sizeof(elf_buf)
 	    || elf->e_magic != ELF_MAGIC) {
 		close(fd);
-		printf("elf magic %08x want %08x\n", elf->e_magic, ELF_MAGIC);
+		cprintf("elf magic %08x want %08x\n", elf->e_magic, ELF_MAGIC);
 		return -E_NOT_EXEC;
 	}
 
@@ -273,7 +273,7 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 	int i, r;
 	void *blk;
 
-	//printf("map_segment %x+%x\n", va, memsz);
+	//cprintf("map_segment %x+%x\n", va, memsz);
 
 	if ((i = PGOFF(va))) {
 		va -= i;

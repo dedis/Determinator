@@ -32,18 +32,18 @@ void
 print_marked_page(int* pg) {
   int j;
   for (j = 0; j < (sequence_length-1); j++)
-    printf("%d, ", pg[j]);
+    cprintf("%d, ", pg[j]);
 
-  printf("%d", pg[j]);
+  cprintf("%d", pg[j]);
 }
 
 void
 print_expected_mark(int i) {
   int j;
   for (j = 0; j < (sequence_length-1); j++)
-    printf("%d, ", sequence[j]+i);
+    cprintf("%d, ", sequence[j]+i);
   
-  printf("%d", sequence[j]+i);
+  cprintf("%d", sequence[j]+i);
 }
 
 int n, va, r, initva, maxpa, maxva, maxnum, failures;
@@ -56,14 +56,14 @@ alloc_range(int initaddr, int maxpa, int startn) {
   initva = initaddr;
   maxva = initva + maxpa;
   
-  printf ("[%08x] trying to alloc pages in range [%08x, %08x]\n", env->env_id, initva, maxva);
+  cprintf ("[%08x] trying to alloc pages in range [%08x, %08x]\n", env->env_id, initva, maxva);
 
   // how many pages can I alloc? 
   // - limit to 256 M worth of pages
   for (va = initva; va < maxva; va += PGSIZE, n++) { 
     // alloc a page 
     if ((r = sys_mem_alloc(0, va, PTE_P | PTE_U | PTE_W | PTE_AVAIL)) < 0) { 
-      //printf("\nsys_mem_alloc failed: %e", r);
+      //cprintf("\nsys_mem_alloc failed: %e", r);
       break;
     }
 
@@ -72,11 +72,11 @@ alloc_range(int initaddr, int maxpa, int startn) {
     //memset((int*)va, n, PGSIZE / sizeof(int));
     mark_page((int*)va, n);
 
-    if ( (((va - initva) / PGSIZE) % 128) == 0) printf(".");
+    if ( (((va - initva) / PGSIZE) % 128) == 0) cprintf(".");
   }
-  printf("\n");
+  cprintf("\n");
 
-  printf("[%08x] able to allocate [%d] pages of requested [%d] pages\n", env->env_id, n, maxnum);
+  cprintf("[%08x] able to allocate [%d] pages of requested [%d] pages\n", env->env_id, n, maxnum);
 
   maxva = va;
   return n;
@@ -85,18 +85,18 @@ alloc_range(int initaddr, int maxpa, int startn) {
 int
 test_range(int startva, int endva, int startn) {
   int c;
-  printf("[%08x] testing pages in [%08x, %08x] to see if they look okay\n", env->env_id, startva, endva);
+  cprintf("[%08x] testing pages in [%08x, %08x] to see if they look okay\n", env->env_id, startva, endva);
   n = startn;
   failures = 0;  
   for (va = startva, c = 0; va < endva; va += PGSIZE, n++, c++) { 
     page_id = (int*)va;
 
     if (test_page((int*)va, n)) {
-      printf("\n[%08x] unexpected value at [%08x]:\n  {", env->env_id, va);
+      cprintf("\n[%08x] unexpected value at [%08x]:\n  {", env->env_id, va);
       print_marked_page((int*)va);
-      printf("} should be\n  {");
+      cprintf("} should be\n  {");
       print_expected_mark(n);
-      printf("}");
+      cprintf("}");
       
       failures++;
     } else {
@@ -104,45 +104,45 @@ test_range(int startva, int endva, int startn) {
       int perm = (PTE_U | PTE_P | PTE_W | PTE_AVAIL);
 
       if ((pte & perm) != perm) {
-	printf("\n[%08x] unexpected PTE permissions [04x] for address [%08x]\n {", env->env_id, pte & perm, va);
+	cprintf("\n[%08x] unexpected PTE permissions [04x] for address [%08x]\n {", env->env_id, pte & perm, va);
 	failures++;
       }
 
-      //      printf("\n value at [%08x]: {", va);
+      //      cprintf("\n value at [%08x]: {", va);
       //print_marked_page((int*)va);
-      //printf("} should be {");
+      //cprintf("} should be {");
       //print_expected_mark(n);
-      //printf("}");
+      //cprintf("}");
     }
 
-    if ( (((va - startva) / PGSIZE) % 128) == 0) printf(".");
-    //if ((va % PDMAP) == 0) printf(".");
+    if ( (((va - startva) / PGSIZE) % 128) == 0) cprintf(".");
+    //if ((va % PDMAP) == 0) cprintf(".");
   }
-  printf("\n");
+  cprintf("\n");
 
-  printf("[%08x] tested %d pages: %d failed assertions.\n", env->env_id, c, failures);
+  cprintf("[%08x] tested %d pages: %d failed assertions.\n", env->env_id, c, failures);
 
   return failures;
 }
 
 void
 unmap_range(int startva, int endva) {
-  printf("[%08x] unmapping range [%08x, %08x].\n", env->env_id, startva, endva);
+  cprintf("[%08x] unmapping range [%08x, %08x].\n", env->env_id, startva, endva);
   int xva, z;
   for (z=0, xva = startva; xva < endva; xva += PGSIZE, z++) { 
     sys_mem_unmap(0, xva);
   }
-  printf("[%08x] unmapped %d pages.\n", env->env_id, z);
+  cprintf("[%08x] unmapped %d pages.\n", env->env_id, z);
 }
 
 int
 duplicate_range(int startva, int dupeva, int nbytes) {
-  printf("[%08x] duplicating range [%08x, %08x] at [%08x, %08x]\n", 
+  cprintf("[%08x] duplicating range [%08x, %08x] at [%08x, %08x]\n", 
 	 env->env_id, startva, startva+nbytes, dupeva, dupeva+nbytes);
   int xva, r, k;
   for (xva = 0, k = 0; xva < nbytes; xva += PGSIZE, k+=PGSIZE) { 
     if ((r = sys_mem_map(0, startva+xva, 0, dupeva+xva, PTE_P | PTE_U | PTE_W | PTE_USER)) < 0) {
-      printf ("[%08x] duplicate_range FAILURE: %e\n", env->env_id, r);
+      cprintf ("[%08x] duplicate_range FAILURE: %e\n", env->env_id, r);
       return r;
     }
   }
@@ -159,7 +159,7 @@ umain(int argc, char **argv)
   int max, max2, k, j, i, dupesize, dupen;
 
   for (i = 0; i < 2; i++) { // might as well do this multiple times to stress the system...
-    printf("PMAPTEST[%08x] starting ROUND %d.\n", env->env_id, i);
+    cprintf("PMAPTEST[%08x] starting ROUND %d.\n", env->env_id, i);
 
     // Try to allocate as many pages as possible...
     k = alloc_range(UTEXT+PDMAP, (256 * 1024 * 1024), 0);       // alloc as many as possible
@@ -167,9 +167,9 @@ umain(int argc, char **argv)
     test_range(UTEXT+PDMAP, max, 0);                            // test if all are unique pages
 
     // If we've corrupted kernel memory, a yield might expose a problem.
-    printf("PMAPTEST[%08x] yielding...\n", env->env_id);
+    cprintf("PMAPTEST[%08x] yielding...\n", env->env_id);
     sys_yield();
-    printf("PMAPTEST[%08x] back.\n", env->env_id);
+    cprintf("PMAPTEST[%08x] back.\n", env->env_id);
 
     // Free a couple of pages for use by page tables and other envs...
     unmap_range(max-16 * PGSIZE, max);                           // free some pages so we have wiggle room, if extra

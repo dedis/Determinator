@@ -26,13 +26,13 @@ umain(int argc, char **argv)
 		exit();
 	}
 	wait(r);
-	printf("fork handles PTE_SHARE %s\n", strcmp(VA, msg) == 0 ? "right" : "wrong");
+	cprintf("fork handles PTE_SHARE %s\n", strcmp(VA, msg) == 0 ? "right" : "wrong");
 
 	// check spawn
 	if ((r = spawnl("/testptelibrary", "testptelibrary", "arg", 0)) < 0)
 		panic("spawn: %e", r);
 	wait(r);
-	printf("spawn handles PTE_SHARE %s\n", strcmp(VA, msg2) == 0 ? "right" : "wrong");
+	cprintf("spawn handles PTE_SHARE %s\n", strcmp(VA, msg2) == 0 ? "right" : "wrong");
 }
 
 void

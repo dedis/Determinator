@@ -15,15 +15,15 @@ umain(void)
 
 	i = 0;
 	if ((who = sfork()) != 0) {
-		printf("i am %08x; env is %p\n", sys_getenvid(), env);
+		cprintf("i am %08x; env is %p\n", sys_getenvid(), env);
 		// get the ball rolling
-		printf("send 0 from %x to %x\n", sys_getenvid(), who);
+		cprintf("send 0 from %x to %x\n", sys_getenvid(), who);
 		ipc_send(who, 0, 0, 0);
 	}
 
-	for (;;) {
+	while (1) {
 		ipc_recv(&who, 0, 0);
-		printf("%x got %d from %x (env is %p %x)\n", sys_getenvid(), val, who, env, env->env_id);
+		cprintf("%x got %d from %x (env is %p %x)\n", sys_getenvid(), val, who, env, env->env_id);
 		if (val == 10)
 			return;
 		++val;

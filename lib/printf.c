@@ -1,13 +1,10 @@
 #if LAB >= 3
-// Implementation of printf console output for user environments,
+// Implementation of cprintf console output for user environments,
 // based on printfmt() and the sys_cputs() system call.
 //
-// Always writing to the console during printf rather
-// than to fd 1 is a break with traditional Unix, but in
-// this code, printf is more of a debugging statement
-// than a generic output statement.  It is very important
-// that it always go to the console, especially when 
-// debugging the file descriptor code!
+// cprintf is a debugging statement, not a generic output statement.
+// It is very important that it always go to the console, especially when 
+// debugging file descriptor code!
 
 #include <inc/types.h>
 #include <inc/stdio.h>
@@ -40,7 +37,7 @@ putch(int ch, struct printbuf *b)
 }
 
 int
-vprintf(const char *fmt, va_list ap)
+vcprintf(const char *fmt, va_list ap)
 {
 	struct printbuf b;
 
@@ -54,13 +51,13 @@ vprintf(const char *fmt, va_list ap)
 }
 
 int
-printf(const char *fmt, ...)
+cprintf(const char *fmt, ...)
 {
 	va_list ap;
 	int cnt;
 
 	va_start(ap, fmt);
-	cnt = vprintf(fmt, ap);
+	cnt = vcprintf(fmt, ap);
 	va_end(ap);
 
 	return cnt;

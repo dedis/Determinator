@@ -18,22 +18,22 @@ umain(void)
 		panic("fork: %e", i);
 
 	if (pid == 0) {
-		printf("[%08x] pipereadeof close %d\n", env->env_id, p[1]);
+		cprintf("[%08x] pipereadeof close %d\n", env->env_id, p[1]);
 		close(p[1]);
-		printf("[%08x] pipereadeof readn %d\n", env->env_id, p[0]);
+		cprintf("[%08x] pipereadeof readn %d\n", env->env_id, p[0]);
 		i = readn(p[0], buf, sizeof buf-1);
 		if (i < 0)
 			panic("read: %e", i);
 		buf[i] = 0;
 		if (strcmp(buf, msg) == 0)
-			printf("\npipe read closed properly\n");
+			cprintf("\npipe read closed properly\n");
 		else
-			printf("\ngot %d bytes: %s\n", i, buf);
+			cprintf("\ngot %d bytes: %s\n", i, buf);
 		exit();
 	} else {
-		printf("[%08x] pipereadeof close %d\n", env->env_id, p[0]);
+		cprintf("[%08x] pipereadeof close %d\n", env->env_id, p[0]);
 		close(p[0]);
-		printf("[%08x] pipereadeof write %d\n", env->env_id, p[1]);
+		cprintf("[%08x] pipereadeof write %d\n", env->env_id, p[1]);
 		if ((i=write(p[1], msg, strlen(msg))) != strlen(msg))
 			panic("write: %e", i);
 		close(p[1]);
@@ -49,17 +49,17 @@ umain(void)
 
 	if (pid == 0) {
 		close(p[0]);
-		for(;;){
-			printf(".");
+		while (1) {
+			cprintf(".");
 			if(write(p[1], "x", 1) != 1)
 				break;
 		}
-		printf("\npipe write closed properly\n");
+		cprintf("\npipe write closed properly\n");
 	}
 	close(p[0]);
 	close(p[1]);
 	wait(pid);
 
-	printf("pipe tests passed\n");
+	cprintf("pipe tests passed\n");
 }
 #endif

@@ -86,13 +86,13 @@ fd_lookup(int fdnum, struct Fd **fd_store)
 
 	if (fdnum < 0 || fdnum >= MAXFD) {
 		if (debug)
-			printf("[%08x] bad fd %d\n", env->env_id, fd);
+			cprintf("[%08x] bad fd %d\n", env->env_id, fd);
 		return -E_INVAL;
 	}
 	fd = INDEX2FD(fdnum);
 	if (!(vpd[PDX(fd)] & PTE_P) || !(vpt[VPN(fd)] & PTE_P)) {
 		if (debug)
-			printf("[%08x] closed fd %d\n", env->env_id, fd);
+			cprintf("[%08x] closed fd %d\n", env->env_id, fd);
 		return -E_INVAL;
 	}
 	*fd_store = fd;
@@ -154,7 +154,7 @@ dev_lookup(int dev_id, struct Dev **dev)
 			*dev = devtab[i];
 			return 0;
 		}
-	printf("[%08x] unknown device type %d\n", env->env_id, dev_id);
+	cprintf("[%08x] unknown device type %d\n", env->env_id, dev_id);
 	*dev = 0;
 	return -E_INVAL;
 }
@@ -241,7 +241,7 @@ read(int fdnum, void *buf, size_t n)
 	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	if ((fd->fd_omode & O_ACCMODE) == O_WRONLY) {
-		printf("[%08x] read %d -- bad mode\n", env->env_id, fdnum); 
+		cprintf("[%08x] read %d -- bad mode\n", env->env_id, fdnum); 
 		return -E_INVAL;
 	}
 	r = (*dev->dev_read)(fd, buf, n, fd->fd_offset);
@@ -276,12 +276,12 @@ write(int fdnum, const void *buf, size_t n)
 	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	if ((fd->fd_omode & O_ACCMODE) == O_RDONLY) {
-		printf("[%08x] write %d -- bad mode\n", env->env_id, fdnum);
+		cprintf("[%08x] write %d -- bad mode\n", env->env_id, fdnum);
 		return -E_INVAL;
 	}
 	if (debug)
-		printf("write %d %p %d via dev %s\n",
-		       fdnum, buf, n, dev->dev_name);
+		cprintf("write %d %p %d via dev %s\n",
+			fdnum, buf, n, dev->dev_name);
 	r = (*dev->dev_write)(fd, buf, n, fd->fd_offset);
 	if (r > 0)
 		fd->fd_offset += r;
@@ -310,8 +310,8 @@ ftruncate(int fdnum, off_t newsize)
 	    || (r = dev_lookup(fd->fd_dev_id, &dev)) < 0)
 		return r;
 	if ((fd->fd_omode & O_ACCMODE) == O_RDONLY) {
-		printf("[%08x] ftruncate %d -- bad mode\n",
-		       env->env_id, fdnum); 
+		cprintf("[%08x] ftruncate %d -- bad mode\n",
+			env->env_id, fdnum); 
 		return -E_INVAL;
 	}
 	return (*dev->dev_trunc)(fd, newsize);

@@ -124,7 +124,7 @@ envid_t	spawnl(const char *program, const char *arg0, ...);
 
 #if LAB >= 6
 // console.c
-void	putchar(int c);
+void	cputchar(int c);
 int	getchar(void);
 int	iscons(int fd);
 int	opencons(void);

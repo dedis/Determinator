@@ -25,26 +25,26 @@ umain(int argc, char **argv)
 {
 	int i, r, x, want;
 
-	printf("init: running\n");
+	cprintf("init: running\n");
 
 	want = 0xf989e;
 	if ((x = sum((char*)&data, sizeof data)) != want)
-		printf("init: data is not initialized: got sum %08x wanted %08x\n",
+		cprintf("init: data is not initialized: got sum %08x wanted %08x\n",
 			x, want);
 	else
-		printf("init: data seems okay\n");
+		cprintf("init: data seems okay\n");
 	if ((x = sum(bss, sizeof bss)) != 0)
-		printf("bss is not initialized: wanted sum 0 got %08x\n", x);
+		cprintf("bss is not initialized: wanted sum 0 got %08x\n", x);
 	else
-		printf("init: bss seems okay\n");
+		cprintf("init: bss seems okay\n");
 
-	printf("init: args:");
+	cprintf("init: args:");
 	for (i = 0; i < argc; i++)
-		printf(" '%s'", argv[i]);
-	printf("\n");
+		cprintf(" '%s'", argv[i]);
+	cprintf("\n");
 
 #if LAB >= 6
-	printf("init: running sh\n");
+	cprintf("init: running sh\n");
 
 	// being run directly from kernel, so no file descriptors open yet
 	close(0);
@@ -54,17 +54,17 @@ umain(int argc, char **argv)
 		panic("first opencons used fd %d", r);
 	if ((r = dup(0, 1)) < 0)
 		panic("dup: %e", r);
-	for (;;) {
-		printf("init: starting sh\n");
+	while (1) {
+		cprintf("init: starting sh\n");
 		r = spawnl("/sh", "sh", (char*)0);
 		if (r < 0) {
-			printf("init: spawn sh: %e\n", r);
+			cprintf("init: spawn sh: %e\n", r);
 			continue;
 		}
 		wait(r);
 	}
 #else  // LAB 5
-	printf("init: exiting\n");
+	cprintf("init: exiting\n");
 #endif
 }
 #endif

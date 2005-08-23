@@ -23,7 +23,7 @@ pgfault(void *addr, uint32_t err)
 
 #if SOL >= 4
 	if (debug)
-		printf("fault %08x %08x %d from %08x\n", addr, &vpt[VPN(addr)], err & 7, (&addr)[4]);
+		cprintf("fault %08x %08x %d from %08x\n", addr, &vpt[VPN(addr)], err & 7, (&addr)[4]);
 
 	if ((vpt[VPN(addr)] & (PTE_P|PTE_U|PTE_W|PTE_COW)) != (PTE_P|PTE_U|PTE_COW))
 		panic("fault at %x with pte %x from %08x, not copy-on-write",

@@ -92,7 +92,7 @@ serve_open(envid_t envid, struct Fsreq_open *rq)
 	struct OpenFile *o;
 
 	if (debug)
-		printf("serve_open %08x %s 0x%x\n", envid, rq->req_path, rq->req_omode);
+		cprintf("serve_open %08x %s 0x%x\n", envid, rq->req_path, rq->req_omode);
 
 	// Copy in the path, making sure it's null-terminated
 	memcpy(path, rq->req_path, MAXPATHLEN);
@@ -101,7 +101,7 @@ serve_open(envid_t envid, struct Fsreq_open *rq)
 	// Find an open file ID
 	if ((r = openfile_alloc(&o)) < 0) {
 		if (debug)
-			printf("openfile_alloc failed: %e", r);
+			cprintf("openfile_alloc failed: %e", r);
 		goto out;
 	}
 	fileid = r;
@@ -109,7 +109,7 @@ serve_open(envid_t envid, struct Fsreq_open *rq)
 	// Open the file
 	if ((r = file_open(path, &f)) < 0) {
 		if (debug)
-			printf("file_open failed: %e", r);
+			cprintf("file_open failed: %e", r);
 		goto out;
 	}
 
@@ -124,7 +124,7 @@ serve_open(envid_t envid, struct Fsreq_open *rq)
 	o->o_mode = rq->req_omode;
 
 	if (debug)
-		printf("sending success, page %08x\n", (uintptr_t) o->o_fd);
+		cprintf("sending success, page %08x\n", (uintptr_t) o->o_fd);
 	ipc_send(envid, 0, o->o_fd, PTE_P|PTE_U|PTE_W|PTE_SHARE);
 	return;
 out:
@@ -138,7 +138,7 @@ serve_set_size(envid_t envid, struct Fsreq_set_size *rq)
 	int r;
 	
 	if (debug)
-		printf("serve_set_size %08x %08x %08x\n", envid, rq->req_fileid, rq->req_size);
+		cprintf("serve_set_size %08x %08x %08x\n", envid, rq->req_fileid, rq->req_size);
 
 	// The file system server maintains three structures
 	// for each open file.
@@ -199,7 +199,7 @@ serve_map(envid_t envid, struct Fsreq_map *rq)
 	int perm;
 
 	if (debug)
-		printf("serve_map %08x %08x %08x\n", envid, rq->req_fileid, rq->req_offset);
+		cprintf("serve_map %08x %08x %08x\n", envid, rq->req_fileid, rq->req_offset);
 
 #if SOL >= 5
 	if ((r = openfile_lookup(envid, rq->req_fileid, &o)) < 0)
@@ -238,7 +238,7 @@ serve_close(envid_t envid, struct Fsreq_close *rq)
 	int r;
 
 	if (debug)
-		printf("serve_close %08x %08x\n", envid, rq->req_fileid);
+		cprintf("serve_close %08x %08x\n", envid, rq->req_fileid);
 
 #if SOL >= 5
 	if ((r = openfile_lookup(envid, rq->req_fileid, &o)) < 0)
@@ -263,7 +263,7 @@ serve_remove(envid_t envid, struct Fsreq_remove *rq)
 	int r;
 
 	if (debug)
-		printf("serve_map %08x %s\n", envid, rq->req_path);
+		cprintf("serve_map %08x %s\n", envid, rq->req_path);
 
 #if SOL >= 5
 	// Copy in the path, making sure it's null-terminated
@@ -290,7 +290,7 @@ serve_dirty(envid_t envid, struct Fsreq_dirty *rq)
 	int r;
 
 	if (debug)
-		printf("serve_dirty %08x %08x %08x\n", envid, rq->req_fileid, rq->req_offset);
+		cprintf("serve_dirty %08x %08x %08x\n", envid, rq->req_fileid, rq->req_offset);
 
 #if SOL >= 5
 	if ((r = openfile_lookup(envid, rq->req_fileid, &o)) < 0)
@@ -325,12 +325,12 @@ serve(void)
 		perm = 0;
 		req = ipc_recv(&whom, (void*) REQVA, &perm);
 		if (debug)
-			printf("fs req %d from %08x [page %08x: %s]\n",
+			cprintf("fs req %d from %08x [page %08x: %s]\n",
 				req, whom, vpt[VPN(REQVA)], REQVA);
 
 		// All requests must contain an argument page
 		if (!(perm & PTE_P)) {
-			printf("Invalid request from %08x: no argument page\n",
+			cprintf("Invalid request from %08x: no argument page\n",
 				whom);
 			continue; // just leave it hanging...
 		}
@@ -358,7 +358,7 @@ serve(void)
 			serve_sync(whom);
 			break;
 		default:
-			printf("Invalid request code %d from %08x\n", whom, req);
+			cprintf("Invalid request code %d from %08x\n", whom, req);
 			break;
 		}
 		sys_page_unmap(0, (void*) REQVA);
@@ -370,11 +370,11 @@ umain(void)
 {
 	static_assert(sizeof(struct File) == 256);
         binaryname = "fs";
-	printf("FS is running\n");
+	cprintf("FS is running\n");
 
 	// Check that we are able to do I/O
 	outw(0x8A00, 0x8A00);
-	printf("FS can do I/O\n");
+	cprintf("FS can do I/O\n");
 
 	serve_init();
 	fs_init();

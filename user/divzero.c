@@ -9,7 +9,7 @@ int zero;
 void
 umain(void)
 {
-	printf("1/0 is %08x!\n", 1/zero);
+	cprintf("1/0 is %08x!\n", 1/zero);
 }
 
 #endif

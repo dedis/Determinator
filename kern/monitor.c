@@ -48,7 +48,7 @@ mon_help(int argc, char **argv, struct Trapframe *tf)
 	int i;
 
 	for (i = 0; i < NCOMMANDS; i++)
-		printf("%s - %s\n", commands[i].name, commands[i].desc);
+		cprintf("%s - %s\n", commands[i].name, commands[i].desc);
 	return 0;
 }
 
@@ -57,12 +57,12 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 {
 	extern char _start[], etext[], edata[], end[];
 
-	printf("Special kernel symbols:\n");
-	printf("  _start %08x (virt)  %08x (phys)\n", _start, _start - KERNBASE);
-	printf("  etext  %08x (virt)  %08x (phys)\n", etext, etext - KERNBASE);
-	printf("  edata  %08x (virt)  %08x (phys)\n", edata, edata - KERNBASE);
-	printf("  end    %08x (virt)  %08x (phys)\n", end, end - KERNBASE);
-	printf("Kernel executable memory footprint: %dKB\n",
+	cprintf("Special kernel symbols:\n");
+	cprintf("  _start %08x (virt)  %08x (phys)\n", _start, _start - KERNBASE);
+	cprintf("  etext  %08x (virt)  %08x (phys)\n", etext, etext - KERNBASE);
+	cprintf("  edata  %08x (virt)  %08x (phys)\n", edata, edata - KERNBASE);
+	cprintf("  end    %08x (virt)  %08x (phys)\n", end, end - KERNBASE);
+	cprintf("Kernel executable memory footprint: %dKB\n",
 		(end-_start+1023)/1024);
 	return 0;
 }
@@ -78,14 +78,14 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 #endif
 	int i;
 
-	printf("Stack backtrace:\n");
+	cprintf("Stack backtrace:\n");
 	while (ebp) {
 
 		// print this stack frame
-		printf("  ebp %08x  eip %08x  args", ebp, ebp[1]);
+		cprintf("  ebp %08x  eip %08x  args", ebp, ebp[1]);
 		for (i = 0; i < 5; i++)
-			printf(" %08x", ebp[2+i]);
-		printf("\n");
+			cprintf(" %08x", ebp[2+i]);
+		cprintf("\n");
 
 		// move to next lower stack frame
 		ebp = (const uint32_t*) ebp[0];
@@ -129,7 +129,7 @@ runcmd(char *buf, struct Trapframe *tf)
 
 		// save and scan past next arg
 		if (argc == MAXARGS-1) {
-			printf("Too many arguments (max %d)\n", MAXARGS);
+			cprintf("Too many arguments (max %d)\n", MAXARGS);
 			return 0;
 		}
 		argv[argc++] = buf;
@@ -145,7 +145,7 @@ runcmd(char *buf, struct Trapframe *tf)
 		if (strcmp(argv[0], commands[i].name) == 0)
 			return commands[i].func(argc, argv, tf);
 	}
-	printf("Unknown command '%s'\n", argv[0]);
+	cprintf("Unknown command '%s'\n", argv[0]);
 	return 0;
 }
 
@@ -154,8 +154,8 @@ monitor(struct Trapframe *tf)
 {
 	char *buf;
 
-	printf("Welcome to the JOS kernel monitor!\n");
-	printf("Type 'help' for a list of commands.\n");
+	cprintf("Welcome to the JOS kernel monitor!\n");
+	cprintf("Type 'help' for a list of commands.\n");
 
 #if LAB >= 3
 	if (tf != NULL)

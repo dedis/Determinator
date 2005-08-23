@@ -223,9 +223,9 @@ env_alloc(struct Env **new, envid_t parent_id)
 	*new = e;
 
 #if LAB >= 5
-	// printf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
+	// cprintf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
 #else
-	printf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
+	cprintf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
 #endif
 	return 0;
 }
@@ -395,9 +395,9 @@ env_free(struct Env *e)
 
 	// Note the environment's demise.
 #if LAB >= 5
-	// printf("[%08x] free env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
+	// cprintf("[%08x] free env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
 #else
-	printf("[%08x] free env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
+	cprintf("[%08x] free env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
 #endif
 
 	// Flush all mapped pages in the user portion of the address space
@@ -449,7 +449,7 @@ env_destroy(struct Env *e)
 		sched_yield();
 	}
 #else
-	printf("Destroyed the only environment - nothing more to do!\n");
+	cprintf("Destroyed the only environment - nothing more to do!\n");
 	while (1)
 		monitor(NULL);
 #endif

@@ -19,7 +19,7 @@ umain(void)
 	if ((wfd = open("testshell.out", O_WRONLY)) < 0)
 		panic("open testshell.out: %e", wfd);
 
-	printf("running sh -x < testshell.sh > testshell.out\n");
+	cprintf("running sh -x < testshell.sh > testshell.out\n");
 	if ((r = fork()) < 0)
 		panic("fork: %e", r);
 	if (r == 0) {
@@ -58,7 +58,7 @@ umain(void)
 		if (c1 == '\n')
 			nloff = off+1;
 	}
-	printf("shell ran correctly\n");			
+	cprintf("shell ran correctly\n");			
 }
 
 void
@@ -70,18 +70,18 @@ wrong(int rfd, int kfd, int off)
 	seek(rfd, off);
 	seek(kfd, off);
 
-	printf("shell produced incorrect output.\n");
-	printf("expected:\n===\n");
+	cprintf("shell produced incorrect output.\n");
+	cprintf("expected:\n===\n");
 	while ((n = read(kfd, buf, sizeof buf-1)) > 0) {
 		buf[n] = 0;
 		sys_cputs(buf);
 	}
-	printf("===\ngot:\n===\n");
+	cprintf("===\ngot:\n===\n");
 	while ((n = read(rfd, buf, sizeof buf-1)) > 0) {
 		buf[n] = 0;
 		sys_cputs(buf);
 	}
-	printf("===\n");
+	cprintf("===\n");
 	exit();
 }
 

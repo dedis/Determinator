@@ -402,10 +402,10 @@ cons_init(void)
 
 
 
-// `High'-level console I/O.  Used by readline and printf.
+// `High'-level console I/O.  Used by readline and cprintf.
 
 void
-putchar(int c)
+cputchar(int c)
 {
 	cons_putc(c);
 }
@@ -416,7 +416,7 @@ getchar(void)
 	int c;
 
 	while ((c = cons_getc()) == 0)
-		; // spin
+		/* do nothing */;
 	return c;
 }
 

@@ -4,14 +4,12 @@
 #include <inc/lib.h>
 
 void
-putchar(int ch)
+cputchar(int ch)
 {
 	char s[2];
 
-	// Unlike standard Unix,
-	// but like our version of printf defined in lib/printf.c,
-	// our putchar function _always_ outputs to the system console
-	// and cannot be redirected by changing file descriptor 1.
+	// Unlike standard Unix's putchar,
+	// the cputchar function _always_ outputs to the system console.
 	// We do this in order to make debugging easier in JOS.
 
 	s[0] = ch;

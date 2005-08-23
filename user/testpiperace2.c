@@ -9,7 +9,7 @@ umain(void)
 	struct Fd *fd;
 	struct Env *kid;
 
-	printf("testing for pipeisclosed race...\n");
+	cprintf("testing for pipeisclosed race...\n");
 	if ((r = pipe(p)) < 0)
 		panic("pipe: %e", r);
 	if ((r = fork()) < 0)
@@ -20,7 +20,7 @@ umain(void)
 		// p[1] is still open here -- the pipe is definitely open!
 		for (i=0; i<200; i++) {
 			if (i%10 == 0)
-				printf("%d.", i);
+				cprintf("%d.", i);
 			// dup, then close.  yield so that other guy will
 			// see us while we're between them.
 			dup(p[0], 10);
@@ -53,15 +53,15 @@ umain(void)
 	kid = &envs[ENVX(r)];
 	while (kid->env_status == ENV_RUNNABLE)
 		if (pipeisclosed(p[0]) != 0) {
-			printf("\nRACE: pipe appears closed\n");
+			cprintf("\nRACE: pipe appears closed\n");
 			exit();
 		}
-	printf("child done with loop\n");
+	cprintf("child done with loop\n");
 	if (pipeisclosed(p[0]))
 		panic("somehow the other end of p[0] got closed!");
 	if ((r = fd_lookup(p[0], &fd)) < 0)
 		panic("cannot look up p[0]: %e", r);
 	(void) fd2data(fd);
-	printf("\nrace didn't happen\n");
+	cprintf("\nrace didn't happen\n");
 }
 #endif

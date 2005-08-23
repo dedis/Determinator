@@ -155,24 +155,24 @@ idt_init(void)
 void
 print_trapframe(struct Trapframe *tf)
 {
-	printf("TRAP frame at %p\n", tf);
-	printf("  edi  0x%08x\n", tf->tf_edi);
-	printf("  esi  0x%08x\n", tf->tf_esi);
-	printf("  ebp  0x%08x\n", tf->tf_ebp);
-	printf("  oesp 0x%08x\n", tf->tf_oesp);
-	printf("  ebx  0x%08x\n", tf->tf_ebx);
-	printf("  edx  0x%08x\n", tf->tf_edx);
-	printf("  ecx  0x%08x\n", tf->tf_ecx);
-	printf("  eax  0x%08x\n", tf->tf_eax);
-	printf("  es   0x----%04x\n", tf->tf_es);
-	printf("  ds   0x----%04x\n", tf->tf_ds);
-	printf("  trap 0x%08x %s\n", tf->tf_trapno, trapname(tf->tf_trapno));
-	printf("  err  0x%08x\n", tf->tf_err);
-	printf("  eip  0x%08x\n", tf->tf_eip);
-	printf("  cs   0x----%04x\n", tf->tf_cs);
-	printf("  flag 0x%08x\n", tf->tf_eflags);
-	printf("  esp  0x%08x\n", tf->tf_esp);
-	printf("  ss   0x----%04x\n", tf->tf_ss);
+	cprintf("TRAP frame at %p\n", tf);
+	cprintf("  edi  0x%08x\n", tf->tf_edi);
+	cprintf("  esi  0x%08x\n", tf->tf_esi);
+	cprintf("  ebp  0x%08x\n", tf->tf_ebp);
+	cprintf("  oesp 0x%08x\n", tf->tf_oesp);
+	cprintf("  ebx  0x%08x\n", tf->tf_ebx);
+	cprintf("  edx  0x%08x\n", tf->tf_edx);
+	cprintf("  ecx  0x%08x\n", tf->tf_ecx);
+	cprintf("  eax  0x%08x\n", tf->tf_eax);
+	cprintf("  es   0x----%04x\n", tf->tf_es);
+	cprintf("  ds   0x----%04x\n", tf->tf_ds);
+	cprintf("  trap 0x%08x %s\n", tf->tf_trapno, trapname(tf->tf_trapno));
+	cprintf("  err  0x%08x\n", tf->tf_err);
+	cprintf("  eip  0x%08x\n", tf->tf_eip);
+	cprintf("  cs   0x----%04x\n", tf->tf_cs);
+	cprintf("  flag 0x%08x\n", tf->tf_eflags);
+	cprintf("  esp  0x%08x\n", tf->tf_esp);
+	cprintf("  ss   0x----%04x\n", tf->tf_ss);
 }
 
 static void
@@ -225,7 +225,7 @@ trap_dispatch(struct Trapframe *tf)
 	}
 	if (tf->tf_trapno >= IRQ_OFFSET && tf->tf_trapno < IRQ_OFFSET + MAX_IRQS) {
 		// just ignore spurious interrupts
-		printf("spurious interrupt on irq %d\n", tf->tf_trapno - IRQ_OFFSET);
+		cprintf("spurious interrupt on irq %d\n", tf->tf_trapno - IRQ_OFFSET);
 		print_trapframe(tf);
 		return;
 	}
@@ -254,7 +254,7 @@ void
 trap(struct Trapframe *tf)
 {
 #if LAB == 3
-	printf("Incoming TRAP frame at %p\n", tf);
+	cprintf("Incoming TRAP frame at %p\n", tf);
 
 #endif
 	// Copy trap frame (which is currently on the stack) in to the
@@ -305,7 +305,7 @@ page_fault_handler(struct Trapframe *tf)
 			panic("page fault");
 
 		case PFM_KILL:
-			printf("[%08x] PFM_KILL va %08x ip %08x\n", 
+			cprintf("[%08x] PFM_KILL va %08x ip %08x\n", 
 				curenv->env_id, fault_va, tf->tf_eip);
 			print_trapframe(tf);
 			env_destroy(curenv);
@@ -321,7 +321,7 @@ page_fault_handler(struct Trapframe *tf)
 #if SOL >= 4
 	// See if the environment has installed a user page fault handler.
 	if (curenv->env_pgfault_upcall == 0) {
-		printf("[%08x] user fault va %08x ip %08x\n",
+		cprintf("[%08x] user fault va %08x ip %08x\n",
 			curenv->env_id, fault_va, tf->tf_eip);
 		print_trapframe(tf);
 		env_destroy(curenv);
@@ -392,7 +392,7 @@ page_fault_handler(struct Trapframe *tf)
 	// LAB 4: Your code here.
 
 	// Destroy the environment that caused the fault.
-	printf("[%08x] user fault va %08x ip %08x\n",
+	cprintf("[%08x] user fault va %08x ip %08x\n",
 		curenv->env_id, fault_va, tf->tf_eip);
 	print_trapframe(tf);
 	env_destroy(curenv);

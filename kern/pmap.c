@@ -62,7 +62,7 @@ struct Pseudodesc gdt_pd =
 static int
 nvram_read(int r)
 {
-	return mc146818_read(NULL, r) | (mc146818_read(NULL, r+1)<<8);
+	return mc146818_read(r) | (mc146818_read(r + 1) << 8);
 }
 
 void
@@ -81,8 +81,8 @@ i386_detect_memory(void)
 
 	npage = maxpa / PGSIZE;
 
-	printf("Physical memory: %dK available, ", (int)(maxpa/1024));
-	printf("base = %dK, extended = %dK\n", (int)(basemem/1024), (int)(extmem/1024));
+	cprintf("Physical memory: %dK available, ", (int)(maxpa/1024));
+	cprintf("base = %dK, extended = %dK\n", (int)(basemem/1024), (int)(extmem/1024));
 }
 
 // --------------------------------------------------------------
@@ -418,7 +418,7 @@ check_boot_pgdir(void)
 			break;
 		}
 	}
-	printf("check_boot_pgdir() succeeded!\n");
+	cprintf("check_boot_pgdir() succeeded!\n");
 }
 
 // This function returns the physical address of the page containing 'va',
@@ -857,7 +857,7 @@ page_check(void)
 	page_free(pp1);
 	page_free(pp2);
 
-	printf("page_check() succeeded!\n");
+	cprintf("page_check() succeeded!\n");
 }
 
 #endif /* LAB >= 2 */

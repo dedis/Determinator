@@ -57,7 +57,7 @@ pipe(int pfd[2])
 	fd1->fd_omode = O_WRONLY;
 
 	if (debug)
-		printf("[%08x] pipecreate %08x\n", env->env_id, vpt[VPN(va)]);
+		cprintf("[%08x] pipecreate %08x\n", env->env_id, vpt[VPN(va)]);
 
 	pfd[0] = fd2num(fd0);
 	pfd[1] = fd2num(fd1);
@@ -86,7 +86,7 @@ _pipeisclosed(struct Fd *fd, struct Pipe *p)
 		if (n == nn)
 			return ret;
 		if (n != nn && ret == 1)
-			printf("pipe race avoided\n", n, env->env_runs, ret);
+			cprintf("pipe race avoided\n", n, env->env_runs, ret);
 	}
 #else
 	// Your code here.
@@ -134,8 +134,8 @@ piperead(struct Fd *fd, void *vbuf, size_t n, off_t offset)
 
 	p = (struct Pipe*)fd2data(fd);
 	if (debug)
-		printf("[%08x] piperead %08x %d rpos %d wpos %d\n",
-		       env->env_id, vpt[VPN(p)], n, p->p_rpos, p->p_wpos);
+		cprintf("[%08x] piperead %08x %d rpos %d wpos %d\n",
+			env->env_id, vpt[VPN(p)], n, p->p_rpos, p->p_wpos);
 
 	buf = vbuf;
 	for (i = 0; i < n; i++) {
@@ -149,7 +149,7 @@ piperead(struct Fd *fd, void *vbuf, size_t n, off_t offset)
 				return 0;
 			// yield and see what happens
 			if (debug)
-				printf("piperead yield\n");
+				cprintf("piperead yield\n");
 			sys_yield();
 		}
 		// there's a byte.  take it.
@@ -184,8 +184,8 @@ pipewrite(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
 
 	p = (struct Pipe*) fd2data(fd);
 	if (debug)
-		printf("[%08x] pipewrite %08x %d rpos %d wpos %d\n",
-		       env->env_id, vpt[VPN(p)], n, p->p_rpos, p->p_wpos);
+		cprintf("[%08x] pipewrite %08x %d rpos %d wpos %d\n",
+			env->env_id, vpt[VPN(p)], n, p->p_rpos, p->p_wpos);
 
 	buf = vbuf;
 	for (i = 0; i < n; i++) {
@@ -198,7 +198,7 @@ pipewrite(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
 				return 0;
 			// yield and see what happens
 			if (debug)
-				printf("pipewrite yield\n");
+				cprintf("pipewrite yield\n");
 			sys_yield();
 		}
 		// there's room for a byte.  store it.

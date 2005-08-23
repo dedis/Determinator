@@ -9,12 +9,12 @@ umain(void)
 {
 	int i;
 
-	printf("Hello, I am environment %08x.\n", env->env_id);
+	cprintf("Hello, I am environment %08x.\n", env->env_id);
 	for (i = 0; i < 5; i++) {
 		sys_yield();
-		printf("Back in environment %08x, iteration %d.\n",
+		cprintf("Back in environment %08x, iteration %d.\n",
 			env->env_id, i);
 	}
-	printf("All done in environment %08x.\n", env->env_id);
+	cprintf("All done in environment %08x.\n", env->env_id);
 }
 #endif

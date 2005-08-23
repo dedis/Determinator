@@ -18,19 +18,19 @@ sched_yield(void)
 		i = curenv-envs;
 	else
 		i = NENV-1;
-	//printf("sched_yield searching from %d\n", i);
+	//cprintf("sched_yield searching from %d\n", i);
 
 	// Loop through all the environments at most once.
-	for (j=1; j<=NENV; j++) {
+	for (j = 1; j <= NENV; j++) {
 
 		// Don't pick the idle environment.
-		if (j+i == NENV)
+		if (j + i == NENV)
 			continue;
 
 		// If this environment is runnable, run it.
-		if (envs[(j+i)%NENV].env_status == ENV_RUNNABLE) {
-			//printf("sched_yield picked %d\n", (j+i)%NENV);
-			env_run(&envs[(j+i)%NENV]);
+		if (envs[(j+i) % NENV].env_status == ENV_RUNNABLE) {
+			//cprintf("sched_yield picked %d\n", (j+i)%NENV);
+			env_run(&envs[(j+i) % NENV]);
 		}
 	}
 #else	// not SOL >= 4
@@ -50,7 +50,7 @@ sched_yield(void)
 	if (envs[0].env_status == ENV_RUNNABLE)
 		env_run(&envs[0]);
 	else {
-		printf("Destroyed all environments - nothing more to do!\n");
+		cprintf("Destroyed all environments - nothing more to do!\n");
 		while (1)
 			monitor(NULL);
 	}

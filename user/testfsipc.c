@@ -31,23 +31,23 @@ umain(void)
 	fd = (struct Fd*) FVA;
 	if (strlen(msg) != fd->fd_file.file.f_size)
 		panic("serve_open returned size %d wanted %d\n", fd->fd_file.file.f_size, strlen(msg));
-	printf("serve_open is good\n");
+	cprintf("serve_open is good\n");
 
 	if ((r = fsipc_map(fd->fd_file.id, 0, UTEMP)) < 0)
 		panic("serve_map: %e", r);
 	if (strecmp(UTEMP, msg) != 0)
 		panic("serve_map returned wrong data");
-	printf("serve_map is good\n");
+	cprintf("serve_map is good\n");
 
 	if ((r = fsipc_close(fd->fd_file.id)) < 0)
 		panic("serve_close: %e", r);
-	printf("serve_close is good\n");
+	cprintf("serve_close is good\n");
 	fileid = fd->fd_file.id;
 	sys_page_unmap(0, (void*) FVA);
 
 	if ((r = fsipc_map(fileid, 0, UTEMP)) != -E_INVAL)
 		panic("serve_map does not handle stale fileids correctly");
-	printf("stale fileid is good\n");
+	cprintf("stale fileid is good\n");
 }
 
 #endif
