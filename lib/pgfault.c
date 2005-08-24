@@ -10,7 +10,7 @@
 extern void _pgfault_upcall(void);
 
 // Pointer to currently installed C-language pgfault handler.
-void (*_pgfault_handler)(void *addr, uint32_t err);
+void (*_pgfault_handler)(struct UTrapframe *utf);
 
 //
 // Set the page fault handler function.
@@ -21,7 +21,7 @@ void (*_pgfault_handler)(void *addr, uint32_t err);
 // _pgfault_upcall routine when a page fault occurs.
 //
 void
-set_pgfault_handler(void (*handler)(void *addr, uint32_t err))
+set_pgfault_handler(void (*handler)(struct UTrapframe *utf))
 {
 	int r;
 

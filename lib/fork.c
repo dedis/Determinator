@@ -17,9 +17,11 @@
 // map in our own private writable copy.
 //
 static void
-pgfault(void *addr, uint32_t err)
+pgfault(struct UTrapframe *utf)
 {
 	int r;
+	void *addr = (void*)utf->utf_fault_va;
+	uint32_t err = utf->utf_err;
 
 #if SOL >= 4
 	if (debug)
@@ -46,7 +48,8 @@ pgfault(void *addr, uint32_t err)
 	memcpy((void*) PFTEMP, ROUNDDOWN(addr, PGSIZE), PGSIZE);
 
 	// remap over faulting page
-	if ((r = sys_page_map(0, (void*) PFTEMP, 0, addr, PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r = sys_page_map(0, (void*) PFTEMP, 0, addr,
+			      PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_page_map: %e", r);
 
 	// unmap our work space

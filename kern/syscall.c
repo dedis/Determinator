@@ -98,7 +98,7 @@ sys_exofork(void)
 		return r;
 	e->env_status = ENV_NOT_RUNNABLE;
 	e->env_tf = curenv->env_tf;
-	e->env_tf.tf_eax = 0;
+	e->env_tf.tf_regs.reg_eax = 0;
 	return e->env_id;
 #else
 	// Create the new environment with env_alloc(), from kern/env.c.

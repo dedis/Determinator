@@ -34,15 +34,20 @@
 
 #include <inc/types.h>
 
+struct PushRegs {
+	/* registers as pushed by pusha */
+	uint32_t reg_edi;
+	uint32_t reg_esi;
+	uint32_t reg_ebp;
+	uint32_t reg_oesp;		/* Useless */
+	uint32_t reg_ebx;
+	uint32_t reg_edx;
+	uint32_t reg_ecx;
+	uint32_t reg_eax;
+};
+
 struct Trapframe {
-	uint32_t tf_edi;
-	uint32_t tf_esi;
-	uint32_t tf_ebp;
-	uint32_t tf_oesp;		/* Useless */
-	uint32_t tf_ebx;
-	uint32_t tf_edx;
-	uint32_t tf_ecx;
-	uint32_t tf_eax;
+	struct PushRegs tf_regs;
 	uint16_t tf_es;
 	uint16_t tf_padding1;
 	uint16_t tf_ds;
@@ -59,6 +64,20 @@ struct Trapframe {
 	uint16_t tf_ss;
 	uint16_t tf_padding4;
 };
+
+#if LAB >= 4
+struct UTrapframe {
+	/* information about the fault */
+	uint32_t utf_fault_va;	/* va for T_PGFLT, 0 otherwise */
+	uint32_t utf_err;
+	/* trap-time return state */
+	struct PushRegs utf_regs;
+	uintptr_t utf_eip;
+	uint32_t utf_eflags;
+	/* the trap-time stack to return to */
+	uintptr_t utf_esp;
+};
+#endif
 
 #endif /* !__ASSEMBLER__ */
 

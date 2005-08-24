@@ -4,44 +4,43 @@
 
 
 // Page fault upcall entrypoint.
-// This is where we ask the kernel
-// to redirect us to whenever we cause a page fault in user space
-// (see the call to sys_set_pgfault_handler in pgfault.c).
+
+// This is where we ask the kernel to redirect us to whenever we cause
+// a page fault in user space (see the call to sys_set_pgfault_handler
+// in pgfault.c).
 //
-// When a page fault actually occurs, 
-// the kernel switches our ESP to point to the user exception stack
-// if we're not already on the user exception stack,
-// and then it pushes the following minimal trap frame
-// onto our user exception stack:
+// When a page fault actually occurs, the kernel switches our ESP to
+// point to the user exception stack if we're not already on the user
+// exception stack, and then it pushes a UTrapframe onto our user
+// exception stack:
 //
-//	[ 5 spare words ]
-//	trap-time eip
-//	trap-time eflags
 //	trap-time esp
-//	tf_err (error code)
-//	fault_va		<-- %esp
+//	trap-time eflags
+//	trap-time eip
+//	utf_regs.reg_eax
+//	...
+//	utf_regs.reg_esi
+//	utf_regs.reg_edi
+//	utf_err (error code)
+//	utf_fault_va            <-- %esp
 //
-// We then have to save additional caller-saved registers
-// and call up to the appropriate page fault handler in C code,
-// pointed to by the global variable '_pgfault_handler' declared above.
+// If this is a recursive fault, the kernel will reserve for us a
+// blank word above the trap-time esp for scratch work when we unwind
+// the recursive call.
+//
+// We then have call up to the appropriate page fault handler in C
+// code, pointed to by the global variable '_pgfault_handler' declared
+// above.
 
 .text
 .globl _pgfault_upcall
 _pgfault_upcall:
-	// Save the caller-saved registers.
-#if SOL >= 4
-	movl %eax, 28(%esp)
-	movl %ecx, 24(%esp)
-	movl %edx, 20(%esp)
-#else
-	// LAB 4: Your code here.
-#endif
-
 	// Call the C page fault handler.
+	pushl %esp
 	movl _pgfault_handler, %eax
 	call *%eax
 
-	// Push trap-time %eip and %eflags onto the trap-time stack.
+	// Push trap-time %eip onto the trap-time stack.
 	//
 	// Explanation:
 	//   We must prepare the trap-time stack for our eventual return to
@@ -55,49 +54,45 @@ _pgfault_upcall:
 	//   did, %esp would have the wrong value.
 	//   So instead, we push the trap-time %eip onto the *trap-time* stack!
 	//   Below we'll switch to that stack and call 'ret', which will
-	//   restore %esp to its pre-fault value.
-	//   We'll also restore %eflags from the trap-time stack, in case an
-	//   intervening instruction changes the flags.  ('ret' does not.)
+	//   restore %eip to its pre-fault value.
 	//
 	//   In the case of a recursive fault on the exception stack,
-	//   note that the two words we're pushing now will overlap with
-	//   the current exception frame!
+	//   note that the word we're pushing now will fit in the
+	//   blank word that the kernel reserved for us.
 	//
 	// Hint:
 	//   What registers are available for intermediate calculations?
 	//
 #if SOL >= 4
-	movl 8(%esp), %eax	// trap-time esp in eax
-	subl $8, %eax
-	movl %eax, 8(%esp)
+	movl 13*4(%esp), %eax   // trap-time esp in eax
+	subl $4, %eax
+	movl %eax, 13*4(%esp)	// reserve a return word
 
-	movl 16(%esp), %ecx	// eip
-	movl %ecx, 4(%eax)
-	movl 12(%esp), %ecx	// eflags
-	movl %ecx, 0(%eax)
+	movl 11*4(%esp), %ebx	// eip
+	movl %ebx, 0(%eax)
 #else
 	// LAB 4: Your code here.
 #endif
 
-	// Restore the caller-saved registers.
+	// Restore the trap-time registers.
 #if SOL >= 4
-	movl 20(%esp), %edx
-	movl 24(%esp), %ecx
-	movl 28(%esp), %eax
-#else
-	// LAB 4: Your code here.
-#endif
-
-	// Switch back to the adjusted trap-time stack.
-#if SOL >= 4
-	movl 8(%esp), %esp
+	addl $0x0c, %esp
+	popal
 #else
 	// LAB 4: Your code here.
 #endif
 
 	// Restore eflags from the stack.
 #if SOL >= 4
+	addl $0x04, %esp
 	popf
+#else
+	// LAB 4: Your code here.
+#endif
+
+	// Switch back to the adjusted trap-time stack.
+#if SOL >= 4
+	popl %esp
 #else
 	// LAB 4: Your code here.
 #endif

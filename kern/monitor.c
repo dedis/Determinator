@@ -72,7 +72,8 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 #if SOL >= 1
 #if SOL >= 3
-	const uint32_t *ebp = (tf ? (const uint32_t*) tf->tf_ebp : (const uint32_t*) read_ebp());
+	const uint32_t *ebp = (tf ? (const uint32_t*) tf->tf_regs.reg_ebp :
+			       (const uint32_t*) read_ebp());
 #else
 	const uint32_t *ebp = (const uint32_t*) read_ebp();
 #endif

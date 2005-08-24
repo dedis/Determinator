@@ -151,19 +151,11 @@ idt_init(void)
 	asm volatile("lidt idt_pd+2");
 }
 
-
 void
 print_trapframe(struct Trapframe *tf)
 {
 	cprintf("TRAP frame at %p\n", tf);
-	cprintf("  edi  0x%08x\n", tf->tf_edi);
-	cprintf("  esi  0x%08x\n", tf->tf_esi);
-	cprintf("  ebp  0x%08x\n", tf->tf_ebp);
-	cprintf("  oesp 0x%08x\n", tf->tf_oesp);
-	cprintf("  ebx  0x%08x\n", tf->tf_ebx);
-	cprintf("  edx  0x%08x\n", tf->tf_edx);
-	cprintf("  ecx  0x%08x\n", tf->tf_ecx);
-	cprintf("  eax  0x%08x\n", tf->tf_eax);
+	print_regs(&tf->tf_regs);
 	cprintf("  es   0x----%04x\n", tf->tf_es);
 	cprintf("  ds   0x----%04x\n", tf->tf_ds);
 	cprintf("  trap 0x%08x %s\n", tf->tf_trapno, trapname(tf->tf_trapno));
@@ -173,6 +165,19 @@ print_trapframe(struct Trapframe *tf)
 	cprintf("  flag 0x%08x\n", tf->tf_eflags);
 	cprintf("  esp  0x%08x\n", tf->tf_esp);
 	cprintf("  ss   0x----%04x\n", tf->tf_ss);
+}
+
+void
+print_regs(struct PushRegs *regs)
+{
+	cprintf("  edi  0x%08x\n", regs->reg_edi);
+	cprintf("  esi  0x%08x\n", regs->reg_esi);
+	cprintf("  ebp  0x%08x\n", regs->reg_ebp);
+	cprintf("  oesp 0x%08x\n", regs->reg_oesp);
+	cprintf("  ebx  0x%08x\n", regs->reg_ebx);
+	cprintf("  edx  0x%08x\n", regs->reg_edx);
+	cprintf("  ecx  0x%08x\n", regs->reg_ecx);
+	cprintf("  eax  0x%08x\n", regs->reg_eax);
 }
 
 static void
@@ -186,14 +191,13 @@ trap_dispatch(struct Trapframe *tf)
 	}
 	if (tf->tf_trapno == T_SYSCALL) {
 		// handle system call
-		tf->tf_eax = syscall(
-			tf->tf_eax,
-			tf->tf_edx,
-			tf->tf_ecx,
-			tf->tf_ebx,
-			tf->tf_edi,
-			tf->tf_esi
-		);
+		tf->tf_regs.reg_eax =
+			syscall(tf->tf_regs.reg_eax,
+				tf->tf_regs.reg_edx,
+				tf->tf_regs.reg_ecx,
+				tf->tf_regs.reg_ebx,
+				tf->tf_regs.reg_edi,
+				tf->tf_regs.reg_esi);
 		return;
 	}
 #else	// SOL >= 3
@@ -288,7 +292,7 @@ page_fault_handler(struct Trapframe *tf)
 {
 	uint32_t fault_va;
 #if SOL >= 4
-	uint32_t *tos, d;
+	struct UTrapframe *utf;
 #endif
 
 	// Read processor's CR2 register to find the faulting address
@@ -328,19 +332,23 @@ page_fault_handler(struct Trapframe *tf)
 	}
 
 	// Decide where to push our exception stack frame.
-	d = UXSTACKTOP - tf->tf_esp;
-	if (d < PGSIZE) {
+	if (tf->tf_esp >= UXSTACKTOP - PGSIZE &&
+	    tf->tf_esp < UXSTACKTOP) {
 		// The user's ESP is ALREADY in the user exception stack area,
 		// so push the new frame on the exception stack,
 		// preserving the existing exception stack contents.
-		tos = (uint32_t*) tf->tf_esp;
+		utf = (struct UTrapframe*)(tf->tf_esp
+					   - sizeof(struct UTrapframe)
+					   // Save a spare word for return
+					   - 4);
 	} else {
 		// The user's ESP is NOT in the user exception stack area,
 		// so it's presumably pointing to a normal user stack
 		// and the user exception stack is not in use.
 		// Therefore, switch the user's ESP onto the exception stack
 		// and push the new frame at the top of the exception stack.
-		tos = (uint32_t*) UXSTACKTOP;
+		utf = (struct UTrapframe*)(UXSTACKTOP
+					   - sizeof(struct UTrapframe));
 	}
 
 	// If any of the following writes causes a recursive page fault,
@@ -348,24 +356,16 @@ page_fault_handler(struct Trapframe *tf)
 	// so just terminate it.
 	page_fault_mode = PFM_KILL;
 
-	// first spare word is special -- need to TRUP pointer to check it
-	--tos;
-	tos = TRUP(tos);
-	*tos = 0;
-
-	// rest of frame
-	*--tos = 0;
-	*--tos = 0;
-	*--tos = 0;
-	*--tos = 0;
-	*--tos = tf->tf_eip;
-	*--tos = tf->tf_eflags;
-	*--tos = tf->tf_esp;
-	*--tos = tf->tf_err;
-	*--tos = fault_va;
+	// fill utf
+	utf->utf_fault_va = fault_va;
+	utf->utf_err = tf->tf_err;
+	utf->utf_regs = tf->tf_regs;
+	utf->utf_eip = tf->tf_eip;
+	utf->utf_eflags = tf->tf_eflags;
+	utf->utf_esp = tf->tf_esp;
 
 	// set user registers so that env_run switches to fault handler
-	tf->tf_esp = (uintptr_t) tos;
+	tf->tf_esp = (uintptr_t) utf;
 	tf->tf_eip = (uintptr_t) curenv->env_pgfault_upcall;
 	page_fault_mode = PFM_NONE;
 
@@ -380,8 +380,17 @@ page_fault_handler(struct Trapframe *tf)
 	//
 	// The page fault upcall might cause another page fault, in which case
 	// we branch to the page fault upcall recursively, pushing another
-	// page fault stack frame on top of the user exception stack.  If
-	// there's no page fault upcall, the environment didn't allocate a
+	// page fault stack frame on top of the user exception stack.
+	//
+	// The trap handler needs one word of scratch space at the top of the
+	// trap-time stack in order to return.  In the non-recursive case, we
+	// don't have to worry about this because the top of the regular user
+	// stack is free.  In the recursive case, this means we have to leave
+	// an extra word between the current top of the exception stack and
+	// the new stack frame because the exception stack _is_ the trap-time
+	// stack.
+	//
+	// If there's no page fault upcall, the environment didn't allocate a
 	// page for its exception stack, or the exception stack overflows,
 	// then destroy the environment that caused the fault.
 	//

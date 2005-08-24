@@ -17,6 +17,9 @@
 #include <inc/env.h>
 #include <inc/pmap.h>
 #include <inc/syscall.h>
+#if LAB >= 4
+#include <inc/trap.h>
+#endif
 #if LAB >= 5
 #include <inc/fs.h>
 #include <inc/fd.h>
@@ -35,8 +38,10 @@ extern struct Env envs[NENV];
 extern struct Page pages[];
 void	exit(void);
 
+#if LAB >= 4
 // pgfault.c
-void	set_pgfault_handler(void (*handler)(void *addr, uint32_t err));
+void	set_pgfault_handler(void (*handler)(struct UTrapframe *utf));
+#endif
 
 // readline.c
 char*	readline(const char *buf);
