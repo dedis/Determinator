@@ -15,6 +15,8 @@
 
 sub dofile {
 	my $filename = shift;
+	my $ccode = 0;
+	if ($filename =~ /.*\.[ch]$/) { $ccode = 1; }
 	my $tmpfilename = "$filename.tmp";
 
 	open(INFILE, "<$filename") or die "Can't open $filename";
@@ -22,6 +24,7 @@ sub dofile {
 
 	my $outlines = 0;
 	my $inlines = 0;
+	my $expectedinline = 1;
 	my $lastgood = "NO LAST GOOD";
 	my %stack;
 	my $depth = 0;
@@ -93,8 +96,14 @@ sub dofile {
 		}
 
 		if ($emit) {
+			if ($solno > 0 && $ccode &&
+			    $expectedinline != $inlines) {
+				print OUTFILE "#line $inlines\n";
+				$expectedinline = $inlines;
+			}
 			print OUTFILE "$_\n";
 			$outlines++;
+			$expectedinline++;
 		}
 	}
 
