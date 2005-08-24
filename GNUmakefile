@@ -245,6 +245,9 @@ build-sol%: export-sol% always
 	cd sol$*; $(MAKE)
 build-prep%: export-prep% always
 	cd prep$*; $(MAKE)
+build-all-sols: build-sol1 build-sol2 build-sol3 build-sol4 build-sol5 build-sol6
+build-all-labs: build-lab1 build-lab2 build-lab3 build-lab4 build-lab5 build-lab6
+build-all: build-all-sols build-all-labs
 
 grade-sol%: export-sol% always
 	cd sol$*; $(MAKE) grade
@@ -253,7 +256,13 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
-bochs: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
+ifdef LAB5
+images: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
+else
+images: $(OBJDIR)/kern/bochs.img
+endif
+
+bochs: images
 	bochs 'display_library: nogui'
 
 # For deleting the build
@@ -284,12 +293,12 @@ tarball: realclean
 # For test runs
 run-%:
 	$(V)rm -f $(OBJDIR)/kern/init.o $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
-	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
+	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" images
 	bochs -q 'display_library: nogui'
 
 xrun-%:
 	$(V)rm -f $(OBJDIR)/kern/init.o $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
-	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
+	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" images
 	bochs -q
 
 # This magic automatically generates makefile dependencies
