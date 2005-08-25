@@ -85,10 +85,10 @@ PERL	:= perl
 # Compiler flags
 # Note that -O2 is required for the boot loader to fit within 512 bytes;
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
-CFLAGS	:= $(CFLAGS) $(DEFS) $(LABDEFS) -O2 -fno-builtin -I$(TOP) -MD -Wall -Wno-format -ggdb
+CFLAGS	:= $(CFLAGS) $(DEFS) $(LABDEFS) -O2 -fno-builtin -I$(TOP) -MD -Wall -Wno-format
 
-# Linker flags for user programs
-ULDFLAGS := -Ttext 0x800020
+# Linker flags for JOS user programs
+ULDFLAGS := -T user/user.ld
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
@@ -106,8 +106,8 @@ all:
 .PRECIOUS: %.o $(OBJDIR)/boot/%.o $(OBJDIR)/kern/%.o \
 	$(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/user/%.o
 
-KERN_CFLAGS := $(CFLAGS) -DJOS_KERNEL
-USER_CFLAGS := $(CFLAGS) -DJOS_USER
+KERN_CFLAGS := $(CFLAGS) -DJOS_KERNEL -gstabs
+USER_CFLAGS := $(CFLAGS) -DJOS_USER -gstabs
 
 
 # try to infer the correct GCCPREFIX

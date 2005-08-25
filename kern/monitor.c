@@ -11,6 +11,7 @@
 #include <kern/monitor.h>
 #if LAB >= 3
 #include <kern/trap.h>
+#include <kern/kdebug.h>
 #endif
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
@@ -74,22 +75,29 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 #if SOL >= 3
 	const uint32_t *ebp = (tf ? (const uint32_t*) tf->tf_regs.reg_ebp :
 			       (const uint32_t*) read_ebp());
+	struct Eipdebuginfo info;
 #else
 	const uint32_t *ebp = (const uint32_t*) read_ebp();
 #endif
-	int i;
+	int i, fr = 0;
 
 	cprintf("Stack backtrace:\n");
 	while (ebp) {
 
 		// print this stack frame
-		cprintf("  ebp %08x  eip %08x  args", ebp, ebp[1]);
-		for (i = 0; i < 5; i++)
+		cprintf("%3d: ebp %08x  eip %08x  args", fr, ebp, ebp[1]);
+		for (i = 0; i < 4; i++)
 			cprintf(" %08x", ebp[2+i]);
 		cprintf("\n");
 
+#if SOL >= 3
+		if (debuginfo_eip(ebp[1], &info) >= 0)
+			cprintf("         %s:%d: %.*s+%x\n", info.eip_file, info.eip_line, info.eip_fnlen, info.eip_fn, ebp[1] - info.eip_fnaddr);
+
+#endif
 		// move to next lower stack frame
 		ebp = (const uint32_t*) ebp[0];
+		fr++;
 	}
 #else
 	// Your code here.

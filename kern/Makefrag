@@ -7,24 +7,18 @@
 
 OBJDIRS += kern
 
-KERN_LDFLAGS := $(LDFLAGS) -Ttext F0100000 -nostdlib
+KERN_LDFLAGS := $(LDFLAGS) -T kern/kernel.ld -nostdlib
 
-
-INIT=init
-ENV=env
-PMAP=pmap
-
-# entry.S must be first, so that it's the 
-# first code in the text segment!!!
+# entry.S must be first, so that it's the first code in the text segment!!!
 #
-# Note that we also snatch the use of a couple handy source files
+# We also snatch the use of a couple handy source files
 # from the lib directory, to avoid gratuitous code duplication.
 KERN_SRCFILES :=	kern/entry.S \
-			kern/$(INIT).c \
+			kern/init.c \
 			kern/console.c \
 			kern/monitor.c \
-			kern/$(PMAP).c \
-			kern/$(ENV).c \
+			kern/pmap.c \
+			kern/env.c \
 			kern/kclock.c \
 			kern/picirq.c \
 			kern/printf.c \
@@ -32,6 +26,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/trapentry.S \
 			kern/sched.c \
 			kern/syscall.c \
+			kern/kdebug.c \
 			lib/printfmt.c \
 			lib/readline.c \
 			lib/string.c
@@ -128,7 +123,7 @@ $(OBJDIR)/kern/%.o: lib/%.c
 	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
 
 # How to build the kernel itself
-$(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
+$(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES) kern/kernel.ld
 	@echo + ld $@
 	$(V)$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) -b binary $(KERN_BINFILES)
 	$(V)$(OBJDUMP) -S $@ > $@.asm
