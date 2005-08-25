@@ -1,13 +1,12 @@
 #if LAB >= 5
 #include <inc/string.h>
+#if LAB >= 99
+#include <inc/partition.h>
+#endif
 
 #include "fs.h"
 
-struct Super *super;
-
-#if SOL >= 999
-static uint32_t nbitmap;	// number of bitmap blocks
-#endif
+struct Super *super;		// superblock
 uint32_t *bitmap;		// bitmap blocks mapped in memory
 
 void file_flush(struct File *f);
@@ -67,10 +66,9 @@ map_block(uint32_t blockno)
 // If blk != 0, set *blk to the address of the block in memory.
 //
 // Hint: Use diskaddr, block_is_mapped, sys_page_alloc, and ide_read.
-// Hint: Use the DISKNO constant when calling ide_read.
 // Hint: If you loaded the block from disk, use sys_page_map to clear the
 // corresponding page's PTE_D bit.  (This is an optimization.)
-int
+static int
 read_block(uint32_t blockno, char **blk)
 {
 	int r;
@@ -94,7 +92,7 @@ read_block(uint32_t blockno, char **blk)
 	if ((r = map_block(blockno)) < 0)
 		return r;
 
-	ide_read(DISKNO, blockno * BLKSECTS, (void*) addr, BLKSECTS);
+	ide_read(blockno * BLKSECTS, (void*) addr, BLKSECTS);
 	if (blk)
 		*blk = (void*) addr;
 
@@ -121,7 +119,7 @@ write_block(uint32_t blockno)
 #if SOL >= 5
 	addr = diskaddr(blockno);
 
-	ide_write(DISKNO, blockno * BLKSECTS, (void*) addr, BLKSECTS);
+	ide_write(blockno * BLKSECTS, (void*) addr, BLKSECTS);
 
 	// clear dirty flag in pte
 	sys_page_map(0, addr, 0, addr, vpt[VPN(addr)] & PTE_USER);
@@ -321,12 +319,80 @@ check_write_block(void)
 	cprintf("write_block is good\n");
 }
 
+#if LAB >= 99
+// Find a JOS partition
+int32_t
+read_partition_table(uint32_t partition_sect, uint32_t extended_sect)
+{
+	int i, r;
+	uint8_t buf[SECTSIZE];
+	struct Partitiondesc *ptable;
+
+	// read the partition sector
+	if ((r = ide_read(partition_sect, buf, 1)) < 0) {
+		if (extended_sect)
+			cprintf("extended partition sector %x broken!\n", partition_sect);
+		return -1;
+	}
+
+	// check for partition table magic number
+	if (memcmp(&buf[PTABLE_MAGIC_OFFSET], PTABLE_MAGIC, 2) != 0) {
+		if (extended_sect)
+			cprintf("extended partition sector %x doesn't contain a partition table!\n", partition_sect);
+		return 0;
+	}
+
+	// search partition table
+	ptable = (struct Partitiondesc*) (buf + PTABLE_OFFSET);
+	for (i = 0; i < 4; i++)
+		if (ptable[i].lba_length == 0)
+			/* ignore entry */;
+		else if (ptable[i].type == PTYPE_JOSFS) {
+			// call ide_init to use this partition
+			ide_set_partition(ptable[i].lba_start + extended_sect, ptable[i].lba_length);
+			return 1;
+		} else if (ptable[i].type == PTYPE_DOS_EXTENDED
+			   || ptable[i].type == PTYPE_W95_EXTENDED
+			   || ptable[i].type == PTYPE_LINUX_EXTENDED) {
+			uint32_t inner_sect = extended_sect;
+			if (!inner_sect)
+				inner_sect = ptable[i].lba_start;
+			if ((r = read_partition_table(ptable[i].lba_start + extended_sect, inner_sect)) > 0)
+				return r;
+		}
+
+	// no partition number found
+	return -1;
+}
+
+#endif
 // Initialize the file system
 void
 fs_init(void)
 {
 	static_assert(sizeof(struct File) == 256);
 
+#if LAB >= 99
+	// Find a JOS partition.
+	// Check the second IDE disk (number 1) before checking the first.
+	if (ide_probe_disk1()) {
+		ide_set_disk(1);
+		if (read_partition_table(0, 0) >= 0)
+			goto found_jos;
+	}
+	ide_set_disk(0);
+	if (read_partition_table(0, 0) < 0)
+		panic("No JOS file system found");
+	
+found_jos:
+#else // LAB < 99
+	// Find a JOS disk.  Use the second IDE disk (number 1) if available.
+	if (ide_probe_disk1())
+		ide_set_disk(1);
+	else
+		ide_set_disk(0);
+	
+#endif
 	read_super();
 	check_write_block();
 	read_bitmap();
@@ -364,10 +430,13 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 			if ((r = alloc_block()) < 0)
 				return r;
 			f->f_indirect = r;
-		}
+		} else
+			alloc = 0;	// we did not allocate a block
 		if ((r = read_block(f->f_indirect, &blk)) < 0)
 			return r;
 		assert(blk != 0);
+		if (alloc)		// must clear any block we allocated
+			memset(blk, 0, BLKSIZE);
 		ptr = (uint32_t*)blk + filebno;
 	} else
 		return -E_INVAL;
@@ -504,6 +573,7 @@ dir_alloc_file(struct File *dir, struct File **file)
 		for (j = 0; j < BLKFILES; j++)
 			if (f[j].f_name[0] == '\0') {
 				*file = &f[j];
+				f[j].f_dir = dir;
 				return 0;
 			}
 	}
@@ -512,6 +582,7 @@ dir_alloc_file(struct File *dir, struct File **file)
 		return r;
 	f = (struct File*) blk;
 	*file = &f[0];
+	f[0].f_dir = dir;
 	return 0;
 }
 
