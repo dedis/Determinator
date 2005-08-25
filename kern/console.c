@@ -36,6 +36,8 @@ void cons_intr(int (*proc)(void));
 #define COM_LSR		5	// In:	Line Status Register
 #define   COM_LSR_DATA	0x01	//   Data available
 
+static bool serial_exists;
+
 int
 serial_proc_data(void)
 {
@@ -47,7 +49,8 @@ serial_proc_data(void)
 void
 serial_intr(void)
 {
-	cons_intr(serial_proc_data);
+	if (serial_exists)
+		cons_intr(serial_proc_data);
 }
 
 void
@@ -58,7 +61,7 @@ serial_init(void)
 	
 	// Set speed; requires DLAB latch
 	outb(COM1+COM_LCR, COM_LCR_DLAB);
-	outb(COM1+COM_DLL, (uint8_t)(115200 / 9600));
+	outb(COM1+COM_DLL, (uint8_t) (115200 / 9600));
 	outb(COM1+COM_DLM, 0);
 
 	// 8 data bits, 1 stop bit, parity off; turn off DLAB latch
@@ -70,13 +73,15 @@ serial_init(void)
 	outb(COM1+COM_IER, COM_IER_RDI);
 
 	// Clear any preexisting overrun indications and interrupts
-	(void) inb(COM1+COM_LSR);
+	// Serial port doesn't exist if COM_LSR returns 0xFF
+	serial_exists = (inb(COM1+COM_LSR) != 0xFF);
 	(void) inb(COM1+COM_IIR);
 	(void) inb(COM1+COM_RX);
-	
+
 #if LAB >= 4
-	// Enable keyboard interrupts
-	irq_setmask_8259A(irq_mask_8259A & ~(1<<4));
+	// Enable serial interrupts
+	if (serial_exists)
+		irq_setmask_8259A(irq_mask_8259A & ~(1<<4));
 #endif
 }
 
@@ -101,10 +106,10 @@ lpt_putc(int c)
 {
 	int i;
 
-	for (i=0; !(inb(0x378+1)&0x80) && i<12800; i++)
+	for (i = 0; !(inb(0x378+1) & 0x80) && i < 12800; i++)
 		delay();
 	outb(0x378+0, c);
-	outb(0x378+2, 0x08|0x01);
+	outb(0x378+2, 0x08|0x04|0x01);
 	outb(0x378+2, 0x08);
 }
 
@@ -117,6 +122,18 @@ static unsigned addr_6845;
 static uint16_t *crt_buf;
 static uint16_t crt_pos;
 
+#if LAB >= 99
+// Scrollback support
+#define CRT_SAVEROWS	128
+
+#if CRT_SAVEROWS > 0
+static uint16_t crtsave_buf[CRT_SAVEROWS * CRT_COLS];
+static uint16_t crtsave_pos;
+static int16_t crtsave_backscroll;
+static uint16_t crtsave_size;
+#endif
+
+#endif
 void
 cga_init(void)
 {
@@ -146,11 +163,56 @@ cga_init(void)
 }
 
 
+#if LAB >= 99
+#if CRT_SAVEROWS > 0
+// Copy one screen's worth of data to or from the save buffer,
+// starting at line 'first_line'.
+void
+cga_savebuf_copy(int first_line, bool to_screen)
+{
+	uint16_t *pos;
+	uint16_t *end;
+	uint16_t *trueend;
+
+	// Calculate the beginning & end of the save buffer area.
+	pos = crtsave_buf + (first_line % CRT_SAVEROWS) * CRT_COLS;
+	end = pos + CRT_ROWS * CRT_COLS;
+	// Check for wraparound.
+	trueend = MIN(end, crtsave_buf + CRT_SAVEROWS * CRT_COLS);
+
+	// Copy the initial portion.
+	if (to_screen)
+		memcpy(crt_buf, pos, (trueend - pos) * sizeof(uint16_t));
+	else
+		memcpy(pos, crt_buf, (trueend - pos) * sizeof(uint16_t));
+
+	// If there was wraparound, copy the second part of the screen.
+	if (end == trueend)
+		/* do nothing */;
+	else if (to_screen)
+		memcpy(crt_buf + (trueend - pos), crtsave_buf, (end - trueend) * sizeof(uint16_t));
+	else
+		memcpy(crtsave_buf, crt_buf + (trueend - pos), (end - trueend) * sizeof(uint16_t));
+}
+
+#endif
+#endif
+
 void
 cga_putc(int c)
 {
-	/* if no attribute given, then use black on white */
-	if (!(c & ~0xff))
+#if LAB >= 99
+#if CRT_SAVEROWS > 0
+	// unscroll if necessary
+	if (crtsave_backscroll > 0) {
+		cga_savebuf_copy(crtsave_pos + crtsave_size, 1);
+		crtsave_backscroll = 0;
+	}
+	
+#endif
+#endif
+	// if no attribute given, then use black on white
+	if (!(c & ~0xFF))
 		c |= 0x0700;
 
 	switch (c & 0xff) {
@@ -185,7 +247,19 @@ cga_putc(int c)
 #endif
 	if (crt_pos >= CRT_SIZE) {
 		int i;
-		memcpy(crt_buf, crt_buf + CRT_COLS, (CRT_SIZE - CRT_COLS) << 1);
+
+#if LAB >= 99
+#if CRT_SAVEROWS > 0
+		// Save the scrolled-back row
+		if (crtsave_size == CRT_SAVEROWS - CRT_ROWS)
+			crtsave_pos = (crtsave_pos + 1) % CRT_SAVEROWS;
+		else
+			crtsave_size++;
+		memcpy(crtsave_buf + ((crtsave_pos + crtsave_size - 1) % CRT_SAVEROWS) * CRT_COLS, crt_buf, CRT_COLS * sizeof(uint16_t));
+		
+#endif
+#endif
+		memcpy(crt_buf, crt_buf + CRT_COLS, (CRT_SIZE - CRT_COLS) * sizeof(uint16_t));
 		for (i = CRT_SIZE - CRT_COLS; i < CRT_SIZE; i++)
 			crt_buf[i] = 0x0700 | ' ';
 		crt_pos -= CRT_COLS;
@@ -198,7 +272,25 @@ cga_putc(int c)
 	outb(addr_6845 + 1, crt_pos);
 }
 
+#if LAB >= 99
+#if CRT_SAVEROWS > 0
+void
+cga_scroll(int delta)
+{
+	int new_backscroll = MAX(MIN(crtsave_backscroll - delta, crtsave_size), 0);
 
+	if (new_backscroll == crtsave_backscroll)
+		return;
+	if (crtsave_backscroll == 0)
+		// save current screen
+		cga_savebuf_copy(crtsave_pos + crtsave_size, 0);
+	
+	crtsave_backscroll = new_backscroll;
+	cga_savebuf_copy(crtsave_pos + crtsave_size - crtsave_backscroll, 1);
+}
+
+#endif
+#endif
 
 /***** Keyboard input code *****/
 
@@ -210,56 +302,72 @@ cga_putc(int c)
 
 #define CAPSLOCK	(1<<3)
 #define NUMLOCK		(1<<4)
-#define SCROLLOCK	(1<<5)
+#define SCROLLLOCK	(1<<5)
 
-static int shiftcode[256] = 
+#define E0ESC		(1<<6)
+
+static uint8_t shiftcode[256] = 
 {
-[29] CTL,
-[42] SHIFT,
-[54] SHIFT,
-[56] ALT,
+	[0x1D] CTL,
+	[0x2A] SHIFT,
+	[0x36] SHIFT,
+	[0x38] ALT,
+	[0x9D] CTL,
+	[0xB8] ALT
 };
 
-static int togglecode[256] = 
+static uint8_t togglecode[256] = 
 {
-[58] CAPSLOCK,
-[69] NUMLOCK,
-[70] SCROLLOCK,
+	[0x3A] CAPSLOCK,
+	[0x45] NUMLOCK,
+	[0x46] SCROLLLOCK
 };
 
-static char normalmap[256] =
+static uint8_t normalmap[256] =
 {
-	NO,    033,  '1',  '2',  '3',  '4',  '5',  '6',
+	NO,   0x1B, '1',  '2',  '3',  '4',  '5',  '6',	// 0x00
 	'7',  '8',  '9',  '0',  '-',  '=',  '\b', '\t',
-	'q',  'w',  'e',  'r',  't',  'y',  'u',  'i',
+	'q',  'w',  'e',  'r',  't',  'y',  'u',  'i',	// 0x10
 	'o',  'p',  '[',  ']',  '\n', NO,   'a',  's',
-	'd',  'f',  'g',  'h',  'j',  'k',  'l',  ';',
+	'd',  'f',  'g',  'h',  'j',  'k',  'l',  ';',	// 0x20
 	'\'', '`',  NO,   '\\', 'z',  'x',  'c',  'v',
-	'b',  'n',  'm',  ',',  '.',  '/',  NO,   '*',
-	NO,   ' ',   NO,   NO,   NO,   NO,   NO,   NO,
-	NO,   NO,   NO,   NO,   NO,   NO,   NO,   '7',
+	'b',  'n',  'm',  ',',  '.',  '/',  NO,   '*',	// 0x30
+	NO,   ' ',  NO,   NO,   NO,   NO,   NO,   NO,
+	NO,   NO,   NO,   NO,   NO,   NO,   NO,   '7',	// 0x40
 	'8',  '9',  '-',  '4',  '5',  '6',  '+',  '1',
-	'2',  '3',  '0',  '.',  
+	'2',  '3',  '0',  '.',  NO,   NO,   NO,   NO,	// 0x50
+	[0x97] KEY_HOME,	[0x9C] '\n' /*KP_Enter*/,
+	[0xB5] '/' /*KP_Div*/,	[0xC8] KEY_UP,
+	[0xC9] KEY_PGUP,	[0xCB] KEY_LF,
+	[0xCD] KEY_RT,		[0xCF] KEY_END,
+	[0xD0] KEY_DN,		[0xD1] KEY_PGDN,
+	[0xD2] KEY_INS,		[0xD3] KEY_DEL
 };
 
-static char shiftmap[256] = 
+static uint8_t shiftmap[256] = 
 {
-	NO,   033,  '!',  '@',  '#',  '$',  '%',  '^',
+	NO,   033,  '!',  '@',  '#',  '$',  '%',  '^',	// 0x00
 	'&',  '*',  '(',  ')',  '_',  '+',  '\b', '\t',
-	'Q',  'W',  'E',  'R',  'T',  'Y',  'U',  'I',
+	'Q',  'W',  'E',  'R',  'T',  'Y',  'U',  'I',	// 0x10
 	'O',  'P',  '{',  '}',  '\n', NO,   'A',  'S',
-	'D',  'F',  'G',  'H',  'J',  'K',  'L',  ':',
+	'D',  'F',  'G',  'H',  'J',  'K',  'L',  ':',	// 0x20
 	'"',  '~',  NO,   '|',  'Z',  'X',  'C',  'V',
-	'B',  'N',  'M',  '<',  '>',  '?',  NO,   '*',
-	NO,   ' ',   NO,   NO,   NO,   NO,   NO,   NO,
-	NO,   NO,   NO,   NO,   NO,   NO,   NO,   '7',
+	'B',  'N',  'M',  '<',  '>',  '?',  NO,   '*',	// 0x30
+	NO,   ' ',  NO,   NO,   NO,   NO,   NO,   NO,
+	NO,   NO,   NO,   NO,   NO,   NO,   NO,   '7',	// 0x40
 	'8',  '9',  '-',  '4',  '5',  '6',  '+',  '1',
-	'2',  '3',  '0',  '.',  
+	'2',  '3',  '0',  '.',  NO,   NO,   NO,   NO,	// 0x50
+	[0x97] KEY_HOME,	[0x9C] '\n' /*KP_Enter*/,
+	[0xB5] '/' /*KP_Div*/,	[0xC8] KEY_UP,
+	[0xC9] KEY_PGUP,	[0xCB] KEY_LF,
+	[0xCD] KEY_RT,		[0xCF] KEY_END,
+	[0xD0] KEY_DN,		[0xD1] KEY_PGDN,
+	[0xD2] KEY_INS,		[0xD3] KEY_DEL
 };
 
-#define C(x) (x-'@')
+#define C(x) (x - '@')
 
-static char ctlmap[256] = 
+static uint8_t ctlmap[256] = 
 {
 	NO,      NO,      NO,      NO,      NO,      NO,      NO,      NO, 
 	NO,      NO,      NO,      NO,      NO,      NO,      NO,      NO, 
@@ -267,14 +375,20 @@ static char ctlmap[256] =
 	C('O'),  C('P'),  NO,      NO,      '\r',    NO,      C('A'),  C('S'),
 	C('D'),  C('F'),  C('G'),  C('H'),  C('J'),  C('K'),  C('L'),  NO, 
 	NO,      NO,      NO,      C('\\'), C('Z'),  C('X'),  C('C'),  C('V'),
-	C('B'),  C('N'),  C('M'),  NO,      NO,      C('/'),  NO,      NO, 
+	C('B'),  C('N'),  C('M'),  NO,      NO,      C('/'),  NO,      NO,
+	[0x97] KEY_HOME,
+	[0xB5] C('/'),		[0xC8] KEY_UP,
+	[0xC9] KEY_PGUP,	[0xCB] KEY_LF,
+	[0xCD] KEY_RT,		[0xCF] KEY_END,
+	[0xD0] KEY_DN,		[0xD1] KEY_PGDN,
+	[0xD2] KEY_INS,		[0xD3] KEY_DEL
 };
 
-static char *charcode[4] = {
+static uint8_t *charcode[4] = {
 	normalmap,
 	shiftmap,
 	ctlmap,
-	ctlmap,
+	ctlmap
 };
 
 /*
@@ -293,24 +407,48 @@ kbd_proc_data(void)
 
 	data = inb(KBDATAP);
 
-	if (data & 0x80) {
-		/* key up */
-		shift &= ~shiftcode[data&~0x80];
+	if (data == 0xE0) {
+		// E0 escape character
+		shift |= E0ESC;
 		return 0;
+	} else if (data & 0x80) {
+		// Key released
+		data = (shift & E0ESC ? data : data & 0x7F);
+		shift &= ~(shiftcode[data] | E0ESC);
+		return 0;
+	} else if (shift & E0ESC) {
+		// Last character was an E0 escape; or with 0x80
+		data |= 0x80;
+		shift &= ~E0ESC;
 	}
 
-	/* key down */
 	shift |= shiftcode[data];
 	shift ^= togglecode[data];
-	c = charcode[shift&(CTL|SHIFT)][data];
 
-	if (shift&CAPSLOCK) {
+	c = charcode[shift & (CTL | SHIFT)][data];
+	if (shift & CAPSLOCK) {
 		if ('a' <= c && c <= 'z')
 			c += 'A' - 'a';
 		else if ('A' <= c && c <= 'Z')
 			c += 'a' - 'A';
 	}
-	
+
+	// Process special keys
+#if LAB >= 99
+#if CRT_SAVEROWS > 0
+	// Shift-PageUp and Shift-PageDown: scroll console
+	if ((shift & SHIFT) && (c == KEY_PGUP || c == KEY_PGDN)) {
+		cga_scroll(c == KEY_PGUP ? -CRT_ROWS : CRT_ROWS);
+		return 0;
+	}
+#endif
+#endif
+	// Ctrl-Alt-Del: reboot
+	if (!(~shift & (CTL | ALT)) && c == KEY_DEL) {
+		cprintf("Rebooting!\n");
+		outb(0x92, 0x3); // courtesy of Chris Frost
+	}
+
 	return c;
 }
 
@@ -398,8 +536,10 @@ cons_init(void)
 	cga_init();
 	kbd_init();
 	serial_init();
-}
 
+	if (!serial_exists)
+		cprintf("Serial port does not exist!\n");
+}
 
 
 // `High'-level console I/O.  Used by readline and cprintf.
@@ -426,4 +566,3 @@ iscons(int fdnum)
 	// used by readline
 	return 1;
 }
-
