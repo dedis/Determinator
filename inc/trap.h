@@ -1,4 +1,4 @@
-#if LAB >= 3
+#if LAB >= 2
 #ifndef JOS_INC_TRAP_H
 #define JOS_INC_TRAP_H
 
