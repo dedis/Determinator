@@ -590,7 +590,7 @@ score=0
 	fi
 
 	echo_n "Backtrace: "
-	cnt=`grep "ebp f0109...  eip f0100...  args" bochs.out|wc -w`
+	cnt=`grep "ebp f01.* eip f0100.* args" bochs.out|wc -w`
 	if [ $cnt -eq 80 ]
 	then
 		score=`expr 15 + $score`
@@ -599,7 +599,7 @@ score=0
 		echo_n "Count WRONG"
 	fi
 
-	cnt=`grep "ebp f0109...  eip f0100...  args" bochs.out | awk 'BEGIN { FS = ORS = " " }
+	cnt=`grep "ebp f01.* eip f0100.* args" bochs.out | awk 'BEGIN { FS = ORS = " " }
 { print $6 }
 END { printf("\n") }' | grep '^00000000 00000000 00000001 00000002 00000003 00000004 00000005' | wc -w`
 	if [ $cnt -eq 8 ]; then
