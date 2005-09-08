@@ -590,8 +590,8 @@ score=0
 	fi
 
 	echo_n "Backtrace: "
-	cnt=`grep "ebp f01.* eip f0100.* args" bochs.out|wc -w`
-	if [ $cnt -eq 80 ]
+	cnt=`grep "ebp f01.* eip f0100.* args" bochs.out|wc -l`
+	if [ $cnt -eq 8 ]
 	then
 		score=`expr 15 + $score`
 		echo_n "Count OK"
