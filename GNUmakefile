@@ -123,6 +123,9 @@ conf/gcc.mk:
 	echo "*** prefix other than 'i386-jos-elf-', set your GCCPREFIX" 1>&2; \
 	echo "*** environment variable to that prefix and run 'make' again." 1>&2; \
 	echo "*** To turn off this error, run 'echo GCCPREFIX= >conf/gcc.mk'." 1>&2; \
+	echo "***" 1>&2; \
+	echo "*** [MIT] If you are running on a SunOS athena box, you will" 1>&2; \
+	echo "*** have to use to an x86 athena box, like athena.lcs." 1>&2; \
 	echo "***" 1>&2; exit 1; fi
 	@f=`grep GCCPREFIX conf/gcc.mk | sed 's/.*=//'`; if echo $$f | grep '^[12]\.' >/dev/null 2>&1; then echo "***" 1>&2; \
 	echo "*** Error: Your gcc compiler is too old." 1>&2; \
