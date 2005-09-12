@@ -42,6 +42,7 @@ stab_binsearch(const struct Stab *stabs, uintptr_t addr, int *lx, int *rx, int t
 	}
 }
 
+#if SOL >= 3
 static int
 check_user_access(struct Env *env, const void *addr, const void *end_addr)
 {
@@ -60,6 +61,7 @@ check_user_access(struct Env *env, const void *addr, const void *end_addr)
 
 	return 0;
 }
+#endif
 
 int
 debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
@@ -80,6 +82,10 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 		stabstr = __STABSTR_BEGIN__;
 		stabstr_end = __STABSTR_END__;
 	} else {
+#if LAB == 2
+  	        panic ("User address");
+#endif
+#if SOL >= 3
 		const void **thing = (const void **) 0x200000;
 		if (check_user_access(curenv, thing, thing + 1) < 0)
 			return -1;
@@ -92,6 +98,7 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 		    || stabstr_end == stabstr
 		    || stabstr_end[-1])
 			return -1;
+#endif
 	}
 
 	lfile = 0, rfile = stab_end - stabs - 1;
@@ -116,8 +123,12 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 	}
 	info->eip_fnlen = strfind(info->eip_fn, ':') - info->eip_fn;
 
-	/* Search for the line number */
+	/* Search for the line number: */
+#if SOL >= 2
 	stab_binsearch(stabs, addr, &lline, &rline, N_SLINE);
+#else
+	// You code here
+#endif
 	if (lline == 0)
 		return -1;
 

@@ -11,6 +11,8 @@
 #include <kern/monitor.h>
 #if LAB >= 3
 #include <kern/trap.h>
+#endif
+#if LAB >= 2
 #include <kern/kdebug.h>
 #endif
 
@@ -75,8 +77,10 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 #if SOL >= 3
 	const uint32_t *ebp = (tf ? (const uint32_t*) tf->tf_regs.reg_ebp :
 			       (const uint32_t*) read_ebp());
-	struct Eipdebuginfo info;
 #else
+#if LAB >= 2
+	struct Eipdebuginfo info;
+#endif
 	const uint32_t *ebp = (const uint32_t*) read_ebp();
 #endif
 	int i, fr = 0;
@@ -90,11 +94,9 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 			cprintf(" %08x", ebp[2+i]);
 		cprintf("\n");
 
-#if SOL >= 3
 		if (debuginfo_eip(ebp[1], &info) >= 0)
 			cprintf("         %s:%d: %.*s+%x\n", info.eip_file, info.eip_line, info.eip_fnlen, info.eip_fn, ebp[1] - info.eip_fnaddr);
 
-#endif
 		// move to next lower stack frame
 		ebp = (const uint32_t*) ebp[0];
 		fr++;
