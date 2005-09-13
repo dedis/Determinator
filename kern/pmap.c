@@ -589,6 +589,8 @@ page_decref(struct Page* pp)
 //   0 on success
 //   -E_NO_MEM, if page table couldn't be allocated
 //
+// Hint: you can turn a Page * into the physical address of the
+// page it refers to with page2pa() from kern/pmap.h
 int
 pgdir_walk(pde_t *pgdir, const void *va, int create, pte_t **pte_store)
 {

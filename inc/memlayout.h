@@ -153,6 +153,10 @@ extern volatile pde_t vpd[];     // VA of current page directory
 /*
  * Page descriptor structures, mapped at UPAGES.
  * Read/write to the kernel, read-only to user programs.
+ *
+ * Each Page describes one physical page.
+ * You can map a Page * to the corresponding physical address
+ * with page2pa() in kern/pmap.h.
  */
 LIST_HEAD(Page_list, Page);
 typedef LIST_ENTRY(Page) Page_LIST_entry_t;
