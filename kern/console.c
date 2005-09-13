@@ -1,7 +1,7 @@
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/x86.h>
-#include <inc/pmap.h>
+#include <inc/memlayout.h>
 #include <inc/kbdreg.h>
 #include <inc/string.h>
 #include <inc/assert.h>

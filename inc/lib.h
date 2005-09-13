@@ -15,7 +15,7 @@
 #include <inc/error.h>
 #include <inc/assert.h>
 #include <inc/env.h>
-#include <inc/pmap.h>
+#include <inc/memlayout.h>
 #include <inc/syscall.h>
 #if LAB >= 4
 #include <inc/trap.h>

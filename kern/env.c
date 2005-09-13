@@ -111,7 +111,7 @@ env_setup_vm(struct Env *e)
 	// Hint:
 	//    - The VA space of all envs is identical above UTOP
 	//      (except at VPT and UVPT, which we've set below).
-	//	See inc/pmap.h for permissions and layout.
+	//	See inc/memlayout.h for permissions and layout.
 	//	Can you use boot_pgdir as a template?  Hint: Yes.
 	//	(Make sure you got the permissions right in Lab 2.)
 	//    - The initial VA below UTOP is empty.
@@ -181,7 +181,7 @@ env_alloc(struct Env **new, envid_t parent_id)
 
 	// Set up appropriate initial values for the segment registers.
 	// GD_UD is the user data segment selector in the GDT, and 
-	// GD_UT is the user text segment selector (see inc/pmap.h).
+	// GD_UT is the user text segment selector (see inc/memlayout.h).
 	// The low 2 bits of each segment register contains the
 	// Requestor Privilege Level (RPL); 3 means user mode.
 	e->env_tf.tf_ds = GD_UD | 3;

@@ -1,12 +1,12 @@
 #if LAB >= 1
-#ifndef JOS_INC_PMAP_H
-#define JOS_INC_PMAP_H
+#ifndef JOS_INC_MEMLAYOUT_H
+#define JOS_INC_MEMLAYOUT_H
 
 #ifndef __ASSEMBLER__
 #include <inc/types.h>
 #include <inc/queue.h>
 #include <inc/mmu.h>
-#endif
+#endif /* not __ASSEMBLER__ */
 
 /*
  * This file contains definitions for memory management in our OS,
@@ -160,14 +160,14 @@ typedef LIST_ENTRY(Page) Page_LIST_entry_t;
 struct Page {
 	Page_LIST_entry_t pp_link;	/* free list link */
 
-	// Ref is the count of pointers (usually in page table entries)
-	// to this page.  This only holds for pages allocated using 
-	// page_alloc.  Pages allocated at boot time using pmap.c's
+	// pp_ref is the count of pointers (usually in page table entries)
+	// to this page, for pages allocated using page_alloc.
+	// Pages allocated at boot time using pmap.c's
 	// boot_alloc do not have valid reference count fields.
 
 	uint16_t pp_ref;
 };
 
 #endif /* !__ASSEMBLER__ */
-#endif /* !JOS_INC_PMAP_H */
+#endif /* !JOS_INC_MEMLAYOUT_H */
 #endif // LAB >= 1

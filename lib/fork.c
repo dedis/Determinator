@@ -36,7 +36,7 @@ pgfault(struct UTrapframe *utf)
 	// Check that the faulting access was a write to a copy-on-write
 	// page.  If not, panic.
 	// Hint:
-	//   Use the read-only page table mapping at vpt (see inc/pmap.h).
+	//   Use the read-only page table mapping at vpt (see inc/memlayout.h).
 
 	// LAB 4: Your code here.
 #endif

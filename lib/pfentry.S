@@ -1,6 +1,6 @@
 #if LAB >= 4
 #include <inc/mmu.h>
-#include <inc/pmap.h>
+#include <inc/memlayout.h>
 
 
 // Page fault upcall entrypoint.

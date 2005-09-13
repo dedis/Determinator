@@ -7,7 +7,7 @@
 #include <inc/types.h>
 #include <inc/queue.h>
 #include <inc/trap.h>
-#include <inc/pmap.h>
+#include <inc/memlayout.h>
 
 typedef int32_t envid_t;
 

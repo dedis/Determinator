@@ -3,7 +3,7 @@
 
 #include <inc/asm.h>
 #include <inc/mmu.h>
-#include <inc/pmap.h>
+#include <inc/memlayout.h>
 #if LAB >= 3
 #include <inc/trap.h>
 #endif
