@@ -41,7 +41,7 @@ static struct Command commands[] = {
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
-
+unsigned read_eip();
 
 /***** Implementations of basic kernel monitor commands *****/
 
@@ -181,3 +181,11 @@ monitor(struct Trapframe *tf)
 	}
 }
 
+// return EIP of caller.
+// does not work if inlined.
+// putting at the end of the file seems to prevent inlining.
+unsigned
+read_eip()
+{
+  __asm __volatile("movl 4(%ebp), %eax");
+}
