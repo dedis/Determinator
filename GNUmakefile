@@ -285,11 +285,15 @@ grade: $(LABSETUP)grade.sh
 
 #ifdef ENV_HANDIN_COPY
 HANDIN_CMD = tar cf - . | gzip > ~class/handin/lab$(LAB)/$$USER/lab$(LAB).tar.gz
-#else
-HANDIN_CMD = tar cf - . | gzip | uuencode lab$(LAB).tar.gz | mail $(HANDIN_EMAIL)
-#endif
 handin: realclean
 	$(HANDIN_CMD)
+#else
+handin: 
+	@make tarball
+	@echo Please visit http://pdos.csail.mit.edu/cgi-bin/828handin
+	@echo and upload lab$(LAB).tar.gz.  Thanks!
+#endif
+
 tarball: realclean
 	tar cf - `ls -a | grep -v '^\.*$$' | grep -v '^lab$(LAB)\.tar\.gz'` | gzip > lab$(LAB).tar.gz
 
