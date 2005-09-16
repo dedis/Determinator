@@ -1,5 +1,4 @@
-#if LAB >= 4
-#elif LAB >= 3
+#if LAB >= 3
 // hello, world
 #include <inc/lib.h>
 
