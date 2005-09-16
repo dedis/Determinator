@@ -288,8 +288,7 @@ HANDIN_CMD = tar cf - . | gzip > ~class/handin/lab$(LAB)/$$USER/lab$(LAB).tar.gz
 handin: realclean
 	$(HANDIN_CMD)
 #else
-handin: 
-	@make tarball
+handin: tarball
 	@echo Please visit http://pdos.csail.mit.edu/cgi-bin/828handin
 	@echo and upload lab$(LAB).tar.gz.  Thanks!
 #endif
