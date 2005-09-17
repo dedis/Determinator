@@ -153,9 +153,11 @@ i386_init(void)
 	test_backtrace(5);
 #endif
 
+#if LAB <= 2
 	// Drop into the kernel monitor.
 	while (1)
 		monitor(NULL);
+#endif
 }
 
 

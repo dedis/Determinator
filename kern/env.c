@@ -231,13 +231,15 @@ env_alloc(struct Env **new, envid_t parent_id)
 }
 
 //
-// Allocate and map all required pages into an env's address space
-// to cover virtual addresses va through va+len-1 inclusive.
+// Allocate len bytes of physical memory for environment env,
+// and map it at virtual address va in the environment's
+// address space.
 // Does not zero or otherwise initialize the mapped pages in any way.
 // Pages should be writable by user and kernel.
 // Panic if any allocation attempt fails.
 //
 // Warning: Neither va nor len are necessarily page-aligned!
+// You should round va down, and round len up.
 // You may assume, however, that nothing is already mapped
 // in the pages touched by the specified virtual address range.
 //
@@ -512,6 +514,8 @@ env_run(struct Env *e)
 	//	layout.
 	
 	// LAB 3: Your code here.
+
+        panic("env_run not yet implemented");
 #endif /* not SOL >= 3 */
 }
 
