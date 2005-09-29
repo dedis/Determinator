@@ -582,7 +582,7 @@ page_decref(struct Page* pp)
 // Unlike boot_pgdir_walk, pgdir_walk can fail, so we have to
 // return pte via a pointer parameter.
 //
-// Stores address of page table entry in *ppte.
+// Stores address of page table entry in *pte_store.
 // Stores 0 if there is no such entry or on error.
 // 
 // RETURNS: 
@@ -676,7 +676,7 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 
 //
 // Return the page mapped at virtual address 'va'.
-// If ppte is not zero, then we store in it the address
+// If pte_store is not zero, then we store in it the address
 // of the pte for this page.  This is used by page_remove
 // but should not be used by other callers.
 //
