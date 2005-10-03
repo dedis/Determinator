@@ -83,7 +83,7 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	ebp = (const uint32_t*)read_ebp();
 #if SOL >= 3
 	if(tf)
-		ebp = tf->tf_regs.reg_ebp;
+		ebp = (const uint32_t*)tf->tf_regs.reg_ebp;
 #endif
 
 	cprintf("Stack backtrace:\n");
