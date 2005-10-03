@@ -98,7 +98,7 @@ sub dofile {
 		if ($emit) {
 			if ($solno > 0 && $ccode &&
 			    $expectedinline != $inlines) {
-				print OUTFILE "#line $inlines\n";
+				print OUTFILE "#line $inlines \"../$filename\"\n";
 				$expectedinline = $inlines;
 			}
 			print OUTFILE "$_\n";
