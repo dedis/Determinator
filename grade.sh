@@ -32,20 +32,19 @@ runbochs () {
 	# and feeding in appropriate commands to run, then quit.
 	(
 		# The sleeps are necessary in some Bochs to 
-		# make it parse each line separately.  Sleeping 3 seconds
+		# make it parse each line separately.  Sleeping 
 		# here sure beats waiting for the timeout.
 		echo vbreak 0x8:0x$brkaddr
-		sleep 1
+		sleep .5
 		echo c
-		sleep 1
-		echo quit
-		sleep 1
-		echo die	# Is this a command in newer bochs?  
+		# EOF will do just fine to quit.
 	) | (
 		ulimit -t $timeout
+		# date
 		bochs -q 'display_library: nogui' \
-			'parport1: enabled=1, file="bochs.out"'
-	) >$out 2>$err
+			'parport1: enabled=1, file="bochs.out"' >$out 2>$err
+		# date
+	)
 }
 
 #if LAB >= 3
