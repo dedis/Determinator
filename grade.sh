@@ -590,7 +590,8 @@ score=0
 	fi
 
 	echo_n "Backtrace: "
-	cnt=`grep "ebp f01.* eip f0100.* args" bochs.out|wc -l`
+	args=`grep "ebp f01.* eip f0100.* args" bochs.out | awk '{ print $6 }'`
+	cnt=`echo $args | grep '^00000000 00000000 00000001 00000002 00000003 00000004 00000005' | wc -w`
 	if [ $cnt -eq 8 ]
 	then
 		score=`expr 15 + $score`
@@ -606,7 +607,7 @@ END { printf("\n") }' | grep '^00000000 00000000 00000001 00000002 00000003 0000
 		score=`expr 15 + $score`
 		echo , Args OK
 	else
-		echo , Args WRONG
+		echo , Args WRONG "($args)"
 	fi
 
 echo "Score: $score/50"
