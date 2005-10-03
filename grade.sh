@@ -307,7 +307,7 @@ runtest1 -tag 'spawn via icode [icode]' icode \
 
 echo PART B SCORE: $score/45
 
-if [ $partascore -lt 55 -or $score -lt 45 ]; then
+if [ $partascore -lt 55 -o $score -lt 45 ]; then
     exit 1
 fi
 
