@@ -30,6 +30,7 @@ runbochs () {
 
 	# Run Bochs, setting a breakpoint at readline(),
 	# and feeding in appropriate commands to run, then quit.
+	t0=`date +%s.%N 2>/dev/null`
 	(
 		# The sleeps are necessary in some Bochs to 
 		# make it parse each line separately.  Sleeping 
@@ -42,9 +43,12 @@ runbochs () {
 		ulimit -t $timeout
 		# date
 		bochs -q 'display_library: nogui' \
-			'parport1: enabled=1, file="bochs.out"' >$out 2>$err
+			'parport1: enabled=1, file="bochs.out"' 
 		# date
-	)
+	) >$out 2>$err
+	t1=`date +%s.%N 2>/dev/null`
+	time=`echo "scale=1; ($t1-$t0)/1" | sed 's/.N/.0/g' | bc 2>/dev/null`
+	time="(${time}s)"
 }
 
 #if LAB >= 3
@@ -119,9 +123,9 @@ continuetest () {
 	if [ "$okay" = "yes" ]
 	then
 		score=`expr $pts + $score`
-		echo OK
+		echo OK $time
 	else
-		echo WRONG
+		echo WRONG $time
 	fi
 }
 
@@ -554,18 +558,18 @@ echo_n "Page directory: "
  if grep "check_boot_pgdir() succeeded!" bochs.out >/dev/null
  then
 	score=`expr 20 + $score`
-	echo OK
+	echo OK $time
  else
-	echo WRONG
+	echo WRONG $time
  fi
 
 echo_n "Page management: "
  if grep "page_check() succeeded!" bochs.out >/dev/null
  then
 	score=`expr 30 + $score`
-	echo OK
+	echo OK $time
  else
-	echo WRONG
+	echo WRONG $time
  fi
 
 echo "Score: $score/50"
@@ -589,9 +593,9 @@ score=0
 #endif /* !ENV_CLASS_NYU */
 	then
 		score=`expr 20 + $score`
-		echo OK
+		echo OK $time
 	else
-		echo WRONG
+		echo WRONG $time
 	fi
 
 	echo_n "Backtrace: "
@@ -610,9 +614,9 @@ score=0
 END { printf("\n") }' | grep '^00000000 00000000 00000001 00000002 00000003 00000004 00000005' | wc -w`
 	if [ $cnt -eq 8 ]; then
 		score=`expr 15 + $score`
-		echo , Args OK
+		echo , Args OK $time
 	else
-		echo , Args WRONG "($args)"
+		echo , Args WRONG "($args)" $time
 	fi
 
 echo "Score: $score/50"
