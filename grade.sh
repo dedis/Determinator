@@ -31,10 +31,16 @@ runbochs () {
 	# Run Bochs, setting a breakpoint at readline(),
 	# and feeding in appropriate commands to run, then quit.
 	(
+		# The sleeps are necessary in some Bochs to 
+		# make it parse each line separately.  Sleeping 3 seconds
+		# here sure beats waiting for the timeout.
 		echo vbreak 0x8:0x$brkaddr
+		sleep 1
 		echo c
-		echo die
+		sleep 1
 		echo quit
+		sleep 1
+		echo die	# Is this a command in newer bochs?  
 	) | (
 		ulimit -t $timeout
 		bochs -q 'display_library: nogui' \
