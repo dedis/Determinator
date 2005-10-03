@@ -74,32 +74,32 @@ int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 #if SOL >= 1
-#if SOL >= 3
-	const uint32_t *ebp = (tf ? (const uint32_t*) tf->tf_regs.reg_ebp :
-			       (const uint32_t*) read_ebp());
-#else
-#if LAB >= 2
+	int i;
+	const uint32_t *ebp; 
+#if SOL >= 2
 	struct Eipdebuginfo info;
 #endif
-	const uint32_t *ebp = (const uint32_t*) read_ebp();
+
+	ebp = (const uint32_t*)read_ebp();
+#if SOL >= 3
+	if(tf)
+		ebp = tf->tf_regs.reg_ebp;
 #endif
-	int i, fr = 0;
 
 	cprintf("Stack backtrace:\n");
 	while (ebp) {
-
 		// print this stack frame
-		cprintf("%3d: ebp %08x  eip %08x  args", fr, ebp, ebp[1]);
+		cprintf("  ebp %08x  eip %08x  args", ebp, ebp[1]);
 		for (i = 0; i < 4; i++)
 			cprintf(" %08x", ebp[2+i]);
 		cprintf("\n");
 
+#if SOL >= 2
 		if (debuginfo_eip(ebp[1], &info) >= 0)
 			cprintf("         %s:%d: %.*s+%x\n", info.eip_file, info.eip_line, info.eip_fnlen, info.eip_fn, ebp[1] - info.eip_fnaddr);
-
+#endif
 		// move to next lower stack frame
 		ebp = (const uint32_t*) ebp[0];
-		fr++;
 	}
 #else
 	// Your code here.
@@ -187,5 +187,7 @@ monitor(struct Trapframe *tf)
 unsigned
 read_eip()
 {
-  __asm __volatile("movl 4(%ebp), %eax");
+	uint32_t callerpc;
+	__asm __volatile("movl 4(%%ebp), %0" : "=r" (callerpc));
+	return callerpc;
 }
