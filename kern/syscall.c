@@ -106,8 +106,6 @@ sys_exofork(void)
 	// status is set to ENV_NOT_RUNNABLE, and the register set is copied
 	// from the current environment -- but tweaked so sys_exofork
 	// will appear to return 0.
-	//
-	// Hint: Your code in env_run() shows how to copy a register set.
 	
 	// LAB 4: Your code here.
 	panic("sys_exofork not implemented");
@@ -331,7 +329,7 @@ sys_page_unmap(envid_t envid, void *va)
 #else
 	// Hint: This function is a wrapper around page_remove().
 	
-	// LAB 3 PART 3: Your code here.
+	// LAB 4: Your code here.
 	panic("sys_page_unmap not implemented");
 #endif
 }
