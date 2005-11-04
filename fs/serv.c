@@ -224,7 +224,7 @@ out:
 	// Map the requested block in the client's address space
 	// by using ipc_send.
 	// Map read-only unless the file's open mode (o->o_mode) allows writes
-	// (see the O_ flags in inc/fs.h).
+	// (see the O_ flags in inc/lib.h).
 	
 	// LAB 5: Your code here.
 	panic("serve_map not implemented");

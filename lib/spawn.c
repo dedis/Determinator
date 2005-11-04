@@ -135,7 +135,7 @@ error:
 	//        allocate a page in the parent temporarily at UTEMP,
 	//        read() the appropriate portion of the file into that page
 	//	  and/or use memset() to zero non-loaded portions.
-	//	  (You can avoid calling memset(), if you like, because
+	//	  (You can avoid calling memset(), if you like, if
 	//	  page_alloc() returns zeroed pages already.)
 	//        Then insert the page mapping into the child.
 	//        Look at init_stack() for inspiration.

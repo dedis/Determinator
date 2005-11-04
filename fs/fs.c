@@ -671,7 +671,7 @@ file_create(const char *path, struct File **file)
 	return 0;
 }
 
-// Open "path".  On success set *pfile to point at the file and return 0.
+// Open "path".  On success set *file to point at the file and return 0.
 // On error return < 0.
 int
 file_open(const char *path, struct File **file)
