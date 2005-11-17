@@ -484,25 +484,24 @@ void
 env_run(struct Env *e)
 {
 #if SOL >= 3
-	// Is this a context switch or just a return?
-	if (curenv != e) {
-		// keep track of which environment we're currently
-		// running
-		curenv = e;
-		e->env_runs++;
-
-		// restore e's address space
-		lcr3(e->env_cr3);
-	}
+	// keep track of which environment we're running
+	curenv = e;
+	e->env_runs++;
+	
+	// restore e's memory state
+	// we *must* do this, even if e is already running,
+	// because sys_page_map and sys_page_unmap
+	// may have changed the page tables, and the
+	// tlb must be flushed.
+	lcr3(e->env_cr3);
 
 	// restore e's register state
 	env_pop_tf(&e->env_tf);
 #else /* not SOL >= 3 */
 	// Step 1: Set 'curenv' to the new environment to be run,
-	//	   and update the 'env_runs' counter if this is a
-	//	   context switch.
+	//	   and update the 'env_runs' counter.
 	// Step 2: Use lcr3() to switch to the new environment's
-	//         address space if this is a context switch.
+	//         address space.
 	// Step 3: Use env_pop_tf() to restore the environment's
 	//         registers and drop into user mode in the
 	//         environment.
