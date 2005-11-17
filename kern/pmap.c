@@ -656,8 +656,10 @@ tlb_invalidate(pde_t *pgdir, void *va)
 //
 // Details
 //   - If there is already a page mapped at 'va', it is page_remove()d.
-//   - If necesary, on demand, allocates a page table and inserts it into 'pgdir'.
+//   - If necessary, on demand, allocates a page table and inserts it into 'pgdir'.
 //   - pp->pp_ref should be incremented if the insertion succeeds
+//   - The TLB must be invalidated if you change an entry in
+//	   the pg dir/pg table.
 //
 // RETURNS: 
 //   0 on success
