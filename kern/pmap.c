@@ -633,6 +633,23 @@ pgdir_walk(pde_t *pgdir, const void *va, int create, pte_t **pte_store)
 }
 
 //
+// Invalidate a TLB entry, but only if the page tables being
+// edited are the ones currently in use by the processor.
+//
+void
+tlb_invalidate(pde_t *pgdir, void *va)
+{
+	// Flush the entry only if we're modifying the current address space.
+#if LAB >= 4
+	if (!curenv || curenv->env_pgdir == pgdir)
+		invlpg(va);
+#else
+	// For now, there is only one address space, so always invalidate.
+	invlpg(va);
+#endif
+}
+
+//
 // Map the physical page 'pp' at virtual address 'va'.
 // The permissions (the low 12 bits) of the page table
 //  entry should be set to 'perm|PTE_P'.
@@ -647,7 +664,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create, pte_t **pte_store)
 //   -E_NO_MEM, if page table couldn't be allocated
 //
 // Hint: The TA solution is implemented using
-//   pgdir_walk() and and page_remove().
+//   pgdir_walk(), page_remove(), and tlb_invalidate().
 //
 int
 page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm) 
@@ -668,6 +685,7 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 		page_remove(pgdir, va);
 
 	*pte = page2pa(pp) | perm | PTE_P;
+	tlbinvalidate(pgdir, va);
 	return 0;
 #else /* not SOL >= 2 */
 	// Fill this function in
@@ -739,23 +757,6 @@ page_remove(pde_t *pgdir, void *va)
 #else /* not SOL >= 2 */
 	// Fill this function in
 #endif /* not SOL >= 2 */
-}
-
-//
-// Invalidate a TLB entry, but only if the page tables being
-// edited are the ones currently in use by the processor.
-//
-void
-tlb_invalidate(pde_t *pgdir, void *va)
-{
-	// Flush the entry only if we're modifying the current address space.
-#if LAB >= 4
-	if (!curenv || curenv->env_pgdir == pgdir)
-		invlpg(va);
-#else
-	// For now, there is only one address space, so always invalidate.
-	invlpg(va);
-#endif
 }
 
 void
