@@ -666,7 +666,7 @@ tlb_invalidate(pde_t *pgdir, void *va)
 //   -E_NO_MEM, if page table couldn't be allocated
 //
 // Hint: The TA solution is implemented using
-//   pgdir_walk(), page_remove(), and tlb_invalidate().
+//   pgdir_walk() and page_remove().
 //
 int
 page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm) 
@@ -683,11 +683,13 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 	// we don't lose the page when we decref in page_remove.
 	pp->pp_ref++;
 
+	// Note that if pp is already mapped at va (we're just changing
+	// perm), the page_remove is still necessary, because it
+	// flushes the cached TLB entry.
 	if (*pte & PTE_P)
 		page_remove(pgdir, va);
 
 	*pte = page2pa(pp) | perm | PTE_P;
-	tlbinvalidate(pgdir, va);
 	return 0;
 #else /* not SOL >= 2 */
 	// Fill this function in
