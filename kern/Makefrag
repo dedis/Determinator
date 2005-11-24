@@ -46,6 +46,7 @@ KERN_BINFILES :=	user/icode \
 			user/testpiperace \
 			user/testpiperace2 \
 			user/primespipe \
+			user/testkbd \
 			user/testshell \
 			fs/fs
 else
