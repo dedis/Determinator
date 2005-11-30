@@ -15,9 +15,10 @@ umain(void)
 	if ((r = fork()) < 0)
 		panic("fork: %e", r);
 	if (r == 0) {
-		// child just dups and closes repeatedly, yielding so we can see
+		// child just dups and closes repeatedly,
+		// yielding so the parent can see
 		// the fd state between the two.
-		// p[1] is still open here -- the pipe is definitely open!
+		close(p[1]);
 		for (i=0; i<200; i++) {
 			if (i%10 == 0)
 				cprintf("%d.", i);
@@ -32,6 +33,9 @@ umain(void)
 	}
 
 	//
+	// We hold both p[0] and p[1] open, so pipeisclosed should
+	// never return false.
+	// 
 	// Now the ref count for p[0] will toggle between 2 and 3
 	// as the child dups and closes it.
 	// The ref count for p[1] is 1.
@@ -40,13 +44,13 @@ umain(void)
 	//
 	// If pipeisclosed checks pageref(p[0]) and gets 3, and
 	// then the child closes, and then pipeisclosed checks
-	// pageref(pipe structure) and gets 3, then we'll get a 1
-	// when we shouldn't.
+	// pageref(pipe structure) and gets 3, then it will return true
+	// when it shouldn't.
 	//
 	// If pipeisclosed checks pageref(pipe structure) and gets 3,
 	// and then the child dups, and then pipeisclosed checks
-	// pageref(p[0]) and gets 3, then we'll get a 1 when we
-	// shouldn't.
+	// pageref(p[0]) and gets 3, then it will return true when
+	// it shouldn't.
 	//
 	// So either way, pipeisclosed is going give a wrong answer.
 	//
