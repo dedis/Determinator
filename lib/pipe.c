@@ -153,7 +153,9 @@ piperead(struct Fd *fd, void *vbuf, size_t n, off_t offset)
 			sys_yield();
 		}
 		// there's a byte.  take it.
-		buf[i] = p->p_buf[p->p_rpos++ % PIPEBUFSIZ];
+		// wait to increment rpos until the byte is taken!
+		buf[i] = p->p_buf[p->p_rpos % PIPEBUFSIZ];
+		p->p_rpos++;
 	}
 	return i;
 #else
@@ -202,7 +204,9 @@ pipewrite(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
 			sys_yield();
 		}
 		// there's room for a byte.  store it.
-		p->p_buf[p->p_wpos++ % PIPEBUFSIZ] = buf[i];
+		// wait to increment wpos until the byte is stored!
+		p->p_buf[p->p_wpos % PIPEBUFSIZ] = buf[i];
+		p->p_wpos++;
 	}
 	
 	return i;
