@@ -14,16 +14,6 @@ struct Env;
 #endif
 
 
-/* This macro takes a user supplied address and turns it into
- * something that will cause a fault if it is a kernel address.  ULIM
- * itself is guaranteed never to contain a valid page.  
- */
-#define TRUP(_p)   						\
-({								\
-	register typeof((_p)) __m_p = (_p);			\
-	(uintptr_t) __m_p > ULIM ? (typeof(_p)) ULIM : __m_p;	\
-})
-
 /* This macro takes a kernel virtual address -- an address that points above
  * KERNBASE, where the machine's maximum 256MB of physical memory is mapped --
  * and returns the corresponding physical address.  It panics if you pass it a

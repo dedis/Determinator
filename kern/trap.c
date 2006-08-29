@@ -17,7 +17,6 @@
 #include <kern/picirq.h>
 #endif
 
-int page_fault_mode = PFM_NONE;
 static struct Taskstate ts;
 
 /* Interrupt descriptor table.  (Must be built at run time because
@@ -265,14 +264,21 @@ trap(struct Trapframe *tf)
 	cprintf("Incoming TRAP frame at %p\n", tf);
 
 #endif
-	// Copy trap frame (which is currently on the stack) in to the
-	// current environment.  After this point, the trapframe on
-	// the stack should be ignored.
-	assert(curenv);
-	curenv->env_tf = *tf;
-
+#if LAB >= 3
+	if ((tf->tf_cs & 3) == 3) {
+		// Trapped from user mode.
+		// Copy trap frame (which is currently on the stack)
+		// into 'curenv->env_tf', so that running the environment
+		// will restart at the trap point.
+		assert(curenv);
+		curenv->env_tf = *tf;
+		// The trapframe on the stack should be ignored from here on.
+		tf = &curenv->env_tf;
+	}
+	
+#endif
 	// Dispatch based on what type of trap occurred
-	trap_dispatch(&curenv->env_tf);
+	trap_dispatch(tf);
 
 #if LAB >= 4
 	// If we made it to this point, then no other environment was
@@ -283,8 +289,7 @@ trap(struct Trapframe *tf)
 	else
 		sched_yield();
 #else
-        // Return to the current environment after ensuring that this
-        // is a sane thing to do.
+        // Return to the current environment, which should be runnable.
         assert(curenv && curenv->env_status == ENV_RUNNABLE);
         env_run(curenv);
 #endif
@@ -304,24 +309,11 @@ page_fault_handler(struct Trapframe *tf)
 
 #if SOL >= 3
 	if ((tf->tf_cs & 3) == 0) {
-		switch (page_fault_mode) {
-		default:
-			panic("page_fault_mode %d", page_fault_mode);
-
-		case PFM_NONE:
-			print_trapframe(tf);
-			panic("page fault");
-
-		case PFM_KILL:
-			cprintf("[%08x] PFM_KILL va %08x ip %08x\n", 
-				curenv->env_id, fault_va, tf->tf_eip);
-			print_trapframe(tf);
-			env_destroy(curenv);
-		}
+		print_trapframe(tf);
+		panic("page fault");
 	}
 #else
-	// Handle kernel-mode page faults based on the current value of
-	// 'page_fault_mode' (which is either PFM_NONE or PFM_KILL).
+	// Handle kernel-mode page faults.
 	
 	// LAB 3: Your code here.
 #endif	// SOL >= 3
@@ -336,8 +328,7 @@ page_fault_handler(struct Trapframe *tf)
 	}
 
 	// Decide where to push our exception stack frame.
-	if (tf->tf_esp >= UXSTACKTOP - PGSIZE &&
-	    tf->tf_esp < UXSTACKTOP) {
+	if (tf->tf_esp >= UXSTACKTOP - PGSIZE && tf->tf_esp < UXSTACKTOP) {
 		// The user's ESP is ALREADY in the user exception stack area,
 		// so push the new frame on the exception stack,
 		// preserving the existing exception stack contents.
@@ -355,10 +346,10 @@ page_fault_handler(struct Trapframe *tf)
 					   - sizeof(struct UTrapframe));
 	}
 
-	// If any of the following writes causes a recursive page fault,
+	// If we can't write to the exception stack,
 	// it means the user environment is seriously screwed up,
 	// so just terminate it.
-	page_fault_mode = PFM_KILL;
+	user_mem_assert(curenv, utf, sizeof(struct UTrapframe), PTE_U | PTE_W);
 
 	// fill utf
 	utf->utf_fault_va = fault_va;
@@ -367,11 +358,10 @@ page_fault_handler(struct Trapframe *tf)
 	utf->utf_eip = tf->tf_eip;
 	utf->utf_eflags = tf->tf_eflags;
 	utf->utf_esp = tf->tf_esp;
-
-	// set user registers so that env_run switches to fault handler
+ 
+ 	// set user registers so that env_run switches to fault handler
 	tf->tf_esp = (uintptr_t) utf;
-	tf->tf_eip = (uintptr_t) curenv->env_pgfault_upcall;
-	page_fault_mode = PFM_NONE;
+ 	tf->tf_eip = (uintptr_t) curenv->env_pgfault_upcall;
 
 	env_run(curenv);
 #else	// not SOL >= 4
@@ -398,9 +388,10 @@ page_fault_handler(struct Trapframe *tf)
 	// page for its exception stack, or the exception stack overflows,
 	// then destroy the environment that caused the fault.
 	//
-	// Hint:
-	//   page_fault_mode and env_run() are useful here.
-	//   How should you modify 'tf'?
+	// Hints:
+	//   user_mem_assert() and env_run() are useful here.
+	//   To change what the user environment runs, modify 'curenv->env_tf'
+	//   (the 'tf' variable points at 'curenv->env_tf').
 	
 	// LAB 4: Your code here.
 

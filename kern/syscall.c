@@ -16,17 +16,21 @@
 #endif
 
 // Print a string to the system console.
-// The system call returns 0.
+// The string is exactly 'len' characters long.
+// Destroys the environment on memory errors.
 static void
 sys_cputs(const char *s, size_t len)
 {
+	// Check that the user has permission to read memory [s, s+len).
+	// Destroy the environment if not.
+	
+	// LAB 3: Your code here.
 #if SOL >= 3
-	page_fault_mode = PFM_KILL;
-	cprintf("%.*s", len, TRUP(s));
-	page_fault_mode = PFM_NONE;
-#else
-	cprintf("%.*s", len, s);
+	user_mem_assert(curenv, s, len, PTE_U);
 #endif
+
+	// Print the string supplied by the user.
+	cprintf("%.*s", len, s);
 }
 
 // Read a character from the system console.
@@ -159,10 +163,8 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	struct Env *e;
 	struct Trapframe ltf;
 
-	page_fault_mode = PFM_KILL;
-	ltf = *TRUP(tf);
-	page_fault_mode = PFM_NONE;
-
+	user_mem_assert(curenv, tf, sizeof(struct Trapframe), PTE_U);
+	ltf = *tf;
 	ltf.tf_eflags |= FL_IF;
 	ltf.tf_cs |= 3;
 
@@ -172,6 +174,8 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	return 0;
 #else
 	// LAB 4: Your code here.
+	// Remember to check whether the user has supplied us with a good
+	// address!
 	panic("sys_set_trapframe not implemented");
 #endif
 }
@@ -322,7 +326,7 @@ sys_page_unmap(envid_t envid, void *va)
 
 	if ((r = envid2env(envid, &e, 1)) < 0)
 		return r;
-	if (va >= (void*) UTOP)
+	if (va >= (void*) UTOP || PGOFF(va))
 		return -E_INVAL;
 	page_remove(e->env_pgdir, va);
 	return 0;
@@ -451,12 +455,10 @@ sys_ipc_recv(void *dstva)
 
 // Dispatches to the correct kernel function, passing the arguments.
 uint32_t
-syscall(uint32_t sn, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
+syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
 {
-	// cprintf("syscall %d %x %x %x from env %08x\n", sn, a1, a2, a3, curenv->env_id);
-
 #if SOL >= 3
-	switch (sn) {
+	switch (syscallno) {
 	case SYS_cputs:
 		sys_cputs((const char*) a1, a2);
 		return 0;
@@ -494,7 +496,10 @@ syscall(uint32_t sn, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_
 		return -E_INVAL;
 	}
 #else	// not SOL >= 3
-	// Your code here
+	// Call the function corresponding to the 'syscallno' parameter.
+	// Return any appropriate return value.
+	// LAB 3: Your code here.
+
 	panic("syscall not implemented");
 #endif	// not SOL >= 3
 }

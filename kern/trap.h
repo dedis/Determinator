@@ -10,17 +10,8 @@
 #include <inc/trap.h>
 #include <inc/mmu.h>
 
-
 /* The kernel's interrupt descriptor table */
 extern struct Gatedesc idt[];
-
-// Page fault modes inside kernel.
-#define PFM_NONE	0	// No page faults expected: must be
-				// a kernel bug.  On fault, panic.
-#define PFM_KILL	1	// On fault, kill user process.
-
-extern int page_fault_mode;
-
 
 void idt_init(void);
 void print_regs(struct PushRegs *regs);
