@@ -1,5 +1,6 @@
 #ifndef JOS_STAB_H
 #define JOS_STAB_H
+#include <inc/types.h>
 
 // <inc/stab.h>
 // STABS debugging info
@@ -37,5 +38,14 @@
 #define	N_ECOMM		0xe4	// end common
 #define	N_ECOML		0xe8	// end common (local name)
 #define	N_LENG		0xfe	// length of preceding entry
+
+// Entries in the STABS table are formatted as follows.
+struct Stab {
+	uint32_t n_strx;	// index into string table of name
+	uint8_t n_type;         // type of symbol
+	uint8_t n_other;        // misc info (usually empty)
+	uint16_t n_desc;        // description field
+	uintptr_t n_value;	// value of symbol
+};
 
 #endif /* !JOS_STAB_H */

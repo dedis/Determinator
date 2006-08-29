@@ -6,14 +6,6 @@
 #include <kern/pmap.h>
 #include <kern/env.h>
 
-struct Stab {
-	uint32_t n_strx;	/* index into string table of name */
-	uint8_t n_type;         /* type of symbol */
-	uint8_t n_other;        /* misc info (usually empty) */
-	uint16_t n_desc;        /* description field */
-	uintptr_t n_value;	/* value of symbol */
-};
-
 extern const struct Stab __STAB_BEGIN__[], __STAB_END__[];
 extern const char __STABSTR_BEGIN__[], __STABSTR_END__[];
 
