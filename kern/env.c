@@ -67,9 +67,10 @@ envid2env(envid_t envid, struct Env **env_store, bool checkperm)
 }
 
 //
-// Marks all environments in 'envs' as free and inserts them into 
-// the env_free_list.  Insert in reverse order, so that
-// the first call to env_alloc() returns envs[0].
+// Mark all environments in 'envs' as free, set their env_ids to 0,
+// and insert them into the env_free_list.
+// Insert in reverse order, so that the first call to env_alloc()
+// returns envs[0].
 //
 void
 env_init(void)
@@ -87,16 +88,14 @@ env_init(void)
 }
 
 //
-// Initializes the kernel virtual memory layout for environment e.
-// Allocates a page directory and initializes
-// the kernel portion of the new environment's address space.
-// Also sets e->env_cr3 and e->env_pgdir accordingly.
-// We do NOT (yet) map anything into the user portion
+// Initialize the kernel virtual memory layout for environment e.
+// Allocate a page directory, set e->env_pgdir and e->env_cr3 accordingly,
+// and initialize the kernel portion of the new environment's address space.
+// Do NOT (yet) map anything into the user portion
 // of the environment's virtual address space.
 //
-// RETURNS
-//   0 -- on sucess
-//   <0 -- otherwise 
+// Returns 0 on success, < 0 on error.  Errors include:
+//	-E_NO_MEM if page directory or table could not be allocated.
 //
 static int
 env_setup_vm(struct Env *e)
@@ -108,6 +107,9 @@ env_setup_vm(struct Env *e)
 	if ((r = page_alloc(&p)) < 0)
 		return r;
 
+	// Now, set e->env_pgdir and e->env_cr3,
+	// and initialize the page directory.
+	//
 	// Hint:
 	//    - The VA space of all envs is identical above UTOP
 	//      (except at VPT and UVPT, which we've set below).
@@ -116,13 +118,15 @@ env_setup_vm(struct Env *e)
 	//	(Make sure you got the permissions right in Lab 2.)
 	//    - The initial VA below UTOP is empty.
 	//    - You do not need to make any more calls to page_alloc.
-	//    - Note: pp_ref is not maintained for physical pages
-	//	mapped above UTOP.
+	//    - Note: pp_ref is not maintained for most physical pages
+	//	mapped above UTOP -- but you do need to increment
+	//	env_pgdir's pp_ref!
 
 #if SOL >= 3
 	e->env_cr3 = page2pa(p);
 	e->env_pgdir = (pde_t*) page2kva(p);
 	memset(e->env_pgdir, 0, PGSIZE);
+	p->pp_ref++;
 
 	// The VA space of all envs is identical above UTOP...
 	static_assert(UTOP % PTSIZE == 0);
@@ -135,21 +139,22 @@ env_setup_vm(struct Env *e)
 
 	// VPT and UVPT map the env's own page table, with
 	// different permissions.
-	e->env_pgdir[PDX(VPT)]   = e->env_cr3 | PTE_P | PTE_W;
-	e->env_pgdir[PDX(UVPT)]  = e->env_cr3 | PTE_P | PTE_U;
+	e->env_pgdir[PDX(VPT)]  = e->env_cr3 | PTE_P | PTE_W;
+	e->env_pgdir[PDX(UVPT)] = e->env_cr3 | PTE_P | PTE_U;
 
 	return 0;
 }
 
 //
-// Allocates and initializes a new env.
+// Allocates and initializes a new environment.
+// On success, the new environment is stored in *newenv_store.
 //
-// RETURNS
-//   0 -- on success, sets *new to point at the new env 
-//   <0 -- on failure
+// Returns 0 on success, < 0 on failure.  Errors include:
+//	-E_NO_FREE_ENV if all NENVS environments are allocated
+//	-E_NO_MEM on memory exhaustion
 //
 int
-env_alloc(struct Env **new, envid_t parent_id)
+env_alloc(struct Env **newenv_store, envid_t parent_id)
 {
 	int32_t generation;
 	int r;
@@ -198,16 +203,14 @@ env_alloc(struct Env **new, envid_t parent_id)
 #else
 	// LAB 4: Your code here.
 #endif	// SOL >= 4
-#endif	// LAB >= 4
 
-#if LAB >= 4
 	// Clear the page fault handler until user installs one.
 	e->env_pgfault_upcall = 0;
 
 	// Also clear the IPC receiving flag.
 	e->env_ipc_recving = 0;
-#endif
 
+#endif
 #if LAB >= 5
 	// If this is the file server (e == &envs[1]) give it I/O privileges.
 #if SOL >= 5
@@ -216,11 +219,11 @@ env_alloc(struct Env **new, envid_t parent_id)
 #else
 	// LAB 5: Your code here.
 #endif
-#endif
 
+#endif
 	// commit the allocation
 	LIST_REMOVE(e, env_link);
-	*new = e;
+	*newenv_store = e;
 
 #if LAB >= 5
 	// cprintf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
@@ -232,19 +235,13 @@ env_alloc(struct Env **new, envid_t parent_id)
 
 //
 // Allocate len bytes of physical memory for environment env,
-// and map it at virtual address va in the environment's
-// address space.
+// and map it at virtual address va in the environment's address space.
 // Does not zero or otherwise initialize the mapped pages in any way.
 // Pages should be writable by user and kernel.
 // Panic if any allocation attempt fails.
 //
-// Warning: Neither va nor len are necessarily page-aligned!
-// You should round va down, and round len up.
-// You may assume, however, that nothing is already mapped
-// in the pages touched by the specified virtual address range.
-//
 static void
-map_segment(struct Env *e, void *va, size_t len)
+segment_alloc(struct Env *e, void *va, size_t len)
 {
 #if SOL >= 3
 	int r;
@@ -264,7 +261,12 @@ map_segment(struct Env *e, void *va, size_t len)
 		va = ROUNDDOWN((uint8_t*) va + PGSIZE, PGSIZE);
 	}	
 #else
-	// Your code here.
+	// LAB 3: Your code here.
+	// (But only if you need it for load_icode.)
+	//
+	// Hint: It is easier to use segment_alloc if the caller can pass
+	//   'va' and 'len' values that are not page-aligned.
+	//   You should round va down, and round len up.
 #endif
 }
 
@@ -318,7 +320,7 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 			panic("load_icode: icode wants to be above UTOP");
 
 		// Map pages for the segment
-		map_segment(e, (void*) ph->p_va, ph->p_memsz);
+		segment_alloc(e, (void*) ph->p_va, ph->p_memsz);
 
 		// Load/clear the segment
 		memcpy((char*) ph->p_va, binary + ph->p_offset, ph->p_filesz);
@@ -326,14 +328,13 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	}
 
 	// Give environment a stack
-	map_segment(e, (void*) (USTACKTOP - PGSIZE), PGSIZE);
+	segment_alloc(e, (void*) (USTACKTOP - PGSIZE), PGSIZE);
 #else /* not SOL >= 3 */
-	// Hint: 
-	//  Use map_segment() to map memory for each program segment.
-	//  Load each program section into virtual memory
+	// Hints: 
+	//  Load each program segment into virtual memory
 	//  at the address specified in the ELF section header.
-	//  You should only load sections with ph->p_type == ELF_PROG_LOAD.
-	//  Each section's virtual address can be found in ph->p_va
+	//  You should only load segments with ph->p_type == ELF_PROG_LOAD.
+	//  Each segment's virtual address can be found in ph->p_va
 	//  and its size in memory can be found in ph->p_memsz.
 	//  The ph->p_filesz bytes from the ELF binary, starting at
 	//  'binary + ph->p_offset', should be copied to virtual address
@@ -342,19 +343,21 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	//  Use functions from the previous lab to allocate and map pages.
 	//
 	//  All page protection bits should be user read/write for now.
-	//  ELF sections are not necessarily page-aligned, but you can
-	//  assume for this function that no two sections will touch
+	//  ELF segments are not necessarily page-aligned, but you can
+	//  assume for this function that no two segments will touch
 	//  the same virtual page.
 	//
-	// Hint:
-	//  Loading the sections is much simpler if you can move data
-	//  directly into the virtual addresses stored in the ELF binary!
+	//  You may find a function like segment_alloc useful.
+	//
+	//  Loading the segments is much simpler if you can move data
+	//  directly into the virtual addresses stored in the ELF binary.
 	//  So which page directory should be in force during
 	//  this function?
 	//
 	// Hint:
-	//  You must also do something with the program's entry point.
-	//  What?
+	//  You must also do something with the program's entry point,
+	//  to make sure that the environment starts executing there.
+	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
 
@@ -366,10 +369,10 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 }
 
 //
-// Allocates a new env and loads the elf binary into it.
+// Allocates a new env and loads the named elf binary into it.
 // This function is ONLY called during kernel initialization,
 // before running the first user-mode environment.
-// The new env's parent env id is set to 0.
+// The new env's parent ID is set to 0.
 //
 void
 env_create(uint8_t *binary, size_t size)
@@ -437,8 +440,9 @@ env_free(struct Env *e)
 }
 
 //
-// Frees env e.  And schedules a new env
-// if e was the current env.
+// Frees environment e.
+// If e was the current env, then runs a new environment (and does not return
+// to the caller).
 //
 void
 env_destroy(struct Env *e) 
@@ -459,8 +463,9 @@ env_destroy(struct Env *e)
 
 
 //
-// Restores the register values in the Trapframe
-//  (does not return)
+// Restores the register values in the Trapframe with the 'iret' instruction.
+// This exits the kernel and starts executing some environment's code.
+// This function does not return.
 //
 void
 env_pop_tf(struct Trapframe *tf)
@@ -498,20 +503,18 @@ env_run(struct Env *e)
 	// restore e's register state
 	env_pop_tf(&e->env_tf);
 #else /* not SOL >= 3 */
-	// Step 1: Set 'curenv' to the new environment to be run,
-	//	   and update the 'env_runs' counter if this is a
-	//	   context switch.
-	// Step 2: Use lcr3() to switch to the new environment's
-	//         address space if this is a context switch.
-	// Step 3: Use env_pop_tf() to restore the environment's
+	// Step 1: If this is a context switch (a new environment is running),
+	//	   then set 'curenv' to the new environment,
+	//	   update its 'env_runs' counter, and
+	//	   and use lcr3() to switch to its address space.
+	// Step 2: Use env_pop_tf() to restore the environment's
 	//         registers and drop into user mode in the
 	//         environment.
 
 	// Hint: This function loads the new environment's state from
 	//	e->env_tf.  Go back through the code you wrote above
 	//	and make sure you have set the relevant parts of
-	//	e->env_tf to sensible values, based on e's memory
-	//	layout.
+	//	e->env_tf to sensible values.
 	
 	// LAB 3: Your code here.
 
