@@ -1,6 +1,5 @@
 /* See COPYRIGHT for copyright information. */
 
-#include <inc/asm.h>
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/assert.h>
@@ -40,8 +39,8 @@ i386_init(void)
 {
 	extern char edata[], end[];
 
-	// Before doing anything else,
-	// clear the uninitialized global data (BSS) section of our program.
+	// Before doing anything else, complete the ELF loading process.
+	// Clear the uninitialized global data (BSS) section of our program.
 	// This ensures that all static/global variables start out zero.
 	memset(edata, 0, end - edata);
 
@@ -204,4 +203,3 @@ _warn(const char *file, int line, const char *fmt,...)
 	cprintf("\n");
 	va_end(ap);
 }
-
