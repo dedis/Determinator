@@ -29,24 +29,25 @@
 // the recursive call.
 //
 // We then have call up to the appropriate page fault handler in C
-// code, pointed to by the global variable '_pgfault_handler' declared
-// above.
+// code, pointed to by the global variable '_pgfault_handler'.
 
 .text
 .globl _pgfault_upcall
 _pgfault_upcall:
 	// Call the C page fault handler.
-	pushl %esp
+	pushl %esp			// function argument: pointer to UTF
 	movl _pgfault_handler, %eax
 	call *%eax
-
+	addl $4, %esp			// pop function argument
+	
+	// Now the C page fault handler has returned and you must return
+	// to the trap time state.
 	// Push trap-time %eip onto the trap-time stack.
 	//
 	// Explanation:
 	//   We must prepare the trap-time stack for our eventual return to
 	//   re-execute the instruction that faulted.
-	//   Unfortunately, we can't return directly from this stack
-	//   (the exception stack).  Why not?
+	//   Unfortunately, we can't return directly from the exception stack:
 	//   We can't call 'jmp', since that requires that we load the address
 	//   into a register, and all registers must have their trap-time
 	//   values after the return.
@@ -60,15 +61,15 @@ _pgfault_upcall:
 	//   note that the word we're pushing now will fit in the
 	//   blank word that the kernel reserved for us.
 	//
-	// Hint:
+	// Hints:
 	//   What registers are available for intermediate calculations?
 	//
 #if SOL >= 4
-	movl 13*4(%esp), %eax   // trap-time esp in eax
+	movl 12*4(%esp), %eax   // trap-time esp in eax
 	subl $4, %eax
-	movl %eax, 13*4(%esp)	// reserve a return word
+	movl %eax, 12*4(%esp)	// reserve a return word
 
-	movl 11*4(%esp), %ebx	// eip
+	movl 10*4(%esp), %ebx	// eip
 	movl %ebx, 0(%eax)
 #else
 	// LAB 4: Your code here.
@@ -76,7 +77,7 @@ _pgfault_upcall:
 
 	// Restore the trap-time registers.
 #if SOL >= 4
-	addl $0x0c, %esp
+	addl $0x08, %esp
 	popal
 #else
 	// LAB 4: Your code here.
