@@ -19,9 +19,9 @@
 static void
 pgfault(struct UTrapframe *utf)
 {
-	int r;
-	void *addr = (void*)utf->utf_fault_va;
+	void *addr = (void *) utf->utf_fault_va;
 	uint32_t err = utf->utf_err;
+	int r;
 
 #if SOL >= 4
 	if (debug)
@@ -31,12 +31,11 @@ pgfault(struct UTrapframe *utf)
 		panic("fault at %x with pte %x from %08x, not copy-on-write",
 			addr, vpt[PPN(addr)], (&addr)[4]);
 #else
-	panic("pgfault not implemented");
-
-	// Check that the faulting access was a write to a copy-on-write
-	// page.  If not, panic.
+	// Check that the faulting access was (1) a write, and (2) to a
+	// copy-on-write page.  If not, panic.
 	// Hint:
-	//   Use the read-only page table mapping at vpt (see inc/memlayout.h).
+	//   Use the read-only page table mappings at vpt
+	//   (see <inc/memlayout.h>).
 
 	// LAB 4: Your code here.
 #endif
@@ -48,8 +47,7 @@ pgfault(struct UTrapframe *utf)
 	memcpy((void*) PFTEMP, ROUNDDOWN(addr, PGSIZE), PGSIZE);
 
 	// remap over faulting page
-	if ((r = sys_page_map(0, (void*) PFTEMP, 0, addr,
-			      PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r = sys_page_map(0, (void*) PFTEMP, 0, addr, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_page_map: %e", r);
 
 	// unmap our work space
@@ -93,14 +91,18 @@ duppage(envid_t envid, unsigned pn)
 #if SOL >= 6
 	// if the page is just read-only or is library-shared, map it directly.
 	if (!(pte & (PTE_W|PTE_COW)) || (pte & PTE_SHARE)) {
-#else
-	// if the page is just read-only, just map it in.
-	if (!(pte & (PTE_W|PTE_COW))) {
-#endif
 		if ((r = sys_page_map(0, addr, envid, addr, pte & PTE_USER)) < 0)
 			panic("sys_page_map: %e", r);
 		return 0;
 	}
+#else
+	// if the page is just read-only, just map it in.
+	if (!(pte & (PTE_W|PTE_COW))) {
+		if ((r = sys_page_map(0, addr, envid, addr, pte & PTE_USER)) < 0)
+			panic("sys_page_map: %e", r);
+		return 0;
+	}
+#endif
 
 	// The order is VERY important here -- if we swap these and fault on
 	// addr between them, then the child will see all the updates we make
@@ -140,9 +142,9 @@ duppage(envid_t envid, unsigned pn)
 //
 // Hint:
 //   Use vpd, vpt, and duppage.
-//   Remember to fix "env" and the user exception stack in the child process
-//   -- and make sure never to mark the current environment's user exception
-//   stack as copy-on-write!
+//   Remember to fix "env" and the user exception stack in the child process.
+//   Neither user exception stack should ever be marked copy-on-write,
+//   so you must allocate a new page for the child's user exception stack.
 //
 envid_t
 fork(void)
