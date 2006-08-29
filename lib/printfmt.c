@@ -27,6 +27,7 @@ static const char * const error_string[MAXERROR + 1] =
 	"invalid parameter",
 	"out of memory",
 	"out of environments",
+	"segmentation fault",
 	"env is not recving",
 	"unexpected end of file",
 #if LAB >= 5
@@ -245,16 +246,17 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			printnum(putch, putdat, num, base, width, padc);
 			break;
 
-		// unrecognized escape sequence - just print it literally
-		default:
-			putch('%', putdat);
-			while (lflag-- > 0)
-				putch('l', putdat);
-			/* FALLTHROUGH */
-
 		// escaped '%' character
 		case '%':
 			putch(ch, putdat);
+			break;
+			
+		// unrecognized escape sequence - just print it literally
+		default:
+			putch('%', putdat);
+			for (fmt--; fmt[-1] != '%'; fmt--)
+				/* do nothing */;
+			break;
 		}
 	}
 }
