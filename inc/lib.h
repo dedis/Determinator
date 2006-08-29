@@ -41,8 +41,8 @@ void	exit(void);
 #if LAB >= 4
 // pgfault.c
 void	set_pgfault_handler(void (*handler)(struct UTrapframe *utf));
-#endif
 
+#endif
 // readline.c
 char*	readline(const char *buf);
 
@@ -106,9 +106,6 @@ int	read_map(int fd, off_t offset, void **blk);
 int	ftruncate(int fd, off_t size);
 int	remove(const char *path);
 int	sync(void);
-
-// fprintf.c
-int	fprintf(int fd, const char *format, ...);
 
 // fsipc.c
 int	fsipc_open(const char *path, int omode, struct Fd *fd);

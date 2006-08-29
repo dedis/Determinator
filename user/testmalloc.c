@@ -18,9 +18,9 @@ umain(int argc, char **argv)
 		} else if (memcmp(buf, "malloc ", 7) == 0) {
 			n = strtol(buf + 7, 0, 0);
 			v = malloc(n);
-			cprintf("\t0x%x\n", (size_t) v);
+			printf("\t0x%x\n", (uintptr_t) v);
 		} else
-			cprintf("?unknown command\n");
+			printf("?unknown command\n");
 	}
 }
 #endif

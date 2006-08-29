@@ -25,6 +25,7 @@ int	snprintf(char *str, int size, const char *fmt, ...);
 int	vsnprintf(char *str, int size, const char *fmt, va_list);
 
 // lib/fprintf.c
+int	printf(const char *fmt, ...);
 int	fprintf(int fd, const char *fmt, ...);
 int	vfprintf(int fd, const char *fmt, va_list);
 
