@@ -7,7 +7,7 @@ umain(void)
 {
 	int p[2], r, i;
 	struct Fd *fd;
-	struct Env *kid;
+	volatile struct Env *kid;
 
 	cprintf("testing for pipeisclosed race...\n");
 	if ((r = pipe(p)) < 0)
@@ -19,8 +19,8 @@ umain(void)
 		// yielding so the parent can see
 		// the fd state between the two.
 		close(p[1]);
-		for (i=0; i<200; i++) {
-			if (i%10 == 0)
+		for (i = 0; i < 200; i++) {
+			if (i % 10 == 0)
 				cprintf("%d.", i);
 			// dup, then close.  yield so that other guy will
 			// see us while we're between them.
@@ -32,7 +32,6 @@ umain(void)
 		exit();
 	}
 
-	//
 	// We hold both p[0] and p[1] open, so pipeisclosed should
 	// never return false.
 	// 
@@ -58,6 +57,7 @@ umain(void)
 	while (kid->env_status == ENV_RUNNABLE)
 		if (pipeisclosed(p[0]) != 0) {
 			cprintf("\nRACE: pipe appears closed\n");
+			sys_env_destroy(r);
 			exit();
 		}
 	cprintf("child done with loop\n");
@@ -66,6 +66,6 @@ umain(void)
 	if ((r = fd_lookup(p[0], &fd)) < 0)
 		panic("cannot look up p[0]: %e", r);
 	(void) fd2data(fd);
-	cprintf("\nrace didn't happen\n");
+	cprintf("race didn't happen\n");
 }
 #endif

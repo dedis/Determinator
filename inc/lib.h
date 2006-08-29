@@ -33,9 +33,9 @@
 
 // libos.c or entry.S
 extern char *binaryname;
-extern struct Env *env;
-extern struct Env envs[NENV];
-extern struct Page pages[];
+extern volatile struct Env *env;
+extern volatile struct Env envs[NENV];
+extern volatile struct Page pages[];
 void	exit(void);
 
 #if LAB >= 4

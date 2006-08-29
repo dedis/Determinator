@@ -7,7 +7,7 @@ umain(void)
 	int p[2], r, pid, i, max;
 	void *va;
 	struct Fd *fd;
-	struct Env *kid;
+	volatile struct Env *kid;
 
 	cprintf("testing for dup race...\n");
 	if ((r = pipe(p)) < 0)

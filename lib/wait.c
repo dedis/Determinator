@@ -5,7 +5,7 @@
 void
 wait(envid_t envid)
 {
-	struct Env *e;
+	volatile struct Env *e;
 
 	assert(envid != 0);
 	e = &envs[ENVX(envid)];
