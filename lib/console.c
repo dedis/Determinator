@@ -44,8 +44,8 @@ getchar(void)
 // The putchar/getchar functions above will still come here by default,
 // but now can be redirected to files, pipes, etc., via the fd layer.
 
-static int cons_read(struct Fd*, void*, size_t, off_t);
-static int cons_write(struct Fd*, const void*, size_t, off_t);
+static ssize_t cons_read(struct Fd*, void*, size_t, off_t);
+static ssize_t cons_write(struct Fd*, const void*, size_t, off_t);
 static int cons_close(struct Fd*);
 static int cons_stat(struct Fd*, struct Stat*);
 
@@ -85,7 +85,7 @@ opencons(void)
 	return fd2num(fd);
 }
 
-int
+ssize_t
 cons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
 {
 	int c;
@@ -105,7 +105,7 @@ cons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
 	return 1;
 }
 
-int
+ssize_t
 cons_write(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
 {
 	int tot, m;

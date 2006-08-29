@@ -14,34 +14,33 @@ struct Fd;
 struct Stat;
 struct Dev;
 
-struct Dev
-{
+struct Dev {
 	int dev_id;
 	char *dev_name;
-	int (*dev_read)(struct Fd *fd, void *buf, size_t len, off_t offset);
-	int (*dev_write)(struct Fd *fd, const void *buf, size_t len, off_t offset);
+	ssize_t (*dev_read)(struct Fd *fd, void *buf, size_t len, off_t offset);
+	ssize_t (*dev_write)(struct Fd *fd, const void *buf, size_t len, off_t offset);
 	int (*dev_close)(struct Fd *fd);
 	int (*dev_stat)(struct Fd *fd, struct Stat *stat);
 	int (*dev_seek)(struct Fd *fd, off_t pos);
 	int (*dev_trunc)(struct Fd *fd, off_t length);
 };
 
-struct Fd
-{
+struct FdFile {
+	int id;
+	struct File file;
+};
+
+struct Fd {
 	int fd_dev_id;
 	off_t fd_offset;
 	int fd_omode;
 	union {
 		// File server files
-		struct FdFile {
-			int id;
-			struct File file;
-		} fd_file;
+		struct FdFile fd_file;
 	};
 };
 
-struct Stat
-{
+struct Stat {
 	char st_name[MAXNAMELEN];
 	off_t st_size;
 	int st_isdir;

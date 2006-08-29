@@ -6,7 +6,7 @@
 // Maximum number of file descriptors a program may hold open concurrently
 #define MAXFD		32
 // Bottom of file data area
-#define FILEBASE	0xd0000000
+#define FILEBASE	0xD0000000
 // Bottom of file descriptor area
 #define FDTABLE		(FILEBASE - PTSIZE)
 
@@ -230,7 +230,7 @@ err:
 	return r;
 }
 
-int
+ssize_t
 read(int fdnum, void *buf, size_t n)
 {
 	int r;
@@ -250,7 +250,7 @@ read(int fdnum, void *buf, size_t n)
 	return r;
 }
 
-int
+ssize_t
 readn(int fdnum, void *buf, size_t n)
 {
 	int m, tot;
@@ -265,7 +265,7 @@ readn(int fdnum, void *buf, size_t n)
 	return tot;
 }
 
-int
+ssize_t
 write(int fdnum, const void *buf, size_t n)
 {
 	int r;

@@ -4,9 +4,9 @@
 #define debug 0
 
 static int pipeclose(struct Fd *fd);
-static int piperead(struct Fd *fd, void *buf, size_t n, off_t offset);
+static ssize_t piperead(struct Fd *fd, void *buf, size_t n, off_t offset);
 static int pipestat(struct Fd *fd, struct Stat *stat);
-static int pipewrite(struct Fd *fd, const void *buf, size_t n, off_t offset);
+static ssize_t pipewrite(struct Fd *fd, const void *buf, size_t n, off_t offset);
 
 struct Dev devpipe =
 {
@@ -122,7 +122,7 @@ pipeisclosed(int fdnum)
 	return _pipeisclosed(fd, p);
 }
 
-static int
+static ssize_t
 piperead(struct Fd *fd, void *vbuf, size_t n, off_t offset)
 {
 #if SOL >= 6
@@ -174,7 +174,7 @@ piperead(struct Fd *fd, void *vbuf, size_t n, off_t offset)
 #endif
 }
 
-static int
+static ssize_t
 pipewrite(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
 {
 #if SOL >= 6
