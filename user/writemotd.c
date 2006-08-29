@@ -17,10 +17,8 @@ umain(void)
 		panic("open /newmotd and /motd give same file descriptor");
 
 	cprintf("OLD MOTD\n===\n");
-	while ((n = read(wfd, buf, sizeof buf-1)) > 0) {
-		buf[n] = 0;
-		sys_cputs(buf);
-	}
+	while ((n = read(wfd, buf, sizeof buf-1)) > 0)
+		sys_cputs(buf, n);
 	cprintf("===\n");
 	seek(wfd, 0);
 
@@ -29,8 +27,7 @@ umain(void)
 
 	cprintf("NEW MOTD\n===\n");
 	while ((n = read(rfd, buf, sizeof buf-1)) > 0) {
-		buf[n] = 0;
-		sys_cputs(buf);
+		sys_cputs(buf, n);
 		if ((r = write(wfd, buf, n)) != n)
 			panic("write /motd: %e", r);
 	}

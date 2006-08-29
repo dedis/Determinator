@@ -6,15 +6,11 @@
 void
 cputchar(int ch)
 {
-	char s[2];
+	char c = ch;
 
 	// Unlike standard Unix's putchar,
 	// the cputchar function _always_ outputs to the system console.
-	// We do this in order to make debugging easier in JOS.
-
-	s[0] = ch;
-	s[1] = 0;
-	sys_cputs(s);
+	sys_cputs(&c, 1);
 }
 
 int
@@ -26,7 +22,7 @@ getchar(void)
 
 	// JOS does, however, support standard _input_ redirection,
 	// allowing the user to redirect script files to the shell and such.
-	// Thus, getchar() reads a character from file descriptor 0.
+	// getchar() reads a character from file descriptor 0.
 	r = read(0, &c, 1);
 	if (r < 0)
 		return r;
@@ -86,7 +82,7 @@ opencons(void)
 }
 
 ssize_t
-cons_read(struct Fd* fd, void* vbuf, size_t n, off_t offset)
+cons_read(struct Fd *fd, void *vbuf, size_t n, off_t offset)
 {
 	int c;
 
@@ -120,8 +116,7 @@ cons_write(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
 		if (m > sizeof(buf) - 1)
 			m = sizeof(buf) - 1;
 		memcpy(buf, (char*)vbuf + tot, m);
-		buf[m] = 0;
-		sys_cputs(buf);
+		sys_cputs(buf, m);
 	}
 	return tot;
 }

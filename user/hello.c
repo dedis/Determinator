@@ -5,7 +5,7 @@
 void
 umain(void)
 {
-	sys_cputs("hello, world\n");
+	cprintf("hello, world\n");
 	cprintf("i am environment %08x\n", env->env_id);
 }
 #endif

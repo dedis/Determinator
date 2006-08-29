@@ -29,8 +29,7 @@ putch(int ch, struct printbuf *b)
 {
 	b->buf[b->idx++] = ch;
 	if (b->idx == 256-1) {
-		b->buf[b->idx] = 0;
-		sys_cputs(b->buf);
+		sys_cputs(b->buf, b->idx);
 		b->idx = 0;
 	}
 	b->cnt++;
@@ -44,8 +43,7 @@ vcprintf(const char *fmt, va_list ap)
 	b.idx = 0;
 	b.cnt = 0;
 	vprintfmt((void*)putch, &b, fmt, ap);
-	b.buf[b.idx] = 0;
-	sys_cputs(b.buf);
+	sys_cputs(b.buf, b.idx);
 
 	return b.cnt;
 }

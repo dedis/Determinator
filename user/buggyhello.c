@@ -8,7 +8,7 @@
 void
 umain(void)
 {
-	sys_cputs((char*)1);
+	sys_cputs((char*)1, 1);
 }
 
 #endif

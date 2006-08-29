@@ -22,6 +22,6 @@ void
 umain(void)
 {
 	set_pgfault_handler(handler);
-	sys_cputs((char*)0xDEADBEEF);
+	sys_cputs((char*)0xDEADBEEF, 4);
 }
 #endif

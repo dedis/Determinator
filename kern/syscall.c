@@ -18,14 +18,14 @@
 // Print a string to the system console.
 // The system call returns 0.
 static void
-sys_cputs(const char *s)
+sys_cputs(const char *s, size_t len)
 {
 #if SOL >= 3
 	page_fault_mode = PFM_KILL;
-	cprintf("%s", TRUP(s));
+	cprintf("%.*s", len, TRUP(s));
 	page_fault_mode = PFM_NONE;
 #else
-	cprintf("%s", s);
+	cprintf("%.*s", len, s);
 #endif
 }
 
@@ -458,7 +458,7 @@ syscall(uint32_t sn, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_
 #if SOL >= 3
 	switch (sn) {
 	case SYS_cputs:
-		sys_cputs((const char*) a1);
+		sys_cputs((const char*) a1, a2);
 		return 0;
 	case SYS_cgetc:
 		return sys_cgetc();
