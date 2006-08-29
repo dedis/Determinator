@@ -35,7 +35,7 @@ sub dofile {
 		chomp;
 		$inlines++;
 		$emit = $stack{$depth}->{'emit'};
-		if (m:^(ifdef|ifndef|[#]elif|[#]if)\s+(LAB|SOL)\s*([=<>!][=]|[<>]|)\s*(\d+):) {
+		if (m:^(ifdef|ifndef|[#]elif|[#]if|/\*#if|/\*#elif)\s+(LAB|SOL)\s*([=<>!][=]|[<>]|)\s*(\d+):) {
 			# Parse a new condition
 			my $val = ($2 eq 'LAB' ? $labno : $solno);
 			my $cond;
@@ -54,18 +54,17 @@ sub dofile {
 			} else {
 				die;
 			}
-			if ($1 eq "#if" or $1 eq "ifdef" or $1 eq "ifndef") {
+			if ($1 eq "#if" or $1 eq "ifdef" or $1 eq "ifndef" or $1 eq "/*#if") {
 				$stack{++$depth} = { 'anytrue' => 0, 'isours' => 1 };
 			}
 			$stack{$depth}->{'emit'} = ($stack{$depth-1}->{'emit'} && $cond);
-			if ($1 eq "#elif") {
+			if ($1 eq "#elif" or $1 eq "elif" or $1 eq "/*elif") {
 				$stack{$depth}->{'emit'} &= !$stack{$depth}->{'anytrue'};
 			}
 			$stack{$depth}->{'anytrue'} |= $cond;
 			$emit = 0;
 			$lastgood = $line;
-                }
-		elsif (m:^[#]?(ifdef|ifndef)\s+ENV_(\w+):) {
+                } elsif (m:^[#]?(ifdef|ifndef)\s+ENV_(\w+):) {
 			   $cond = defined ($ENV{$2}) && $ENV{$2};
 			   $cond = !$cond if $1 eq "ifndef";
 			   $stack{++$depth} = { 'anytrue' => $cond,
@@ -78,13 +77,13 @@ sub dofile {
 			++$depth;
 			$stack{$depth} = { 'isours' => 0, 'emit' => $stack{$depth-1}->{'emit'} };
 			$lastgood = $line;
-		} elsif (m:^([#]|)else:) {
+		} elsif (m:^(/\*[#]|[#]|)else:) {
 			if ($stack{$depth}->{'isours'}) {
 				$emit = 0;
 				$stack{$depth}->{'emit'} = ($stack{$depth-1}->{'emit'} && !$stack{$depth}->{'anytrue'});
 			}
 			$lastgood = $line;
-		} elsif (m:^([#]|)endif:) {
+		} elsif (m:^(/\*[#]|[#]|)endif:) {
 			if ($stack{$depth}->{'isours'}) {
 				$emit = 0;
 			}
