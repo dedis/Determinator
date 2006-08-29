@@ -596,31 +596,31 @@ skip_slash(const char *p)
 }
 
 // Evaluate a path name, starting at the root.
-// On success, set *pfile to the file we found
+// On success, set *pf to the file we found
 // and set *pdir to the directory the file is in.
 // If we cannot find the file but find the directory
 // it should be in, set *pdir and copy the final path
 // element into lastelem.
 static int
-walk_path(const char *path, struct File **pdir, struct File **pfile, char *lastelem)
+walk_path(const char *path, struct File **pdir, struct File **pf, char *lastelem)
 {
 	const char *p;
 	char name[MAXNAMELEN];
-	struct File *dir, *file;
+	struct File *dir, *f;
 	int r;
 
 	// if (*path != '/')
 	//	return -E_BAD_PATH;
 	path = skip_slash(path);
-	file = &super->s_root;
+	f = &super->s_root;
 	dir = 0;
 	name[0] = 0;
 
 	if (pdir)
 		*pdir = 0;
-	*pfile = 0;
+	*pf = 0;
 	while (*path != '\0') {
-		dir = file;
+		dir = f;
 		p = path;
 		while (*path != '/' && *path != '\0')
 			path++;
@@ -633,13 +633,13 @@ walk_path(const char *path, struct File **pdir, struct File **pfile, char *laste
 		if (dir->f_type != FTYPE_DIR)
 			return -E_NOT_FOUND;
 
-		if ((r = dir_lookup(dir, name, &file)) < 0) {
+		if ((r = dir_lookup(dir, name, &f)) < 0) {
 			if (r == -E_NOT_FOUND && *path == '\0') {
 				if (pdir)
 					*pdir = dir;
 				if (lastelem)
 					strcpy(lastelem, name);
-				*pfile = 0;
+				*pf = 0;
 			}
 			return r;
 		}
@@ -647,14 +647,14 @@ walk_path(const char *path, struct File **pdir, struct File **pfile, char *laste
 
 	if (pdir)
 		*pdir = dir;
-	*pfile = file;
+	*pf = f;
 	return 0;
 }
 
-// Create "path".  On success set *file to point at the file and return 0.
+// Create "path".  On success set *pf to point at the file and return 0.
 // On error return < 0.
 int
-file_create(const char *path, struct File **file)
+file_create(const char *path, struct File **pf)
 {
 	char name[MAXNAMELEN];
 	int r;
@@ -667,17 +667,17 @@ file_create(const char *path, struct File **file)
 	if (dir_alloc_file(dir, &f) < 0)
 		return r;
 	strcpy(f->f_name, name);
-	*file = f;
+	*pf = f;
 	return 0;
 }
 
-// Open "path".  On success set *file to point at the file and return 0.
+// Open "path".  On success set *pf to point at the file and return 0.
 // On error return < 0.
 int
-file_open(const char *path, struct File **file)
+file_open(const char *path, struct File **pf)
 {
 #if SOL >= 5
-	return walk_path(path, 0, file, 0);
+	return walk_path(path, 0, pf, 0);
 #else
 	// Hint: Use walk_path.
 	// LAB 5: Your code here.
@@ -786,7 +786,7 @@ file_remove(const char *path)
 
 	file_truncate_blocks(f, 0);
 	f->f_name[0] = '\0';
-	file_flush(f);
+	f->f_size = 0;
 	if (f->f_dir)
 		file_flush(f->f_dir);
 
