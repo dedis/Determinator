@@ -56,7 +56,7 @@ $(OBJDIR)/fs/%.o: fs/%.c fs/fs.h inc/lib.h
 	@mkdir -p $(@D)
 	$(V)$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
 
-$(OBJDIR)/fs/fs: $(FSOFILES) $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libjos.a
+$(OBJDIR)/fs/fs: $(FSOFILES) $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libjos.a user/user.ld
 	@echo + ld $@
 	$(V)mkdir -p $(@D)
 	$(V)$(LD) -o $@ $(ULDFLAGS) $(LDFLAGS) -nostdlib \

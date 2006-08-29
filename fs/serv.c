@@ -323,7 +323,7 @@ serve(void)
 	
 	while (1) {
 		perm = 0;
-		req = ipc_recv(&whom, (void*) REQVA, &perm);
+		req = ipc_recv((int32_t *) &whom, (void *) REQVA, &perm);
 		if (debug)
 			cprintf("fs req %d from %08x [page %08x: %s]\n",
 				req, whom, vpt[VPN(REQVA)], REQVA);

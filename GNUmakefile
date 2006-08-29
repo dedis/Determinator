@@ -7,12 +7,6 @@
 #
 OBJDIR := obj
 
-ifdef GCCPREFIX
-SETTINGGCCPREFIX := true
-else
--include conf/gcc.mk
-endif
-
 ifdef LAB
 SETTINGLAB := true
 else
@@ -66,7 +60,22 @@ TOP = .
 # using a different name, set GCCPREFIX explicitly by doing
 #
 #	make 'GCCPREFIX=i386-jos-elf-' gccsetup
-#
+
+# try to infer the correct GCCPREFIX
+ifndef GCCPREFIX
+GCCPREFIX := $(shell if i386-jos-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
+	then echo 'i386-jos-elf-'; \
+	elif objdump -i 2>&1 | grep 'elf32-i386' >/dev/null 2>&1; \
+	then echo ''; \
+	else echo "***" 1>&2; \
+	echo "*** Error: Couldn't find an i386-*-elf version of GCC/binutils." 1>&2; \
+	echo "*** Is the directory with i386-jos-elf-gcc in your PATH?" 1>&2; \
+	echo "*** If your i386-*-elf toolchain is installed with a command" 1>&2; \
+	echo "*** prefix other than 'i386-jos-elf-', set your GCCPREFIX" 1>&2; \
+	echo "*** environment variable to that prefix and run 'make' again." 1>&2; \
+	echo "*** To turn off this error, run 'gmake GCCPREFIX= ...'." 1>&2; \
+	echo "***" 1>&2; exit 1; fi)
+endif
 
 CC	:= $(GCCPREFIX)gcc -pipe
 GCC_LIB := $(shell $(CC) -print-libgcc-file-name)
@@ -83,9 +92,9 @@ TAR	:= gtar
 PERL	:= perl
 
 # Compiler flags
-# Note that -O2 is required for the boot loader to fit within 512 bytes;
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
-CFLAGS	:= $(CFLAGS) $(DEFS) $(LABDEFS) -O2 -fno-builtin -I$(TOP) -MD -Wall -Wno-format
+# Only optimize to -O1 to discourage inlining, which complicates backtraces.
+CFLAGS	:= $(CFLAGS) $(DEFS) $(LABDEFS) -O -fno-builtin -I$(TOP) -MD -Wall -Wno-format -Wno-unused -Werror -gstabs
 
 # Linker flags for JOS user programs
 ULDFLAGS := -T user/user.ld
@@ -110,28 +119,6 @@ KERN_CFLAGS := $(CFLAGS) -DJOS_KERNEL -gstabs
 USER_CFLAGS := $(CFLAGS) -DJOS_USER -gstabs
 
 
-# try to infer the correct GCCPREFIX
-conf/gcc.mk:
-	@if i386-jos-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
-	then echo 'GCCPREFIX=i386-jos-elf-' >conf/gcc.mk; \
-	elif objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
-	then echo 'GCCPREFIX=' >conf/gcc.mk; \
-	else echo "***" 1>&2; \
-	echo "*** Error: Couldn't find an i386-*-elf version of GCC/binutils." 1>&2; \
-	echo "*** Is the directory with i386-jos-elf-gcc in your PATH?" 1>&2; \
-	echo "*** If your i386-*-elf toolchain is installed with a command" 1>&2; \
-	echo "*** prefix other than 'i386-jos-elf-', set your GCCPREFIX" 1>&2; \
-	echo "*** environment variable to that prefix and run 'make' again." 1>&2; \
-	echo "*** To turn off this error, run 'echo GCCPREFIX= >conf/gcc.mk'." 1>&2; \
-	echo "***" 1>&2; \
-	echo "*** [MIT] If you are running on a SunOS athena box, you will" 1>&2; \
-	echo "*** have to use to an x86 athena box, like athena.lcs." 1>&2; \
-	echo "***" 1>&2; exit 1; fi
-	@f=`grep GCCPREFIX conf/gcc.mk | sed 's/.*=//'`; if echo $$f | grep '^[12]\.' >/dev/null 2>&1; then echo "***" 1>&2; \
-	echo "*** Error: Your gcc compiler is too old." 1>&2; \
-	echo "*** The labs will only work with gcc-3.0 or later, and are only" 1>&2; \
-	echo "*** tested on gcc-3.3 and later." 1>&2; \
-	echo "***" 1>&2; exit 1; fi
 
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 
@@ -173,7 +160,7 @@ ifndef LAB5
 all: $(OBJDIR)/fs/fs.img
 $(OBJDIR)/fs/fs.img:
 	$(V)mkdir -p $(@D)
-	touch $@
+	$(V)touch $@
 endif
 
 distclean: clean-labsetup
@@ -196,12 +183,12 @@ include fs/Makefrag
 
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 # Find all potentially exportable files
-LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S
+LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S *.ld
 LAB_DIRS := inc boot kern lib user fs
 LAB_FILES := CODING GNUmakefile .bochsrc mergedep.pl grade.sh boot/sign.pl \
 	fs/lorem fs/motd fs/newmotd fs/script \
 	fs/testshell.sh fs/testshell.key fs/testshell.out fs/out \
-	kern/kernel.ld conf/env.mk user/user.ld \
+	conf/env.mk \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
 # Fake targets to export the student lab handout and solution trees.
@@ -222,21 +209,34 @@ LAB_FILES := CODING GNUmakefile .bochsrc mergedep.pl grade.sh boot/sign.pl \
 #
 export-lab%: always
 	rm -rf lab$*
-	num=`echo $$(($*-$(LABADJUST)))`; \
+	num=`expr $* - $(LABADJUST)`; \
 		$(MKLABENV) $(PERL) mklab.pl $$num 0 lab$* $(LAB_FILES)
 	test -d lab$*/conf || mkdir lab$*/conf
 	echo >lab$*/conf/lab.mk "LAB=$*"
 	echo >>lab$*/conf/lab.mk "PACKAGEDATE="`date`
 export-sol%: always
 	rm -rf sol$*
-	num=`echo $$(($*-$(LABADJUST)))`; \
+	num=`expr $* - $(LABADJUST)`; \
 		$(MKLABENV) $(PERL) mklab.pl $$num $$num sol$* $(LAB_FILES)
+	test -d sol$*/conf || mkdir sol$*/conf
 	echo >sol$*/conf/lab.mk "LAB=$*"
+	echo >>sol$*/conf/lab.mk "PACKAGEDATE="`date`
 export-prep%: always
 	rm -rf prep$*
-	num=`echo $$(($*-$(LABADJUST)))`; \
+	num=`expr $* - $(LABADJUST)`; \
 		$(MKLABENV) $(PERL) mklab.pl $$num `expr $$num - 1` prep$* $(LAB_FILES)
+	test -d prep$*/conf || mkdir prep$*/conf
 	echo >prep$*/conf/lab.mk "LAB=$*"
+	echo >>prep$*/conf/lab.mk "PACKAGEDATE="`date`
+	tar czf prep$*.tar.gz prep$*
+update-prep%: always
+	test -d prep$* -a -f prep$*.tar.gz
+	mv prep$* curprep$*
+	tar xzf prep$*.tar.gz
+	-diff -ru --exclude=obj prep$* curprep$* > prep$*.patch
+	rm -rf prep$* curprep$*
+	$(MAKE) export-prep$*
+	cd prep$* && patch -p1 < ../prep$*.patch
 
 lab%.tar.gz: always
 	$(MAKE) export-lab$*
@@ -259,13 +259,17 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
+#if LAB <= 999
 ifdef LAB5
-images: $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
+IMAGES = $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
 else
-images: $(OBJDIR)/kern/bochs.img
+IMAGES = $(OBJDIR)/kern/bochs.img
 endif
+#else
+IMAGES = $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
+#endif
 
-bochs: images
+bochs: $(IMAGES)
 	bochs 'display_library: nogui'
 
 # For deleting the build
@@ -273,7 +277,7 @@ clean:
 	rm -rf $(OBJDIR)
 
 realclean: clean
-	rm -rf lab$(LAB).tar.gz
+	rm -rf lab$(LAB).tar.gz bochs.out bochs.log
 
 distclean: realclean
 	rm -rf conf/gcc.mk
@@ -294,17 +298,17 @@ handin: tarball
 #endif
 
 tarball: realclean
-	tar cf - `ls -a | grep -v '^\.*$$' | grep -v '^lab$(LAB)\.tar\.gz'` | gzip > lab$(LAB).tar.gz
+	tar cf - `ls -a | grep -v '^\.*$$' | grep -v '^CVS$$' | grep -v '^lab[0-9].*\.tar\.gz'` | gzip > lab$(LAB).tar.gz
 
 # For test runs
 run-%:
-	$(V)rm -f $(OBJDIR)/kern/init.o $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
-	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" images
+	$(V)rm -f $(OBJDIR)/kern/init.o $(IMAGES)
+	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" $(IMAGES)
 	bochs -q 'display_library: nogui'
 
 xrun-%:
-	$(V)rm -f $(OBJDIR)/kern/init.o $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
-	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" images
+	$(V)rm -f $(OBJDIR)/kern/init.o $(IMAGES)
+	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" $(IMAGES)
 	bochs -q
 
 # This magic automatically generates makefile dependencies
