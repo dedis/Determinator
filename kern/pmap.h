@@ -97,7 +97,7 @@ page2kva(struct Page *pp)
 	return KADDR(page2pa(pp));
 }
 
-int pgdir_walk(pde_t *pgdir, const void *va, int create, pte_t **ppte);
+pte_t *pgdir_walk(pde_t *pgdir, const void *va, int create);
 
 #endif /* !JOS_KERN_PMAP_H */
 #endif // LAB >= 2

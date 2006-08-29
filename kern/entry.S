@@ -1,17 +1,19 @@
 #if LAB >= 1
 /* See COPYRIGHT for copyright information. */
 
-#include <inc/asm.h>
 #include <inc/mmu.h>
 #include <inc/memlayout.h>
 #if LAB >= 3
 #include <inc/trap.h>
 #endif
 
+# Shift Right Logical 
+#define SRL(val, shamt)		(((val) >> (shamt)) & ~(-1 << (32 - (shamt))))
+
 
 ###################################################################
 # The kernel (this code) is linked at address ~(KERNBASE + 1 Meg), 
-# but the bootloader load it at address	~1 Meg.
+# but the bootloader loads it at address ~1 Meg.
 #	
 # RELOC(x) maps a symbol x from its link address to its actual
 # location in physical memory (its load address).	 
@@ -78,13 +80,13 @@ spin:	jmp	spin
 
 
 ###################################################################	
-# See pmap.h for a complete description of these two symbols.
+# See <inc/memlayout.h> for a complete description of these two symbols.
 ###################################################################
 .data
-	.globl	_vpt
-	.set	_vpt, VPT
-	.globl	_vpd
-	.set	_vpd, (VPT + SRL(VPT, 10))
+	.globl	vpt
+	.set	vpt, VPT
+	.globl	vpd
+	.set	vpd, (VPT + SRL(VPT, 10))
 
 
 ###################################################################
@@ -100,7 +102,7 @@ bootstacktop:
 ###################################################################
 # setup the GDT	
 ###################################################################
-.p2align	2				# force 4 byte alignment
+	.p2align	2		# force 4 byte alignment
 mygdt:
 	SEG_NULL				# null seg
 	SEG(STA_X|STA_R, -KERNBASE, 0xffffffff)	# code seg

@@ -23,16 +23,15 @@ static struct Taskstate ts;
 /* Interrupt descriptor table.  (Must be built at run time because
  * shifted function addresses can't be represented in relocation records.)
  */
-struct Gatedesc idt[256] = { {0}, };
-struct Pseudodesc idt_pd =
-{
-	0, sizeof(idt) - 1, (unsigned long) idt,
+struct Gatedesc idt[256] = { { 0 } };
+struct Pseudodesc idt_pd = {
+	sizeof(idt) - 1, (uint32_t) idt
 };
 
 
 static const char *trapname(int trapno)
 {
-	static const char *excnames[] = {
+	static const char * const excnames[] = {
 		"Divide error",
 		"Debug",
 		"Non-Maskable Interrupt",
@@ -59,6 +58,8 @@ static const char *trapname(int trapno)
 		return excnames[trapno];
 	if (trapno == T_SYSCALL)
 		return "System call";
+	if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + 16)
+		return "Hardware Interrupt";
 
 	return "(unknown trap)";
 }
@@ -69,21 +70,24 @@ idt_init(void)
 {
 	extern struct Segdesc gdt[];
 #if SOL >= 3
-	extern void
+	extern char
 		Xdivide,Xdebug,Xnmi,Xbrkpt,Xoflow,Xbound,
 		Xillop,Xdevice,Xdblflt,Xtss,Xsegnp,Xstack,
 		Xgpflt,Xpgflt,Xfperr,Xalign,Xmchk,Xdefault,Xsyscall;
 #if SOL >= 4
-	extern void
+	extern char
 		Xirq0,Xirq1,Xirq2,Xirq3,Xirq4,Xirq5,
 		Xirq6,Xirq7,Xirq8,Xirq9,Xirq10,Xirq11,
 		Xirq12,Xirq13,Xirq14,Xirq15;
-#endif	// SOL >= 4
-
+#endif
 	int i;
 
 	// check that the SIZEOF_STRUCT_TRAPFRAME symbol is defined correctly
 	static_assert(sizeof(struct Trapframe) == SIZEOF_STRUCT_TRAPFRAME);
+#if SOL >= 4
+	// check that IRQ_OFFSET is a multiple of 8
+	static_assert((IRQ_OFFSET & 7) == 0);
+#endif
 
 	// install a default handler
 	for (i = 0; i < sizeof(idt)/sizeof(idt[0]); i++)
@@ -148,7 +152,7 @@ idt_init(void)
 	ltr(GD_TSS);
 
 	// Load the IDT
-	asm volatile("lidt idt_pd+2");
+	asm volatile("lidt idt_pd");
 }
 
 void

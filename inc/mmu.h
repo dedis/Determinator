@@ -303,11 +303,9 @@ struct Gatedesc {
 
 // Pseudo-descriptors used for LGDT, LLDT and LIDT instructions.
 struct Pseudodesc {
-	uint16_t pd__garbage;         // LGDT supposed to be from address 4N+2
-	uint16_t pd_lim;              // Limit
-	uint32_t pd_base __attribute__ ((packed));       // Base address
-};
-#define PD_ADDR(desc)	(&(desc).pd_lim)
+	uint16_t pd_lim;		// Limit
+	uint32_t pd_base;		// Base address
+} __attribute__ ((packed));
 
 #endif /* !__ASSEMBLER__ */
 
