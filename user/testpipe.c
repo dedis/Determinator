@@ -55,6 +55,7 @@ umain(void)
 				break;
 		}
 		cprintf("\npipe write closed properly\n");
+		exit();
 	}
 	close(p[0]);
 	close(p[1]);
