@@ -9,6 +9,9 @@
 
 #include <inc/memlayout.h>
 #include <inc/assert.h>
+#if LAB >= 3
+struct Env;
+#endif
 
 
 /* This macro takes a user supplied address and turns it into
@@ -69,8 +72,14 @@ int	page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm);
 void	page_remove(pde_t *pgdir, void *va);
 struct Page *page_lookup(pde_t *pgdir, void *va, pte_t **pte_store);
 void	page_decref(struct Page *pp);
+
 void	tlb_invalidate(pde_t *pgdir, void *va);
 
+#if LAB >= 3
+int	user_mem_check(struct Env *env, const void *va, size_t len, int perm);
+void	user_mem_assert(struct Env *env, const void *va, size_t len, int perm);
+
+#endif
 static inline ppn_t
 page2ppn(struct Page *pp)
 {

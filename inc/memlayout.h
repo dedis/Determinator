@@ -64,9 +64,13 @@
  *    UTEXT -------->  +------------------------------+ 0x00800000
  *    PFTEMP ------->  |       Empty Memory (*)       |        PTSIZE
  *                     |                              |
- *    UTEMP -------->  +------------------------------+ 0x00400000
- *                     |       Empty Memory (*)       |        PTSIZE
- *    0 ------------>  +------------------------------+
+ *    UTEMP -------->  +------------------------------+ 0x00400000      --+
+ *                     |       Empty Memory (*)       |                   |
+ *                     | - - - - - - - - - - - - - - -|                   |
+ *                     |  User STAB Data (optional)   |                 PTSIZE
+ *    USTABDATA ---->  +------------------------------+ 0x00200000        |
+ *                     |       Empty Memory (*)       |                   |
+ *    0 ------------>  +------------------------------+                 --+
  *
  * (*) Note: The kernel ensures that "Invalid Memory" (ULIM) is *never*
  *     mapped.  "Empty Memory" is normally unmapped, but user programs may
@@ -125,6 +129,8 @@
 // Used for temporary page mappings for the user page-fault handler
 // (should not conflict with other temporary page mappings)
 #define PFTEMP		(UTEMP + PTSIZE - PGSIZE)
+// The location of the user-level STABS data structure
+#define USTABDATA	(PTSIZE / 2)	
 
 
 #ifndef __ASSEMBLER__
