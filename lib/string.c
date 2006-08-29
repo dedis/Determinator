@@ -82,6 +82,8 @@ strncmp(const char *p, const char *q, size_t n)
 		return (int) ((unsigned char) *p - (unsigned char) *q);
 }
 
+// Return a pointer to the first occurrence of 'c' in 's',
+// or a null pointer if the string has no 'c'.
 char *
 strchr(const char *s, char c)
 {
@@ -91,6 +93,8 @@ strchr(const char *s, char c)
 	return 0;
 }
 
+// Return a pointer to the first occurrence of 'c' in 's',
+// or a pointer to the string-ending null character if the string has no 'c'.
 char *
 strfind(const char *s, char c)
 {
