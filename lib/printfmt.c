@@ -28,6 +28,7 @@ static const char * const error_string[MAXERROR + 1] =
 	"out of memory",
 	"out of environments",
 	"segmentation fault",
+#if LAB >= 4
 	"env is not recving",
 	"unexpected end of file",
 #if LAB >= 5
@@ -37,7 +38,8 @@ static const char * const error_string[MAXERROR + 1] =
 	"invalid path",
 	"file already exists",
 	"file is not a valid executable",
-#endif
+#endif // !LAB >= 5
+#endif // !LAB >= 4
 };
 
 /*
