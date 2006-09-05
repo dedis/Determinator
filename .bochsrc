@@ -183,7 +183,7 @@ vga: extension=none
 # such as a: or b: as the path.  The parameter 'image' works with image files
 # only. In that case the size must match one of the supported types.
 #=======================================================================
-floppya: 1_44=/dev/fd0, status=inserted
+#floppya: 1_44=/dev/fd0, status=inserted
 #floppya: image=../1.44, status=inserted
 #floppya: 1_44=/dev/fd0H1440, status=inserted
 #floppya: 1_2=../1_2, status=inserted
@@ -196,7 +196,7 @@ floppya: 1_44=/dev/fd0, status=inserted
 # See FLOPPYA above for syntax
 #=======================================================================
 #floppyb: 1_44=b:, status=inserted
-floppyb: 1_44=b.img, status=inserted
+#floppyb: 1_44=b.img, status=inserted
 
 #=======================================================================
 # ATA0, ATA1, ATA2, ATA3
@@ -216,9 +216,9 @@ floppyb: 1_44=b.img, status=inserted
 #   ata3: enabled=1, ioaddr1=0x168, ioaddr2=0x360, irq=9
 #=======================================================================
 ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
-ata1: enabled=1, ioaddr1=0x170, ioaddr2=0x370, irq=15
-ata2: enabled=0, ioaddr1=0x1e8, ioaddr2=0x3e0, irq=11
-ata3: enabled=0, ioaddr1=0x168, ioaddr2=0x360, irq=9
+#ata1: enabled=1, ioaddr1=0x170, ioaddr2=0x370, irq=15
+#ata2: enabled=0, ioaddr1=0x1e8, ioaddr2=0x3e0, irq=11
+#ata3: enabled=0, ioaddr1=0x168, ioaddr2=0x360, irq=9
 
 #=======================================================================
 # ATA[0-3]-MASTER, ATA[0-3]-SLAVE
@@ -320,6 +320,7 @@ boot: disk
 # Default value are sync=none, time0=local
 #=======================================================================
 #clock: sync=none, time0=local
+clock: sync=realtime, time0=local
 
 
 #=======================================================================
@@ -345,7 +346,7 @@ floppy_bootsig_check: disabled=0
 #   log: /dev/tty
 #=======================================================================
 #log: /dev/null
-log: bochsout.txt
+log: bochs.log
 
 #=======================================================================
 # LOGPREFIX:
@@ -387,7 +388,7 @@ log: bochsout.txt
 #=======================================================================
 panic: action=ask
 error: action=report
-info: action=report
+info: action=ignore
 debug: action=ignore
 #pass: action=fatal
 
