@@ -57,9 +57,7 @@ TOP = .
 # installed as 'i386-jos-elf-*', if one exists.  If the host tools ('gcc',
 # 'objdump', and so forth) compile for a 32-bit x86 ELF target, that will
 # be detected as well.  If you have the right compiler toolchain installed
-# using a different name, set GCCPREFIX explicitly by doing
-#
-#	make 'GCCPREFIX=i386-jos-elf-' gccsetup
+# using a different name, set GCCPREFIX explicitly in conf/env.mk
 
 # try to infer the correct GCCPREFIX
 ifndef GCCPREFIX

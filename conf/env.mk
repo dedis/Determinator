@@ -13,3 +13,11 @@ V = @
 # '$(HANDIN_EMAIL)' is the email address to which lab handins should be
 # sent.
 HANDIN_EMAIL = 6.828-handin@pdos.lcs.mit.edu
+
+
+##
+## If your system-standard GNU toolchain is ELF-compatible, then comment
+## out the following line to use those tools (as opposed to the i386-jos-elf
+## tools that the 6.828 make system looks for by default).
+##
+# GCCPREFIX=
