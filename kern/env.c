@@ -377,6 +377,10 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 // before running the first user-mode environment.
 // The new env's parent ID is set to 0.
 //
+// Where does the result go? 
+// By convention, envs[0] is the first environment allocated, so
+// whoever calls env_create simply looks for the newly created
+// environment there. 
 void
 env_create(uint8_t *binary, size_t size)
 {
