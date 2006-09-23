@@ -57,9 +57,10 @@ static const char *trapname(int trapno)
 		return excnames[trapno];
 	if (trapno == T_SYSCALL)
 		return "System call";
+#if LAB >= 4
 	if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + 16)
 		return "Hardware Interrupt";
-
+#endif
 	return "(unknown trap)";
 }
 
