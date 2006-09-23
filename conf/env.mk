@@ -20,4 +20,4 @@ HANDIN_EMAIL = 6.828-handin@pdos.lcs.mit.edu
 ## out the following line to use those tools (as opposed to the i386-jos-elf
 ## tools that the 6.828 make system looks for by default).
 ##
-# GCCPREFIX=
+# GCCPREFIX=''
