@@ -455,11 +455,11 @@ runtest1 hello \
 # however many times the shell interprets this string.  sigh.
 
 runtest1 buggyhello \
-	'.00001000. user_mem_check va 00000001' \
+	'.00001000. user_mem_check assertion failure for va 00000001' \
 	'.00001000. free env 00001000'
 
 runtest1 evilhello \
-	'.00001000. user_mem_check va f0100...' \
+	'.00001000. user_mem_check assertion failure for va f0100...' \
 	'.00001000. free env 00001000'
 
 runtest1 divzero \
