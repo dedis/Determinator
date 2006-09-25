@@ -802,7 +802,7 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 		va = ROUNDUP(va + 1, PGSIZE);
 	}
 #else
-	// LAB 3: Your code here. (Exercise 6)
+	// LAB 3: Your code here. 
 #endif
 
 	return 0;
