@@ -10,7 +10,8 @@
 #if SOL >= 3
 #define JOS_MULTIENV 1
 #else
-// Change this value to 1 once you've started on Lab 3 Part 3.
+// Change this value to 1 once you're allowing multiple environments
+// (for UCLA: Lab 3, Part 3; for MIT: Lab 4).
 #define JOS_MULTIENV 0
 #endif
 #endif

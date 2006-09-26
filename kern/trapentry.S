@@ -41,6 +41,9 @@
 
 .text
 
+/*
+ * Your code here for generating entry points for the different traps.
+ */
 #if SOL >= 3
 
 /* CPU traps */
@@ -88,7 +91,12 @@ TRAPHANDLER_NOEC(Xsyscall, T_SYSCALL)
 /* default handler -- not for any specific trap */
 TRAPHANDLER     (Xdefault, T_DEFAULT)
 
+#endif // SOL >= 3
 
+/*
+ * Your code here for _alltraps
+ */		
+#ifdef SOL >= 3	
 .globl	_alltraps
 .type	_alltraps,@function
 .p2align 4, 0x90		/* 16-byte alignment, nop filled */
@@ -102,6 +110,5 @@ _alltraps:
 	pushl %esp		# pass pointer to this trapframe 
 	call trap		# and call trap (does not return)
 spin:	jmp spin
-
 #endif // SOL >= 3
 #endif // LAB >= 3
