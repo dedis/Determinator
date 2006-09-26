@@ -204,16 +204,15 @@ trap_dispatch(struct Trapframe *tf)
 				tf->tf_regs.reg_esi);
 		return;
 	}
-#else	// SOL >= 3
-	// LAB 3: Your code here.
-#endif	// SOL >= 3
-	
 	if (tf->tf_trapno == T_BRKPT) {
 		// Invoke the kernel monitor.
 		monitor(tf);
 		return;
 	}
-
+#else	// SOL >= 3
+	// LAB 3: Your code here.
+#endif	// SOL >= 3
+	
 #if LAB >= 4
 #if SOL >= 4
 	// New in Lab 4: Handle external interrupts
