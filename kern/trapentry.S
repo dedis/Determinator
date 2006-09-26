@@ -44,6 +44,7 @@
 /*
  * Your code here for generating entry points for the different traps.
  */
+
 #if SOL >= 3
 
 /* CPU traps */
@@ -93,10 +94,11 @@ TRAPHANDLER     (Xdefault, T_DEFAULT)
 
 #endif // SOL >= 3
 
+
 /*
  * Your code here for _alltraps
  */		
-#ifdef SOL >= 3	
+#if SOL >= 3	
 .globl	_alltraps
 .type	_alltraps,@function
 .p2align 4, 0x90		/* 16-byte alignment, nop filled */
