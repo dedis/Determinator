@@ -79,7 +79,8 @@ KERN_BINFILES :=	user/idle \
 			user/fairness \
 			user/pingpong \
 			user/pingpongs \
-			user/primes
+			user/primes \
+			user/hello
 else
 ifdef LAB3
 KERN_BINFILES :=	user/hello \
