@@ -375,11 +375,11 @@ runtest1 faultnostack \
 	'.00001001. free env 00001001'
 
 runtest1 faultbadhandler \
-	'.00001001. user_mem_check assertion failure for va ........' \
+	'.00001001. user_mem_check assertion failure for va (deadb|eebfe)...' \
 	'.00001001. free env 00001001'
 
 runtest1 faultevilhandler \
-	'.00001001. user_mem_check assertion failure for va ........' \
+	'.00001001. user_mem_check assertion failure for va (f0100|eebfe)...' \
 	'.00001001. free env 00001001'
 
 runtest1 forktree \
