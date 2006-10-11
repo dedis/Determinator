@@ -367,19 +367,19 @@ runtest1 faultalloc \
 	'.00001001. free env 00001001'
 
 runtest1 faultallocbad \
-	'.00001001. PFM_KILL va deadbeef ip f01.....' \
+	'.00001001. user_mem_check assertion failure for va deadbeef' \
 	'.00001001. free env 00001001' 
 
 runtest1 faultnostack \
-	'.00001001. PFM_KILL va eebfff.. ip f01.....' \
+	'.00001001. user_mem_check assertion failure for va eebfff..' \
 	'.00001001. free env 00001001'
 
 runtest1 faultbadhandler \
-	'.00001001. PFM_KILL va eebfef.. ip f01.....' \
+	'.00001001. user_mem_check assertion failure for va eebfef..' \
 	'.00001001. free env 00001001'
 
 runtest1 faultevilhandler \
-	'.00001001. PFM_KILL va eebfef.. ip f01.....' \
+	'.00001001. user_mem_check assertion failure for va eebfef..' \
 	'.00001001. free env 00001001'
 
 runtest1 forktree \
