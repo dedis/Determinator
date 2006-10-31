@@ -65,9 +65,7 @@ map_block(uint32_t blockno)
 // 
 // If blk != 0, set *blk to the address of the block in memory.
 //
-// Hint: Use diskaddr, block_is_mapped, sys_page_alloc, and ide_read.
-// Hint: If you loaded the block from disk, use sys_page_map to clear the
-// corresponding page's PTE_D bit.  (This is an optimization.)
+// Hint: Use diskaddr, map_block, and ide_read.
 static int
 read_block(uint32_t blockno, char **blk)
 {
