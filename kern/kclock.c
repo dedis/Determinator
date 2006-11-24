@@ -1,8 +1,10 @@
 #if LAB >= 2	// pmap.c must read NVRAM to detect how much memory we have
 /* See COPYRIGHT for copyright information. */
 
-/* The Run Time Clock and other NVRAM access functions that go with it. */
-/* The run time clock is hard-wired to IRQ8. */
+/* Support for two time-related hardware gadgets: 1) the run time
+ * clock with its NVRAM access functions; 2) the 8253 timer, which
+ * generates interrupts on IRQ 0.
+ */
 
 #include <inc/x86.h>
 #if LAB >= 4
