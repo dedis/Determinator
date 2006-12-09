@@ -336,7 +336,7 @@ static uint8_t normalmap[256] =
 	NO,   NO,   NO,   NO,   NO,   NO,   NO,   '7',	// 0x40
 	'8',  '9',  '-',  '4',  '5',  '6',  '+',  '1',
 	'2',  '3',  '0',  '.',  NO,   NO,   NO,   NO,	// 0x50
-	[0x97] KEY_HOME,	[0x9C] '\n' /*KP_Enter*/,
+	[0xC7] KEY_HOME,	[0x9C] '\n' /*KP_Enter*/,
 	[0xB5] '/' /*KP_Div*/,	[0xC8] KEY_UP,
 	[0xC9] KEY_PGUP,	[0xCB] KEY_LF,
 	[0xCD] KEY_RT,		[0xCF] KEY_END,
@@ -357,7 +357,7 @@ static uint8_t shiftmap[256] =
 	NO,   NO,   NO,   NO,   NO,   NO,   NO,   '7',	// 0x40
 	'8',  '9',  '-',  '4',  '5',  '6',  '+',  '1',
 	'2',  '3',  '0',  '.',  NO,   NO,   NO,   NO,	// 0x50
-	[0x97] KEY_HOME,	[0x9C] '\n' /*KP_Enter*/,
+	[0xC7] KEY_HOME,	[0x9C] '\n' /*KP_Enter*/,
 	[0xB5] '/' /*KP_Div*/,	[0xC8] KEY_UP,
 	[0xC9] KEY_PGUP,	[0xCB] KEY_LF,
 	[0xCD] KEY_RT,		[0xCF] KEY_END,
