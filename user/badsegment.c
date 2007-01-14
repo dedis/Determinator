@@ -8,7 +8,7 @@ void
 umain(void)
 {
 	// Try to load the kernel's TSS selector into the DS register.
-	asm volatile("movw $28,%ax; movw %ax,%ds");
+	asm volatile("movw $0x28,%ax; movw %ax,%ds");
 }
 
 #endif
