@@ -495,28 +495,15 @@ runtest1 softint \
 	'  ss   0x----0023' \
 	'.00001000. free env 00001000'
 
-#runtest1 badsegment \
-#	'Incoming TRAP frame at 0xefbfffbc' \
-#        'TRAP frame at 0xf.......' \
-#	'  trap 0x0000000d General Protection' \
-#	'  err  0x0000001c' \
-#	'  eip  0x008.....' \
-#	'  ss   0x----0023' \
-#	'.00001000. free env 00001000'
+runtest1 badsegment \
+	'Incoming TRAP frame at 0xefbfffbc' \
+        'TRAP frame at 0xf.......' \
+	'  trap 0x0000000d General Protection' \
+	'  err  0x00000028' \
+	'  eip  0x008.....' \
+	'  ss   0x----0023' \
+	'.00001000. free env 00001000'
 
-##
-## XXX badsegment no longer works on Bochs 2.2.6; Bochs refuses to produce
-## a General Protection fault and instead just panics, with the message:
-##
-## ========================================================================
-## Bochs is exiting with the following message:
-## [CPU0 ] fetch_raw_descriptor: LDTR.valid=0
-## ========================================================================
-##
-## Unfortunately, we've had to comment this test out. Please reenable it if 
-## Bochs fixes this bug!!
-##
-stubtest badsegment "(stubbed out due to Bochs 2.2.6 bug)"
 
 runtest1 faultread \
 	! 'I read ........ from location 0!' \
