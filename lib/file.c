@@ -81,7 +81,7 @@ file_close(struct Fd *fd)
 }
 
 // Read 'n' bytes from 'fd' at the current seek position into 'buf'.
-// Since files are memory-mapped, this amounts to a memcpy()
+// Since files are memory-mapped, this amounts to a memmove()
 // surrounded by a little red tape to handle the file size and seek pointer.
 static ssize_t
 file_read(struct Fd *fd, void *buf, size_t n, off_t offset)
@@ -96,7 +96,7 @@ file_read(struct Fd *fd, void *buf, size_t n, off_t offset)
 		n = size - offset;
 
 	// read the data by copying from the file mapping
-	memcpy(buf, fd2data(fd) + offset, n);
+	memmove(buf, fd2data(fd) + offset, n);
 	return n;
 }
 
@@ -141,7 +141,7 @@ file_write(struct Fd *fd, const void *buf, size_t n, off_t offset)
 	}
 
 	// write the data
-	memcpy(fd2data(fd) + offset, buf, n);
+	memmove(fd2data(fd) + offset, buf, n);
 	return n;
 }
 

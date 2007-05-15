@@ -44,7 +44,7 @@ pgfault(struct UTrapframe *utf)
  	// copy page
 	if ((r = sys_page_alloc(0, (void*) PFTEMP, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_page_alloc: %e", r);
-	memcpy((void*) PFTEMP, ROUNDDOWN(addr, PGSIZE), PGSIZE);
+	memmove((void*) PFTEMP, ROUNDDOWN(addr, PGSIZE), PGSIZE);
 
 	// remap over faulting page
 	if ((r = sys_page_map(0, (void*) PFTEMP, 0, addr, PTE_P|PTE_U|PTE_W)) < 0)

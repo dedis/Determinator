@@ -293,7 +293,7 @@ check_write_block(void)
 
 	// back up super block
 	read_block(0, 0);
-	memcpy(diskaddr(0), diskaddr(1), PGSIZE);
+	memmove(diskaddr(0), diskaddr(1), PGSIZE);
 
 	// smash it 
 	strcpy(diskaddr(1), "OOPS!\n");
@@ -310,7 +310,7 @@ check_write_block(void)
 	assert(strcmp(diskaddr(1), "OOPS!\n") == 0);
 
 	// fix it
-	memcpy(diskaddr(1), diskaddr(0), PGSIZE);
+	memmove(diskaddr(1), diskaddr(0), PGSIZE);
 	write_block(1);
 	super = (struct Super*)diskaddr(1);
 
@@ -624,7 +624,7 @@ walk_path(const char *path, struct File **pdir, struct File **pf, char *lastelem
 			path++;
 		if (path - p >= MAXNAMELEN)
 			return -E_BAD_PATH;
-		memcpy(name, p, path - p);
+		memmove(name, p, path - p);
 		name[path - p] = '\0';
 		path = skip_slash(path);
 

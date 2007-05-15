@@ -115,7 +115,7 @@ cons_write(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
 		m = n - tot;
 		if (m > sizeof(buf) - 1)
 			m = sizeof(buf) - 1;
-		memcpy(buf, (char*)vbuf + tot, m);
+		memmove(buf, (char*)vbuf + tot, m);
 		sys_cputs(buf, m);
 	}
 	return tot;

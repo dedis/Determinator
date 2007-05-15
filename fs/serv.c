@@ -95,7 +95,7 @@ serve_open(envid_t envid, struct Fsreq_open *rq)
 		cprintf("serve_open %08x %s 0x%x\n", envid, rq->req_path, rq->req_omode);
 
 	// Copy in the path, making sure it's null-terminated
-	memcpy(path, rq->req_path, MAXPATHLEN);
+	memmove(path, rq->req_path, MAXPATHLEN);
 	path[MAXPATHLEN-1] = 0;
 
 	// Find an open file ID
@@ -267,7 +267,7 @@ serve_remove(envid_t envid, struct Fsreq_remove *rq)
 
 #if SOL >= 5
 	// Copy in the path, making sure it's null-terminated
-	memcpy(path, rq->req_path, MAXPATHLEN);
+	memmove(path, rq->req_path, MAXPATHLEN);
 	path[MAXPATHLEN-1] = 0;
 
 	// Delete the specified file

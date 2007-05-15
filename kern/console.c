@@ -182,17 +182,17 @@ cga_savebuf_copy(int first_line, bool to_screen)
 
 	// Copy the initial portion.
 	if (to_screen)
-		memcpy(crt_buf, pos, (trueend - pos) * sizeof(uint16_t));
+		memmove(crt_buf, pos, (trueend - pos) * sizeof(uint16_t));
 	else
-		memcpy(pos, crt_buf, (trueend - pos) * sizeof(uint16_t));
+		memmove(pos, crt_buf, (trueend - pos) * sizeof(uint16_t));
 
 	// If there was wraparound, copy the second part of the screen.
 	if (end == trueend)
 		/* do nothing */;
 	else if (to_screen)
-		memcpy(crt_buf + (trueend - pos), crtsave_buf, (end - trueend) * sizeof(uint16_t));
+		memmove(crt_buf + (trueend - pos), crtsave_buf, (end - trueend) * sizeof(uint16_t));
 	else
-		memcpy(crtsave_buf, crt_buf + (trueend - pos), (end - trueend) * sizeof(uint16_t));
+		memmove(crtsave_buf, crt_buf + (trueend - pos), (end - trueend) * sizeof(uint16_t));
 }
 
 #endif
@@ -255,11 +255,11 @@ cga_putc(int c)
 			crtsave_pos = (crtsave_pos + 1) % CRT_SAVEROWS;
 		else
 			crtsave_size++;
-		memcpy(crtsave_buf + ((crtsave_pos + crtsave_size - 1) % CRT_SAVEROWS) * CRT_COLS, crt_buf, CRT_COLS * sizeof(uint16_t));
+		memmove(crtsave_buf + ((crtsave_pos + crtsave_size - 1) % CRT_SAVEROWS) * CRT_COLS, crt_buf, CRT_COLS * sizeof(uint16_t));
 		
 #endif
 #endif
-		memcpy(crt_buf, crt_buf + CRT_COLS, (CRT_SIZE - CRT_COLS) * sizeof(uint16_t));
+		memmove(crt_buf, crt_buf + CRT_COLS, (CRT_SIZE - CRT_COLS) * sizeof(uint16_t));
 		for (i = CRT_SIZE - CRT_COLS; i < CRT_SIZE; i++)
 			crt_buf[i] = 0x0700 | ' ';
 		crt_pos -= CRT_COLS;
