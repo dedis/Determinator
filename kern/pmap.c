@@ -971,6 +971,8 @@ page_check(void)
 	ptep = page2kva(pp0);
 	for(i=0; i<NPTENTRIES; i++)
 		assert((ptep[i] & PTE_P) == 0);
+	boot_pgdir[PDX(va)] = 0;
+	pp0->pp_ref = 0;
 
 	// give free list back
 	page_free_list = fl;
