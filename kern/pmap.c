@@ -830,7 +830,16 @@ page_check(void)
 {
 	struct Page *pp, *pp0, *pp1, *pp2;
 	struct Page_list fl;
-	pte_t *ptep;
+	pte_t *ptep, *ptep1;
+	void *va;
+	int i;
+
+	// poison the pages on the free list 
+	// to sniff out problems in the future.
+	// ideally we'd memset the entire page
+	// but it takes too long using bochs.
+	LIST_FOREACH(pp0, &page_free_list, pp_link)
+		memset(page2kva(pp0), 0x97, 128);
 
 	// should be able to allocate three pages
 	pp0 = pp1 = pp2 = 0;
@@ -880,6 +889,16 @@ page_check(void)
 	// could happen in ref counts are handled sloppily in page_insert
 	assert(page_alloc(&pp) == -E_NO_MEM);
 
+	// check that pgdir_walk returns a pointer to the pte
+	ptep = KADDR(PTE_ADDR(boot_pgdir[PDX(PGSIZE)]));
+	assert(pgdir_walk(boot_pgdir, (void*)PGSIZE, 0) == ptep+PTX(PGSIZE));
+
+	// should be able to change permissions too.
+	assert(page_insert(boot_pgdir, pp2, (void*) PGSIZE, PTE_U) == 0);
+	assert(check_va2pa(boot_pgdir, PGSIZE) == page2pa(pp2));
+	assert(pp2->pp_ref == 1);
+	assert(*pgdir_walk(boot_pgdir, (void*) PGSIZE, 0) & PTE_U);
+	
 	// should not be able to map at PTSIZE because need free page for page table
 	assert(page_insert(boot_pgdir, pp0, (void*) PTSIZE, 0) < 0);
 
@@ -915,12 +934,43 @@ page_check(void)
 
 	// should be no free memory
 	assert(page_alloc(&pp) == -E_NO_MEM);
+	
+	// should be able to page_insert to change a page
+	// and see the new data immediately.
+	memset(page2kva(pp1), 1, PGSIZE);
+	memset(page2kva(pp2), 2, PGSIZE);
+	page_insert(boot_pgdir, pp1, 0x0, 0);
+	assert(pp1->pp_ref == 1);
+	assert(*(int*)0 == 0x01010101);
+	page_insert(boot_pgdir, pp2, 0x0, 0);
+	assert(*(int*)0 == 0x02020202);
+	assert(pp2->pp_ref == 1);
+	assert(pp1->pp_ref == 0);
+	page_remove(boot_pgdir, 0x0);
+	assert(pp2->pp_ref == 0);
 
 	// forcibly take pp0 back
 	assert(PTE_ADDR(boot_pgdir[0]) == page2pa(pp0));
 	boot_pgdir[0] = 0;
 	assert(pp0->pp_ref == 1);
 	pp0->pp_ref = 0;
+	
+	// check pointer arithmetic in pgdir_walk
+	page_free(pp0);
+	va = (void*)(PGSIZE * NPDENTRIES + PGSIZE);
+	ptep = pgdir_walk(boot_pgdir, va, 1);
+	ptep1 = KADDR(PTE_ADDR(boot_pgdir[PDX(va)]));
+	assert(ptep == ptep1 + PTX(va));
+	boot_pgdir[PDX(va)] = 0;
+	pp0->pp_ref = 0;
+	
+	// check that new page tables get cleared
+	memset(page2kva(pp0), 0xFF, PGSIZE);
+	page_free(pp0);
+	pgdir_walk(boot_pgdir, 0x0, 1);
+	ptep = page2kva(pp0);
+	for(i=0; i<NPTENTRIES; i++)
+		assert((ptep[i] & PTE_P) == 0);
 
 	// give free list back
 	page_free_list = fl;
@@ -929,7 +979,7 @@ page_check(void)
 	page_free(pp0);
 	page_free(pp1);
 	page_free(pp2);
-
+	
 	cprintf("page_check() succeeded!\n");
 }
 
