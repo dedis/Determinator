@@ -263,7 +263,7 @@ serve_remove(envid_t envid, struct Fsreq_remove *rq)
 	int r;
 
 	if (debug)
-		cprintf("serve_map %08x %s\n", envid, rq->req_path);
+		cprintf("serve_remove %08x %s\n", envid, rq->req_path);
 
 #if SOL >= 5
 	// Copy in the path, making sure it's null-terminated
