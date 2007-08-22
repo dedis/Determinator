@@ -15,7 +15,7 @@
 //   Use 'env' to discover the value and who sent it.
 //   If 'pg' is null, pass sys_ipc_recv a value that it will understand
 //   as meaning "no page".  (Zero is not the right value.)
-uint32_t
+int32_t
 ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 {
 #if SOL >= 4

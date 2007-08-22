@@ -80,7 +80,7 @@ sys_exofork(void)
 
 // ipc.c
 void	ipc_send(envid_t to_env, uint32_t value, void *pg, int perm);
-uint32_t ipc_recv(envid_t *from_env_store, void *pg, int *perm_store);
+int32_t ipc_recv(envid_t *from_env_store, void *pg, int *perm_store);
 
 // fork.c
 #define	PTE_SHARE	0x400

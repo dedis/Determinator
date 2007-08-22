@@ -455,7 +455,7 @@ sys_ipc_recv(void *dstva)
 
 
 // Dispatches to the correct kernel function, passing the arguments.
-uint32_t
+int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
 {
 #if SOL >= 3
