@@ -13,7 +13,7 @@ sub version_cmp {
     return -1 if ($#$a < 0 && $#$b >= 0);
     return 1 if ($a->[0] > $b->[0]);
     return -1 if ($a->[0] < $b->[0]);
-	shift (@$a); shift (@$b); 
+    shift (@$a); shift (@$b); 
     return version_cmp ($a, $b);
 }
 
