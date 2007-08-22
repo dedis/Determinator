@@ -81,7 +81,6 @@ sys_env_destroy(envid_t envid)
 
 #if LAB >= 4
 // Deschedule current environment and pick a different one to run.
-// The system call returns 0.
 static void
 sys_yield(void)
 {
