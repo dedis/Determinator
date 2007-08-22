@@ -412,6 +412,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	e->env_ipc_recving = 0;
 	e->env_ipc_from = curenv->env_id;
 	e->env_ipc_value = value;
+	e->env_tf.tf_regs.reg_eax = 0;
 	e->env_status = ENV_RUNNABLE;
 	return pgmap;
 #else
