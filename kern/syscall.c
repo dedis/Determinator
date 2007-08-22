@@ -350,7 +350,8 @@ sys_page_unmap(envid_t envid, void *va)
 //    env_ipc_from is set to the sending envid;
 //    env_ipc_value is set to the 'value' parameter;
 //    env_ipc_perm is set to 'perm' if a page was transferred, 0 otherwise.
-// The target environment is marked runnable again.
+// The target environment is marked runnable again, returning 0
+// from the paused ipc_recv system call.
 //
 // If the sender sends a page but the receiver isn't asking for one,
 // then no page mapping is transferred, but no error occurs.
