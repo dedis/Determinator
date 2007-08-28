@@ -4,7 +4,7 @@
 
 /**********************************************************************
  * This a dirt simple boot loader, whose sole job is to boot
- * an elf kernel image from the first IDE hard disk.
+ * an ELF kernel image from the first IDE hard disk.
  *
  * DISK LAYOUT
  *  * This program(boot.S and main.c) is the bootloader.  It should
@@ -25,9 +25,9 @@
  *    hard-drive, this code takes over...
  *
  *  * control starts in bootloader.S -- which sets up protected mode,
- *    and a stack so C code then run, then calls cmain()
+ *    and a stack so C code then run, then calls bootmain()
  *
- *  * cmain() in this file takes over, reads in the kernel and jumps to it.
+ *  * bootmain() in this file takes over, reads in the kernel and jumps to it.
  **********************************************************************/
 
 #define SECTSIZE	512
@@ -37,7 +37,7 @@ void readsect(void*, uint32_t);
 void readseg(uint32_t, uint32_t, uint32_t);
 
 void
-cmain(void)
+bootmain(void)
 {
 	struct Proghdr *ph, *eph;
 
