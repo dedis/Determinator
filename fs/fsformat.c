@@ -34,10 +34,6 @@ typedef int bool;
 #include <inc/mmu.h>
 #include <inc/fs.h>
 
-#ifndef PLAN9
-#define USED
-#endif
-
 #define nelem(x)	(sizeof(x) / sizeof((x)[0]))
 typedef struct Super Super;
 typedef struct File File;
