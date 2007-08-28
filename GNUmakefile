@@ -92,12 +92,11 @@ PERL	:= perl
 # Compiler flags
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
-# -fno-stack-protector is required on newer gcc but rejected by old ones - what to do?
-GCC_VERS = $(shell $(CC) -v 2>&1 | perl -ne '{ print $$1 if /gcc\s+version\s+(\S+)/ ; }' )
-NO_STACK_PROTECTOR = $(shell perl conf/vcmp.pl $(GCC_VERS) 3.4 -fno-stack-protector '')
+CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -O1 -fno-builtin -I$(TOP) -MD 
+CFLAGS += -Wall -Wno-format -Wno-unused -Werror -gstabs
 
-
-CFLAGS	:= $(CFLAGS) $(DEFS) $(LABDEFS) -O1 -fno-builtin -I$(TOP) -MD -Wall -Wno-format -Wno-unused -Werror -gstabs $(NO_STACK_PROTECTOR)
+# Add -fno-stack-protector if the option exists.
+CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 # Linker flags for JOS user programs
 ULDFLAGS := -T user/user.ld
