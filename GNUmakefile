@@ -76,7 +76,7 @@ GCCPREFIX := $(shell if i386-jos-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/de
 endif
 
 CC	:= $(GCCPREFIX)gcc -pipe
-GCC_LIB := $(shell $(CC) -print-libgcc-file-name)
+GCC_LIB := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
 AS	:= $(GCCPREFIX)as
 AR	:= $(GCCPREFIX)ar
 LD	:= $(GCCPREFIX)ld
