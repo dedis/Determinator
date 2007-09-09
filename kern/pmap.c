@@ -588,7 +588,8 @@ page_decref(struct Page* pp)
 //    - If create == 0, pgdir_walk returns NULL.
 //    - Otherwise, pgdir_walk tries to allocate a new page table
 //	with page_alloc.  If this fails, pgdir_walk returns NULL.
-//    - Otherwise, pgdir_walk returns a pointer into the new page table.
+//    - pgdir_walk sets pp_ref to 1 for the new page table.
+//    - Finally, pgdir_walk returns a pointer into the new page table.
 //
 // This is boot_pgdir_walk, but using page_alloc() instead of boot_alloc().
 // Unlike boot_pgdir_walk, pgdir_walk can fail.
