@@ -602,9 +602,6 @@ page_decref(struct Page* pp)
 //    - pgdir_walk sets pp_ref to 1 for the new page table.
 //    - Finally, pgdir_walk returns a pointer into the new page table.
 //
-// This is boot_pgdir_walk, but using page_alloc() instead of boot_alloc().
-// Unlike boot_pgdir_walk, pgdir_walk can fail.
-//
 // Hint: you can turn a Page * into the physical address of the
 // page it refers to with page2pa() from kern/pmap.h.
 pte_t *
