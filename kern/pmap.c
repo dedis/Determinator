@@ -90,6 +90,7 @@ i386_detect_memory(void)
 
 static void check_boot_pgdir(void);
 static void check_page_alloc();
+static void page_check(void);
 static void map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm);
 
 //
@@ -211,6 +212,8 @@ i386_vm_init(void)
 	page_init();
 
         check_page_alloc();
+
+	page_check();
 
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory 
@@ -336,6 +339,9 @@ check_page_alloc()
 	assert(pp0);
 	assert(pp1 && pp1 != pp0);
 	assert(pp2 && pp2 != pp1 && pp2 != pp0);
+        assert(page2pa(pp0) < npage*PGSIZE);
+        assert(page2pa(pp1) < npage*PGSIZE);
+        assert(page2pa(pp2) < npage*PGSIZE);
 
 	// temporarily steal the rest of the free pages
 	fl = page_free_list;
@@ -848,7 +854,7 @@ user_mem_assert(struct Env *env, const void *va, size_t len, int perm)
 
 #endif
 // check page_insert, page_remove, &c
-void
+static void
 page_check(void)
 {
 	struct Page *pp, *pp0, *pp1, *pp2;
@@ -958,6 +964,7 @@ page_check(void)
 	// should be no free memory
 	assert(page_alloc(&pp) == -E_NO_MEM);
 	
+#if 0
 	// should be able to page_insert to change a page
 	// and see the new data immediately.
 	memset(page2kva(pp1), 1, PGSIZE);
@@ -971,6 +978,7 @@ page_check(void)
 	assert(pp1->pp_ref == 0);
 	page_remove(boot_pgdir, 0x0);
 	assert(pp2->pp_ref == 0);
+#endif
 
 	// forcibly take pp0 back
 	assert(PTE_ADDR(boot_pgdir[0]) == page2pa(pp0));

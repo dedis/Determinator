@@ -58,7 +58,6 @@ i386_init(void)
 	// Lab 2 memory management initialization functions
 	i386_detect_memory();
 	i386_vm_init();
-	page_check();
 #endif
 
 #if LAB >= 3
