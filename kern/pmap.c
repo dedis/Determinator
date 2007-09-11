@@ -89,6 +89,7 @@ i386_detect_memory(void)
 // --------------------------------------------------------------
 
 static void check_boot_pgdir(void);
+static void check_page_alloc();
 static void map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm);
 
 //
@@ -209,6 +210,8 @@ i386_vm_init(void)
 	// particular, we can now map memory using page_insert and map_segment
 	page_init();
 
+        check_page_alloc();
+
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory 
 	
@@ -312,6 +315,57 @@ i386_vm_init(void)
 
 	// Flush the TLB for good measure, to kill the pgdir[0] mapping.
 	lcr3(boot_cr3);
+}
+
+//
+// Check the physical page allocator (page_alloc(), page_free(),
+// and page_init()).
+//
+static void
+check_page_alloc()
+{
+	struct Page *pp, *pp0, *pp1, *pp2;
+	struct Page_list fl;
+
+	// should be able to allocate three pages
+	pp0 = pp1 = pp2 = 0;
+	assert(page_alloc(&pp0) == 0);
+	assert(page_alloc(&pp1) == 0);
+	assert(page_alloc(&pp2) == 0);
+
+	assert(pp0);
+	assert(pp1 && pp1 != pp0);
+	assert(pp2 && pp2 != pp1 && pp2 != pp0);
+
+	// temporarily steal the rest of the free pages
+	fl = page_free_list;
+	LIST_INIT(&page_free_list);
+
+	// should be no free memory
+	assert(page_alloc(&pp) == -E_NO_MEM);
+
+        // free and re-allocate?
+        page_free(pp0);
+        page_free(pp1);
+        page_free(pp2);
+	pp0 = pp1 = pp2 = 0;
+	assert(page_alloc(&pp0) == 0);
+	assert(page_alloc(&pp1) == 0);
+	assert(page_alloc(&pp2) == 0);
+	assert(pp0);
+	assert(pp1 && pp1 != pp0);
+	assert(pp2 && pp2 != pp1 && pp2 != pp0);
+	assert(page_alloc(&pp) == -E_NO_MEM);
+
+	// give free list back
+	page_free_list = fl;
+
+	// free the pages we took
+	page_free(pp0);
+	page_free(pp1);
+	page_free(pp2);
+	
+	cprintf("check_page_alloc() succeeded!\n");
 }
 
 //
@@ -793,6 +847,7 @@ user_mem_assert(struct Env *env, const void *va, size_t len, int perm)
 }
 
 #endif
+// check page_insert, page_remove, &c
 void
 page_check(void)
 {
