@@ -155,7 +155,7 @@ i386_vm_init(void)
 
 #if SOL >= 2
 #else
-	// Remove this line when you're ready to test this function.
+	// Remove this line:
 	panic("i386_vm_init: This function is not finished\n");
 #endif
 
