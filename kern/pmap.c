@@ -264,7 +264,7 @@ i386_vm_init(void)
 	// Permissions: kernel RW, user NONE
 	// Your code goes here: 
 #if SOL >= 2
-	map_segment(pgdir, KERNBASE, npage*PGSIZE, 0, PTE_W);
+	map_segment(pgdir, KERNBASE, -KERNBASE, 0, PTE_W);
 #endif
 
 	// Check that the initial page directory has been set up correctly.
@@ -425,7 +425,7 @@ check_boot_pgdir(void)
 			assert(pgdir[i]);
 			break;
 		default:
-			if (i >= PDX(KERNBASE) && i < (PDX(KERNBASE)+npage/NPTENTRIES))
+			if (i >= PDX(KERNBASE))
 				assert(pgdir[i]);
 			else
 				assert(pgdir[i] == 0);
@@ -697,7 +697,7 @@ map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm)
 	size_t i;
 
 	for (i = 0; i < size; i += PGSIZE)
-            page_insert(pgdir, pa2page(pa+i), (void*)(la + i), perm);
+		*pgdir_walk(pgdir, (void*)(la + i), 1) = (pa + i) | perm | PTE_P;
 #endif /* SOL >= 2 */
 }
 
