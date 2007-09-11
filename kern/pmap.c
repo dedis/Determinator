@@ -89,6 +89,7 @@ i386_detect_memory(void)
 // --------------------------------------------------------------
 
 static void check_boot_pgdir(void);
+static void map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm);
 
 //
 // Allocate n bytes of physical memory aligned on an 
@@ -128,78 +129,6 @@ boot_alloc(uint32_t n, uint32_t align)
 	return v;
 #else
 	return NULL;
-#endif /* SOL >= 2 */
-}
-
-//
-// Given pgdir, a pointer to a page directory,
-// walk the 2-level page table structure to find
-// the page table entry (PTE) for linear address la.
-// Return a pointer to this PTE.
-//
-// If the relevant page table doesn't exist in the page directory:
-//	- If create == 0, return 0.
-//	- Otherwise allocate a new page table, install it into pgdir,
-//	  and return a pointer into it.
-//        (Questions: What data should the new page table contain?
-//	  And what permissions should the new pgdir entry have?
-//	  Note that we use the 486-only "WP" feature of %cr0, which
-//	  affects the way supervisor-mode writes are checked.)
-//
-// This function abstracts away the 2-level nature of
-// the page directory by allocating new page tables
-// as needed.
-// 
-// boot_pgdir_walk may ONLY be used during initialization,
-// before the page_free_list has been set up.
-// It should panic on failure.  (Note that boot_alloc already panics
-// on failure.)
-//
-static pte_t*
-boot_pgdir_walk(pde_t *pgdir, uintptr_t la, int create)
-{
-#if SOL >= 2
-	pde_t *pde;
-	pte_t *pgtab;
-
-	pde = &pgdir[PDX(la)];
-	if (*pde & PTE_P)
-		pgtab = (pte_t*) KADDR(PTE_ADDR(*pde));
-	else {
-		if (!create)
-			return 0;
-
-		// Must set PTE_U in directory entry so that we can define
-		// user segments with boot_map_segment.  If the
-		// pages really aren't meant to be user readable,
-		// the page table entries will reflect this.
-
-		pgtab = boot_alloc(PGSIZE, PGSIZE);
-		memset(pgtab, 0, PGSIZE);
-		*pde = PADDR(pgtab) | PTE_P | PTE_U | PTE_W;
-	}
-	return &pgtab[PTX(la)];
-#else
-	return 0;
-#endif /* SOL >= 2 */
-}
-
-//
-// Map [la, la+size) of linear address space to physical [pa, pa+size)
-// in the page table rooted at pgdir.  Size is a multiple of PGSIZE.
-// Use permission bits perm|PTE_P for the entries.
-//
-// This function may ONLY be used during initialization,
-// before the page_free_list has been set up.
-//
-static void
-boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm)
-{
-#if SOL >= 2
-	size_t i;
-
-	for (i = 0; i < size; i += PGSIZE)
-		*boot_pgdir_walk(pgdir, la + i, 1) = (pa + i) | perm | PTE_P;
 #endif /* SOL >= 2 */
 }
 
@@ -249,6 +178,65 @@ i386_vm_init(void)
 	pgdir[PDX(UVPT)] = PADDR(pgdir)|PTE_U|PTE_P;
 
 	//////////////////////////////////////////////////////////////////////
+	// Make 'pages' point to an array of size 'npage' of 'struct Page'.
+	// The kernel uses this structure to keep track of physical pages;
+	// 'npage' equals the number of physical pages in memory.  User-level
+	// programs will get read-only access to the array as well.
+	// You must allocate the array yourself.
+	// Your code goes here: 
+#if SOL >= 2
+	n = npage*sizeof(struct Page);
+	pages = boot_alloc(n, PGSIZE);
+	memset(pages, 0, n);
+#endif
+
+#if LAB >= 3
+
+	//////////////////////////////////////////////////////////////////////
+	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
+	// LAB 3: Your code here.
+#if SOL >= 3
+	n = NENV*sizeof(struct Env);
+	envs = boot_alloc(n, PGSIZE);
+	memset(envs, 0, n);
+#endif	// SOL >= 3
+#endif	// LAB >= 3
+
+	//////////////////////////////////////////////////////////////////////
+	// Now that we've allocated the initial kernel data structures, we set
+	// up the list of free physical pages. Once we've done so, all further
+	// memory management will go through the page_* functions. In
+	// particular, we can now map memory using page_insert and map_segment
+	page_init();
+
+	//////////////////////////////////////////////////////////////////////
+	// Now we set up virtual memory 
+	
+	//////////////////////////////////////////////////////////////////////
+	// Map 'pages' read-only by the user at linear address UPAGES
+	// (ie. perm = PTE_U | PTE_P)
+	// Permissions:
+	//    - pages -- kernel RW, user NONE
+	//    - the read-only version mapped at UPAGES -- kernel R, user R
+	// Your code goes here:
+#if SOL >= 2
+	map_segment(pgdir, UPAGES, n, PADDR(pages), PTE_U);
+#endif
+
+#if LAB >= 3
+	//////////////////////////////////////////////////////////////////////
+	// Map the 'envs' array read-only by the user at linear address UENVS
+	// (ie. perm = PTE_U | PTE_P).
+	// Permissions:
+	//    - envs itself -- kernel RW, user NONE
+	//    - the image of envs mapped at UENVS  -- kernel R, user R
+#if SOL >= 3
+	map_segment(pgdir, UENVS, n, PADDR(envs), PTE_U);
+#endif	// SOL >= 3
+#endif	// LAB >= 3
+
+
+	//////////////////////////////////////////////////////////////////////
 	// Map the kernel stack (symbol name "bootstack").  The complete VA
 	// range of the stack, [KSTACKTOP-PTSIZE, KSTACKTOP), breaks into two
 	// pieces:
@@ -257,7 +245,7 @@ i386_vm_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
 #if SOL >= 2
-	boot_map_segment(pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE,
+	map_segment(pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE,
 		PADDR(bootstack), PTE_W);
 #endif
 
@@ -266,49 +254,12 @@ i386_vm_init(void)
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
 	//      the PA range [0, 2^32 - KERNBASE)
 	// We might not have 2^32 - KERNBASE bytes of physical memory, but
-	// we just set up the mapping anyway.
+	// we just set up the amapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here: 
 #if SOL >= 2
-	boot_map_segment(pgdir, KERNBASE, -KERNBASE, 0, PTE_W);
+	map_segment(pgdir, KERNBASE, npage*PGSIZE, 0, PTE_W);
 #endif
-
-	//////////////////////////////////////////////////////////////////////
-	// Make 'pages' point to an array of size 'npage' of 'struct Page'.
-	// The kernel uses this structure to keep track of physical pages;
-	// 'npage' equals the number of physical pages in memory.  User-level
-	// programs get read-only access to the array as well.
-	// You must allocate the array yourself.
-	// Map this array read-only by the user at linear address UPAGES
-	// (ie. perm = PTE_U | PTE_P)
-	// Permissions:
-	//    - pages -- kernel RW, user NONE
-	//    - the read-only version mapped at UPAGES -- kernel R, user R
-	// Your code goes here: 
-#if SOL >= 2
-	n = npage*sizeof(struct Page);
-	pages = boot_alloc(n, PGSIZE);
-	memset(pages, 0, n);
-	boot_map_segment(pgdir, UPAGES, n, PADDR(pages), PTE_U);
-#endif
-#if LAB >= 3
-
-	//////////////////////////////////////////////////////////////////////
-	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
-	// Map this array read-only by the user at linear address UENVS
-	// (ie. perm = PTE_U | PTE_P).
-	// Permissions:
-	//    - envs itself -- kernel RW, user NONE
-	//    - the image of envs mapped at UENVS  -- kernel R, user R
-	
-	// LAB 3: Your code here.
-#if SOL >= 3
-	n = NENV*sizeof(struct Env);
-	envs = boot_alloc(n, PGSIZE);
-	memset(envs, 0, n);
-	boot_map_segment(pgdir, UENVS, n, PADDR(envs), PTE_U);
-#endif	// SOL >= 3
-#endif	// LAB >= 3
 
 	// Check that the initial page directory has been set up correctly.
 	check_boot_pgdir();
@@ -394,7 +345,7 @@ check_boot_pgdir(void)
 #endif
 
 	// check phys mem
-	for (i = 0; KERNBASE + i != 0; i += PGSIZE)
+	for (i = 0; i < npage; i += PGSIZE)
 		assert(check_va2pa(pgdir, KERNBASE + i) == i);
 
 	// check kernel stack
@@ -414,7 +365,7 @@ check_boot_pgdir(void)
 			assert(pgdir[i]);
 			break;
 		default:
-			if (i >= PDX(KERNBASE))
+			if (i >= PDX(KERNBASE) && i < (PDX(KERNBASE)+npage/NPTENTRIES))
 				assert(pgdir[i]);
 			else
 				assert(pgdir[i] == 0);
@@ -453,7 +404,7 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 // Initialize page structure and memory free list.
 // After this point, ONLY use the functions below
 // to allocate and deallocate physical memory via the page_free_list,
-// and NEVER use boot_alloc() or the related boot-time functions above.
+// and NEVER use boot_alloc()
 //
 void
 page_init(void)
@@ -672,6 +623,22 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 	// Fill this function in
 	return 0;
 #endif /* not SOL >= 2 */
+}
+
+//
+// Map [la, la+size) of linear address space to physical [pa, pa+size)
+// in the page table rooted at pgdir.  Size is a multiple of PGSIZE.
+// Use permission bits perm|PTE_P for the entries.
+//
+static void
+map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm)
+{
+#if SOL >= 2
+	size_t i;
+
+	for (i = 0; i < size; i += PGSIZE)
+            page_insert(pgdir, pa2page(pa+i), (void*)(la + i), perm);
+#endif /* SOL >= 2 */
 }
 
 //
