@@ -94,6 +94,10 @@ static void page_check(void);
 static void boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm);
 
 //
+// A simple physical memory allocator, used only a few times
+// in the process of setting up the virtual memory system.
+// page_alloc() is the real allocator.
+//
 // Allocate n bytes of physical memory aligned on an 
 // align-byte boundary.  Align must be a power of two.
 // Return kernel virtual address.  Returned memory is uninitialized.
@@ -155,7 +159,7 @@ i386_vm_init(void)
 
 #if SOL >= 2
 #else
-	// Remove this line:
+	// Delete this line:
 	panic("i386_vm_init: This function is not finished\n");
 #endif
 
@@ -329,6 +333,12 @@ check_page_alloc()
 {
 	struct Page *pp, *pp0, *pp1, *pp2;
 	struct Page_list fl;
+	
+        // if there's a page that shouldn't be on
+        // the free list, try to make sure it
+        // eventually causes trouble.
+	LIST_FOREACH(pp0, &page_free_list, pp_link)
+		memset(page2kva(pp0), 0x97, 128);
 
 	// should be able to allocate three pages
 	pp0 = pp1 = pp2 = 0;
@@ -370,7 +380,7 @@ check_page_alloc()
 	page_free(pp0);
 	page_free(pp1);
 	page_free(pp2);
-	
+
 	cprintf("check_page_alloc() succeeded!\n");
 }
 
@@ -866,13 +876,6 @@ page_check(void)
 	pte_t *ptep, *ptep1;
 	void *va;
 	int i;
-
-	// poison the pages on the free list 
-	// to sniff out problems in the future.
-	// ideally we'd memset the entire page
-	// but it takes too long using bochs.
-	LIST_FOREACH(pp0, &page_free_list, pp_link)
-		memset(page2kva(pp0), 0x97, 128);
 
 	// should be able to allocate three pages
 	pp0 = pp1 = pp2 = 0;
