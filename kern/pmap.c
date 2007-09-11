@@ -91,7 +91,7 @@ i386_detect_memory(void)
 static void check_boot_pgdir(void);
 static void check_page_alloc();
 static void page_check(void);
-static void map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm);
+static void boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm);
 
 //
 // Allocate n bytes of physical memory aligned on an 
@@ -208,7 +208,7 @@ i386_vm_init(void)
 	// Now that we've allocated the initial kernel data structures, we set
 	// up the list of free physical pages. Once we've done so, all further
 	// memory management will go through the page_* functions. In
-	// particular, we can now map memory using page_insert and map_segment
+	// particular, we can now map memory using boot_map_segment or page_insert
 	page_init();
 
         check_page_alloc();
@@ -226,7 +226,7 @@ i386_vm_init(void)
 	//    - the read-only version mapped at UPAGES -- kernel R, user R
 	// Your code goes here:
 #if SOL >= 2
-	map_segment(pgdir, UPAGES, n, PADDR(pages), PTE_U);
+	boot_map_segment(pgdir, UPAGES, n, PADDR(pages), PTE_U);
 #endif
 
 #if LAB >= 3
@@ -237,7 +237,7 @@ i386_vm_init(void)
 	//    - envs itself -- kernel RW, user NONE
 	//    - the image of envs mapped at UENVS  -- kernel R, user R
 #if SOL >= 3
-	map_segment(pgdir, UENVS, n, PADDR(envs), PTE_U);
+	boot_map_segment(pgdir, UENVS, n, PADDR(envs), PTE_U);
 #endif	// SOL >= 3
 #endif	// LAB >= 3
 
@@ -251,7 +251,7 @@ i386_vm_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
 #if SOL >= 2
-	map_segment(pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE,
+	boot_map_segment(pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE,
 		PADDR(bootstack), PTE_W);
 #endif
 
@@ -264,7 +264,7 @@ i386_vm_init(void)
 	// Permissions: kernel RW, user NONE
 	// Your code goes here: 
 #if SOL >= 2
-	map_segment(pgdir, KERNBASE, -KERNBASE, 0, PTE_W);
+	boot_map_segment(pgdir, KERNBASE, -KERNBASE, 0, PTE_W);
 #endif
 
 	// Check that the initial page directory has been set up correctly.
@@ -687,15 +687,22 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 // in the page table rooted at pgdir.  Size is a multiple of PGSIZE.
 // Use permission bits perm|PTE_P for the entries.
 //
+// This function is only intended to set up the ``static'' mappings
+// above UTOP. As such, it should *not* change the pp_ref field on the
+// mapped pages.
+//
+// Hint: the TA solution uses pgdir_walk
 static void
-map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm)
+boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm)
 {
 #if SOL >= 2
 	size_t i;
 
 	for (i = 0; i < size; i += PGSIZE)
 		*pgdir_walk(pgdir, (void*)(la + i), 1) = (pa + i) | perm | PTE_P;
-#endif /* SOL >= 2 */
+#else /* not SOL >= 2 */
+	// Fill this function in
+#endif /* not SOL >= 2 */
 }
 
 //
