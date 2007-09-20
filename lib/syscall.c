@@ -110,7 +110,7 @@ sys_env_set_pgfault_upcall(envid_t envid, void *upcall)
 int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, int perm)
 {
-	return syscall(SYS_ipc_try_send, 1, envid, value, (uint32_t) srcva, perm, 0);
+	return syscall(SYS_ipc_try_send, 0, envid, value, (uint32_t) srcva, perm, 0);
 }
 
 int
