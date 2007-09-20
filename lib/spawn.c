@@ -321,7 +321,6 @@ copy_shared_pages(envid_t child)
 	int pn, last_pn, r;
 	void* va;
 
-#if SOL >= 5
 	for (pn = 0; pn < VPN(UTOP); ) {
 		if (!(vpd[pn >> 10] & PTE_P))
 			pn += NPTENTRIES;
@@ -335,15 +334,6 @@ copy_shared_pages(envid_t child)
 				}
 		}
 	}
-#else
-	// Loop over all pages in the current address space,
-	// and copy any pages marked as PTE_SHARE into 'child'
-	// at the same location and with the same permissions.
-	// Hint: Use vpd, vpt, and sys_page_map.
-
-	// LAB 5: Your code here.
-#endif
-	
 	return 0;
 }
 #endif
