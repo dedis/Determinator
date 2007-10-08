@@ -230,6 +230,7 @@ i386_vm_init(void)
 	//    - the read-only version mapped at UPAGES -- kernel R, user R
 	// Your code goes here:
 #if SOL >= 2
+	n = npage*sizeof(struct Page);
 	boot_map_segment(pgdir, UPAGES, n, PADDR(pages), PTE_U);
 #endif
 
@@ -241,6 +242,7 @@ i386_vm_init(void)
 	//    - envs itself -- kernel RW, user NONE
 	//    - the image of envs mapped at UENVS  -- kernel R, user R
 #if SOL >= 3
+	n = NENV*sizeof(struct Env);
 	boot_map_segment(pgdir, UENVS, n, PADDR(envs), PTE_U);
 #endif	// SOL >= 3
 #endif	// LAB >= 3
