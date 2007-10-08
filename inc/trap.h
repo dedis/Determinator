@@ -30,6 +30,13 @@
 #define T_SYSCALL   48		// system call
 #define T_DEFAULT   500		// catchall
 
+// Hardware IRQ numbers. We receive these as (IRQ_OFFSET+IRQ_WHATEVER)
+#define IRQ_TIMER        0
+#define IRQ_KBD          1
+#define IRQ_IDE         14
+#define IRQ_ERROR       19
+#define IRQ_SPURIOUS    31
+
 #ifndef __ASSEMBLER__
 
 #include <inc/types.h>
