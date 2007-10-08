@@ -125,7 +125,7 @@ sys_exofork(void)
 static int
 sys_env_set_status(envid_t envid, int status)
 {
-#if SOL >= 3
+#if SOL >= 4
 	struct Env *e;
 	int r;
 
@@ -319,7 +319,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
 static int
 sys_page_unmap(envid_t envid, void *va)
 {
-#if SOL >= 3
+#if SOL >= 4
 	int r;
 	struct Env *e;
 
