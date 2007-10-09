@@ -15,14 +15,12 @@ int	iscons(int fd);
 // lib/printfmt.c
 void	printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...);
 void	vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list);
+int	snprintf(char *str, int size, const char *fmt, ...);
+int	vsnprintf(char *str, int size, const char *fmt, va_list);
 
 // lib/printf.c
 int	cprintf(const char *fmt, ...);
 int	vcprintf(const char *fmt, va_list);
-
-// lib/sprintf.c
-int	snprintf(char *str, int size, const char *fmt, ...);
-int	vsnprintf(char *str, int size, const char *fmt, va_list);
 
 // lib/fprintf.c
 int	printf(const char *fmt, ...);
