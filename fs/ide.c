@@ -44,7 +44,9 @@ ide_probe_disk1(void)
 	outb(0x1F6, 0xE0 | (1<<4));
 
 	// check for Device 1 to be ready for a while
-	for (x = 0; x < 1000 && (r = inb(0x1F7)) == 0; x++)
+	for (x = 0; 
+           x < 1000 && ((r = inb(0x1F7)) & (IDE_BSY|IDE_DF|IDE_ERR)) != 0; 
+           x++)
 		/* do nothing */;
 
 	// switch back to Device 0
