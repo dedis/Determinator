@@ -230,20 +230,24 @@ trap_dispatch(struct Trapframe *tf)
 		serial_intr();
 		return;
 	}
-	if (tf->tf_trapno >= IRQ_OFFSET && tf->tf_trapno < IRQ_OFFSET + MAX_IRQS) {
-		// just ignore spurious interrupts
-		cprintf("spurious interrupt on irq %d\n", tf->tf_trapno - IRQ_OFFSET);
-		print_trapframe(tf);
-		return;
-	}
 #else	// SOL >= 4
 	// Handle clock and serial interrupts.
 	// LAB 4: Your code here.
-#if LAB >= 5
+
+	// Handle spurious interupts
+	// The hardware sometimes raises these because of noise on the
+	// IRQ line or other reasons. We don't care.
+	if (tf->tf_trapno == IRQ_OFFSET + IRQ_SPURIOUS) {
+		cprintf("Spurious interrupt on irq 7\n");
+		print_trapframe(tf);
+		return;
+	}
+
+#if LAB >= 6
 
 	// Handle keyboard interrupts.
-	// LAB 5: Your code here.
-#endif	// LAB >= 5
+	// LAB 6: Your code here.
+#endif	// LAB >= 6
 #endif	// SOL >= 4
 #endif	// LAB >= 4
 
