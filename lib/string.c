@@ -6,6 +6,7 @@
 // Using assembly for memset/memmove
 // makes some difference on real hardware,
 // but it makes an even bigger difference on bochs.
+// Primespipe runs 3x faster this way.
 #define ASM 1
 
 int
