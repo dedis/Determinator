@@ -85,6 +85,7 @@ again:
 				dup(fd, 1);
 				close(fd);
 			}
+			ftruncate(fd, 0);
 #else
 			// Open 't' for writing as file descriptor 1
 			// (which environments use as standard output).
@@ -93,6 +94,7 @@ again:
 			// then check whether 'fd' is 1.
 			// If not, dup 'fd' onto file descriptor 1,
 			// then close the original 'fd'.
+			// Also, truncate fd.
 			
 			// LAB 5: Your code here.
 			panic("> redirection not implemented");
