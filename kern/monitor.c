@@ -9,11 +9,9 @@
 
 #include <kern/console.h>
 #include <kern/monitor.h>
+#include <kern/kdebug.h>
 #if LAB >= 3
 #include <kern/trap.h>
-#endif
-#if LAB >= 2
-#include <kern/kdebug.h>
 #endif
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
