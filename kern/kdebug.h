@@ -1,4 +1,3 @@
-#if LAB >= 2
 #ifndef JOS_KERN_KDEBUG_H
 #define JOS_KERN_KDEBUG_H
 
@@ -18,5 +17,4 @@ struct Eipdebuginfo {
 
 int debuginfo_eip(uintptr_t eip, struct Eipdebuginfo *info);
 
-#endif
 #endif

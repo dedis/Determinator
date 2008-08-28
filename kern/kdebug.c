@@ -1,12 +1,13 @@
-#if LAB >= 2
 #include <inc/stab.h>
 #include <inc/string.h>
 #include <inc/memlayout.h>
 #include <inc/assert.h>
 
 #include <kern/kdebug.h>
+#if LAB >= 3
 #include <kern/pmap.h>
 #include <kern/env.h>
+#endif
 
 extern const struct Stab __STAB_BEGIN__[];	// Beginning of stabs table
 extern const struct Stab __STAB_END__[];	// End of stabs table
@@ -166,7 +167,7 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 		    || user_mem_check(curenv, stabstr, (uintptr_t) stabstr_end - (uintptr_t) stabstr, PTE_U) < 0)
 			return -1;
 #endif
-#endif	// LAB >= 2
+#endif	// LAB > 2
 	}
 
 	// String table validity checks
@@ -220,7 +221,7 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 	//	There's a particular stabs type used for line numbers.
 	//	Look at the STABS documentation and <inc/stab.h> to find
 	//	which one.
-#if SOL >= 2
+#if SOL >= 1
 	stab_binsearch(stabs, &lline, &rline, N_SLINE, addr);
 	if (lline > rline)
 		return -1;
@@ -245,7 +246,7 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 
 	// Set eip_fn_narg to the number of arguments taken by the function,
 	// or 0 if there was no containing function.
-#if SOL >= 2
+#if SOL >= 1
 	if (lfun < rfun)
 		for (lline = lfun + 1;
 		     lline < rfun && stabs[lline].n_type == N_PSYM;
@@ -258,4 +259,3 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 	
 	return 0;
 }
-#endif

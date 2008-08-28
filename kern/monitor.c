@@ -76,9 +76,7 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 #if SOL >= 1
 	int i;
 	const uint32_t *ebp; 
-#if SOL >= 2
 	struct Eipdebuginfo info;
-#endif
 
 	ebp = (const uint32_t*)read_ebp();
 #if SOL >= 3
@@ -94,10 +92,8 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 			cprintf(" %08x", ebp[2+i]);
 		cprintf("\n");
 
-#if SOL >= 2
 		if (debuginfo_eip(ebp[1], &info) >= 0)
 			cprintf("         %s:%d: %.*s+%x\n", info.eip_file, info.eip_line, info.eip_fn_namelen, info.eip_fn_name, ebp[1] - info.eip_fn_addr);
-#endif
 		// move to next lower stack frame
 		ebp = (const uint32_t*) ebp[0];
 	}
