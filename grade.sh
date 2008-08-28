@@ -610,7 +610,7 @@ score=0
 	cnt=`echo $args | grep '^00000000 00000000 00000001 00000002 00000003 00000004 00000005' | wc -w`
 	if [ $cnt -eq 8 ]
 	then
-		score=`expr 15 + $score`
+		score=`expr 10 + $score`
 		echo_n "Count OK"
 	else
 		echo_n "Count WRONG"
@@ -620,10 +620,19 @@ score=0
 { print $6 }
 END { printf("\n") }' | grep '^00000000 00000000 00000001 00000002 00000003 00000004 00000005' | wc -w`
 	if [ $cnt -eq 8 ]; then
-		score=`expr 15 + $score`
-		echo , Args OK $time
+		score=`expr 10 + $score`
+		echo_n , Args OK
 	else
-		echo , Args WRONG "($args)" $time
+		echo_n , Args WRONG "($args)"
+	fi
+
+	syms=`grep "kern/init.c:.* test_backtrace+" bochs.out`
+	symcnt=`grep "kern/init.c:.* test_backtrace+" bochs.out | wc -l`
+	if [ $symcnt -eq 6 ]; then
+		score=`expr 10 + $score`
+		echo , Symbols OK $time
+	else
+		echo , Symbols WRONG "($syms)" $time
 	fi
 
 echo "Score: $score/50"
