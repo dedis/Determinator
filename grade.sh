@@ -626,8 +626,8 @@ END { printf("\n") }' | grep '^00000000 00000000 00000001 00000002 00000003 0000
 		echo_n , Args WRONG "($args)"
 	fi
 
-	syms=`grep "kern/init.c:.* test_backtrace+" bochs.out`
-	symcnt=`grep "kern/init.c:.* test_backtrace+" bochs.out | wc -l`
+	syms=`grep "kern/init.c:.* test_backtrace" bochs.out`
+	symcnt=`grep "kern/init.c:.* test_backtrace" bochs.out | wc -l`
 	if [ $symcnt -eq 6 ]; then
 		score=`expr 10 + $score`
 		echo , Symbols OK $time
