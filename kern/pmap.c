@@ -616,6 +616,10 @@ page_decref(struct Page* pp)
 //
 // Hint: you can turn a Page * into the physical address of the
 // page it refers to with page2pa() from kern/pmap.h.
+//
+// Hint 2: the x86 MMU checks permission bits in both the page directory
+// and the page table, so it's safe to leave permissions in the page
+// more permissive than strictly necessary.
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
@@ -934,12 +938,14 @@ page_check(void)
 	assert(check_va2pa(boot_pgdir, PGSIZE) == page2pa(pp2));
 	assert(pp2->pp_ref == 1);
 	assert(*pgdir_walk(boot_pgdir, (void*) PGSIZE, 0) & PTE_U);
+	assert(boot_pgdir[0] & PTE_U);
 	
 	// should not be able to map at PTSIZE because need free page for page table
 	assert(page_insert(boot_pgdir, pp0, (void*) PTSIZE, 0) < 0);
 
 	// insert pp1 at PGSIZE (replacing pp2)
 	assert(page_insert(boot_pgdir, pp1, (void*) PGSIZE, 0) == 0);
+	assert(!(*pgdir_walk(boot_pgdir, (void*) PGSIZE, 0) & PTE_U));
 
 	// should have pp1 at both 0 and PGSIZE, pp2 nowhere, ...
 	assert(check_va2pa(boot_pgdir, 0) == page2pa(pp1));
