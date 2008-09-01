@@ -226,8 +226,8 @@ i386_vm_init(void)
 	// Map 'pages' read-only by the user at linear address UPAGES
 	// (ie. perm = PTE_U | PTE_P)
 	// Permissions:
-	//    - pages -- kernel RW, user NONE
-	//    - the read-only version mapped at UPAGES -- kernel R, user R
+	//    - the new image at UPAGES -- kernel R, user R
+	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
 #if SOL >= 2
 	n = npage*sizeof(struct Page);
@@ -239,8 +239,8 @@ i386_vm_init(void)
 	// Map the 'envs' array read-only by the user at linear address UENVS
 	// (ie. perm = PTE_U | PTE_P).
 	// Permissions:
+	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
-	//    - the image of envs mapped at UENVS  -- kernel R, user R
 #if SOL >= 3
 	n = NENV*sizeof(struct Env);
 	boot_map_segment(pgdir, UENVS, n, PADDR(envs), PTE_U);
@@ -249,7 +249,8 @@ i386_vm_init(void)
 
 
 	//////////////////////////////////////////////////////////////////////
-	// Map the kernel stack (symbol name "bootstack").  The complete VA
+        // Use the physical memory that bootstack refers to as
+        // the kernel stack.  The complete VA
 	// range of the stack, [KSTACKTOP-PTSIZE, KSTACKTOP), breaks into two
 	// pieces:
 	//     * [KSTACKTOP-KSTKSIZE, KSTACKTOP) -- backed by physical memory
