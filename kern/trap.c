@@ -39,7 +39,7 @@ static const char *trapname(int trapno)
 		"BOUND Range Exceeded",
 		"Invalid Opcode",
 		"Device Not Available",
-		"Double Falt",
+		"Double Fault",
 		"Coprocessor Segment Overrun",
 		"Invalid TSS",
 		"Segment Not Present",
