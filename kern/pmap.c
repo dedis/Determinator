@@ -418,7 +418,7 @@ check_boot_pgdir(void)
 #endif
 
 	// check phys mem
-	for (i = 0; i < npage; i += PGSIZE)
+	for (i = 0; i < npage * PGSIZE; i += PGSIZE)
 		assert(check_va2pa(pgdir, KERNBASE + i) == i);
 
 	// check kernel stack
