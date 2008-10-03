@@ -660,12 +660,15 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 // The permissions (the low 12 bits) of the page table
 //  entry should be set to 'perm|PTE_P'.
 //
-// Details
-//   - If there is already a page mapped at 'va', it is page_remove()d.
-//   - If necessary, on demand, allocates a page table and inserts it into
-//     'pgdir'.
+// Requirements
+//   - If there is already a page mapped at 'va', it should be page_remove()d.
+//   - If necessary, on demand, a page table should be allocated and inserted
+//     into 'pgdir'.
 //   - pp->pp_ref should be incremented if the insertion succeeds.
 //   - The TLB must be invalidated if a page was formerly present at 'va'.
+//
+// Corner-case hint: Make sure to consider what happens when the same 
+// pp is re-inserted at the same virtual address in the same pgdir.
 //
 // RETURNS: 
 //   0 on success
