@@ -231,7 +231,7 @@ trap_dispatch(struct Trapframe *tf)
 		return;
 	}
 #else	// SOL >= 4
-	// Handle clock and serial interrupts.
+	// Handle clock interrupts.
 	// LAB 4: Your code here.
 
 	// Handle spurious interupts
