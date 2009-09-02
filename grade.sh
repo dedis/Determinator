@@ -621,9 +621,9 @@ score=0
 END { printf("\n") }' | grep '^00000000 00000000 00000001 00000002 00000003 00000004 00000005' | wc -w`
 	if [ $cnt -eq 8 ]; then
 		score=`expr 10 + $score`
-		echo_n , Args OK
+		echo_n ', Args OK'
 	else
-		echo_n , Args WRONG "($args)"
+		echo_n ', Args WRONG (' $args ')'
 	fi
 
 	syms=`grep "kern/init.c:.* test_backtrace" bochs.out`
