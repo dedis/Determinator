@@ -40,9 +40,9 @@ run () {
 	(
 		ulimit -t $timeout
 #if LAB >= 5
-		$qemu -nographic -hda obj/kern/kernel.img -hdb obj/fs/fs.img -serial null -parallel file:jos.out -no-kqemu -s -S -p $port
+		$qemu -nographic -hda obj/kern/kernel.img -hdb obj/fs/fs.img -serial file:jos.out -no-kqemu -s -S -p $port
 #else
-		$qemu -nographic -hda obj/kern/kernel.img -serial null -parallel file:jos.out -no-kqemu -s -S -p $port
+		$qemu -nographic -hda obj/kern/kernel.img -serial file:jos.out -no-kqemu -s -S -p $port
 #endif
 	) >$out 2>$err &
 
