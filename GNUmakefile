@@ -89,7 +89,7 @@ QEMU := $(shell if uname | grep -i Darwin >/dev/null 2>&1; \
 endif
 
 # try to generate a unique GDB port
-GDBPORT	:= $(shell expr $$UID % 5000 + 25000)
+GDBPORT	:= $(shell expr `id -u` % 5000 + 25000)
 
 CC	:= $(GCCPREFIX)gcc -pipe
 AS	:= $(GCCPREFIX)as
@@ -285,14 +285,14 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 #if LAB <= 999
 ifdef LAB5
 IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
-QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -parallel /dev/stdout -no-kqemu
+QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -parallel stdio
 else
 IMAGES = $(OBJDIR)/kern/kernel.img
-QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -parallel /dev/stdout -no-kqemu
+QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -parallel stdio
 endif
 #else
 IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
-QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -parallel /dev/stdout -no-kqemu
+QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -parallel stdio
 #endif
 
 .gdbinit: .gdbinit.tmpl
