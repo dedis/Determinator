@@ -175,8 +175,8 @@ endif	# LAB != 3
 endif	# LAB != 2
 endif	# LAB != 1
 
-labsetup/grade.sh: grade.sh mklab.pl
-	$(MKLABENV) $(PERL) mklab.pl $(LAB) 0 labsetup grade.sh
+labsetup/grade-functions.sh: grade-functions.sh mklab.pl
+	$(MKLABENV) $(PERL) mklab.pl $(LAB) 0 labsetup grade-functions.sh
 
 ifndef LAB5
 all: $(OBJDIR)/fs/fs.img
@@ -207,10 +207,11 @@ include fs/Makefrag
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S *.ld
 LAB_DIRS := inc boot kern lib user fs
-LAB_FILES := CODING GNUmakefile mergedep.pl grade.sh .gdbinit.tmpl boot/sign.pl \
+LAB_FILES := CODING GNUmakefile mergedep.pl grade-functions.sh .gdbinit.tmpl boot/sign.pl \
 	fs/lorem fs/motd fs/newmotd fs/script \
 	fs/testshell.sh fs/testshell.key fs/testshell.out fs/out \
 	conf/env.mk \
+	$(foreach lab,1,grade-lab$(lab).sh) \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
 # Fake targets to export the student lab handout and solution trees.
@@ -325,10 +326,10 @@ realclean: clean
 distclean: realclean
 	rm -rf conf/gcc.mk
 
-grade: $(LABSETUP)grade.sh
+grade: $(LABSETUP)grade-lab$(LAB).sh
 	$(V)$(MAKE) clean >/dev/null 2>/dev/null
 	$(MAKE) all
-	sh $(LABSETUP)grade.sh
+	sh $(LABSETUP)grade-lab$(LAB).sh
 
 #ifdef ENV_HANDIN_COPY
 HANDIN_CMD = tar cf - . | gzip > ~class/handin/lab$(LAB)/$$USER/lab$(LAB)-handin.tar.gz
