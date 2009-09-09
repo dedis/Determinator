@@ -12,6 +12,8 @@ else
 	err=/dev/null
 fi
 
+if gmake --version >/dev/null 2>&1; then make=gmake; else make=make; fi
+
 pts=5
 timeout=30
 preservefs=n
@@ -60,12 +62,12 @@ runtest () {
 	[ "$preservefs" = y ] || rm -f obj/fs/fs.img
 	if $verbose
 	then
-		echo "gmake $2... "
+		echo "$make $2... "
 	fi
-	gmake $2 >$out
+	$make $2 >$out
 	if [ $? -ne 0 ]
 	then
-		echo gmake $2 failed 
+		echo $make $2 failed 
 		exit 1
 	fi
 	runbochs
@@ -236,7 +238,7 @@ score=0
 # Reset the file system to its original, pristine state
 resetfs() {
 	rm -f obj/fs/fs.img
-	gmake obj/fs/fs.img >$out
+	$make obj/fs/fs.img >$out
 }
 
 
@@ -556,7 +558,7 @@ fi
 
 #elif LAB >= 2		/******************** LAB 2 ********************/
 
-gmake
+$make
 runbochs
 
 score=0
@@ -587,7 +589,7 @@ fi
 
 #elif LAB >= 1		/******************** LAB 1 ********************/
 
-gmake
+$make
 runbochs
 
 score=0
