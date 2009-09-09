@@ -88,6 +88,9 @@ QEMU := $(shell if uname | grep -i Darwin >/dev/null 2>&1; \
 	echo "***" 1>&2; exit 1)
 endif
 
+# try to generate a unique GDB port
+GDBPORT	:= $(shell expr $$UID % 5000 + 25000)
+
 CC	:= $(GCCPREFIX)gcc -pipe
 AS	:= $(GCCPREFIX)as
 AR	:= $(GCCPREFIX)ar
@@ -204,7 +207,7 @@ include fs/Makefrag
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S *.ld
 LAB_DIRS := inc boot kern lib user fs
-LAB_FILES := CODING GNUmakefile mergedep.pl grade.sh .gdbinit boot/sign.pl \
+LAB_FILES := CODING GNUmakefile mergedep.pl grade.sh .gdbinit.tmpl boot/sign.pl \
 	fs/lorem fs/motd fs/newmotd fs/script \
 	fs/testshell.sh fs/testshell.key fs/testshell.out fs/out \
 	conf/env.mk \
@@ -291,6 +294,9 @@ IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
 QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -parallel /dev/stdout -no-kqemu
 #endif
 
+.gdbinit: .gdbinit.tmpl
+	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
+
 qemu: $(IMAGES)
 	$(QEMU) $(QEMUOPTS)
 
@@ -298,13 +304,13 @@ qemu-nox: $(IMAGES)
 	echo "*** Use Ctrl-a x to exit"
 	$(QEMU) -nographic $(QEMUOPTS)
 
-qemu-gdb: $(IMAGES)
+qemu-gdb: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
-	$(QEMU) $(QEMUOPTS) -s -S
+	$(QEMU) $(QEMUOPTS) -s -S -p $(GDBPORT)
 
-qemu-gdb-nox: $(IMAGES)
+qemu-gdb-nox: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
-	$(QEMU) -nographic $(QEMUOPTS) -s -S
+	$(QEMU) -nographic $(QEMUOPTS) -s -S -p $(GDBPORT)
 
 which-qemu:
 	@echo $(QEMU)

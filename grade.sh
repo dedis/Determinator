@@ -31,20 +31,23 @@ run () {
 	brkaddr=`grep 'readline$' obj/kern/kernel.sym | sed -e's/ .*$//g'`
 	#echo "brkaddr $brkaddr"
 
+	# Generate a unique GDB port
+	port=`expr $UID % 5000 + 25000`
+
 	# Run qemu, setting a breakpoint at readline(),
 	# and feeding in appropriate commands to run, then quit.
 	t0=`date +%s.%N 2>/dev/null`
 	(
 		ulimit -t $timeout
 #if LAB >= 5
-		$qemu -nographic -hda obj/kern/kernel.img -hdb obj/fs/fs.img -serial null -parallel file:jos.out -no-kqemu -s -S
+		$qemu -nographic -hda obj/kern/kernel.img -hdb obj/fs/fs.img -serial null -parallel file:jos.out -no-kqemu -s -S -p $port
 #else
-		$qemu -nographic -hda obj/kern/kernel.img -serial null -parallel file:jos.out -no-kqemu -s -S
+		$qemu -nographic -hda obj/kern/kernel.img -serial null -parallel file:jos.out -no-kqemu -s -S -p $port
 #endif
 	) >$out 2>$err &
 
 	(
-		echo "target remote localhost:1234"
+		echo "target remote localhost:$port"
 #if LAB >= 2
 		echo "br *0x$brkaddr"
 #else
