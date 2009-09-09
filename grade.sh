@@ -17,6 +17,7 @@ if gmake --version >/dev/null 2>&1; then make=gmake; else make=make; fi
 pts=5
 timeout=30
 preservefs=n
+qemu=`$make -s --no-print-directory which-qemu`
 
 echo_n () {
 	# suns can't echo -n, and Mac OS X can't echo "x\c"
@@ -24,33 +25,39 @@ echo_n () {
 	awk 'BEGIN { printf("'"$*"'"); }' </dev/null
 }
 
-runbochs () {
+run () {
 	# Find the address of the kernel readline function,
 	# which the kernel monitor uses to read commands interactively.
 	brkaddr=`grep 'readline$' obj/kern/kernel.sym | sed -e's/ .*$//g'`
 	#echo "brkaddr $brkaddr"
 
-	# Run Bochs, setting a breakpoint at readline(),
+	# Run qemu, setting a breakpoint at readline(),
 	# and feeding in appropriate commands to run, then quit.
 	t0=`date +%s.%N 2>/dev/null`
 	(
-		# The sleeps are necessary in some Bochs to 
-		# make it parse each line separately.  Sleeping 
-		# here sure beats waiting for the timeout.
-		echo vbreak 0x8:0x$brkaddr
-		sleep .5
-		echo c
-		# EOF will do just fine to quit.
-	) | (
 		ulimit -t $timeout
-		# date
-		bochs -q 'display_library: nogui' \
-			'parport1: enabled=1, file="bochs.out"' 
-		# date
-	) >$out 2>$err
+#if LAB >= 5
+		$qemu -nographic -hda obj/kern/kernel.img -hdb obj/fs/fs.img -serial null -parallel file:jos.out -no-kqemu -s -S
+#else
+		$qemu -nographic -hda obj/kern/kernel.img -serial null -parallel file:jos.out -no-kqemu -s -S
+#endif
+	) >$out 2>$err &
+
+	(
+		echo "target remote localhost:1234"
+#if LAB >= 2
+		echo "br *0x$brkaddr"
+#else
+		echo "br *(0x$brkaddr-0xf0000000)"
+#endif
+		echo c
+	) > jos.in
+
+	gdb -batch -nx -x jos.in > /dev/null
 	t1=`date +%s.%N 2>/dev/null`
 	time=`echo "scale=1; ($t1-$t0)/1" | sed 's/.N/.0/g' | bc 2>/dev/null`
 	time="(${time}s)"
+	rm jos.in
 }
 
 #if LAB >= 3
@@ -70,10 +77,10 @@ runtest () {
 		echo $make $2 failed 
 		exit 1
 	fi
-	runbochs
-	if [ ! -s bochs.out ]
+	run
+	if [ ! -s jos.out ]
 	then
-		echo 'no bochs.out'
+		echo 'no jos.out'
 	else
 		shift
 		shift
@@ -104,7 +111,7 @@ continuetest () {
 			not=true
 		elif $not
 		then
-			if egrep "^$i\$" bochs.out >/dev/null
+			if egrep "^$i\$" jos.out >/dev/null
 			then
 				echo "got unexpected line '$i'"
 				if $verbose
@@ -115,7 +122,7 @@ continuetest () {
 			fi
 			not=false
 		else
-			egrep "^$i\$" bochs.out >/dev/null
+			egrep "^$i\$" jos.out >/dev/null
 			if [ $? -ne 0 ]
 			then
 				echo "missing '$i'"
@@ -559,12 +566,12 @@ fi
 #elif LAB >= 2		/******************** LAB 2 ********************/
 
 $make
-runbochs
+run
 
 score=0
 
 echo_n "Page directory: "
- if grep "check_boot_pgdir() succeeded!" bochs.out >/dev/null
+ if grep "check_boot_pgdir() succeeded!" jos.out >/dev/null
  then
 	score=`expr 20 + $score`
 	echo OK $time
@@ -573,7 +580,7 @@ echo_n "Page directory: "
  fi
 
 echo_n "Page management: "
- if grep "page_check() succeeded!" bochs.out >/dev/null
+ if grep "page_check() succeeded!" jos.out >/dev/null
  then
 	score=`expr 30 + $score`
 	echo OK $time
@@ -590,15 +597,15 @@ fi
 #elif LAB >= 1		/******************** LAB 1 ********************/
 
 $make
-runbochs
+run
 
 score=0
 
 	echo_n "Printf: "
 #ifdef ENV_CLASS_NYU
-	if grep "480 decimal is 740 octal!" bochs.out >/dev/null
+	if grep "480 decimal is 740 octal!" jos.out >/dev/null
 #else /* !ENV_CLASS_NYU */
-	if grep "6828 decimal is 15254 octal!" bochs.out >/dev/null
+	if grep "6828 decimal is 15254 octal!" jos.out >/dev/null
 #endif /* !ENV_CLASS_NYU */
 	then
 		score=`expr 20 + $score`
@@ -608,7 +615,7 @@ score=0
 	fi
 
 	echo_n "Backtrace: "
-	args=`grep "ebp f01.* eip f0100.* args" bochs.out | awk '{ print $6 }'`
+	args=`grep "ebp f01.* eip f0100.* args" jos.out | awk '{ print $6 }'`
 	cnt=`echo $args | grep '^00000000 00000000 00000001 00000002 00000003 00000004 00000005' | wc -w`
 	if [ $cnt -eq 8 ]
 	then
@@ -618,7 +625,7 @@ score=0
 		echo_n "Count WRONG"
 	fi
 
-	cnt=`grep "ebp f01.* eip f0100.* args" bochs.out | awk 'BEGIN { FS = ORS = " " }
+	cnt=`grep "ebp f01.* eip f0100.* args" jos.out | awk 'BEGIN { FS = ORS = " " }
 { print $6 }
 END { printf("\n") }' | grep '^00000000 00000000 00000001 00000002 00000003 00000004 00000005' | wc -w`
 	if [ $cnt -eq 8 ]; then
@@ -628,8 +635,8 @@ END { printf("\n") }' | grep '^00000000 00000000 00000001 00000002 00000003 0000
 		echo_n ', Args WRONG (' $args ')'
 	fi
 
-	syms=`grep "kern/init.c:.* test_backtrace" bochs.out`
-	symcnt=`grep "kern/init.c:.* test_backtrace" bochs.out | wc -l`
+	syms=`grep "kern/init.c:.* test_backtrace" jos.out`
+	symcnt=`grep "kern/init.c:.* test_backtrace" jos.out | wc -l`
 	if [ $symcnt -eq 6 ]; then
 		score=`expr 10 + $score`
 		echo , Symbols OK $time

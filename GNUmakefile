@@ -75,6 +75,19 @@ GCCPREFIX := $(shell if i386-jos-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/de
 	echo "***" 1>&2; exit 1; fi)
 endif
 
+# try to infer the correct QEMU
+ifndef QEMU
+QEMU := $(shell if uname | grep -i Darwin >/dev/null 2>&1; \
+	then qemu=/Applications/Q.app/Contents/MacOS/i386-softmmu.app/Contents/MacOS/i386-softmmu; \
+	if test -x $$qemu; then echo $$qemu; exit; fi; \
+	elif which qemu > /dev/null; \
+	then echo qemu; exit; fi; \
+	echo "***" 1>&2; \
+	echo "*** Error: Couldn't find a working QEMU executable." 1>&2; \
+	echo "*** Is the directory containing the qemu binary in your PATH?" 1>&2; \
+	echo "***" 1>&2; exit 1)
+endif
+
 CC	:= $(GCCPREFIX)gcc -pipe
 AS	:= $(GCCPREFIX)as
 AR	:= $(GCCPREFIX)ar
@@ -191,7 +204,7 @@ include fs/Makefrag
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S *.ld
 LAB_DIRS := inc boot kern lib user fs
-LAB_FILES := CODING GNUmakefile .bochsrc mergedep.pl grade.sh boot/sign.pl \
+LAB_FILES := CODING GNUmakefile mergedep.pl grade.sh .gdbinit boot/sign.pl \
 	fs/lorem fs/motd fs/newmotd fs/script \
 	fs/testshell.sh fs/testshell.key fs/testshell.out fs/out \
 	conf/env.mk \
@@ -267,23 +280,41 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 
 #if LAB <= 999
 ifdef LAB5
-IMAGES = $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
+IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
+QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -parallel /dev/stdout -no-kqemu
 else
-IMAGES = $(OBJDIR)/kern/bochs.img
+IMAGES = $(OBJDIR)/kern/kernel.img
+QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -parallel /dev/stdout -no-kqemu
 endif
 #else
-IMAGES = $(OBJDIR)/kern/bochs.img $(OBJDIR)/fs/fs.img
+IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
+QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -parallel /dev/stdout -no-kqemu
 #endif
 
-bochs: $(IMAGES)
-	bochs 'display_library: nogui'
+qemu: $(IMAGES)
+	$(QEMU) $(QEMUOPTS)
+
+qemu-nox: $(IMAGES)
+	echo "*** Use Ctrl-a x to exit"
+	$(QEMU) -nographic $(QEMUOPTS)
+
+qemu-gdb: $(IMAGES)
+	@echo "*** Now run 'gdb'." 1>&2
+	$(QEMU) $(QEMUOPTS) -s -S
+
+qemu-gdb-nox: $(IMAGES)
+	@echo "*** Now run 'gdb'." 1>&2
+	$(QEMU) -nographic $(QEMUOPTS) -s -S
+
+which-qemu:
+	@echo $(QEMU)
 
 # For deleting the build
 clean:
 	rm -rf $(OBJDIR)
 
 realclean: clean
-	rm -rf lab$(LAB).tar.gz bochs.out bochs.log
+	rm -rf lab$(LAB).tar.gz jos.out
 
 distclean: realclean
 	rm -rf conf/gcc.mk
@@ -310,12 +341,13 @@ tarball: realclean
 run-%:
 	$(V)rm -f $(OBJDIR)/kern/init.o $(IMAGES)
 	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" $(IMAGES)
-	bochs -q 'display_library: nogui'
+	echo "*** Use Ctrl-a x to exit"
+	$(QEMU) -nographic $(QEMUOPTS)
 
 xrun-%:
 	$(V)rm -f $(OBJDIR)/kern/init.o $(IMAGES)
 	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" $(IMAGES)
-	bochs -q
+	$(QEMU) $(QEMUOPTS)
 
 # This magic automatically generates makefile dependencies
 # for header files included from C source files we compile,
