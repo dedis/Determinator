@@ -212,7 +212,7 @@ LAB_FILES := CODING GNUmakefile mergedep.pl grade-functions.sh .gdbinit.tmpl boo
 	fs/lorem fs/motd fs/newmotd fs/script \
 	fs/testshell.sh fs/testshell.key fs/testshell.out fs/out \
 	conf/env.mk \
-	$(foreach lab,1,grade-lab$(lab).sh) \
+	$(foreach lab,1 2 3 4 5 6,grade-lab$(lab).sh) \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
 # Fake targets to export the student lab handout and solution trees.
