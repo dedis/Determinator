@@ -245,9 +245,8 @@ i386_vm_init(void)
 	n = NENV*sizeof(struct Env);
 	boot_map_segment(pgdir, UENVS, n, PADDR(envs), PTE_U);
 #endif	// SOL >= 3
+
 #endif	// LAB >= 3
-
-
 	//////////////////////////////////////////////////////////////////////
         // Use the physical memory that bootstack refers to as
         // the kernel stack.  The complete VA
