@@ -224,9 +224,9 @@ i386_vm_init(void)
 	
 	//////////////////////////////////////////////////////////////////////
 	// Map 'pages' read-only by the user at linear address UPAGES
-	// (ie. perm = PTE_U | PTE_P)
 	// Permissions:
 	//    - the new image at UPAGES -- kernel R, user R
+	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
 #if SOL >= 2
@@ -267,7 +267,7 @@ i386_vm_init(void)
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
 	//      the PA range [0, 2^32 - KERNBASE)
 	// We might not have 2^32 - KERNBASE bytes of physical memory, but
-	// we just set up the amapping anyway.
+	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here: 
 #if SOL >= 2
