@@ -613,6 +613,7 @@ page_decref(struct Page* pp)
 //    - Otherwise, pgdir_walk tries to allocate a new page table
 //	with page_alloc.  If this fails, pgdir_walk returns NULL.
 //    - pgdir_walk sets pp_ref to 1 for the new page table.
+//    - pgdir_walk clears the new page table.
 //    - Finally, pgdir_walk returns a pointer into the new page table.
 //
 // Hint: you can turn a Page * into the physical address of the
