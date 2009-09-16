@@ -732,7 +732,7 @@ boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int per
 // of the pte for this page.  This is used by page_remove
 // but should not be used by other callers.
 //
-// Return 0 if there is no page mapped at va.
+// Return NULL if there is no page mapped at va.
 //
 // Hint: the TA solution uses pgdir_walk and pa2page.
 //
@@ -744,13 +744,13 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 	pte_t *pte = pgdir_walk(pgdir, va, 0);
 
 	if (pte == 0 || *pte == 0)
-		return 0;
+		return NULL;
 	if (pte_store)
 		*pte_store = pte;
 	if (!(*pte & PTE_P) || PPN(PTE_ADDR(*pte)) >= npage) {
 		warn("page_lookup: found bogus PTE 0x%08lx at pgdir %p va %p",
 			*pte, pgdir, va);
-		return 0;
+		return NULL;
 	}
 
 	return pa2page(PTE_ADDR(*pte));
