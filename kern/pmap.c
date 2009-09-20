@@ -224,9 +224,9 @@ i386_vm_init(void)
 	
 	//////////////////////////////////////////////////////////////////////
 	// Map 'pages' read-only by the user at linear address UPAGES
-	// (ie. perm = PTE_U | PTE_P)
 	// Permissions:
 	//    - the new image at UPAGES -- kernel R, user R
+	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
 #if SOL >= 2
@@ -245,9 +245,8 @@ i386_vm_init(void)
 	n = NENV*sizeof(struct Env);
 	boot_map_segment(pgdir, UENVS, n, PADDR(envs), PTE_U);
 #endif	// SOL >= 3
+
 #endif	// LAB >= 3
-
-
 	//////////////////////////////////////////////////////////////////////
         // Use the physical memory that bootstack refers to as
         // the kernel stack.  The complete VA
@@ -267,7 +266,7 @@ i386_vm_init(void)
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
 	//      the PA range [0, 2^32 - KERNBASE)
 	// We might not have 2^32 - KERNBASE bytes of physical memory, but
-	// we just set up the amapping anyway.
+	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here: 
 #if SOL >= 2
@@ -613,6 +612,7 @@ page_decref(struct Page* pp)
 //    - Otherwise, pgdir_walk tries to allocate a new page table
 //	with page_alloc.  If this fails, pgdir_walk returns NULL.
 //    - pgdir_walk sets pp_ref to 1 for the new page table.
+//    - pgdir_walk clears the new page table.
 //    - Finally, pgdir_walk returns a pointer into the new page table.
 //
 // Hint: you can turn a Page * into the physical address of the
@@ -731,7 +731,7 @@ boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int per
 // of the pte for this page.  This is used by page_remove
 // but should not be used by other callers.
 //
-// Return 0 if there is no page mapped at va.
+// Return NULL if there is no page mapped at va.
 //
 // Hint: the TA solution uses pgdir_walk and pa2page.
 //
@@ -743,13 +743,13 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 	pte_t *pte = pgdir_walk(pgdir, va, 0);
 
 	if (pte == 0 || *pte == 0)
-		return 0;
+		return NULL;
 	if (pte_store)
 		*pte_store = pte;
 	if (!(*pte & PTE_P) || PPN(PTE_ADDR(*pte)) >= npage) {
 		warn("page_lookup: found bogus PTE 0x%08lx at pgdir %p va %p",
 			*pte, pgdir, va);
-		return 0;
+		return NULL;
 	}
 
 	return pa2page(PTE_ADDR(*pte));
