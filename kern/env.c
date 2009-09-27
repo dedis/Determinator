@@ -119,9 +119,10 @@ env_setup_vm(struct Env *e)
 	//	(Make sure you got the permissions right in Lab 2.)
 	//    - The initial VA below UTOP is empty.
 	//    - You do not need to make any more calls to page_alloc.
-	//    - Note: pp_ref is not maintained for most physical pages
-	//	mapped above UTOP -- but you do need to increment
-	//	env_pgdir's pp_ref!
+	//    - Note: In general, pp_ref is not maintained for
+	//      physical pages mapped only above UTOP, but env_pgdir
+	//      is an exception -- you need to increment env_pgdir's
+	//      pp_ref for env_free to work correctly.
 
 #if SOL >= 3
 	e->env_cr3 = page2pa(p);
