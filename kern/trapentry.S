@@ -94,7 +94,7 @@ TRAPHANDLER     (Xdefault, T_DEFAULT)
  * Lab 3: Your code here for generating entry points for the different traps.
  */
 
-	
+
 #endif /* SOL >= 3 */
 
 #if SOL >= 3	
