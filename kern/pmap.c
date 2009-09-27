@@ -241,6 +241,7 @@ i386_vm_init(void)
 	// Permissions:
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
+	// LAB 3: Your code here.
 #if SOL >= 3
 	n = NENV*sizeof(struct Env);
 	boot_map_segment(pgdir, UENVS, n, PADDR(envs), PTE_U);

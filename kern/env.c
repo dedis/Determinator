@@ -111,6 +111,7 @@ env_setup_vm(struct Env *e)
 	// and initialize the page directory.
 	//
 	// Hint:
+	//    - Remember that page_alloc doesn't zero the page.
 	//    - The VA space of all envs is identical above UTOP
 	//      (except at VPT and UVPT, which we've set below).
 	//	See inc/memlayout.h for permissions and layout.
