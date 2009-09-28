@@ -17,7 +17,7 @@
 #endif
 
 struct Env *envs = NULL;		// All environments
-struct Env *curenv = NULL;	        // The current env
+struct Env *curenv = NULL;		// The current env
 static struct Env_list env_free_list;	// Free list
 
 #define ENVGENSHIFT	12		// >= LOGNENV
@@ -113,16 +113,16 @@ env_setup_vm(struct Env *e)
 	// Hint:
 	//    - Remember that page_alloc doesn't zero the page.
 	//    - The VA space of all envs is identical above UTOP
-	//      (except at VPT and UVPT, which we've set below).
+	//	(except at VPT and UVPT, which we've set below).
 	//	See inc/memlayout.h for permissions and layout.
 	//	Can you use boot_pgdir as a template?  Hint: Yes.
 	//	(Make sure you got the permissions right in Lab 2.)
 	//    - The initial VA below UTOP is empty.
 	//    - You do not need to make any more calls to page_alloc.
 	//    - Note: In general, pp_ref is not maintained for
-	//      physical pages mapped only above UTOP, but env_pgdir
-	//      is an exception -- you need to increment env_pgdir's
-	//      pp_ref for env_free to work correctly.
+	//	physical pages mapped only above UTOP, but env_pgdir
+	//	is an exception -- you need to increment env_pgdir's
+	//	pp_ref for env_free to work correctly.
 
 #if SOL >= 3
 	e->env_cr3 = page2pa(p);
@@ -525,8 +525,8 @@ env_run(struct Env *e)
 	//	   update its 'env_runs' counter, and
 	//	   and use lcr3() to switch to its address space.
 	// Step 2: Use env_pop_tf() to restore the environment's
-	//         registers and drop into user mode in the
-	//         environment.
+	//	   registers and drop into user mode in the
+	//	   environment.
 
 	// Hint: This function loads the new environment's state from
 	//	e->env_tf.  Go back through the code you wrote above
@@ -535,7 +535,7 @@ env_run(struct Env *e)
 	
 	// LAB 3: Your code here.
 
-        panic("env_run not yet implemented");
+	panic("env_run not yet implemented");
 #endif /* not SOL >= 3 */
 }
 

@@ -17,7 +17,7 @@
 #endif
 
 extern struct Env *envs;		// All environments
-extern struct Env *curenv;	        // Current environment
+extern struct Env *curenv;		// Current environment
 
 LIST_HEAD(Env_list, Env);		// Declares 'struct Env_list'
 
