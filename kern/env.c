@@ -456,8 +456,10 @@ env_free(struct Env *e)
 
 //
 // Frees environment e.
+#if LAB >= 4
 // If e was the current env, then runs a new environment (and does not return
 // to the caller).
+#endif
 //
 void
 env_destroy(struct Env *e) 
