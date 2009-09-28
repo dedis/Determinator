@@ -10,26 +10,10 @@ run
 
 score=0
 
-runtest1 hello \
-	'.00000000. new env 00001000' \
-	'hello, world' \
-	'i am environment 00001000' \
-	'.00001000. exiting gracefully' \
-	'.00001000. free env 00001000' \
-	'Destroyed the only environment - nothing more to do!'
-
 # the [00001000] tags should have [] in them, but that's 
 # a regular expression reserved character, and i'll be damned if
 # I can figure out how many \ i need to add to get through 
 # however many times the shell interprets this string.  sigh.
-
-runtest1 buggyhello \
-	'.00001000. user_mem_check assertion failure for va 00000001' \
-	'.00001000. free env 00001000'
-
-runtest1 evilhello \
-	'.00001000. user_mem_check assertion failure for va f0100...' \
-	'.00001000. free env 00001000'
 
 runtest1 divzero \
 	! '1/0 is ........!' \
@@ -39,15 +23,6 @@ runtest1 divzero \
 	'  eip  0x008.....' \
 	'  ss   0x----0023' \
 	'.00001000. free env 00001000'
-
-runtest1 breakpoint \
-	'Welcome to the JOS kernel monitor!' \
-	'Incoming TRAP frame at 0xefbfffbc' \
-        'TRAP frame at 0xf.......' \
-	'  trap 0x00000003 Breakpoint' \
-	'  eip  0x008.....' \
-	'  ss   0x----0023' \
-	! '.00001000. free env 00001000'
 
 runtest1 softint \
 	'Welcome to the JOS kernel monitor!' \
@@ -66,7 +41,6 @@ runtest1 badsegment \
 	'  eip  0x008.....' \
 	'  ss   0x----0023' \
 	'.00001000. free env 00001000'
-
 
 runtest1 faultread \
 	! 'I read ........ from location 0!' \
@@ -102,11 +76,38 @@ runtest1 faultwritekernel \
 	'  err  0x00000007' \
 	'.00001000. free env 00001000'
 
+
+runtest1 breakpoint \
+	'Welcome to the JOS kernel monitor!' \
+	'Incoming TRAP frame at 0xefbfffbc' \
+        'TRAP frame at 0xf.......' \
+	'  trap 0x00000003 Breakpoint' \
+	'  eip  0x008.....' \
+	'  ss   0x----0023' \
+	! '.00001000. free env 00001000'
+
 runtest1 testbss \
 	'Making sure bss works right...' \
 	'Yes, good.  Now doing a wild write off the end...' \
 	'.00001000. user fault va 00c..... ip 008.....' \
 	'.00001000. free env 00001000'
+
+runtest1 hello \
+	'.00000000. new env 00001000' \
+	'hello, world' \
+	'i am environment 00001000' \
+	'.00001000. exiting gracefully' \
+	'.00001000. free env 00001000' \
+	'Destroyed the only environment - nothing more to do!'
+
+runtest1 buggyhello \
+	'.00001000. user_mem_check assertion failure for va 00000001' \
+	'.00001000. free env 00001000'
+
+runtest1 evilhello \
+	'.00001000. user_mem_check assertion failure for va f0100...' \
+	'.00001000. free env 00001000'
+
 
 
 
