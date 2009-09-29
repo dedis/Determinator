@@ -293,9 +293,9 @@ trap(struct Trapframe *tf)
 	else
 		sched_yield();
 #else
-        // Return to the current environment, which should be runnable.
-        assert(curenv && curenv->env_status == ENV_RUNNABLE);
-        env_run(curenv);
+	// Return to the current environment, which should be runnable.
+	assert(curenv && curenv->env_status == ENV_RUNNABLE);
+	env_run(curenv);
 #endif
 }
 
