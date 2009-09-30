@@ -110,7 +110,7 @@ sys_exofork(void)
 	// status is set to ENV_NOT_RUNNABLE, and the register set is copied
 	// from the current environment -- but tweaked so sys_exofork
 	// will appear to return 0.
-	
+
 	// LAB 4: Your code here.
 	panic("sys_exofork not implemented");
 #endif
@@ -137,12 +137,12 @@ sys_env_set_status(envid_t envid, int status)
 	e->env_status = status;
 	return 0;
 #else
-  	// Hint: Use the 'envid2env' function from kern/env.c to translate an
-  	// envid to a struct Env.
+	// Hint: Use the 'envid2env' function from kern/env.c to translate an
+	// envid to a struct Env.
 	// You should set envid2env's third argument to 1, which will
 	// check whether the current environment has permission to set
 	// envid's status.
-	
+
 	// LAB 4: Your code here.
 	panic("sys_env_set_status not implemented");
 #endif
@@ -331,7 +331,7 @@ sys_page_unmap(envid_t envid, void *va)
 	return 0;
 #else
 	// Hint: This function is a wrapper around page_remove().
-	
+
 	// LAB 4: Your code here.
 	panic("sys_page_unmap not implemented");
 #endif
