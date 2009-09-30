@@ -65,10 +65,10 @@ relocated:
 	movl	$0x0,%ebp			# nuke frame pointer
 
 #if LAB >= 3
-        # Leave a few words on the stack for the user trap frame
+	# Leave a few words on the stack for the user trap frame
 	movl	$(bootstacktop-SIZEOF_STRUCT_TRAPFRAME),%esp
 #else
-        # Set the stack pointer
+	# Set the stack pointer
 	movl	$(bootstacktop),%esp
 #endif
 
