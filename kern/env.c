@@ -1,4 +1,4 @@
-#if LAB >= 2
+#if LAB >= 3
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/x86.h>

@@ -1,4 +1,4 @@
-//#ifdef LAB >= 4
+#if LAB >= 999
 
 #include <inc/lib.h>
 
@@ -208,8 +208,4 @@ umain(int argc, char **argv)
 
 }
 
-//#endif
-
-
-
-
+#endif

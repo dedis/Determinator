@@ -1,4 +1,4 @@
-#if LAB >= 2
+#if LAB >= 3
 /* See COPYRIGHT for copyright information. */
 
 #ifndef JOS_KERN_ENV_H

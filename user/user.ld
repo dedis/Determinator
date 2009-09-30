@@ -1,3 +1,4 @@
+#if LAB >= 3
 /* Simple linker script for JOS user-level programs.
    See the GNU ld 'info' manual ("info ld") to learn the syntax. */
 
@@ -70,3 +71,4 @@ SECTIONS
 		*(.eh_frame .note.GNU-stack .comment)
 	}
 }
+#endif
