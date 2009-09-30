@@ -1,4 +1,4 @@
-#if LAB >= 3
+#if LAB >= 4
 /* See COPYRIGHT for copyright information. */
 
 #ifndef JOS_KERN_SCHED_H
@@ -11,4 +11,4 @@
 void sched_yield(void) __attribute__((noreturn));
 
 #endif	// !JOS_KERN_SCHED_H
-#endif	// LAB >= 3
+#endif	// LAB >= 4
