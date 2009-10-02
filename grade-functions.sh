@@ -57,7 +57,9 @@ run () {
 	time=`echo "scale=1; ($t1-$t0)/1" | sed 's/.N/.0/g' | bc 2>/dev/null`
 	time="(${time}s)"
 	rm jos.in
-	kill $PID
+
+	# Make sure QEMU is dead.  On OS X, exiting gdb doesn't always exit QEMU.
+	kill $PID 2&>1 > /dev/null
 }
 #if LAB >= 3
 
