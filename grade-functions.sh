@@ -37,8 +37,9 @@ run () {
 	t0=`date +%s.%N 2>/dev/null`
 	(
 		ulimit -t $timeout
-		$qemu -nographic $qemuopts -serial file:jos.out -monitor null -no-reboot -s -S -p $port
+		exec $qemu -nographic $qemuopts -serial file:jos.out -monitor null -no-reboot -s -S -p $port
 	) >$out 2>$err &
+	PID=$!
 
 	(
 		echo "target remote localhost:$port"
@@ -56,6 +57,7 @@ run () {
 	time=`echo "scale=1; ($t1-$t0)/1" | sed 's/.N/.0/g' | bc 2>/dev/null`
 	time="(${time}s)"
 	rm jos.in
+	kill $PID
 }
 #if LAB >= 3
 
