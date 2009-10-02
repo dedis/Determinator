@@ -43,11 +43,7 @@ run () {
 
 	(
 		echo "target remote localhost:$port"
-                if [ "x$qemuphys" = "x" ]; then
-		    echo "br *0x$brkaddr"
-                else
-		    echo "br *(0x$brkaddr-0xf0000000)"
-                fi
+		echo "br *0x$brkaddr"
 		echo c
 	) > jos.in
 
