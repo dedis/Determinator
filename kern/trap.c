@@ -390,11 +390,11 @@ page_fault_handler(struct Trapframe *tf)
 	// stack.
 	//
 	// If there's no page fault upcall, the environment didn't allocate a
-	// page for its exception stack, or the exception stack overflows,
-	// then destroy the environment that caused the fault.
+	// page for its exception stack or can't write to it, or the exception
+	// stack overflows, then destroy the environment that caused the fault.
 	//
 	// Hints:
-	//   user_mem_assert() and env_run() are useful here.
+	//   user_mem_check() and env_run() are useful here.
 	//   To change what the user environment runs, modify 'curenv->env_tf'
 	//   (the 'tf' variable points at 'curenv->env_tf').
 	
