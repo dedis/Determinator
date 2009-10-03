@@ -81,10 +81,11 @@ static int
 duppage(envid_t envid, unsigned pn)
 {
 	int r;
+
+#if SOL >= 4
 	void *addr;
 	pte_t pte;
 
-#if SOL >= 4
 	addr = (void*) (pn << PGSHIFT);
 	pte = vpt[pn];
 
