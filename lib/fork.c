@@ -71,8 +71,9 @@ pgfault(struct UTrapframe *utf)
 // Map our virtual page pn (address pn*PGSIZE) into the target envid
 // at the same virtual address.  If the page is writable or copy-on-write,
 // the new mapping must be created copy-on-write, and then our mapping must be
-// marked copy-on-write as well.  (Exercise: Why mark ours copy-on-write again
-// if it was already copy-on-write?)
+// marked copy-on-write as well.  (Exercise: Why might we need to mark ours
+// copy-on-write again if it was already copy-on-write at the beginning of
+// this function?)
 //
 // Returns: 0 on success, < 0 on error.
 // It is also OK to panic on error.
