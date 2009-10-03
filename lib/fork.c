@@ -60,9 +60,9 @@ pgfault(struct UTrapframe *utf)
 	// Hint:
 	//   You should make three system calls.
 	//   No need to explicitly delete the old page's mapping.
-	
+
 	// LAB 4: Your code here.
-	
+
 	panic("pgfault not implemented");
 #endif
 }
