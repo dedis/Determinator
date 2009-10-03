@@ -212,7 +212,7 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 // side effect.
 //
 // perm -- PTE_U | PTE_P must be set, PTE_AVAIL | PTE_W may or may not be set,
-//         but no other bits may be set.
+//         but no other bits may be set.  See PTE_USER in inc/mmu.h.
 //
 // Return 0 on success, < 0 on error.  Errors are:
 //	-E_BAD_ENV if environment envid doesn't currently exist,
