@@ -397,7 +397,7 @@ page_fault_handler(struct Trapframe *tf)
 	//   user_mem_check() and env_run() are useful here.
 	//   To change what the user environment runs, modify 'curenv->env_tf'
 	//   (the 'tf' variable points at 'curenv->env_tf').
-	
+
 	// LAB 4: Your code here.
 
 #endif
