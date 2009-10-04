@@ -9,6 +9,7 @@ $make
 run
 
 score=0
+total=0
 timeout=10
 
 runtest1 dumbfork \
@@ -24,7 +25,11 @@ runtest1 dumbfork \
 	'.00001002. exiting gracefully' \
 	'.00001002. free env 00001002'
 
-echo PART A SCORE: $score/5
+echo "Part A score: $score/5"
+echo
+total=`expr $total + $score`
+
+score=0
 
 runtest1 faultread \
 	! 'I read ........ from location 0!' \
@@ -85,7 +90,11 @@ runtest1 forktree \
 	'.0000200.. exiting gracefully' \
 	'.0000200.. free env 0000200.'
 
-echo PART B SCORE: $score/50
+echo "Part B score: $score/45"
+echo
+total=`expr $total + $score`
+
+score=0
 
 runtest1 spin \
 	'.00000000. new env 00001000' \
@@ -125,9 +134,15 @@ runtest1 primes \
 	'7 .00001005. new env 00001006' \
 	'11 .00001006. new env 00001007' 
 
-echo PART C SCORE: $score/65
+echo "Part C score: $score/15"
+echo
+total=`expr $total + $score`
 
-if [ $score -lt 65 ]; then
+
+
+echo "Score: $total/65"
+
+if [ $total -lt 65 ]; then
     exit 1
 fi
 #endif

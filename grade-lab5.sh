@@ -9,6 +9,7 @@ $make
 run
 
 score=0
+total=0
 
 # Reset the file system to its original, pristine state
 resetfs() {
@@ -56,9 +57,9 @@ quicktest 'serv_* [testfsipc]' \
 	'serve_close is good' \
 	'stale fileid is good' \
 
-echo PART A SCORE: $score/55
-
-partascore=$score
+echo Part A score: $score/55
+echo
+total=`expr $total + $score`
 
 score=0
 pts=10
@@ -88,9 +89,13 @@ runtest1 -tag 'spawn via icode [icode]' icode \
 	"init: args: 'init' 'initarg1' 'initarg2'" \
 	'init: exiting' \
 
-echo PART B SCORE: $score/45
+echo Part B score: $score/45
+echo
+total=`expr $total + $score`
 
-if [ $partascore -lt 55 -o $score -lt 45 ]; then
+echo "Score: $total/100"
+
+if [ $total -lt 100 ]; then
     exit 1
 fi
 #endif
