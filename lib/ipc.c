@@ -6,9 +6,11 @@
 // Receive a value via IPC and return it.
 // If 'pg' is nonnull, then any page sent by the sender will be mapped at
 //	that address.
-// If 'fromenv' is nonnull, then store the IPC sender's envid in *fromenv.
-// If 'perm' is nonnull, then store the IPC sender's page permission in *perm
-//	(this is nonzero iff a page was successfully transferred to 'pg').
+// If 'from_env_store' is nonnull, then store the IPC sender's envid in
+//	*from_env_store.
+// If 'perm_store' is nonnull, then store the IPC sender's page permission
+//	in *perm_store (this is nonzero iff a page was successfully
+//	transferred to 'pg').
 // If the system call fails, then store 0 in *fromenv and *perm (if
 //	they're nonnull) and return the error.
 //
