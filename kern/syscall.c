@@ -369,6 +369,8 @@ sys_page_unmap(envid_t envid, void *va)
 //		(see sys_page_alloc).
 //	-E_INVAL if srcva < UTOP but srcva is not mapped in the caller's
 //		address space.
+//	-E_INVAL if (perm & PTE_W), but srcva is read-only in the
+//		current environment's address space.
 //	-E_NO_MEM if there's not enough memory to map srcva in envid's
 //		address space.
 static int
@@ -379,6 +381,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	struct Env *e;
 	struct Page *pp;
 	int pgmap = 0;
+	pte_t *ppte;
 
 	if ((r = envid2env(envid, &e, 0)) < 0)
 		return r;
@@ -392,9 +395,14 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 			return -E_INVAL;
 		}
 
-		pp = page_lookup(curenv->env_pgdir, srcva, 0);
+		pp = page_lookup(curenv->env_pgdir, srcva, &ppte);
 		if (pp == 0) {
 			cprintf("[%08x] page_lookup %08x failed in sys_ipc_try_send\n", curenv->env_id, srcva);
+			return -E_INVAL;
+		}
+
+		if ((perm & PTE_W) && !(*ppte & PTE_W)) {
+			cprintf("[%08x] attempt to send read-only page read-write in sys_ipc_try_send\n", curenv->env_id);
 			return -E_INVAL;
 		}
 		
