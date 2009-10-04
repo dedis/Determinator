@@ -2,6 +2,7 @@
 // User-level IPC library routines
 
 #include <inc/lib.h>
+
 // Receive a value via IPC and return it.
 // If 'pg' is nonnull, then any page sent by the sender will be mapped at
 //	that address.
