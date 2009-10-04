@@ -70,5 +70,4 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 	panic("ipc_send not implemented");
 #endif
 }
-
 #endif
