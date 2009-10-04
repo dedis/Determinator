@@ -355,7 +355,7 @@ sys_page_unmap(envid_t envid, void *va)
 //
 // If the sender sends a page but the receiver isn't asking for one,
 // then no page mapping is transferred, but no error occurs.
-// The ipc doesn't happen unless no errors occur.
+// The ipc only happens when no errors occur.
 //
 // Returns 0 on success where no page mapping occurs,
 // 1 on success where a page mapping occurs, and < 0 on error.
