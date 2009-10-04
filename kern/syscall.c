@@ -338,7 +338,7 @@ sys_page_unmap(envid_t envid, void *va)
 }
 
 // Try to send 'value' to the target env 'envid'.
-// If va != 0, then also send page currently mapped at 'va',
+// If srcva < UTOP, then also send page currently mapped at 'srcva',
 // so that receiver gets a duplicate mapping of the same page.
 //
 // The send fails with a return value of -E_IPC_NOT_RECV if the
