@@ -45,7 +45,7 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 #endif
 }
 
-// Send 'val' (and 'pg' with 'perm', assuming 'pg' is nonnull) to 'toenv'.
+// Send 'val' (and 'pg' with 'perm', if 'pg' is nonnull) to 'toenv'.
 // This function keeps trying until it succeeds.
 // It should panic() on any error other than -E_IPC_NOT_RECV.
 //
