@@ -124,6 +124,7 @@ runtest1 pingpong \
 	'.00001002. exiting gracefully' \
 	'.00001002. free env 00001002' \
 
+timeout=20
 runtest1 primes \
 	'.00000000. new env 00001000' \
 	'.00000000. new env 00001001' \
