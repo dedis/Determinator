@@ -186,6 +186,7 @@ file_trunc(struct Fd *fd, off_t newsize)
 static int
 fmap(struct Fd* fd, off_t oldsize, off_t newsize)
 {
+#if SOL >= 5
 	size_t i;
 	char *va;
 	int r;
@@ -199,6 +200,11 @@ fmap(struct Fd* fd, off_t oldsize, off_t newsize)
 		}
 	}
 	return 0;
+#else
+	// LAB 5: Your code here.
+	panic("fmap not implemented");
+	return -E_UNSPECIFIED;
+#endif
 }
 
 // Unmap any file pages that no longer represent valid file pages
@@ -207,6 +213,7 @@ fmap(struct Fd* fd, off_t oldsize, off_t newsize)
 static int
 funmap(struct Fd* fd, off_t oldsize, off_t newsize, bool dirty)
 {
+#if SOL >= 5
 	size_t i;
 	char *va;
 	int r, ret;
@@ -227,6 +234,11 @@ funmap(struct Fd* fd, off_t oldsize, off_t newsize, bool dirty)
 			sys_page_unmap(0, va + i);
 		}
   	return ret;
+#else
+	// LAB 5: Your code here.
+	panic("funmap not implemented");
+	return -E_UNSPECIFIED;
+#endif
 }
 
 // Delete a file

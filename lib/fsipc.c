@@ -52,6 +52,7 @@ fsipc_open(const char *path, int omode, struct Fd *fd)
 int
 fsipc_map(int fileid, off_t offset, void *dstva)
 {
+#if SOL >= 5
 	int r, perm;
 	struct Fsreq_map *req;
 
@@ -63,6 +64,11 @@ fsipc_map(int fileid, off_t offset, void *dstva)
 	if ((perm & ~(PTE_W | PTE_SHARE)) != (PTE_U | PTE_P))
 		panic("fsipc_map: unexpected permissions %08x for dstva %08x", perm, dstva);
 	return 0;
+#else
+	// LAB 5: Your code here.
+	panic("fsipc_map not implemented");
+	return -E_UNSPECIFIED;
+#endif
 }
 
 // Make a set-file-size request to the file server.
@@ -93,12 +99,18 @@ fsipc_close(int fileid)
 int
 fsipc_dirty(int fileid, off_t offset)
 {
+#if SOL >= 5
 	struct Fsreq_dirty *req;
 
 	req = (struct Fsreq_dirty*) fsipcbuf;
 	req->req_fileid = fileid;
 	req->req_offset = offset;
 	return fsipc(FSREQ_DIRTY, req, 0, 0);
+#else
+	// LAB 5: Your code here.
+	panic("fsipc_dirty not implemented");
+	return -E_UNSPECIFIED;
+#endif
 }
 
 // Ask the file server to delete a file, given its pathname.

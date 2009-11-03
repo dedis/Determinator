@@ -198,6 +198,7 @@ alloc_block_num(void)
 int
 alloc_block(void)
 {
+#if SOL >= 5
 	int r, bno;
 
 	if ((r = alloc_block_num()) < 0)
@@ -209,6 +210,11 @@ alloc_block(void)
 		return r;
 	}
 	return bno;
+#else
+	// LAB 5: Your code here.
+	panic("alloc_block not implemented");
+	return -E_NO_DISK;
+#endif
 }
 
 // Read and validate the file system super-block.
@@ -415,6 +421,7 @@ found_jos:
 int
 file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool alloc)
 {
+#if SOL >= 5
 	int r;
 	uint32_t *ptr;
 	char *blk;
@@ -441,6 +448,11 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 
 	*ppdiskbno = ptr;
 	return 0;
+#else
+	// LAB 5: Your code here.
+	panic("file_block_walk not implemented");
+	return -E_NO_DISK;
+#endif
 }
 
 // Set '*diskbno' to the disk block number for the 'filebno'th block
@@ -455,6 +467,7 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 int
 file_map_block(struct File *f, uint32_t filebno, uint32_t *diskbno, bool alloc)
 {
+#if SOL >= 5
 	int r;
 	uint32_t *ptr;
 
@@ -469,6 +482,11 @@ file_map_block(struct File *f, uint32_t filebno, uint32_t *diskbno, bool alloc)
 	}
 	*diskbno = *ptr;
 	return 0;
+#else
+	// LAB 5: Your code here.
+	panic("file_map_block not implemented");
+	return -E_NO_DISK;
+#endif
 }
 
 // Remove a block from file f.  If it's not there, just silently succeed.
