@@ -51,7 +51,6 @@ fd2num(struct Fd *fd)
 int
 fd_alloc(struct Fd **fd_store)
 {
-#if SOL >= 5
 	int i;
 	struct Fd *fd;
 
@@ -64,12 +63,6 @@ fd_alloc(struct Fd **fd_store)
 	}
 	*fd_store = 0;
 	return -E_MAX_OPEN;
-#else
-	// LAB 5: Your code here.
-
-	panic("fd_alloc not implemented");
-	return -E_MAX_OPEN;
-#endif
 }
 
 // Check that fdnum is in range and mapped.
@@ -81,7 +74,6 @@ fd_alloc(struct Fd **fd_store)
 int
 fd_lookup(int fdnum, struct Fd **fd_store)
 {
-#if SOL >= 5
 	struct Fd *fd;
 
 	if (fdnum < 0 || fdnum >= MAXFD) {
@@ -97,12 +89,6 @@ fd_lookup(int fdnum, struct Fd **fd_store)
 	}
 	*fd_store = fd;
 	return 0;
-#else
-	// LAB 5: Your code here.
-
-	panic("fd_lookup not implemented");
-	return -E_INVAL;
-#endif
 }
 
 // Frees file descriptor 'fd' by closing the corresponding file
