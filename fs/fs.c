@@ -706,7 +706,7 @@ file_truncate_blocks(struct File *f, off_t newsize)
 	int r;
 	uint32_t bno, old_nblocks, new_nblocks;
 
-#if SOL >= 5
+	// Hint: Use file_clear_block and/or free_block.
 	old_nblocks = (f->f_size + BLKSIZE - 1) / BLKSIZE;
 	new_nblocks = (newsize + BLKSIZE - 1) / BLKSIZE;
 	for (bno = new_nblocks; bno < old_nblocks; bno++)
@@ -717,11 +717,6 @@ file_truncate_blocks(struct File *f, off_t newsize)
 		free_block(f->f_indirect);
 		f->f_indirect = 0;
 	}
-#else
-	// Hint: Use file_clear_block and/or free_block.
-	// LAB 5: Your code here.
-	panic("file_truncate_blocks not implemented");
-#endif
 }
 
 int
@@ -744,7 +739,6 @@ file_set_size(struct File *f, off_t newsize)
 void
 file_flush(struct File *f)
 {
-#if SOL >= 5
 	int i;
 	uint32_t diskbno;
 
@@ -754,10 +748,6 @@ file_flush(struct File *f)
 		if (block_is_dirty(diskbno))
 			write_block(diskbno);
 	}	
-#else
-	// LAB 5: Your code here.
-	panic("file_flush not implemented");
-#endif
 }
 
 // Sync the entire file system.  A big hammer.
