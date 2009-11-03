@@ -410,6 +410,7 @@ found_jos:
 //	-E_INVAL if filebno is out of range (it's >= NINDIRECT).
 //
 // Analogy: This is like pgdir_walk for files.  
+// Hint: Don't forget to clear any block you allocate.
 int
 file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool alloc)
 {
@@ -456,6 +457,8 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 //	-E_NO_DISK if a block needed to be allocated but the disk is full.
 //	-E_NO_MEM if we're out of memory.
 //	-E_INVAL if filebno is out of range.
+//
+// Hint: Use file_block_walk.
 int
 file_map_block(struct File *f, uint32_t filebno, uint32_t *diskbno, bool alloc)
 {
