@@ -240,7 +240,6 @@ serve_close(envid_t envid, struct Fsreq_close *rq)
 	if (debug)
 		cprintf("serve_close %08x %08x\n", envid, rq->req_fileid);
 
-#if SOL >= 5
 	if ((r = openfile_lookup(envid, rq->req_fileid, &o)) < 0)
 		goto out;
 	file_close(o->o_file);
@@ -248,12 +247,6 @@ serve_close(envid_t envid, struct Fsreq_close *rq)
 
 out:
 	ipc_send(envid, r, 0, 0);
-#else
-	// Close the file.
-	
-	// LAB 5: Your code here.
-	panic("serve_close not implemented");
-#endif
 }
 
 void
@@ -265,7 +258,10 @@ serve_remove(envid_t envid, struct Fsreq_remove *rq)
 	if (debug)
 		cprintf("serve_remove %08x %s\n", envid, rq->req_path);
 
-#if SOL >= 5
+	// Delete the named file.
+	// Note: This request doesn't refer to an open file.
+	// Hint: Make sure the path is null-terminated!
+
 	// Copy in the path, making sure it's null-terminated
 	memmove(path, rq->req_path, MAXPATHLEN);
 	path[MAXPATHLEN-1] = 0;
@@ -273,14 +269,6 @@ serve_remove(envid_t envid, struct Fsreq_remove *rq)
 	// Delete the specified file
 	r = file_remove(path);
 	ipc_send(envid, r, 0, 0);
-#else
-	// Delete the named file.
-	// Note: This request doesn't refer to an open file.
-	// Hint: Make sure the path is null-terminated!
-
-	// LAB 5: Your code here.
-	panic("serve_remove not implemented");
-#endif
 }
 
 void
