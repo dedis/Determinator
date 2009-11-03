@@ -166,10 +166,14 @@ free_block(uint32_t blockno)
 	bitmap[blockno/32] |= 1<<(blockno%32);
 }
 
-// Search the bitmap for a free block and allocate it.
+// Search the bitmap for a free block and allocate it.  When you
+// allocate a block, immediately flush the changed bitmap block
+// to disk.
 // 
 // Return block number allocated on success,
 // -E_NO_DISK if we are out of blocks.
+//
+// Hint: use free_block as an example for manipulating the bitmap.
 int
 alloc_block_num(void)
 {
@@ -194,7 +198,7 @@ alloc_block_num(void)
 }
 
 // Allocate a block -- first find a free block in the bitmap,
-// then map it into memory.
+// then map it into memory using map_block.
 int
 alloc_block(void)
 {
@@ -256,7 +260,12 @@ read_bitmap(void)
 	uint32_t i;
 	char *blk;
 
-#if SOL >= 5
+	// Read the bitmap into memory.
+	// The bitmap consists of one or more blocks.  A single bitmap block
+	// contains the in-use bits for BLKBITSIZE blocks.  There are
+	// super->s_nblocks blocks in the disk altogether.
+	// Set 'bitmap' to point to the first address in the bitmap.
+	// Hint: Use read_block.
 	for (i = 0; i * BLKBITSIZE < super->s_nblocks; i++) {
 		if ((r = read_block(2+i, &blk)) < 0)
 			panic("cannot read bitmap block %d: %e", i, r);
@@ -265,29 +274,12 @@ read_bitmap(void)
 		// Make sure all bitmap blocks are marked in-use
 		assert(!block_is_free(2+i));
 	}
-#else
-	// Read the bitmap into memory.
-	// The bitmap consists of one or more blocks.  A single bitmap block
-	// contains the in-use bits for BLKBITSIZE blocks.  There are
-	// super->s_nblocks blocks in the disk altogether.
-	// Set 'bitmap' to point to the first address in the bitmap.
-	// Hint: Use read_block.
-
-	// LAB 5: Your code here.
-	panic("read_bitmap not implemented");
-#endif
 
 	// Make sure the reserved and root blocks are marked in-use.
 	assert(!block_is_free(0));
 	assert(!block_is_free(1));
 	assert(bitmap);
 
-#if SOL >= 5
-#else
-	// Make sure that the bitmap blocks are marked in-use.
-	// LAB 5: Your code here.
-
-#endif
 	cprintf("read_bitmap is good\n");
 }
 
