@@ -687,14 +687,8 @@ file_create(const char *path, struct File **pf)
 int
 file_open(const char *path, struct File **pf)
 {
-#if SOL >= 5
-	return walk_path(path, 0, pf, 0);
-#else
 	// Hint: Use walk_path.
-	// LAB 5: Your code here.
-	panic("file_open not implemented");
-	return 0;
-#endif
+	return walk_path(path, 0, pf, 0);
 }
 
 // Remove any blocks currently used by file 'f',
