@@ -183,6 +183,9 @@ file_trunc(struct Fd *fd, off_t newsize)
 // Harmlessly does nothing if oldsize >= newsize.
 // Returns 0 on success, < 0 on error.
 // If there is an error, unmaps any newly allocated pages.
+//
+// Hint: Use fd2data to get the start of the file mapping area for fd.
+// Hint: You can use ROUNDUP to page-align offsets.
 static int
 fmap(struct Fd* fd, off_t oldsize, off_t newsize)
 {
@@ -209,7 +212,12 @@ fmap(struct Fd* fd, off_t oldsize, off_t newsize)
 
 // Unmap any file pages that no longer represent valid file pages
 // when the size of the file as mapped in our address space decreases.
-// Harmlessly does nothing if newsize >= oldsize.
+// Harmlessly does nothing if newsize >= oldsize.  Don't do anything
+//
+// Hint: Remember to call fsipc_dirty if dirty is true and PTE_D bit
+// is set in the pagetable entry.
+// Hint: Use fd2data to get the start of the file mapping area for fd.
+// Hint: You can use ROUNDUP to page-align offsets.
 static int
 funmap(struct Fd* fd, off_t oldsize, off_t newsize, bool dirty)
 {
