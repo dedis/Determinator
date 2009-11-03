@@ -532,9 +532,14 @@ file_dirty(struct File *f, off_t offset)
 	int r;
 	char *blk;
 
+#if SOL >= 5
 	if ((r = file_get_block(f, offset/BLKSIZE, &blk)) < 0)
 		return r;
 	*(volatile char*)blk = *(volatile char*)blk;
+#else
+	// LAB 5: Your code here.
+	panic("file_dirty not implemented");
+#endif
 	return 0;
 }
 
