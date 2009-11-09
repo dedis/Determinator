@@ -169,7 +169,10 @@ ifneq ($(LAB), 3)
 ifneq ($(LAB), 4)
 	echo >>conf/lab.mk "LAB5=true"
 ifneq ($(LAB), 5)
+	echo >>conf/lab.mk "LAB6=true"
+ifneq ($(LAB), 6)
 	echo >>conf/lab.mk "LAB7=true"
+endif	# LAB != 6
 endif	# LAB != 5
 endif	# LAB != 4
 endif	# LAB != 3
@@ -272,14 +275,14 @@ build-sol%: export-sol% always
 	cd sol$*; $(MAKE)
 build-prep%: export-prep% always
 	cd prep$*; $(MAKE)
-build-all-sols: build-sol1 build-sol2 build-sol3 build-sol4 build-sol5 build-sol7
-build-all-labs: build-lab1 build-lab2 build-lab3 build-lab4 build-lab5 build-lab7
+build-all-sols: build-sol1 build-sol2 build-sol3 build-sol4 build-sol5 build-sol6 build-sol7
+build-all-labs: build-lab1 build-lab2 build-lab3 build-lab4 build-lab5 build-lab6 build-lab7
 build-all: build-all-sols build-all-labs
 
 grade-sol%: export-sol% always
 	cd sol$*; $(MAKE) grade
 
-grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol7 always
+grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 grade-sol7 always
 
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 

@@ -31,6 +31,11 @@ KERN_SRCFILES :=	kern/entry.S \
 			lib/readline.c \
 			lib/string.c
 
+ifdef LAB6
+# Source files for LAB6
+KERN_SRCFILES +=	kern/time.c
+endif
+
 # Only build files if they exist.
 KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
 
