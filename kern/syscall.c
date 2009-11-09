@@ -14,6 +14,9 @@
 #if LAB >= 4
 #include <kern/sched.h>
 #endif
+#if LAB >= 6
+#include <kern/time.h>
+#endif
 
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
@@ -461,6 +464,19 @@ sys_ipc_recv(void *dstva)
 }
 #endif	// LAB >= 4
 
+#if LAB >= 6
+// Return the current time.
+static int
+sys_time_msec(void) 
+{
+#if SOL >= 6
+	return (int) time_msec();
+#else
+	// LAB 6: Your code here.
+	panic("sys_time_msec not implemented");
+#endif
+}
+#endif
 
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
@@ -500,6 +516,10 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	case SYS_ipc_recv:
 		sys_ipc_recv((void*) a1);
 		return 0;
+#if SOL >= 6
+	case SYS_time_msec:
+		return sys_time_msec();
+#endif	// SOL >= 6
 #endif	// SOL >= 4
 	default:
 		return -E_INVAL;

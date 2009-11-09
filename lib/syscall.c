@@ -118,6 +118,13 @@ sys_ipc_recv(void *dstva)
 {
 	return syscall(SYS_ipc_recv, 1, (uint32_t)dstva, 0, 0, 0, 0);
 }
-#endif	// LAB >= 4
 
+#if LAB >= 6
+unsigned int
+sys_time_msec(void)
+{
+	return (unsigned int) syscall(SYS_time_msec, 0, 0, 0, 0, 0, 0);
+}
+#endif	// LAB >= 6
+#endif	// LAB >= 4
 #endif	// LAB >= 3

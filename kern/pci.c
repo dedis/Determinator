@@ -95,7 +95,7 @@ pci_attach(struct pci_func *f)
 				 &pci_attach_vendor[0], f);
 }
 
-static char *pci_class[] = 
+static const char *pci_class[] = 
 {
 	[0x0] = "Unknown",
 	[0x1] = "Storage controller",
@@ -109,11 +109,9 @@ static char *pci_class[] =
 static void 
 pci_print_func(struct pci_func *f)
 {
-	const char *class = NULL;
+	const char *class = pci_class[0];
 	if (PCI_CLASS(f->dev_class) < sizeof(pci_class) / sizeof(pci_class[0]))
 		class = pci_class[PCI_CLASS(f->dev_class)];
-	if (class == NULL)
-		class = "Unknown";
 
 	cprintf("PCI: %02x:%02x.%d: %04x:%04x: class: %x.%x (%s) irq: %d\n",
 		f->bus->busno, f->dev, f->func,

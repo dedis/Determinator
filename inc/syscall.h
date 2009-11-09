@@ -21,6 +21,9 @@ enum
 	SYS_ipc_try_send,
 	SYS_ipc_recv,
 #endif	// LAB >= 4
+#if LAB >= 6
+	SYS_time_msec,
+#endif	// LAB >= 6
 	NSYSCALLS
 };
 
