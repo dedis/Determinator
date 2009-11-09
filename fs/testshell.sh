@@ -1,4 +1,4 @@
-#if LAB >= 6
+#if LAB >= 7
 echo hello world | cat
 cat lorem >out
 cat out
@@ -7,4 +7,4 @@ cat lorem |num |num |num |num |num
 lsfd -1
 cat script
 sh <script
-#endif // LAB >= 6
+#endif // LAB >= 7

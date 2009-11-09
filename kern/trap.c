@@ -220,12 +220,12 @@ trap_dispatch(struct Trapframe *tf)
 		// irq 0 -- clock interrupt
 		sched_yield();
 	}
-#if SOL >= 6
+#if SOL >= 7
 	if (tf->tf_trapno == IRQ_OFFSET + 1) {
 		kbd_intr();
 		return;
 	}
-#endif	// SOL >= 6
+#endif	// SOL >= 7
 	if (tf->tf_trapno == IRQ_OFFSET + 4) {
 		serial_intr();
 		return;
@@ -243,11 +243,11 @@ trap_dispatch(struct Trapframe *tf)
 		return;
 	}
 
-#if LAB >= 6
+#if LAB >= 7
 
 	// Handle keyboard interrupts.
-	// LAB 6: Your code here.
-#endif	// LAB >= 6
+	// LAB 7: Your code here.
+#endif	// LAB >= 7
 #endif	// SOL >= 4
 #endif	// LAB >= 4
 

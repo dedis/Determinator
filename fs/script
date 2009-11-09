@@ -1,7 +1,7 @@
-#if LAB >= 6
+#if LAB >= 7
 echo This is from the script.
 cat lorem | num | cat
 echo These are my file descriptors.
 lsfd -1
 echo This is the end of the script.
-#endif // LAB >= 6
+#endif // LAB >= 7

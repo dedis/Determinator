@@ -90,7 +90,7 @@ duppage(envid_t envid, unsigned pn)
 	addr = (void*) (pn << PGSHIFT);
 	pte = vpt[pn];
 
-#if SOL >= 6
+#if SOL >= 7
 	// if the page is just read-only or is library-shared, map it directly.
 	if (!(pte & (PTE_W|PTE_COW)) || (pte & PTE_SHARE)) {
 		if ((r = sys_page_map(0, addr, envid, addr, pte & PTE_USER)) < 0)

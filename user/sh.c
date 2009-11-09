@@ -1,4 +1,4 @@
-#if LAB >= 6
+#if LAB >= 7
 #include <inc/lib.h>
 
 #define BUFSIZ 1024		/* Find the buffer overrun bug! */
@@ -47,7 +47,7 @@ again:
 				cprintf("syntax error: < not followed by word\n");
 				exit();
 			}
-#if SOL >= 6
+#if SOL >= 7
 			if ((fd = open(t, O_RDONLY)) < 0) {
 				cprintf("open %s for read: %e", t, fd);
 				exit();
@@ -76,7 +76,7 @@ again:
 				cprintf("syntax error: > not followed by word\n");
 				exit();
 			}
-#if SOL >= 6
+#if SOL >= 7
 			if ((fd = open(t, O_WRONLY)) < 0) {
 				cprintf("open %s for write: %e", t, fd);
 				exit();
@@ -102,7 +102,7 @@ again:
 			break;
 			
 		case '|':	// Pipe
-#if SOL >= 6
+#if SOL >= 7
 			if ((r = pipe(p)) < 0) {
 				cprintf("pipe: %e", r);
 				exit();

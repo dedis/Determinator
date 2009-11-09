@@ -43,7 +43,7 @@ umain(int argc, char **argv)
 		cprintf(" '%s'", argv[i]);
 	cprintf("\n");
 
-#if LAB >= 6
+#if LAB >= 7
 	cprintf("init: running sh\n");
 
 	// being run directly from kernel, so no file descriptors open yet

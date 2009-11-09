@@ -208,7 +208,7 @@ serve_map(envid_t envid, struct Fsreq_map *rq)
 	if ((r = file_get_block(o->o_file, rq->req_offset / BLKSIZE, &blk)) < 0)
 		goto out;
 
-#if SOL >= 6
+#if SOL >= 7
 	perm = PTE_U|PTE_P|PTE_SHARE;
 #else
 	perm = PTE_U|PTE_P;

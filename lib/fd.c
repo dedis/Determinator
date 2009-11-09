@@ -124,7 +124,7 @@ fd_close(struct Fd *fd, bool must_exist)
 static struct Dev *devtab[] =
 {
 	&devfile,
-#if LAB >= 6
+#if LAB >= 7
 	&devpipe,
 	&devcons,
 #endif
@@ -186,7 +186,7 @@ dup(int oldfdnum, int newfdnum)
 	ova = fd2data(oldfd);
 	nva = fd2data(newfd);
 
-#if SOL >= 6
+#if SOL >= 7
 #else
 	if ((r = sys_page_map(0, oldfd, 0, newfd, vpt[VPN(oldfd)] & PTE_USER)) < 0)
 		goto err;
@@ -201,7 +201,7 @@ dup(int oldfdnum, int newfdnum)
 			}
 		}
 	}
-#if SOL >= 6
+#if SOL >= 7
 	if ((r = sys_page_map(0, oldfd, 0, newfd, vpt[VPN(oldfd)] & PTE_USER)) < 0)
 		goto err;
 #else

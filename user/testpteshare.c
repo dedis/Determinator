@@ -1,4 +1,4 @@
-#if LAB >= 6
+#if LAB >= 7
 #include <inc/lib.h>
 
 #define VA	((char *) 0xA0000000)

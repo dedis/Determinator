@@ -25,7 +25,7 @@
 #include <inc/fd.h>
 #include <inc/args.h>
 #endif
-#if LAB >= 6
+#if LAB >= 7
 #include <inc/malloc.h>
 #endif
 
@@ -124,7 +124,7 @@ envid_t	spawn(const char *program, const char **argv);
 envid_t	spawnl(const char *program, const char *arg0, ...);
 #endif  // LAB >= 5
 
-#if LAB >= 6
+#if LAB >= 7
 // console.c
 void	cputchar(int c);
 int	getchar(void);
@@ -137,7 +137,7 @@ int	pipeisclosed(int pipefd);
 
 // wait.c
 void	wait(envid_t env);
-#endif  // LAB >= 6
+#endif  // LAB >= 7
 
 /* File open modes */
 #define	O_RDONLY	0x0000		/* open for reading only */

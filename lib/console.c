@@ -16,7 +16,7 @@ cputchar(int ch)
 int
 getchar(void)
 {
-#if LAB >= 6
+#if LAB >= 7
 	unsigned char c;
 	int r;
 
@@ -29,13 +29,13 @@ getchar(void)
 	if (r < 1)
 		return -E_EOF;
 	return c;
-#else	// not LAB >= 6
+#else	// not LAB >= 7
 	return sys_cgetc();
-#endif	// not LAB >= 6
+#endif	// not LAB >= 7
 }
 
 
-#if LAB >= 6
+#if LAB >= 7
 // "Real" console file descriptor implementation.
 // The putchar/getchar functions above will still come here by default,
 // but now can be redirected to files, pipes, etc., via the fd layer.
@@ -136,5 +136,5 @@ cons_stat(struct Fd *fd, struct Stat *stat)
 	return 0;
 }
 
-#endif	// LAB >= 6
+#endif	// LAB >= 7
 #endif	// LAB >= 3

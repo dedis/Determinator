@@ -29,7 +29,7 @@ LIB_SRCFILES :=		$(LIB_SRCFILES) \
 			lib/spawn.c
 endif
 
-ifdef LAB6
+ifdef LAB7
 LIB_SRCFILES :=		$(LIB_SRCFILES) \
 			lib/malloc.c \
 			lib/pipe.c \

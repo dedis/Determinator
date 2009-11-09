@@ -1,4 +1,4 @@
-#if LAB >= 6
+#if LAB >= 7
 #!/bin/sh
 
 qemuopts="-hda obj/kern/kernel.img -hdb obj/fs/fs.img"

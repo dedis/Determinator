@@ -72,7 +72,7 @@ i386_init(void)
 	kclock_init();
 #endif
 
-#if LAB >= 6
+#if LAB >= 7
 	// Should always have an idle process as first one.
 	ENV_CREATE(user_idle);
 
@@ -128,7 +128,7 @@ i386_init(void)
 #endif // TEST*
 #endif // LAB5, LAB4, LAB3
 
-#if LAB >= 6
+#if LAB >= 7
 	// Should not be necessary - drain keyboard because interrupt has given up.
 	kbd_intr();
 

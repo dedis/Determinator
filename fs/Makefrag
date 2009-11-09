@@ -19,7 +19,7 @@ USERAPPS := 		$(OBJDIR)/user/cat \
 FSIMGTXTFILES :=	fs/newmotd \
 			fs/motd
 
-ifdef LAB6
+ifdef LAB7
 USERAPPS :=		$(USERAPPS) \
 			$(OBJDIR)/user/primespipe \
 			$(OBJDIR)/user/sh \

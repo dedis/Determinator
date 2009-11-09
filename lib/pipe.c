@@ -1,4 +1,4 @@
-#if LAB >= 6
+#if LAB >= 7
 #include <inc/lib.h>
 
 #define debug 0
@@ -76,7 +76,7 @@ pipe(int pfd[2])
 static int
 _pipeisclosed(struct Fd *fd, struct Pipe *p)
 {
-#if SOL >= 6
+#if SOL >= 7
 	int n, nn, ret;
 
 	while (1) {
@@ -125,7 +125,7 @@ pipeisclosed(int fdnum)
 static ssize_t
 piperead(struct Fd *fd, void *vbuf, size_t n, off_t offset)
 {
-#if SOL >= 6
+#if SOL >= 7
 	uint8_t *buf;
 	size_t i;
 	struct Pipe *p;
@@ -177,7 +177,7 @@ piperead(struct Fd *fd, void *vbuf, size_t n, off_t offset)
 static ssize_t
 pipewrite(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
 {
-#if SOL >= 6
+#if SOL >= 7
 	const uint8_t *buf;
 	size_t i;
 	struct Pipe *p;
@@ -238,10 +238,10 @@ pipestat(struct Fd *fd, struct Stat *stat)
 static int
 pipeclose(struct Fd *fd)
 {
-#if SOL >= 6
+#if SOL >= 7
 	(void) sys_page_unmap(0, fd);
 #endif
 	return sys_page_unmap(0, fd2data(fd));
 }
 
-#endif /* LAB >= 6 */
+#endif /* LAB >= 7 */

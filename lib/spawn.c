@@ -10,7 +10,7 @@
 static int init_stack(envid_t child, const char **argv, uintptr_t *init_esp);
 static int map_segment(envid_t child, uintptr_t va, size_t memsz,
 		       int fd, size_t filesz, off_t fileoffset, int perm);
-#if LAB >= 6
+#if LAB >= 7
 static int copy_shared_pages(envid_t child);
 #endif
 
@@ -128,7 +128,7 @@ spawn(const char *prog, const char **argv)
 	close(fd);
 	fd = -1;
 
-#if SOL >= 6
+#if SOL >= 7
 	// Copy shared library state.
 	copy_shared_pages(child);
 
@@ -285,7 +285,7 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 	return 0;
 }
 
-#if SOL >= 6
+#if SOL >= 7
 // Copy the mappings for shared pages into the child address space.
 static int
 copy_shared_pages(envid_t child)
