@@ -1,3 +1,4 @@
+#if LAB >= 6
 #ifndef JOS_KERN_TIME_H
 #define JOS_KERN_TIME_H
 #ifndef JOS_KERNEL
@@ -9,3 +10,4 @@ void time_tick(void);
 unsigned int time_msec(void);
 
 #endif /* JOS_KERN_TIME_H */
+#endif

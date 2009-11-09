@@ -15,6 +15,10 @@
 #if LAB >= 4
 #include <kern/sched.h>
 #include <kern/picirq.h>
+#if LAB >= 6
+#include <kern/time.h>
+#include <kern/pci.h>
+#endif  // LAB >= 6
 #endif	// LAB >= 4
 #endif	// LAB >= 3
 #endif	// LAB >= 2
@@ -70,6 +74,11 @@ i386_init(void)
 	// Lab 4 multitasking initialization functions
 	pic_init();
 	kclock_init();
+#endif
+
+#if LAB >= 6
+	time_init();
+	pci_init();
 #endif
 
 #if LAB >= 7

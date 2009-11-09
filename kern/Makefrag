@@ -33,7 +33,8 @@ KERN_SRCFILES :=	kern/entry.S \
 
 ifdef LAB6
 # Source files for LAB6
-KERN_SRCFILES +=	kern/time.c
+KERN_SRCFILES +=	kern/time.c \
+			kern/pci.c
 endif
 
 # Only build files if they exist.

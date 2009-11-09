@@ -218,6 +218,9 @@ trap_dispatch(struct Trapframe *tf)
 	// New in Lab 4: Handle external interrupts
 	if (tf->tf_trapno == IRQ_OFFSET + 0) {
 		// irq 0 -- clock interrupt
+#if SOL >= 6
+		time_tick();
+#endif
 		sched_yield();
 	}
 #if SOL >= 7
@@ -233,6 +236,11 @@ trap_dispatch(struct Trapframe *tf)
 #else	// SOL >= 4
 	// Handle clock interrupts.
 	// LAB 4: Your code here.
+
+#if LAB >= 6
+	// Add time tick increment to clock interrupts.
+	// LAB 6: Your code here.
+#endif
 
 	// Handle spurious interupts
 	// The hardware sometimes raises these because of noise on the

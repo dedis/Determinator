@@ -1,3 +1,4 @@
+#if LAB >= 6
 #include <kern/time.h>
 #include <inc/assert.h>
 
@@ -24,3 +25,4 @@ time_msec(void)
 {
 	return ticks * 10;
 }
+#endif
