@@ -95,6 +95,33 @@ pci_attach(struct pci_func *f)
 				 &pci_attach_vendor[0], f);
 }
 
+static char *pci_class[] = 
+{
+	[0x0] = "Unknown",
+	[0x1] = "Storage controller",
+	[0x2] = "Network controller",
+	[0x3] = "Display controller",
+	[0x4] = "Multimedia device",
+	[0x5] = "Memory controller",
+	[0x6] = "Bridge device",
+};
+
+static void 
+pci_print_func(struct pci_func *f)
+{
+	const char *class = NULL;
+	if (PCI_CLASS(f->dev_class) < sizeof(pci_class) / sizeof(pci_class[0]))
+		class = pci_class[PCI_CLASS(f->dev_class)];
+	if (class == NULL)
+		class = "Unknown";
+
+	cprintf("PCI: %02x:%02x.%d: %04x:%04x: class: %x.%x (%s) irq: %d\n",
+		f->bus->busno, f->dev, f->func,
+		PCI_VENDOR(f->dev_id), PCI_PRODUCT(f->dev_id),
+		PCI_CLASS(f->dev_class), PCI_SUBCLASS(f->dev_class), class,
+		f->irq_line);
+}
+
 static int 
 pci_scan_bus(struct pci_bus *bus)
 {
@@ -124,15 +151,7 @@ pci_scan_bus(struct pci_bus *bus)
 			
 			af.dev_class = pci_conf_read(&af, PCI_CLASS_REG);
 			if (pci_show_devs)
-				cprintf("PCI: %02x:%02x.%d: %04x:%04x: "
-					"class %x.%x irq %d\n",
-					af.bus->busno, af.dev, af.func,
-					PCI_VENDOR(af.dev_id), 
-					PCI_PRODUCT(af.dev_id),
-					PCI_CLASS(af.dev_class), 
-					PCI_SUBCLASS(af.dev_class),
-					af.irq_line);
-			
+				pci_print_func(&af);
 			pci_attach(&af);
 		}
 	}
