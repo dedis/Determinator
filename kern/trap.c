@@ -16,6 +16,9 @@
 #include <kern/kclock.h>
 #include <kern/picirq.h>
 #endif
+#if LAB >= 6
+#include <kern/time.h>
+#endif
 
 static struct Taskstate ts;
 
