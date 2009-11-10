@@ -29,6 +29,9 @@ struct pci_driver pci_attach_class[] = {
 };
 
 struct pci_driver pci_attach_vendor[] = {
+#if SOL >= 6
+	{ 0x8086, 0x1209, &e100_attach },
+#endif
 	{ 0, 0, 0 },
 };
 
