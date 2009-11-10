@@ -32,8 +32,8 @@ endif
 ifdef LAB6
 LIB_SRCFILES :=		$(LIB_SRCFILES) \
 			lib/malloc.c
-endif
 
+endif
 ifdef LAB7
 LIB_SRCFILES :=		$(LIB_SRCFILES) \
 			lib/pipe.c \

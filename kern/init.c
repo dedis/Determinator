@@ -79,8 +79,8 @@ i386_init(void)
 #if LAB >= 6
 	time_init();
 	pci_init();
-#endif
 
+#endif
 #if LAB >= 7
 	// Should always have an idle process as first one.
 	ENV_CREATE(user_idle);

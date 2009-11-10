@@ -243,8 +243,8 @@ trap_dispatch(struct Trapframe *tf)
 #if LAB >= 6
 	// Add time tick increment to clock interrupts.
 	// LAB 6: Your code here.
-#endif
 
+#endif
 	// Handle spurious interupts
 	// The hardware sometimes raises these because of noise on the
 	// IRQ line or other reasons. We don't care.
