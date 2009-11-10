@@ -384,7 +384,7 @@ umain(void)
 		return;
 	}
 
-	// fork off the input thread which will pool the NIC driver for input
+	// fork off the input thread which will poll the NIC driver for input
 	// packets
 	input_envid = fork();
 	if (input_envid < 0)
