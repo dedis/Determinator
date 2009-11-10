@@ -63,7 +63,8 @@ KERN_BINFILES :=	user/idle \
 			user/writemotd \
 			user/icode \
 			user/testtime \
-			fs/fs
+			fs/fs \
+			net/ns
 else
 ifdef LAB5
 # Binary program images to embed within the kernel.
