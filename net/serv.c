@@ -27,6 +27,9 @@
 
 #include "ns.h"
 
+/* errno to make lwIP happy */
+int errno;
+
 struct netif nif;
 
 #define debug 0

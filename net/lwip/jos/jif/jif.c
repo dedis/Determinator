@@ -32,6 +32,7 @@
  */
 
 #include <inc/lib.h>
+#include <inc/ns.h>
 
 #include <jif/jif.h>
 

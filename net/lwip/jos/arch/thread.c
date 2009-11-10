@@ -59,7 +59,7 @@ thread_wait(volatile uint32_t *addr, uint32_t val, uint32_t msec) {
 int
 thread_onhalt(void (*fun)(thread_id_t)) {
     if (cur_tc->tc_nonhalt >= THREAD_NUM_ONHALT)
-	return -ENOMEM;
+	return -E_NO_MEM;
 
     cur_tc->tc_onhalt[cur_tc->tc_nonhalt++] = fun;
     return 0;
@@ -91,7 +91,7 @@ thread_create(thread_id_t *tid, const char *name,
 		void (*entry)(uint32_t), uint32_t arg) {
     struct thread_context *tc = malloc(sizeof(struct thread_context));
     if (!tc)
-	return -ENOMEM;
+	return -E_NO_MEM;
 
     memset(tc, 0, sizeof(struct thread_context));
     
@@ -101,7 +101,7 @@ thread_create(thread_id_t *tid, const char *name,
     tc->tc_stack_bottom = malloc(stack_size);
     if (!tc->tc_stack_bottom) {
 	free(tc);
-	return -ENOMEM;
+	return -E_NO_MEM;
     }
 
     void *stacktop = tc->tc_stack_bottom + stack_size;

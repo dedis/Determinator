@@ -13,6 +13,12 @@ fsipcbuf:
 	.globl fdtab
 fdtab:
 	.space PGSIZE
+        .globl nsipcbuf
+#if LAB >= 6
+	// page-aligned nsipcbuf for nsipc.c
+nsipcbuf:
+        .space PGSIZE
+#endif
 #endif
 
 
