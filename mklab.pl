@@ -13,8 +13,26 @@
 # only if the solution set number is greater than or equal to 'n'.
 #
 
+sub dodir {
+	my $dirname = shift;
+	opendir(DIR, "$dirname");
+	my @files = readdir(DIR); 
+	foreach my $f (@files) {
+		if ($f ne ".." && $f ne ".") {
+			dofile("$dirname/$f");
+		}
+	} 
+	closedir(DIR);
+}
+
 sub dofile {
 	my $filename = shift;
+
+	if (-d $filename) {
+		dodir($filename);
+		return;
+	}
+
 	my $ccode = 0;
 	if ($filename =~ /.*\.[ch]$/) { $ccode = 1; }
 	my $tmpfilename = "$filename.tmp";

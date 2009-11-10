@@ -218,6 +218,7 @@ LAB_DIRS := inc boot kern lib user fs net
 LAB_FILES := CODING GNUmakefile mergedep.pl grade-functions.sh .gdbinit.tmpl boot/sign.pl \
 	fs/lorem fs/motd fs/newmotd fs/script \
 	fs/testshell.sh fs/testshell.key fs/testshell.out fs/out \
+	net/lwip \
 	conf/env.mk \
 	$(foreach lab,1 2 3 4 5 6 7,grade-lab$(lab).sh) \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
