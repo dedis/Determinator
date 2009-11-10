@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Abstract Syntax Notation One (ISO 8824, 8825) decoding
@@ -655,3 +656,4 @@ snmp_asn1_dec_raw(struct pbuf *p, u16_t ofs, u16_t len, u16_t raw_len, u8_t *raw
 }
 
 #endif /* LWIP_SNMP */
+#endif  // LAB >= 6

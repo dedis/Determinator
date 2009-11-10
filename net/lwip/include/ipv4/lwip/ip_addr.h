@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved.
@@ -163,3 +164,4 @@ u8_t ip_addr_isbroadcast(struct ip_addr *, struct netif *);
 #endif
 
 #endif /* __LWIP_IP_ADDR_H__ */
+#endif  // LAB >= 6

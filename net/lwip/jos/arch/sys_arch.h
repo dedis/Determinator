@@ -1,3 +1,4 @@
+#if LAB >= 6
 #ifndef LWIP_ARCH_SYS_ARCH_H
 #define LWIP_ARCH_SYS_ARCH_H
 
@@ -21,3 +22,4 @@ void lwip_core_init(void);
 #define SYS_ARCH_NOWAIT  0xfffffffe
 
 #endif
+#endif  // LAB >= 6

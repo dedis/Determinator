@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Transmission Control Protocol, incoming traffic
@@ -1348,3 +1349,4 @@ tcp_parseopt(struct tcp_pcb *pcb)
 }
 
 #endif /* LWIP_TCP */
+#endif  // LAB >= 6

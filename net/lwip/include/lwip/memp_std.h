@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * SETUP: Make sure we define everything we will need.
  *
@@ -99,3 +100,4 @@ LWIP_PBUF_MEMPOOL(PBUF_POOL, PBUF_POOL_SIZE,           PBUF_POOL_BUFSIZE,       
 #undef LWIP_MALLOC_MEMPOOL_START
 #undef LWIP_MALLOC_MEMPOOL_END
 #undef LWIP_PBUF_MEMPOOL
+#endif  // LAB >= 6

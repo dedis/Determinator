@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -74,3 +75,4 @@ err_t ip_frag(struct pbuf *p, struct netif *netif, struct ip_addr *dest);
 #endif
 
 #endif /* __LWIP_IP_FRAG_H__ */
+#endif  // LAB >= 6

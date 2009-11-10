@@ -1,3 +1,4 @@
+#if LAB >= 6
 #ifndef _ALIGN_TEXT
 #define _ALIGN_TEXT .align 16, 0x90
 #endif
@@ -37,3 +38,4 @@ ENTRY(jos_longjmp)
 	movl	%edx, %eax
 	jmp	*%ecx
 
+#endif  // LAB >= 6

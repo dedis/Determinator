@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -98,3 +99,4 @@ struct icmp_te_hdr {
 
 #endif /* __LWIP_ICMP_H__ */
 
+#endif  // LAB >= 6

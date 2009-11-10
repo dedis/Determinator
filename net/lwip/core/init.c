@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Modules initialization
@@ -251,3 +252,4 @@ lwip_init(void)
   dns_init();
 #endif /* LWIP_DNS */
 }
+#endif  // LAB >= 6

@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2002 CITEL Technologies Ltd.
  * All rights reserved.
@@ -160,3 +161,4 @@ void   igmp_send( struct igmp_group *group, u8_t type);
 #endif /* LWIP_IGMP */
 
 #endif /* __LWIP_IGMP_H__ */
+#endif  // LAB >= 6

@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -85,3 +86,4 @@ extern const char *lwip_strerr(err_t err);
 #endif
 
 #endif /* __LWIP_ERR_H__ */
+#endif  // LAB >= 6

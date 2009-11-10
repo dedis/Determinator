@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * This is the IPv4 address tools implementation.
@@ -82,3 +83,4 @@ u8_t ip_addr_isbroadcast(struct ip_addr *addr, struct netif *netif)
   else
     return 0;
 }
+#endif  // LAB >= 6

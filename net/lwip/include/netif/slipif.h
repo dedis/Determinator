@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001, Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -48,3 +49,4 @@ err_t slipif_init(struct netif * netif);
  
 #endif 
 
+#endif  // LAB >= 6

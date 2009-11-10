@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -226,3 +227,4 @@ extern int errno;
 #endif
 
 #endif /* __LWIP_ARCH_H__ */
+#endif  // LAB >= 6

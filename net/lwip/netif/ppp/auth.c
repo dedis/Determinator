@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * auth.c - Network Authentication and Phase Control program file.
 *
@@ -986,3 +987,4 @@ free_wordlist(struct wordlist *wp)
 #endif  /* 0 */ /* PAP_SUPPORT || CHAP_SUPPORT */
 
 #endif /* PPP_SUPPORT */
+#endif  // LAB >= 6

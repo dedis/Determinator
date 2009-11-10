@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Functions common to all TCP/IPv4 modules, such as the byte order functions.
@@ -276,3 +277,4 @@ ntohl(u32_t n)
 }
 
 #endif /* (LWIP_PLATFORM_BYTESWAP == 0) && (BYTE_ORDER == LITTLE_ENDIAN) */
+#endif  // LAB >= 6

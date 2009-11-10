@@ -1,3 +1,4 @@
+#if LAB >= 6
 #ifndef JOS_MACHINE_SETJMP_H
 #define JOS_MACHINE_SETJMP_H
 
@@ -15,3 +16,4 @@ struct jos_jmp_buf {
 };
 
 #endif
+#endif  // LAB >= 6

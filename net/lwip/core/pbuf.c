@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Packet buffer management
@@ -777,3 +778,4 @@ pbuf_copy_partial(struct pbuf *buf, void *dataptr, u16_t len, u16_t offset)
   }
   return copied_total;
 }
+#endif  // LAB >= 6

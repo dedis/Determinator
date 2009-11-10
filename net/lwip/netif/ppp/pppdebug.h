@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * pppdebug.h - System debugging utilities.
 *
@@ -84,3 +85,4 @@ void ppp_trace(int level, const char *format,...);
 #endif /* PPP_DEBUG */
 
 #endif /* PPPDEBUG_H */
+#endif  // LAB >= 6

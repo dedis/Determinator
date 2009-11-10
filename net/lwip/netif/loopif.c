@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Loop Interface
@@ -64,3 +65,4 @@ loopif_init(struct netif *netif)
 }
 
 #endif /* LWIP_HAVE_LOOPIF */
+#endif  // LAB >= 6

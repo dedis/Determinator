@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * lwIP network interface abstraction
@@ -661,3 +662,4 @@ netif_poll_all(void)
 }
 #endif /* !LWIP_NETIF_LOOPBACK_MULTITHREADING */
 #endif /* ENABLE_LOOPBACK */
+#endif  // LAB >= 6

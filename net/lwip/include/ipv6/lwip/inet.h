@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -66,3 +67,4 @@ u32_t ntohl(u32_t n);
 
 #endif /* __LWIP_INET_H__ */
 
+#endif  // LAB >= 6

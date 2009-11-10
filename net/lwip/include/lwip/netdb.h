@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Redistribution and use in source and binary forms, with or without modification, 
  * are permitted provided that the following conditions are met:
@@ -107,3 +108,4 @@ int lwip_getaddrinfo(const char *nodename,
 #endif /* LWIP_COMPAT_SOCKETS */
 
 #endif /* LWIP_DNS && LWIP_SOCKET */
+#endif  // LAB >= 6

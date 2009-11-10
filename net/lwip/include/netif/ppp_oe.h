@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * ppp_oe.h - PPP Over Ethernet implementation for lwIP.
 *
@@ -159,3 +160,4 @@ extern int pppoe_hdrlen;
 #endif /* PPPOE_SUPPORT */
 
 #endif /* PPP_OE_H */
+#endif  // LAB >= 6

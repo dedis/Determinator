@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Abstract Syntax Notation One (ISO 8824, 8825) codec.
@@ -95,3 +96,4 @@ err_t snmp_asn1_enc_raw(struct pbuf *p, u16_t ofs, u8_t raw_len, u8_t *raw);
 #endif
 
 #endif /* __LWIP_SNMP_ASN1_H__ */
+#endif  // LAB >= 6

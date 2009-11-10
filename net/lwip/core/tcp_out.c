@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Transmission Control Protocol, outgoing traffic
@@ -951,3 +952,4 @@ tcp_zero_window_probe(struct tcp_pcb *pcb)
                           pcb->snd_nxt - 1, pcb->rcv_nxt));
 }
 #endif /* LWIP_TCP */
+#endif  // LAB >= 6

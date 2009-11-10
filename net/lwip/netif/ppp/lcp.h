@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * lcp.h - Network Link Control Protocol header file.
 *
@@ -165,3 +166,4 @@ extern struct protent lcp_protent;
 #define DEFLOOPBACKFAIL 10
 
 #endif /* LCP_H */
+#endif  // LAB >= 6

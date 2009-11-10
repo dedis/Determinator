@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2003 Swedish Institute of Computer Science.
  * Copyright (c) 2003-2004 Leon Woestenberg <leon.woestenberg@axon.tv>
@@ -173,3 +174,4 @@ extern const struct eth_addr ethbroadcast, ethzero;
 #endif /* LWIP_ARP */
 
 #endif /* __NETIF_ARP_H__ */
+#endif  // LAB >= 6

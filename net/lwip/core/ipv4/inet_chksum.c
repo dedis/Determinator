@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Incluse internet checksum functions.
@@ -424,3 +425,4 @@ inet_chksum_pbuf(struct pbuf *p)
   }
   return (u16_t)~(acc & 0xffffUL);
 }
+#endif  // LAB >= 6

@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * lwip DNS resolver header file.
 
@@ -90,3 +91,4 @@ err_t          dns_gethostbyname(const char *hostname, struct ip_addr *addr,
 #endif /* LWIP_DNS */
 
 #endif /* __LWIP_DNS_H__ */
+#endif  // LAB >= 6

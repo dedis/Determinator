@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * ipcp.c - Network PPP IP Control Protocol program file.
 *
@@ -1438,3 +1439,4 @@ ip_active_pkt(u_char *pkt, int len)
 #endif
 
 #endif /* PPP_SUPPORT */
+#endif  // LAB >= 6

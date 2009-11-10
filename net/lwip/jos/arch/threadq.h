@@ -1,3 +1,4 @@
+#if LAB >= 6
 #ifndef JOS_INC_THREADQ_H
 #define JOS_INC_THREADQ_H
 
@@ -63,3 +64,4 @@ threadq_pop(struct thread_queue *tq)
 }
 
 #endif
+#endif  // LAB >= 6

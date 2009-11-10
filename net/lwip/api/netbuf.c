@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Network buffer management
@@ -233,3 +234,4 @@ netbuf_first(struct netbuf *buf)
 }
 
 #endif /* LWIP_NETCONN */
+#endif  // LAB >= 6

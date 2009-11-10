@@ -1,3 +1,4 @@
+#if LAB >= 6
 
 #define LWIP_PROVIDE_ERRNO
 #include <arch/perror.h>
@@ -164,3 +165,4 @@ const char *
 e2s(int err) {
 	return sys_errlist[err];
 }
+#endif  // LAB >= 6

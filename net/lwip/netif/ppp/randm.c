@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * randm.c - Random number generator program file.
 *
@@ -246,3 +247,4 @@ avRandom()
 #endif /* MD5_SUPPORT */
 
 #endif /* PPP_SUPPORT */
+#endif  // LAB >= 6

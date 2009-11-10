@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -356,3 +357,4 @@ int lwip_ioctl(int s, long cmd, void *argp);
 #endif /* LWIP_SOCKET */
 
 #endif /* __LWIP_SOCKETS_H__ */
+#endif  // LAB >= 6

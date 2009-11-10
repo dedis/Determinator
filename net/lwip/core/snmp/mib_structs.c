@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * MIB tree access/construction functions.
@@ -1181,3 +1182,4 @@ snmp_iso_prefix_expand(u8_t ident_len, s32_t *ident, struct snmp_obj_id *oidret)
 }
 
 #endif /* LWIP_SNMP */
+#endif  // LAB >= 6

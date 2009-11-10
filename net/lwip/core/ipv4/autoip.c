@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * AutoIP Automatic LinkLocal IP Configuration
@@ -430,3 +431,4 @@ autoip_arp_reply(struct netif *netif, struct etharp_hdr *hdr)
 }
 
 #endif /* LWIP_AUTOIP */
+#endif  // LAB >= 6

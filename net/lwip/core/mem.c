@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Dynamic memory manager
@@ -629,3 +630,4 @@ void *mem_calloc(mem_size_t count, mem_size_t size)
 }
 
 #endif /* !MEM_LIBC_MALLOC */
+#endif  // LAB >= 6

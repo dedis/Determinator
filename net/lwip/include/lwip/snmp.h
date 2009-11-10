@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001, 2002 Leon Woestenberg <leon.woestenberg@axon.tv>
  * Copyright (c) 2001, 2002 Axon Digital Design B.V., The Netherlands.
@@ -362,3 +363,4 @@ void snmp_get_snmpenableauthentraps(u8_t *value);
 #endif
 
 #endif /* __LWIP_SNMP_H__ */
+#endif  // LAB >= 6

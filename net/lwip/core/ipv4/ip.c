@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * This is the IPv4 layer implementation for incoming and outgoing IP traffic.
@@ -622,3 +623,4 @@ ip_debug_print(struct pbuf *p)
   LWIP_DEBUGF(IP_DEBUG, ("+-------------------------------+\n"));
 }
 #endif /* IP_DEBUG */
+#endif  // LAB >= 6

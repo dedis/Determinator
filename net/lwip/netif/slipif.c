@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * SLIP Interface
@@ -277,3 +278,4 @@ slipif_init(struct netif *netif)
   return ERR_OK;
 }
 #endif /* LWIP_HAVE_SLIPIF */
+#endif  // LAB >= 6

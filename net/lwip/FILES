@@ -1,3 +1,4 @@
+#if LAB >= 6
 api/      - The code for the high-level wrapper API. Not needed if
             you use the lowel-level call-back/raw API.
 
@@ -11,3 +12,4 @@ netif/    - Generic network interface device drivers are kept here,
 
 For more information on the various subdirectories, check the FILES
 file in each directory.
+#endif  // LAB >= 6

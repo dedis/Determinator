@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * fsm.h - Network Control Protocol Finite State Machine header file.
 *
@@ -167,3 +168,4 @@ void fsm_protreject (fsm*);
 void fsm_sdata (fsm*, u_char, u_char, u_char*, int);
 
 #endif /* FSM_H */
+#endif  // LAB >= 6

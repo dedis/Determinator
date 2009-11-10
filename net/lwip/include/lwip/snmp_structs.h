@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Generic MIB tree structures.
@@ -260,3 +261,4 @@ u8_t snmp_iso_prefix_expand(u8_t ident_len, s32_t *ident, struct snmp_obj_id *oi
 #endif /* LWIP_SNMP */
 
 #endif /* __LWIP_SNMP_STRUCTS_H__ */
+#endif  // LAB >= 6

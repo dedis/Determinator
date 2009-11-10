@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * chpms.h - Network Microsoft Challenge Handshake Protocol header file.
 *
@@ -62,3 +63,4 @@
 void ChapMS (chap_state *, char *, int, char *, int);
 
 #endif /* CHPMS_H */
+#endif  // LAB >= 6

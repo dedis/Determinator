@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -261,3 +262,4 @@ void netif_poll_all(void);
 #endif /* ENABLE_LOOPBACK */
 
 #endif /* __LWIP_NETIF_H__ */
+#endif  // LAB >= 6

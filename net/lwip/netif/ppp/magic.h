@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * magic.h - Network Random Number Generator header file.
 *
@@ -65,3 +66,4 @@ void  magicInit(void);
 u32_t magic(void);
 
 #endif /* MAGIC_H */
+#endif  // LAB >= 6

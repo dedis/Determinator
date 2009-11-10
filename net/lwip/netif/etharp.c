@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Address Resolution Protocol module for IP over Ethernet
@@ -1184,3 +1185,4 @@ ethernet_input(struct pbuf *p, struct netif *netif)
   return ERR_OK;
 }
 #endif /* LWIP_ARP */
+#endif  // LAB >= 6

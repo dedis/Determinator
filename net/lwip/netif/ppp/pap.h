@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * pap.h -  PPP Password Authentication Protocol header file.
 *
@@ -129,3 +130,4 @@ extern struct protent pap_protent;
 #endif /* PAP_SUPPORT */
 
 #endif /* PAP_H */
+#endif  // LAB >= 6

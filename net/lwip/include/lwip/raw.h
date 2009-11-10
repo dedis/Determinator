@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved.
@@ -95,3 +96,4 @@ u8_t             raw_input      (struct pbuf *p, struct netif *inp);
 #endif /* LWIP_RAW */
 
 #endif /* __LWIP_RAW_H__ */
+#endif  // LAB >= 6

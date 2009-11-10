@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  *
@@ -103,3 +104,4 @@ void autoip_tmr(void);
 #endif /* LWIP_AUTOIP */
 
 #endif /* __LWIP_AUTOIP_H__ */
+#endif  // LAB >= 6

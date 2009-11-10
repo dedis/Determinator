@@ -1,3 +1,4 @@
+#if LAB >= 6
 #ifndef VJBSDHDR_H
 #define VJBSDHDR_H
 
@@ -73,3 +74,4 @@ struct tcphdr
 PACK_STRUCT_END
 
 #endif /* VJBSDHDR_H */
+#endif  // LAB >= 6

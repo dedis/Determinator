@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  ***********************************************************************
  ** md5.h -- header file for implementation of MD5                    **
@@ -53,3 +54,4 @@ void MD5Update( MD5_CTX *mdContext, unsigned char *inBuf, unsigned int inLen);
 void MD5Final ( unsigned char hash[], MD5_CTX *mdContext);
 
 #endif /* MD5_H */
+#endif  // LAB >= 6

@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -158,3 +159,4 @@ void netconn_free(struct netconn *conn);
 #endif /* LWIP_NETCONN */
 
 #endif /* __LWIP_API_MSG_H__ */
+#endif  // LAB >= 6

@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -137,3 +138,4 @@ struct tcpip_msg {
 #endif /* !NO_SYS */
 
 #endif /* __LWIP_TCPIP_H__ */
+#endif  // LAB >= 6

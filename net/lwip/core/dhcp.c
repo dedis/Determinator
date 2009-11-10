@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Dynamic Host Configuration Protocol client
@@ -1551,3 +1552,4 @@ static u32_t dhcp_get_option_long(u8_t *ptr)
 }
 
 #endif /* LWIP_DHCP */
+#endif  // LAB >= 6

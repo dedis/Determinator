@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * auth.h -  PPP Authentication and phase control header file.
 *
@@ -109,3 +110,4 @@ int  auth_ip_addr (int, u32_t);
 int  bad_ip_adrs (u32_t);
 
 #endif /* AUTH_H */
+#endif  // LAB >= 6

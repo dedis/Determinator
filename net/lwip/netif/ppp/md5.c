@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  ***********************************************************************
  ** md5.c -- the source code for MD5 routines                         **
@@ -316,3 +317,4 @@ Transform (u32_t *buf, u32_t *in)
 #endif /* CHAP_SUPPORT || MD5_SUPPORT */
 
 #endif /* PPP_SUPPORT */
+#endif  // LAB >= 6

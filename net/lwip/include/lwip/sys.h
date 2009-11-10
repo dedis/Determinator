@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -244,3 +245,4 @@ void sys_arch_unprotect(sys_prot_t pval);
 #endif
 
 #endif /* __LWIP_SYS_H__ */
+#endif  // LAB >= 6

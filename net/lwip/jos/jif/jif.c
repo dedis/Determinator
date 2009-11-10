@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -252,3 +253,4 @@ jif_init(struct netif *netif)
 
     return ERR_OK;
 }
+#endif  // LAB >= 6

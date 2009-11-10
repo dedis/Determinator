@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*** WARNING - THIS HAS NEVER BEEN FINISHED ***/
 /*****************************************************************************
 * chap.c - Network Challenge Handshake Authentication Protocol program file.
@@ -900,3 +901,4 @@ ChapPrintPkt( u_char *p, int plen, void (*printer) (void *, char *, ...), void *
 #endif /* CHAP_SUPPORT */
 
 #endif /* PPP_SUPPORT */
+#endif  // LAB >= 6

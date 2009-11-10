@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Statistics module
@@ -147,3 +148,4 @@ stats_display(void)
 
 #endif /* LWIP_STATS */
 
+#endif  // LAB >= 6

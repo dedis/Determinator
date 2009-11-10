@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * ipcp.h -  PPP IP NCP: Internet Protocol Network Control Protocol header file.
 *
@@ -122,3 +123,4 @@ extern struct protent ipcp_protent;
 ***********************/
 
 #endif /* IPCP_H */
+#endif  // LAB >= 6

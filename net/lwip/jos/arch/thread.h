@@ -1,3 +1,4 @@
+#if LAB >= 6
 #ifndef LWIP_ARCH_THREAD_H
 #define LWIP_ARCH_THREAD_H
 
@@ -16,3 +17,4 @@ void thread_yield(void);
 void thread_halt(void);
 
 #endif
+#endif  // LAB >= 6

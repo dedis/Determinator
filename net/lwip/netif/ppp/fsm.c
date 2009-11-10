@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * fsm.c - Network Control Protocol Finite State Machine program file.
 *
@@ -904,3 +905,4 @@ fsm_sconfreq(fsm *f, int retransmit)
 }
 
 #endif /* PPP_SUPPORT */
+#endif  // LAB >= 6

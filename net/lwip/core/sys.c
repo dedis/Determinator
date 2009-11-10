@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * lwIP Operating System abstraction
@@ -342,3 +343,4 @@ sys_msleep(u32_t ms)
 
 
 #endif /* NO_SYS */
+#endif  // LAB >= 6

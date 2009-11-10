@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Implementation of raw protocol PCBs for low-level handling of
@@ -334,3 +335,4 @@ raw_new(u8_t proto) {
 }
 
 #endif /* LWIP_RAW */
+#endif  // LAB >= 6

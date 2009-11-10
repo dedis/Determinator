@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * DNS - host name to IP address resolver.
@@ -812,3 +813,4 @@ dns_gethostbyname(const char *hostname, struct ip_addr *addr, dns_found_callback
 }
 
 #endif /* LWIP_DNS */
+#endif  // LAB >= 6

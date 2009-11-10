@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * SNMP output message processing (RFC1157).
@@ -681,3 +682,4 @@ snmp_varbind_list_enc(struct snmp_varbind_root *root, struct pbuf *p, u16_t ofs)
 }
 
 #endif /* LWIP_SNMP */
+#endif  // LAB >= 6

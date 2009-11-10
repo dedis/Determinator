@@ -1,3 +1,4 @@
+#if LAB >= 6
 /** @file
  */
 
@@ -244,3 +245,4 @@ void dhcp_fine_tmr(void);
 #endif /* LWIP_DHCP */
 
 #endif /*__LWIP_DHCP_H__*/
+#endif  // LAB >= 6

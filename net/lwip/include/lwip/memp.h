@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -92,3 +93,4 @@ void  memp_free(memp_t type, void *mem);
 #endif
 
 #endif /* __LWIP_MEMP_H__ */
+#endif  // LAB >= 6

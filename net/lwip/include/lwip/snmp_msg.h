@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * SNMP Agent message handling structures.
@@ -305,3 +306,4 @@ void snmp_authfail_trap(void);
 #endif
 
 #endif /* __LWIP_SNMP_MSG_H__ */
+#endif  // LAB >= 6

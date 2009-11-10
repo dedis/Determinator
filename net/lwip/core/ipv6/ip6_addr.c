@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -70,3 +71,4 @@ ip_addr_isany(struct ip_addr *addr)
   if (addr == NULL) return 1;
   return((addr->addr[0] | addr->addr[1] | addr->addr[2] | addr->addr[3]) == 0);
 }
+#endif  // LAB >= 6

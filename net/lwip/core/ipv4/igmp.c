@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * IGMP - Internet Group Management Protocol
@@ -806,3 +807,4 @@ igmp_send(struct igmp_group *group, u8_t type)
 }
 
 #endif /* LWIP_IGMP */
+#endif  // LAB >= 6

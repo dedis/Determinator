@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Ethernet Interface Skeleton
@@ -311,3 +312,4 @@ ethernetif_init(struct netif *netif)
 }
 
 #endif /* 0 */
+#endif  // LAB >= 6

@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Definitions for tcp compression routines.
  *
@@ -153,3 +154,4 @@ extern int   vj_uncompress_uncomp(struct pbuf *nb, struct vjcompress *comp);
 extern int   vj_uncompress_tcp   (struct pbuf **nb, struct vjcompress *comp);
 
 #endif /* VJ_H */
+#endif  // LAB >= 6

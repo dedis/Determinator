@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -79,3 +80,4 @@ void sio_read_abort(sio_fd_t);
 #endif
 
 #endif /* __SIO_H__ */
+#endif  // LAB >= 6

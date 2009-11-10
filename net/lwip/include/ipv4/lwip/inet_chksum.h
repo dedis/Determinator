@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -56,3 +57,4 @@ u16_t inet_chksum_pseudo_partial(struct pbuf *p,
 
 #endif /* __LWIP_INET_H__ */
 
+#endif  // LAB >= 6

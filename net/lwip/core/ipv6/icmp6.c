@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved.
@@ -177,3 +178,4 @@ icmp_time_exceeded(struct pbuf *p, enum icmp_te_type t)
 }
 
 #endif /* LWIP_ICMP */
+#endif  // LAB >= 6

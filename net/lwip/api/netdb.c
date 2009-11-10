@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * API functions for name resolving
@@ -351,3 +352,4 @@ memerr:
 }
 
 #endif /* LWIP_DNS && LWIP_SOCKET */
+#endif  // LAB >= 6

@@ -1,3 +1,4 @@
+#if LAB >= 6
 #include <inc/lib.h>
 
 #include <arch/thread.h>
@@ -173,3 +174,4 @@ print_jb(struct thread_context *tc) {
     cprintf("\tesi: %x\n", tc->tc_jb.jb_esi);
     cprintf("\tedi: %x\n", tc->tc_jb.jb_edi);
 }
+#endif  // LAB >= 6

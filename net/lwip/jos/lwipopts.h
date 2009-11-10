@@ -1,3 +1,4 @@
+#if LAB >= 6
 #ifndef JOS_LWIP_LWIPOPTS_H
 #define JOS_LWIP_LWIPOPTS_H
 
@@ -61,3 +62,4 @@ void *memcpy(void *dst, const void *src, size_t n);
 #define ERRNO
 
 #endif
+#endif  // LAB >= 6

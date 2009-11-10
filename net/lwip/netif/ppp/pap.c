@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * pap.c - Network Password Authentication Protocol program file.
 *
@@ -615,3 +616,4 @@ static int upap_printpkt(
 #endif /* PAP_SUPPORT */
 
 #endif /* PPP_SUPPORT */
+#endif  // LAB >= 6

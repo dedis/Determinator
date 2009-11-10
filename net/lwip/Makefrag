@@ -1,3 +1,4 @@
+#if LAB >= 6
 LWIP_INCLUDES := \
 	-I$(TOP)/net/lwip/include \
 	-I$(TOP)/net/lwip/include/ipv4 \
@@ -70,3 +71,4 @@ $(OBJDIR)/net/lwip/%.o: net/lwip/%.S
 $(OBJDIR)/lib/liblwip.a: $(LWIP_OBJFILES)
 	$(V)mkdir -p $(@D)
 	$(V)$(AR) r $@ $(LWIP_OBJFILES)
+#endif  // LAB >= 6

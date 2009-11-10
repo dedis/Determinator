@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * User Datagram Protocol module
@@ -822,3 +823,4 @@ udp_debug_print(struct udp_hdr *udphdr)
 #endif /* UDP_DEBUG */
 
 #endif /* LWIP_UDP */
+#endif  // LAB >= 6

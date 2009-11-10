@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*** WARNING - THIS CODE HAS NOT BEEN FINISHED! ***/
 /*****************************************************************************
 * chpms.c - Network MicroSoft Challenge Handshake Authentication Protocol program file.
@@ -394,3 +395,4 @@ ChapMS_LANMan( char *rchallenge,
 #endif /* MSCHAP_SUPPORT */
 
 #endif /* PPP_SUPPORT */
+#endif  // LAB >= 6

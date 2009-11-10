@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * ppp.c - Network Point to Point Protocol program file.
 *
@@ -2001,3 +2002,4 @@ drop:
 #endif /* PPPOE_SUPPORT */
 
 #endif /* PPP_SUPPORT */
+#endif  // LAB >= 6

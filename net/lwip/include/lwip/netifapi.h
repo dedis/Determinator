@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Redistribution and use in source and binary forms, with or without modification, 
  * are permitted provided that the following conditions are met:
@@ -98,3 +99,4 @@ err_t netifapi_netif_common    ( struct netif *netif,
 #endif /* LWIP_NETIF_API */
 
 #endif /* __LWIP_NETIFAPI_H__ */
+#endif  // LAB >= 6

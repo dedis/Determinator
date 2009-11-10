@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * magic.c - Network Random Number Generator program file.
 *
@@ -80,3 +81,4 @@ u32_t magic()
 }
 
 #endif /* PPP_SUPPORT */
+#endif  // LAB >= 6

@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -116,3 +117,4 @@ u16_t pbuf_copy_partial(struct pbuf *p, void *dataptr, u16_t len, u16_t offset);
 #endif
 
 #endif /* __LWIP_PBUF_H__ */
+#endif  // LAB >= 6

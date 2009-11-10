@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Transmission Control Protocol for IP
@@ -1418,3 +1419,4 @@ tcp_pcbs_sane(void)
 #endif /* TCP_DEBUG */
 
 #endif /* LWIP_TCP */
+#endif  // LAB >= 6

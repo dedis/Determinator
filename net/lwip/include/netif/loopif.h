@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -51,3 +52,4 @@ err_t loopif_init(struct netif *netif);
 #endif
 
 #endif /* __NETIF_LOOPIF_H__ */
+#endif  // LAB >= 6

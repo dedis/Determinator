@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -215,3 +216,4 @@ err_t             netconn_gethostbyname(const char *name, struct ip_addr *addr);
 #endif /* LWIP_NETCONN */
 
 #endif /* __LWIP_API_H__ */
+#endif  // LAB >= 6

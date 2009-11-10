@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Functions common to all TCP/IPv6 modules, such as the Internet checksum and the
@@ -161,3 +162,4 @@ inet_chksum_pbuf(struct pbuf *p)
   }
   return ~(acc & 0xffff);
 }
+#endif  // LAB >= 6

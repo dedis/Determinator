@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * chap.h - Network Challenge Handshake Authentication Protocol header file.
 *
@@ -164,3 +165,4 @@ void ChapAuthWithPeer (int, char *, int);
 void ChapAuthPeer (int, char *, int);
 
 #endif /* CHAP_H */
+#endif  // LAB >= 6

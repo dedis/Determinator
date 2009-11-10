@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * randm.h - Random number generator header file.
 *
@@ -79,3 +80,4 @@ u32_t avRandom(void);
 
 
 #endif /* RANDM_H */
+#endif  // LAB >= 6

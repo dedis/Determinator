@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * lcp.c - Network Link Control Protocol program file.
 *
@@ -2033,3 +2034,4 @@ lcp_echo_lowerdown (int unit)
 }
 
 #endif /* PPP_SUPPORT */
+#endif  // LAB >= 6

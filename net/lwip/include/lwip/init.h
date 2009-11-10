@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -46,3 +47,4 @@ void lwip_init(void);
 #endif
 
 #endif /* __LWIP_INIT_H__ */
+#endif  // LAB >= 6

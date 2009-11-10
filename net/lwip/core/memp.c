@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Dynamic pool memory manager
@@ -368,3 +369,4 @@ memp_free(memp_t type, void *mem)
 
   SYS_ARCH_UNPROTECT(old_level);
 }
+#endif  // LAB >= 6

@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Sockets BSD-Like API module
@@ -1922,3 +1923,4 @@ lwip_ioctl(int s, long cmd, void *argp)
 }
 
 #endif /* LWIP_SOCKET */
+#endif  // LAB >= 6

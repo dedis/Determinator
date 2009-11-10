@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -74,3 +75,4 @@ void              netbuf_first    (struct netbuf *buf);
 #endif
 
 #endif /* __LWIP_NETBUF_H__ */
+#endif  // LAB >= 6

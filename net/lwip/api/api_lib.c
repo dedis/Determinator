@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Sequential API External module
@@ -569,3 +570,4 @@ netconn_gethostbyname(const char *name, struct ip_addr *addr)
 #endif /* LWIP_DNS*/
 
 #endif /* LWIP_NETCONN */
+#endif  // LAB >= 6

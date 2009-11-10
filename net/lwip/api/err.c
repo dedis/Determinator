@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Error Management module
@@ -72,3 +73,4 @@ lwip_strerr(err_t err)
 }
 
 #endif /* LWIP_DEBUG */
+#endif  // LAB >= 6

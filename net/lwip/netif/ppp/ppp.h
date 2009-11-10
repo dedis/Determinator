@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * ppp.h - Network Point to Point Protocol header file.
 *
@@ -463,3 +464,4 @@ u32_t GetMask (u32_t);
 #endif /* PPP_SUPPORT */
 
 #endif /* PPP_H */
+#endif  // LAB >= 6

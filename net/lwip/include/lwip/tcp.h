@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -639,3 +640,4 @@ extern struct tcp_pcb *tcp_tmp_pcb;      /* Only used for temporary storage. */
 #endif /* LWIP_TCP */
 
 #endif /* __LWIP_TCP_H__ */
+#endif  // LAB >= 6

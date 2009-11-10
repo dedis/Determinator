@@ -1,3 +1,4 @@
+#if LAB >= 6
 #ifndef LWIP_ARCH_CC_H
 #define LWIP_ARCH_CC_H
 
@@ -39,3 +40,4 @@ typedef uintptr_t mem_ptr_t;
 #endif
 
 #endif
+#endif  // LAB >= 6

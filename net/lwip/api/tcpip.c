@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Sequential API Main thread module
@@ -557,3 +558,4 @@ mem_free_callback(void *m)
 }
 
 #endif /* !NO_SYS */
+#endif  // LAB >= 6

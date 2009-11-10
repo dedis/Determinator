@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  *
@@ -1702,3 +1703,4 @@
 #endif
 
 #endif /* __LWIP_OPT_H__ */
+#endif  // LAB >= 6

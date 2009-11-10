@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Routines to compress and uncompess tcp packets (for transmission
  * over low speed serial lines.
@@ -658,3 +659,4 @@ bad:
 #endif /* VJ_SUPPORT */
 
 #endif /* PPP_SUPPORT */
+#endif  // LAB >= 6

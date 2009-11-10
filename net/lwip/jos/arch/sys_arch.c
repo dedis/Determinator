@@ -1,3 +1,4 @@
+#if LAB >= 6
 #include <inc/lib.h>
 
 #include <lwip/sys.h>
@@ -320,3 +321,4 @@ void
 lwip_core_unlock(void)
 {
 }
+#endif  // LAB >= 6

@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * This is the IPv4 packet segmentation and reassembly implementation.
@@ -781,3 +782,4 @@ ip_frag(struct pbuf *p, struct netif *netif, struct ip_addr *dest)
   return ERR_OK;
 }
 #endif /* IP_FRAG */
+#endif  // LAB >= 6

@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*
  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
  * All rights reserved. 
@@ -281,3 +282,4 @@ void stats_display_sys(struct stats_sys *sys);
 #endif
 
 #endif /* __LWIP_STATS_H__ */
+#endif  // LAB >= 6

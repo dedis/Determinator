@@ -1,3 +1,4 @@
+#if LAB >= 6
 /*****************************************************************************
 * ppp_oe.c - PPP Over Ethernet implementation for lwIP.
 *
@@ -554,9 +555,9 @@ breakbreak:;
       sc->sc_state = PPPOE_STATE_PADO_SENT;
       pppoe_send_pado(sc);
       break;
-  #endif /* PPPOE_SERVER */
+#endif /* PPPOE_SERVER */
     case PPPOE_CODE_PADR:
-  #ifdef PPPOE_SERVER
+#ifdef PPPOE_SERVER
       /*
        * get sc from ac_cookie if IFF_PASSIVE
        */
@@ -592,10 +593,10 @@ breakbreak:;
       sc->sc_state = PPPOE_STATE_SESSION;
       tcpip_timeout (100, pppoe_linkstatus_up, sc); /* notify upper layers */
       break;
-  #else
+#else
       /* ignore, we are no access concentrator */
       goto done;
-  #endif /* PPPOE_SERVER */
+#endif /* PPPOE_SERVER */
     case PPPOE_CODE_PADO:
       if (sc == NULL) {
         /* be quiet if there is not a single pppoe instance */
@@ -1170,7 +1171,7 @@ pppoe_xmit(struct pppoe_softc *sc, struct pbuf *pb)
   return pppoe_output(sc, pb);
 }
 
-#if 0 /*def PFIL_HOOKS*/
+#if 0
 static int
 pppoe_ifattach_hook(void *arg, struct pbuf **mp, struct netif *ifp, int dir)
 {
@@ -1225,3 +1226,4 @@ pppoe_clear_softc(struct pppoe_softc *sc, const char *message)
 
 #endif /* PPPOE_SUPPORT */
 
+#endif  // LAB >= 6

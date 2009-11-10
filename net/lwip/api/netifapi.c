@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Network Interface Sequential API module
@@ -124,3 +125,4 @@ netifapi_netif_common( struct netif *netif,
 }
 
 #endif /* LWIP_NETIF_API */
+#endif  // LAB >= 6

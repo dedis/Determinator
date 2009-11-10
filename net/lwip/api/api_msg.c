@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Sequential API Internal module
@@ -1208,3 +1209,4 @@ do_gethostbyname(void *arg)
 #endif /* LWIP_DNS */
 
 #endif /* LWIP_NETCONN */
+#endif  // LAB >= 6

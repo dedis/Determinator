@@ -1,3 +1,4 @@
+#if LAB >= 6
 /**
  * @file
  * Management Information Base II (RFC1213) objects and functions.
@@ -4124,3 +4125,4 @@ snmp_set_value(struct obj_def *od, u16_t len, void *value)
 }
 
 #endif /* LWIP_SNMP */
+#endif  // LAB >= 6
