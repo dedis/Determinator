@@ -136,7 +136,8 @@ all:
 
 # make it so that no intermediate .o files are ever deleted
 .PRECIOUS: %.o $(OBJDIR)/boot/%.o $(OBJDIR)/kern/%.o \
-	$(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/user/%.o
+	   $(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/net/%.o \
+	   $(OBJDIR)/user/%.o
 
 KERN_CFLAGS := $(CFLAGS) -DJOS_KERNEL -gstabs
 USER_CFLAGS := $(CFLAGS) -DJOS_USER -gstabs
@@ -206,16 +207,19 @@ include user/Makefrag
 #if LAB >= 5
 include fs/Makefrag
 #endif
+#if LAB >= 6
+include net/Makefrag
+#endif
 
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S *.ld
-LAB_DIRS := inc boot kern lib user fs
+LAB_DIRS := inc boot kern lib user fs net
 LAB_FILES := CODING GNUmakefile mergedep.pl grade-functions.sh .gdbinit.tmpl boot/sign.pl \
 	fs/lorem fs/motd fs/newmotd fs/script \
 	fs/testshell.sh fs/testshell.key fs/testshell.out fs/out \
 	conf/env.mk \
-	$(foreach lab,1 2 3 4 5 7,grade-lab$(lab).sh) \
+	$(foreach lab,1 2 3 4 5 6 7,grade-lab$(lab).sh) \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
 # Fake targets to export the student lab handout and solution trees.
