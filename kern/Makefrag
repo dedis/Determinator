@@ -56,6 +56,15 @@ KERN_BINFILES :=	user/icode \
 			user/testshell \
 			fs/fs
 else
+ifdef LAB6
+KERN_BINFILES :=	user/idle \
+			user/pingpong \
+			user/primes \
+			user/writemotd \
+			user/icode \
+			user/testtime \
+			fs/fs
+else
 ifdef LAB5
 # Binary program images to embed within the kernel.
 KERN_BINFILES :=	user/idle \
@@ -106,6 +115,7 @@ KERN_BINFILES :=
 endif	# not LAB3
 endif	# not LAB4
 endif	# not LAB5
+endif	# not LAB6
 endif	# not LAB7
 
 KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))
