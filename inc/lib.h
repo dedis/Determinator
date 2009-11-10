@@ -25,7 +25,7 @@
 #include <inc/fd.h>
 #include <inc/args.h>
 #endif
-#if LAB >= 7
+#if LAB >= 6
 #include <inc/malloc.h>
 #endif
 
