@@ -18,6 +18,7 @@
 #endif
 #if LAB >= 6
 #include <kern/time.h>
+#include <kern/e100.h>
 #endif
 
 static struct Taskstate ts;
@@ -236,6 +237,12 @@ trap_dispatch(struct Trapframe *tf)
 		serial_intr();
 		return;
 	}
+#if SOL >= 6
+	if (tf->tf_trapno == IRQ_OFFSET + e100_irq) {
+		e100_intr();
+		return;
+	}
+#endif  // SOL >= 6
 #else	// SOL >= 4
 	// Handle clock interrupts.
 	// LAB 4: Your code here.
