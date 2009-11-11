@@ -240,6 +240,7 @@ trap_dispatch(struct Trapframe *tf)
 #if SOL >= 6
 	if (tf->tf_trapno == IRQ_OFFSET + e100_irq) {
 		e100_intr();
+		irq_eoi();
 		return;
 	}
 #endif  // SOL >= 6

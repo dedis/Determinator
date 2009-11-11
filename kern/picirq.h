@@ -25,7 +25,9 @@
 extern uint16_t irq_mask_8259A;
 void pic_init(void);
 void irq_setmask_8259A(uint16_t mask);
-
+#if LAB >= 6
+void irq_eoi(void);
+#endif
 #endif // !__ASSEMBLER__
 
 #endif // !JOS_KERN_PICIRQ_H
