@@ -66,6 +66,9 @@ int	sys_ipc_try_send(envid_t to_env, uint32_t value, void *pg, int perm);
 int	sys_ipc_recv(void *rcv_pg);
 #if LAB >= 6
 unsigned int sys_time_msec(void);
+#if SOL >= 6
+int	     sys_net_txbuf(void *bufva, unsigned int size);
+#endif	// SOL >= 6
 #endif  // LAB >= 6
 
 // This must be inlined.  Exercise for reader: why?

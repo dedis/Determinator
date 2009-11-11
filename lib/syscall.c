@@ -125,6 +125,13 @@ sys_time_msec(void)
 {
 	return (unsigned int) syscall(SYS_time_msec, 0, 0, 0, 0, 0, 0);
 }
+
+#if SOL >= 6
+int sys_net_txbuf(void *bufva, unsigned int size)
+{
+	return syscall(SYS_net_txbuf, 0, (uint32_t)bufva, size, 0, 0, 0);
+}
+#endif  // SOL >= 6
 #endif	// LAB >= 6
 #endif	// LAB >= 4
 #endif	// LAB >= 3
