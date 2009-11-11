@@ -183,6 +183,12 @@ int e100_txbuf(struct Page *pp, unsigned int size, unsigned int offset)
 	return 0;
 }
 
+int e100_rxbuf(struct Page *pp, unsigned int size, unsigned int offset)
+{
+	// The first 4 bytes will hold the number of recieved bytes
+	return -1;
+}
+
 static void e100_intr_tx(void)
 {
 	int i;

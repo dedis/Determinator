@@ -68,6 +68,7 @@ int	sys_ipc_recv(void *rcv_pg);
 unsigned int sys_time_msec(void);
 #if SOL >= 6
 int	     sys_net_txbuf(void *bufva, unsigned int size);
+int	     sys_net_rxbuf(void *bufva, unsigned int size);
 #endif	// SOL >= 6
 #endif  // LAB >= 6
 

@@ -6,6 +6,7 @@ struct pci_func;
 struct Page;
 int  e100_attach(struct pci_func *pcif);
 int  e100_txbuf(struct Page *pp, unsigned int size, unsigned int offset);
+int  e100_rxbuf(struct Page *pp, unsigned int size, unsigned int offset);
 void e100_intr(void);
 
 extern uint8_t e100_irq;

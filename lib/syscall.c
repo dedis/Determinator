@@ -131,6 +131,11 @@ int sys_net_txbuf(void *bufva, unsigned int size)
 {
 	return syscall(SYS_net_txbuf, 0, (uint32_t)bufva, size, 0, 0, 0);
 }
+
+int sys_net_rxbuf(void *bufva, unsigned int size)
+{
+	return syscall(SYS_net_rxbuf, 0, (uint32_t)bufva, size, 0, 0, 0);
+}
 #endif  // SOL >= 6
 #endif	// LAB >= 6
 #endif	// LAB >= 4
