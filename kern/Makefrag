@@ -64,6 +64,8 @@ KERN_BINFILES :=	user/idle \
 			user/writemotd \
 			user/icode \
 			user/testtime \
+			user/tcpecho \
+			user/tcpsrv \
 			fs/fs \
 			net/ns
 else

@@ -31,8 +31,9 @@ endif
 
 ifdef LAB6
 LIB_SRCFILES :=		$(LIB_SRCFILES) \
+			lib/sockets.c \
+			lib/nsipc.c \
 			lib/malloc.c
-
 endif
 ifdef LAB7
 LIB_SRCFILES :=		$(LIB_SRCFILES) \
