@@ -27,6 +27,7 @@ uint8_t e100_irq;
 #define E100_SCB_COMMAND_CU_RESUME	0x20
 
 #define E100_SCB_COMMAND_RU_START	1
+#define E100_SCB_COMMAND_RU_RESUME	2
 
 #define	E100_SCB_STATACK_FCP		0x01
 #define	E100_SCB_STATACK_ER		0x02
@@ -146,7 +147,7 @@ e100_scb_wait(void)
 static void
 e100_scb_cmd(uint8_t cmd)
 {
-    outb(the_e100.iobase + E100_CSR_SCB_COMMAND, cmd);
+	outb(the_e100.iobase + E100_CSR_SCB_COMMAND, cmd);
 }
 
 static void e100_tx_start(void)
@@ -200,15 +201,15 @@ static void e100_rx_start(void)
 	if (the_e100.rx_tail == the_e100.rx_head)
 		panic("oops, no RFDs");
 
-	// If "Suspended" (*not* "Idle") setting the bits in the RFD in 
-	// e100_rxbuf kicks the e100 back into "Ready".
-	if (!the_e100.rx_idle)
-		return;
-
-	e100_scb_wait();
-	outl(the_e100.iobase + E100_CSR_SCB_GENERAL, PADDR(&the_e100.rx[i].rfd));
-	e100_scb_cmd(E100_SCB_COMMAND_RU_START);
-	the_e100.rx_idle = 0;
+	if (the_e100.rx_idle) {
+		e100_scb_wait();
+		outl(the_e100.iobase + E100_CSR_SCB_GENERAL, PADDR(&the_e100.rx[i].rfd));
+		e100_scb_cmd(E100_SCB_COMMAND_RU_START);
+		the_e100.rx_idle = 0;
+	} else {
+		e100_scb_wait();
+		e100_scb_cmd(E100_SCB_COMMAND_RU_RESUME);
+	}
 }
 
 int e100_rxbuf(struct Page *pp, unsigned int size, unsigned int offset)
@@ -222,7 +223,7 @@ int e100_rxbuf(struct Page *pp, unsigned int size, unsigned int offset)
 
 	i = the_e100.rx_head % E100_TX_SLOTS;
 
-	// The first 4 bytes will hold the number of recieved bytes
+	// The first 4 bytes will hold the number of bytes recieved
 	the_e100.rx[i].rbd.rbd_buffer = page2pa(pp) + offset + 4;
 	the_e100.rx[i].rbd.rbd_size = size & E100_SIZE_MASK;
 	the_e100.rx[i].rfd.rfa_status = 0;
@@ -291,6 +292,13 @@ void e100_intr(void)
 	if (r & E100_SCB_STATACK_FR) {
 		r &= ~E100_SCB_STATACK_FR;
 		e100_intr_rx();
+	}
+
+	if (r & E100_SCB_STATACK_RNR) {
+		r &= ~E100_SCB_STATACK_RNR;
+		the_e100.rx_idle = 1;
+		e100_rx_start();
+		cprintf("e100_intr: RNR interrupt, no RX bufs?\n");
 	}
 
 	if (r)
