@@ -234,6 +234,7 @@ send_file(struct http_request *req)
 {
 	int r;
 	off_t file_size = -1;
+	int fd;
 
 	// open the requested url for reading
 	// if the file does not exist, send a 404 error using send_error
@@ -242,7 +243,6 @@ send_file(struct http_request *req)
 
 #if SOL >= 6
 	struct Stat stat;
-	int fd;
 
 	if ((fd = open(req->url, O_RDONLY)) < 0)
 		return send_error(req, 404);
@@ -264,27 +264,22 @@ send_file(struct http_request *req)
 #endif
 
 	if ((r = send_header(req, 200)) < 0)
-		return r;
+		goto end;
 
 	if ((r = send_size(req, file_size)) < 0)
-		return r;
+		goto end;
 
 	if ((r = send_content_type(req)) < 0)
-		return r;
+		goto end;
 
 	if ((r = send_header_fin(req)) < 0)
-		return r;
+		goto end;
 
-	// send the contents of the file to the client using send_data
-	// clean up file descriptor when done
-#if SOL >= 6
-	send_data(req, fd);
+	r = send_data(req, fd);
+
+end:
 	close(fd);
-#else
-	// LAB 6: Your code here.
-#endif
-
-	return 0;
+	return r;
 }
 
 static void
