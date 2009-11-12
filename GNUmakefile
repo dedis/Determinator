@@ -304,8 +304,8 @@ PORT10000	:= $(shell expr $(GDBPORT) + 2)
 
 IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
 QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio \
-	   -net user -net nic,model=i82559er -redir tcp:$PORT10000::10000 \
-	   -redir tcp:$PORT80::80 $(QEMUEXTRA)
+	   -net user -net nic,model=i82559er -redir tcp:$(PORT10000)::10000 \
+	   -redir tcp:$(PORT80)::80 $(QEMUEXTRA)
 else
 ifdef LAB5
 IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
@@ -318,8 +318,8 @@ endif  # LAB 6
 #else
 IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
 QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio \
-	   -net user -net nic,model=i82559er -redir tcp:4242::10000 \
-	   -redir tcp:8080::80 $(QEMUEXTRA)
+	   -net user -net nic,model=i82559er -redir tcp:$(PORT10000)::10000 \
+	   -redir tcp:$(PORT80)::80 $(QEMUEXTRA)
 #endif
 
 .gdbinit: .gdbinit.tmpl
