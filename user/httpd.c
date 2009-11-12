@@ -236,8 +236,8 @@ send_file(struct http_request *req)
 	off_t file_size = -1;
 
 	// open the requested url for reading
-	// if the file does not exist, send a 404 error
-	// if the requested url is a directory, send a 404 error
+	// if the file does not exist, send a 404 error using send_error
+	// if the file is a directory, send a 404 error using send_error
 	// set file_size to the size of the file
 
 #if SOL >= 6
@@ -263,20 +263,16 @@ send_file(struct http_request *req)
 	panic("send_file not implemented");
 #endif
 
-	r = send_header(req, 200);
-	if (r < 0)
+	if ((r = send_header(req, 200)) < 0)
 		return r;
 
-	r = send_size(req, file_size);
-	if (r < 0)
+	if ((r = send_size(req, file_size)) < 0)
 		return r;
 
-	r = send_content_type(req);
-	if (r < 0)
+	if ((r = send_content_type(req)) < 0)
 		return r;
 
-	r = send_header_fin(req);
-	if (r < 0)
+	if ((r = send_header_fin(req)) < 0)
 		return r;
 
 	// send the contents of the file to the client using send_data
