@@ -77,8 +77,26 @@ send_header(struct http_request *req, int code)
 static int
 send_data(struct http_request *req, int fd)
 {
+#if SOL >= 6
+	char buf[256];
+	int n;
+
+	for (;;) {
+		n = read(fd, buf, sizeof(buf));
+		if (n < 0) {
+			cprintf("send_data: read failed: %e\n", n);
+			return n;
+		} else if (n == 0) {
+			return 0;
+		}
+		
+		if (send(req->sock, buf, n, 0) != n)
+			die("Failed to sent file to client");
+	}
+#else
 	// LAB 6: Your code here.
 	panic("send_data not implemented");
+#endif
 }
 
 static int
@@ -222,9 +240,28 @@ send_file(struct http_request *req)
 	// if the requested url is a directory, send a 404 error
 	// set the file_size to the size of the file
 
+#if SOL >= 6
+	struct Stat stat;
+	int fd;
+
+	if ((fd = open(req->url, O_RDONLY)) < 0)
+		return send_header(req, 404);
+	
+	if ((r = fstat(fd, &stat)) < 0) {
+		close(fd);
+		return send_header(req, 404);
+	}	
+
+	if (stat.st_isdir) {
+		close(fd);
+		return send_header(req, 404);
+	}
+
+	file_size = stat.st_size;
+#else
 	// LAB 6: Your code here.
 	panic("send_file not implemented");
-
+#endif
 	r = send_header(req, 200);
 	if (r < 0)
 		return r;
@@ -243,8 +280,12 @@ send_file(struct http_request *req)
 
 	// send the contents of the file to the client using send_data
 	// clean up file descriptor when done
-
+#if SOL >= 6
+	send_data(req, fd);
+	close(fd);
+#else
 	// LAB 6: Your code here.
+#endif
 
 	return 0;
 }
