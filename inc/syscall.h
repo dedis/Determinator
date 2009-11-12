@@ -23,6 +23,9 @@ enum
 #endif	// LAB >= 4
 #if LAB >= 6
 	SYS_time_msec,
+#if SOL >= 6
+	SYS_net_txbuf,
+#endif  // SOL >= 6
 #endif	// LAB >= 6
 	NSYSCALLS
 };

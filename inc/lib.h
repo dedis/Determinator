@@ -27,6 +27,7 @@
 #endif
 #if LAB >= 6
 #include <inc/malloc.h>
+#include <inc/ns.h>
 #endif
 
 #define USED(x)		(void)(x)
@@ -119,6 +120,29 @@ int	fsipc_dirty(int fileid, off_t offset);
 int	fsipc_remove(const char *path);
 int	fsipc_sync(void);
 
+#if LAB >= 6
+// sockets.c
+int     accept(int s, struct sockaddr *addr, socklen_t *addrlen);
+int     bind(int s, struct sockaddr *name, socklen_t namelen);
+int     shutdown(int s, int how);
+int     closesocket(int s);
+int     connect(int s, const struct sockaddr *name, socklen_t namelen);
+int     listen(int s, int backlog);
+int     recv(int s, void *mem, int len, unsigned int flags);
+int     send(int s, const void *dataptr, int size, unsigned int flags);
+int     socket(int domain, int type, int protocol);
+
+// nsipc.c
+int     nsipc_accept(int s, struct sockaddr *addr, socklen_t *addrlen);
+int     nsipc_bind(int s, struct sockaddr *name, socklen_t namelen);
+int     nsipc_shutdown(int s, int how);
+int     nsipc_close(int s);
+int     nsipc_connect(int s, const struct sockaddr *name, socklen_t namelen);
+int     nsipc_listen(int s, int backlog);
+int     nsipc_recv(int s, void *mem, int len, unsigned int flags);
+int     nsipc_send(int s, const void *dataptr, int size, unsigned int flags);
+int     nsipc_socket(int domain, int type, int protocol);
+#endif
 // pageref.c
 int	pageref(void *addr);
 

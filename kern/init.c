@@ -88,6 +88,9 @@ i386_init(void)
 	// Start fs.
 	ENV_CREATE(fs_fs);
 
+	// Start ns.
+	ENV_CREATE(net_ns);	
+
 	// Start init
 #if defined(TEST)
 	// Don't touch -- used by grading script!
@@ -97,6 +100,24 @@ i386_init(void)
 	ENV_CREATE(user_icode);
 	// ENV_CREATE(user_pipereadeof);
 	// ENV_CREATE(user_pipewriteeof);
+#endif
+#elif LAB >= 6
+	// Should always have an idle process as first one.
+	ENV_CREATE(user_idle);
+
+	// Start fs.
+	ENV_CREATE(fs_fs);
+
+	// Start ns.
+	ENV_CREATE(net_ns);	
+
+	// Start init
+#if defined(TEST)
+	// Don't touch -- used by grading script!
+	ENV_CREATE2(TEST, TESTSIZE);
+#else
+	// Touch all you want.
+	// ENV_CREATE(user_tcpsrv);
 #endif
 #elif LAB >= 5
 	// Should always have an idle process as first one.

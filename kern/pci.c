@@ -8,7 +8,7 @@
 
 // Flag to do "lspci" at bootup
 static int pci_show_devs = 1;
-static int pci_show_addrs = 1;
+static int pci_show_addrs = 0;
 
 // PCI "configuration mechanism one"
 static uint32_t pci_conf1_addr_ioport = 0x0cf8;
@@ -29,6 +29,9 @@ struct pci_driver pci_attach_class[] = {
 };
 
 struct pci_driver pci_attach_vendor[] = {
+#if SOL >= 6
+	{ 0x8086, 0x1209, &e100_attach },
+#endif
 	{ 0, 0, 0 },
 };
 
@@ -230,9 +233,6 @@ pci_func_enable(struct pci_func *f)
 		pci_conf_write(f, bar, oldv);
 		f->reg_base[regnum] = base;
 		f->reg_size[regnum] = size;
-		
-		cprintf("  -> reg_base[%d] = %08x\n", regnum, base);
-		cprintf("  -> reg_size[%d] = %08x\n", regnum, size);
 		
 		if (size && !base)
 			cprintf("PCI device %02x:%02x.%d (%04x:%04x) "

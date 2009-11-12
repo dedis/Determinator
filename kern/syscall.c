@@ -16,6 +16,7 @@
 #endif
 #if LAB >= 6
 #include <kern/time.h>
+#include <kern/e100.h>
 #endif
 
 // Print a string to the system console.
@@ -478,6 +479,38 @@ sys_time_msec(void)
 }
 #endif
 
+#if SOL >= 6
+static int
+sys_net_txbuf(void *bufva, unsigned int size)
+{
+	unsigned int offset;
+	struct Page *pp;
+	int r;
+
+	if ((r = user_mem_check(curenv, bufva, size, PTE_U))) {
+		cprintf("[%08x] user_mem_check failed %08x in sys_net_txbuf\n", 
+			curenv->env_id, bufva);
+		return r;
+	}
+
+	offset = (unsigned int) bufva % PGSIZE;
+	if (offset + size > PGSIZE) {
+		cprintf("[%08x] page overlap %x in sys_net_txbuf\n", 
+			curenv->env_id, offset + size);
+		return r;
+	}
+
+	pp = page_lookup(curenv->env_pgdir, bufva, 0);
+	if (pp == 0) {
+		cprintf("[%08x] page_lookup failed %08x in sys_net_txbuf\n", 
+			curenv->env_id, bufva);
+		return -E_INVAL;
+	}	
+
+	return e100_txbuf(pp, size, offset);
+}
+#endif
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -519,6 +552,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 #if SOL >= 6
 	case SYS_time_msec:
 		return sys_time_msec();
+	case SYS_net_txbuf:
+		return sys_net_txbuf((void *)a1, a2);
 #endif	// SOL >= 6
 #endif	// SOL >= 4
 	default:

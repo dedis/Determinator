@@ -33,8 +33,9 @@ KERN_SRCFILES :=	kern/entry.S \
 
 ifdef LAB6
 # Source files for LAB6
-KERN_SRCFILES +=	kern/time.c \
-			kern/pci.c
+KERN_SRCFILES +=	kern/e100.c \
+			kern/pci.c \
+			kern/time.c
 
 endif
 # Only build files if they exist.
@@ -63,6 +64,8 @@ KERN_BINFILES :=	user/idle \
 			user/writemotd \
 			user/icode \
 			user/testtime \
+			user/tcpecho \
+			user/tcpsrv \
 			fs/fs \
 			net/ns
 else
