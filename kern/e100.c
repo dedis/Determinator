@@ -14,7 +14,9 @@ uint8_t e100_irq;
 
 #define E100_TX_SLOTS			64
 #define E100_RX_SLOTS			64
+
 #define E100_NULL			0xffffffff
+#define E100_SIZE_MASK			0x3fff	// mask out status/control bits
 
 #define	E100_CSR_SCB_STATACK		0x01	// scb_statack (1 byte)
 #define	E100_CSR_SCB_COMMAND		0x02	// scb_command (1 byte)
@@ -29,10 +31,6 @@ uint8_t e100_irq;
 #define E100_SCB_COMMAND_RU_START	1
 #define E100_SCB_COMMAND_RU_RESUME	2
 
-#define	E100_SCB_STATACK_FCP		0x01
-#define	E100_SCB_STATACK_ER		0x02
-#define E100_SCB_STATACK_SWI		0x04
-#define E100_SCB_STATACK_MDI		0x08
 #define E100_SCB_STATACK_RNR		0x10
 #define E100_SCB_STATACK_CNA		0x20
 #define E100_SCB_STATACK_FR		0x40
@@ -43,9 +41,10 @@ uint8_t e100_irq;
 
 // command flags
 #define E100_CB_COMMAND_SF		0x0008	// simple/flexible mode
-#define E100_CB_COMMAND_I		0x2000	// generate interrupt on completion
+#define E100_CB_COMMAND_I		0x2000	// interrupt on completion
 #define E100_CB_COMMAND_S		0x4000	// suspend on completion
-#define E100_CB_COMMAND_EL		0x8000	// end of list
+
+#define E100_CB_STATUS_C		0x8000
 
 #define E100_RFA_STATUS_OK		0x2000	// packet received okay
 #define E100_RFA_STATUS_C		0x8000	// packet reception complete
@@ -53,9 +52,6 @@ uint8_t e100_irq;
 #define E100_RFA_CONTROL_SF		0x0008	// simple/flexible memory mode
 #define E100_RFA_CONTROL_S		0x4000	// suspend after reception
 
-// status
-#define E100_CB_STATUS_OK		0x2000
-#define E100_CB_STATUS_C		0x8000
 
 struct e100_cb_tx {
 	volatile uint16_t cb_status;
@@ -95,12 +91,10 @@ struct e100_rbd {
 	volatile uint16_t rbd_pad1;
 };
 
-#define E100_SIZE_MASK			0x3fff	// mask out status/control bits
-
 struct e100_tx_slot {
 	struct e100_cb_tx tcb;
 	struct e100_tbd tbd;
-	// Some cards require two TBD after then TCB ("Extended TCB")
+	// Some cards require two TBD after the TCB ("Extended TCB")
 	struct e100_tbd unused;
 	struct Page *p;
 };
@@ -138,10 +132,9 @@ e100_scb_wait(void)
 {
 	int i;
 
-	for (i = 0; i < 100000; i++) {
+	for (i = 0; i < 100000; i++)
 		if (inb(the_e100.iobase + E100_CSR_SCB_COMMAND) == 0)
 			return;
-	}
 	
 	cprintf("e100_scb_wait: timeout\n");
 }
@@ -161,7 +154,8 @@ static void e100_tx_start(void)
 
 	if (the_e100.tx_idle) {
 		e100_scb_wait();
-		outl(the_e100.iobase + E100_CSR_SCB_GENERAL, PADDR(&the_e100.tx[i].tcb));
+		outl(the_e100.iobase + E100_CSR_SCB_GENERAL, 
+		     PADDR(&the_e100.tx[i].tcb));
 		e100_scb_cmd(E100_SCB_COMMAND_CU_START);
 		the_e100.tx_idle = 0;
 	} else {
@@ -205,7 +199,8 @@ static void e100_rx_start(void)
 
 	if (the_e100.rx_idle) {
 		e100_scb_wait();
-		outl(the_e100.iobase + E100_CSR_SCB_GENERAL, PADDR(&the_e100.rx[i].rfd));
+		outl(the_e100.iobase + E100_CSR_SCB_GENERAL, 
+		     PADDR(&the_e100.rx[i].rfd));
 		e100_scb_cmd(E100_SCB_COMMAND_RU_START);
 		the_e100.rx_idle = 0;
 	} else {
@@ -223,13 +218,19 @@ int e100_rxbuf(struct Page *pp, unsigned int size, unsigned int offset)
 		return -E_NO_MEM;
 	}
 
+	if (size <= 4) {
+		cprintf("e100_rxbuf: weird size (%u)\n", size);
+		return -E_INVAL;
+	}
+
 	i = the_e100.rx_head % E100_TX_SLOTS;
 
 	// The first 4 bytes will hold the number of bytes recieved
 	the_e100.rx[i].rbd.rbd_buffer = page2pa(pp) + offset + 4;
-	the_e100.rx[i].rbd.rbd_size = size & E100_SIZE_MASK;
+	the_e100.rx[i].rbd.rbd_size = (size - 4) & E100_SIZE_MASK;
 	the_e100.rx[i].rfd.rfa_status = 0;
-	the_e100.rx[i].rfd.rfa_control = E100_RFA_CONTROL_SF | E100_RFA_CONTROL_S;
+	the_e100.rx[i].rfd.rfa_control = 
+		E100_RFA_CONTROL_SF | E100_RFA_CONTROL_S;
 
 	pp->pp_ref++;
 	the_e100.rx[i].p = pp;
