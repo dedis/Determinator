@@ -42,7 +42,10 @@ forward_rxbuf(envid_t ns_envid)
 	while (*((volatile int *)&pkt->jp_len) == 0)
 		sys_yield();
 
-	ipc_send(ns_envid, NSREQ_INPUT, pkt, PTE_P|PTE_W|PTE_U);
+	if (pkt->jp_len > 0)
+		ipc_send(ns_envid, NSREQ_INPUT, pkt, PTE_P|PTE_W|PTE_U);
+	else 
+		cprintf("Input rx'ed a bad packet\n");
 	rx_slot[i] = 0;
 	sys_page_unmap(0, pkt);
 
