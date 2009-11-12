@@ -1,3 +1,4 @@
+#if LAB >= 6
 #include <inc/lib.h>
 #include <lwip/sockets.h>
 #include <lwip/inet.h>
@@ -90,3 +91,4 @@ umain(void)
 	
 	return 0;
 }
+#endif
