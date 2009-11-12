@@ -54,8 +54,8 @@ forward_rxbuf(envid_t ns_envid)
 #endif
 
 void
-input(envid_t ns_envid) {
-	int req;
+input(envid_t ns_envid)
+{
 
 	binaryname = "ns_input";
 #if SOL >= 6
