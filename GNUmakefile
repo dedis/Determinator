@@ -299,12 +299,12 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 gra
 
 #if LAB <= 999
 ifdef LAB6
-PORT80		:= $(shell expr $(GDBPORT) + 1)
-PORT10000	:= $(shell expr $(GDBPORT) + 2)
+PORT7	:= $(shell expr $(GDBPORT) + 1)
+PORT80	:= $(shell expr $(GDBPORT) + 2)
 
 IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
 QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio \
-	   -net user -net nic,model=i82559er -redir tcp:$(PORT10000)::10000 \
+	   -net user -net nic,model=i82559er -redir tcp:$(PORT7)::7 \
 	   -redir tcp:$(PORT80)::80 $(QEMUEXTRA)
 else
 ifdef LAB5
@@ -318,7 +318,7 @@ endif  # LAB 6
 #else
 IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
 QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio \
-	   -net user -net nic,model=i82559er -redir tcp:$(PORT10000)::10000 \
+	   -net user -net nic,model=i82559er -redir tcp:$(PORT7)::7 \
 	   -redir tcp:$(PORT80)::80 $(QEMUEXTRA)
 #endif
 
@@ -387,19 +387,19 @@ ifdef LAB6
 # For network connections
 which-ports:
 	@echo Local port $(PORT80) forwards to JOS port 80
-	@echo Local port $(PORT10000) forwards to JOS port 10000
+	@echo Local port $(PORT7) forwards to JOS port 7
 
 nc-80:
 	nc localhost $(PORT80)
 
-nc-10000:
-	nc localhost $(PORT10000)
+nc-7:
+	nc localhost $(PORT7)
 
 telnet-80:
 	telnet localhost $(PORT80)
 
-telnet-10000:
-	telnet localhost $(PORT10000)
+telnet-7:
+	telnet localhost $(PORT7)
 
 endif
 # This magic automatically generates makefile dependencies
