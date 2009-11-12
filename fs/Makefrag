@@ -19,6 +19,10 @@ USERAPPS := 		$(OBJDIR)/user/cat \
 FSIMGTXTFILES :=	fs/newmotd \
 			fs/motd
 
+ifdef LAB6
+FSIMGTXTFILES :=	$(FSIMGTXTFILES) \
+			fs/index.html
+
 ifdef LAB7
 USERAPPS :=		$(USERAPPS) \
 			$(OBJDIR)/user/primespipe \
@@ -37,6 +41,7 @@ FSIMGTXTFILES :=	$(FSIMGTXTFILES) \
 			fs/testshell.key \
 			fs/testshell.out \
 			fs/testshell.sh
+endif
 endif
 
 #if LAB >= 999
