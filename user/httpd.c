@@ -245,16 +245,16 @@ send_file(struct http_request *req)
 	int fd;
 
 	if ((fd = open(req->url, O_RDONLY)) < 0)
-		return send_header(req, 404);
+		return send_error(req, 404);
 	
 	if ((r = fstat(fd, &stat)) < 0) {
 		close(fd);
-		return send_header(req, 404);
+		return send_error(req, 404);
 	}	
 
 	if (stat.st_isdir) {
 		close(fd);
-		return send_header(req, 404);
+		return send_error(req, 404);
 	}
 
 	file_size = stat.st_size;
