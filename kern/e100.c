@@ -100,6 +100,8 @@ struct e100_rbd {
 struct e100_tx_slot {
 	struct e100_cb_tx tcb;
 	struct e100_tbd tbd;
+	// Some cards require two TBD after then TCB ("Extended TCB")
+	struct e100_tbd unused;
 	struct Page *p;
 };
 
