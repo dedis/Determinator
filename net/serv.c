@@ -149,11 +149,12 @@ serve_init(uint32_t ipaddr, uint32_t netmask, uint32_t gw)
     start_timer(&t_tcpf, &tcp_fasttmr, "tcp f timer", TCP_FAST_INTERVAL);
     start_timer(&t_tcps, &tcp_slowtmr, "tcp s timer", TCP_SLOW_INTERVAL);
 
+    struct in_addr ia = {ipaddr};
     cprintf("ns: %02x:%02x:%02x:%02x:%02x:%02x" 
-	    " bound to static %d(%d)\n", 
+	    " bound to static IP %s\n", 
 	    nif.hwaddr[0], nif.hwaddr[1], nif.hwaddr[2],
 	    nif.hwaddr[3], nif.hwaddr[4], nif.hwaddr[5],
-	    (uint16_t)ntohl(ipaddr), (uint16_t)ipaddr);
+	    inet_ntoa(ia));
     
     lwip_core_unlock();
 
