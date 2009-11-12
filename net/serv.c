@@ -325,8 +325,7 @@ serve(void) {
 		va = get_buffer();
 		req = ipc_recv((int32_t *) &whom, (void *) va, &perm);
 		if (debug) {
-			cprintf("ns req %d from %08x [page %08x: %s]\n",
-				req, whom, vpt[VPN(va)], va);
+			cprintf("ns req %d from %08x\n", req, whom);
 		}
 
 		// first take care of requests that do not contain an argument page
