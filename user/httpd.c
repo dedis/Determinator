@@ -238,7 +238,7 @@ send_file(struct http_request *req)
 	// open the requested url for reading
 	// if the file does not exist, send a 404 error
 	// if the requested url is a directory, send a 404 error
-	// set the file_size to the size of the file
+	// set file_size to the size of the file
 
 #if SOL >= 6
 	struct Stat stat;
@@ -262,6 +262,7 @@ send_file(struct http_request *req)
 	// LAB 6: Your code here.
 	panic("send_file not implemented");
 #endif
+
 	r = send_header(req, 200);
 	if (r < 0)
 		return r;
