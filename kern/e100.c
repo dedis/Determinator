@@ -26,6 +26,8 @@ uint8_t e100_irq;
 #define E100_SCB_COMMAND_CU_START	0x10
 #define E100_SCB_COMMAND_CU_RESUME	0x20
 
+#define E100_SCB_COMMAND_RU_START	1
+
 #define	E100_SCB_STATACK_FCP		0x01
 #define	E100_SCB_STATACK_ER		0x02
 #define E100_SCB_STATACK_SWI		0x04
@@ -43,6 +45,9 @@ uint8_t e100_irq;
 #define E100_CB_COMMAND_I		0x2000	// generate interrupt on completion
 #define E100_CB_COMMAND_S		0x4000	// suspend on completion
 #define E100_CB_COMMAND_EL		0x8000	// end of list
+
+#define E100_RFA_CONTROL_SF		0x0008	// simple/flexible memory mode
+#define E100_RFA_CONTROL_S		0x4000	// suspend after reception
 
 // status
 #define E100_CB_STATUS_OK		0x2000
@@ -98,6 +103,7 @@ struct e100_rx_slot {
 	struct e100_rfa rfd;
 	struct e100_rbd rbd;
 	struct Page *p;
+	unsigned int offset;
 };
 
 static struct {
@@ -111,6 +117,7 @@ static struct {
 	struct e100_rx_slot rx[E100_RX_SLOTS];
 	int rx_head;
 	int rx_tail;
+	char rx_idle;
 } the_e100;
 
 static void udelay(unsigned int u)
@@ -183,10 +190,49 @@ int e100_txbuf(struct Page *pp, unsigned int size, unsigned int offset)
 	return 0;
 }
 
+static void e100_rx_start(void)
+{
+	int i = the_e100.rx_tail % E100_RX_SLOTS;
+
+	if (the_e100.rx_tail == the_e100.rx_head)
+		panic("oops, no RFDs");
+
+	// If "Suspended" (*not* "Idle") setting the bits in the RFD in 
+	// e100_rxbuf kicks the e100 back into "Ready".
+	if (!the_e100.rx_idle)
+		return;
+
+	e100_scb_wait();
+	outl(the_e100.iobase + E100_CSR_SCB_GENERAL, PADDR(&the_e100.rx[i].rfd));
+	e100_scb_cmd(E100_SCB_COMMAND_RU_START);
+	the_e100.rx_idle = 0;
+}
+
 int e100_rxbuf(struct Page *pp, unsigned int size, unsigned int offset)
 {
+	int i;
+
+	if (the_e100.rx_head - the_e100.rx_tail == E100_TX_SLOTS) {
+		cprintf("e100_rxbuf: no space\n");
+		return -E_NO_MEM;
+	}
+		
+	i = the_e100.rx_head % E100_TX_SLOTS;
+
 	// The first 4 bytes will hold the number of recieved bytes
-	return -1;
+	the_e100.rx[i].rbd.rbd_buffer = page2pa(pp) + offset + 4;
+	the_e100.rx[i].rbd.rbd_size = size & E100_SIZE_MASK;
+	the_e100.rx[i].rfd.rfa_status = 0;
+	the_e100.rx[i].rfd.rfa_control = E100_RFA_CONTROL_SF | E100_RFA_CONTROL_S;
+
+	pp->pp_ref++;
+	the_e100.rx[i].p = pp;
+	the_e100.rx[i].offset = offset;
+	the_e100.rx_head++;
+
+	e100_rx_start();
+
+	return 0;
 }
 
 static void e100_intr_tx(void)
@@ -226,6 +272,7 @@ int e100_attach(struct pci_func *pcif)
 	e100_irq = pcif->irq_line;
 	the_e100.iobase = pcif->reg_base[1];
 	the_e100.tx_idle = 1;
+	the_e100.rx_idle = 1;
 
 	// Reset the card
 	outl(the_e100.iobase + E100_CSR_PORT, E100_PORT_SOFTWARE_RESET);
