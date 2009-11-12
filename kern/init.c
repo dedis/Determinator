@@ -118,6 +118,7 @@ i386_init(void)
 #else
 	// Touch all you want.
 	// ENV_CREATE(user_tcpsrv);
+	// ENV_CREATE(user_httpd);
 #endif
 #elif LAB >= 5
 	// Should always have an idle process as first one.

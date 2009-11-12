@@ -481,13 +481,14 @@ sys_time_msec(void)
 
 #if SOL >= 6
 static int
-sys_net_txbuf(void *bufva, unsigned int size)
+sys_net_buf(void *bufva, unsigned int size, int rx)
 {
 	unsigned int offset;
 	struct Page *pp;
-	int r;
+	int r, perm;
 
-	if ((r = user_mem_check(curenv, bufva, size, PTE_U))) {
+	perm = PTE_U | rx ? PTE_W : 0;
+	if ((r = user_mem_check(curenv, bufva, size, perm))) {
 		cprintf("[%08x] user_mem_check failed %08x in sys_net_txbuf\n", 
 			curenv->env_id, bufva);
 		return r;
@@ -507,6 +508,8 @@ sys_net_txbuf(void *bufva, unsigned int size)
 		return -E_INVAL;
 	}	
 
+	if (rx)
+		return e100_rxbuf(pp, size, offset);
 	return e100_txbuf(pp, size, offset);
 }
 #endif
@@ -553,7 +556,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	case SYS_time_msec:
 		return sys_time_msec();
 	case SYS_net_txbuf:
-		return sys_net_txbuf((void *)a1, a2);
+		return sys_net_buf((void *)a1, a2, 0);
+	case SYS_net_rxbuf:
+		return sys_net_buf((void *)a1, a2, 1);
 #endif	// SOL >= 6
 #endif	// SOL >= 4
 	default:

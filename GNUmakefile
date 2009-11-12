@@ -301,7 +301,8 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 gra
 ifdef LAB6
 IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
 QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio \
-	   -net user -net nic,model=i82559er -redir tcp:4242::10000 $(QEMUEXTRA)
+	   -net user -net nic,model=i82559er -redir tcp:4242::10000 \
+	   -redir tcp:8080::80 $(QEMUEXTRA)
 else
 ifdef LAB5
 IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
@@ -314,7 +315,8 @@ endif  # LAB 6
 #else
 IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
 QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio \
-	   -net user -net nic,model=i82559er -redir tcp:4242::10000 $(QEMUEXTRA)
+	   -net user -net nic,model=i82559er -redir tcp:4242::10000 \
+	   -redir tcp:8080::80 $(QEMUEXTRA)
 #endif
 
 .gdbinit: .gdbinit.tmpl

@@ -1,3 +1,4 @@
+#if LAB >= 6
 #include <inc/lib.h>
 #include <lwip/sockets.h>
 #include <lwip/inet.h>
@@ -67,3 +68,4 @@ int umain(void)
 	closesocket(sock);
 	return 0;
 }
+#endif
