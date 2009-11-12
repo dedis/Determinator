@@ -46,6 +46,9 @@ uint8_t e100_irq;
 #define E100_CB_COMMAND_S		0x4000	// suspend on completion
 #define E100_CB_COMMAND_EL		0x8000	// end of list
 
+#define E100_RFA_STATUS_OK		0x2000	// packet received okay
+#define E100_RFA_STATUS_C		0x8000	// packet reception complete
+
 #define E100_RFA_CONTROL_SF		0x0008	// simple/flexible memory mode
 #define E100_RFA_CONTROL_S		0x4000	// suspend after reception
 
@@ -216,7 +219,7 @@ int e100_rxbuf(struct Page *pp, unsigned int size, unsigned int offset)
 		cprintf("e100_rxbuf: no space\n");
 		return -E_NO_MEM;
 	}
-		
+
 	i = the_e100.rx_head % E100_TX_SLOTS;
 
 	// The first 4 bytes will hold the number of recieved bytes
@@ -239,7 +242,7 @@ static void e100_intr_tx(void)
 {
 	int i;
 
-	for ( ;the_e100.tx_head != the_e100.tx_tail; the_e100.tx_tail++) {
+	for (; the_e100.tx_head != the_e100.tx_tail; the_e100.tx_tail++) {
 		i = the_e100.tx_tail % E100_TX_SLOTS;
 		
 		if (!(the_e100.tx[i].tcb.cb_status & E100_CB_STATUS_C))
@@ -250,6 +253,29 @@ static void e100_intr_tx(void)
 	}
 }
 
+static void e100_intr_rx(void)
+{
+	int *count;
+	int i;
+
+	for (; the_e100.rx_head != the_e100.rx_tail; the_e100.rx_tail++) {
+		i = the_e100.rx_tail % E100_RX_SLOTS;
+		
+		if (!(the_e100.rx[i].rfd.rfa_status & E100_RFA_STATUS_C))
+			break;
+
+		count = page2kva(the_e100.rx[i].p) + the_e100.rx[i].offset;
+		if (the_e100.rx[i].rfd.rfa_status & E100_RFA_STATUS_OK)
+			*count = the_e100.rx[i].rbd.rbd_count & E100_SIZE_MASK;
+		else
+			*count = -1;
+
+		page_decref(the_e100.rx[i].p);
+		the_e100.rx[i].p = 0;
+		the_e100.rx[i].offset = 0;
+	}
+}
+
 void e100_intr(void)
 {
 	int r;
@@ -257,9 +283,17 @@ void e100_intr(void)
 	r = inb(the_e100.iobase + E100_CSR_SCB_STATACK);
 	outb(the_e100.iobase + E100_CSR_SCB_STATACK, r);
 	
-	if (r & E100_SCB_STATACK_CXTNO)
+	if (r & (E100_SCB_STATACK_CXTNO | E100_SCB_STATACK_CNA)) {
+		r &= ~(E100_SCB_STATACK_CXTNO | E100_SCB_STATACK_CNA);
 		e100_intr_tx();
-	else 
+	}
+
+	if (r & E100_SCB_STATACK_FR) {
+		r &= ~E100_SCB_STATACK_FR;
+		e100_intr_rx();
+	}
+
+	if (r)
 		cprintf("e100_intr: unhandled STAT/ACK %x\n", r);
 }
 
