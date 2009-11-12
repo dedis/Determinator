@@ -11,8 +11,8 @@ output(envid_t ns_envid)
 	int32_t req;
 	envid_t whom;
 	int perm, r;
-#endif
 
+#endif
 	binaryname = "ns_output";
 #if SOL >= 6
 	for (;;) {
