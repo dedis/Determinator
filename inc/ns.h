@@ -7,7 +7,7 @@
 #include <inc/types.h>
 #include <lwip/sockets.h>
 
-// Definitions for requests from clients to file system
+// Definitions for requests from clients to network server
 
 #define NSREQ_ACCEPT	1
 #define NSREQ_BIND	2
@@ -19,9 +19,11 @@
 #define NSREQ_SEND	8
 #define NSREQ_SOCKET	9
 
+// The following two messages pass a page containing a struct jif_pkt
 #define NSREQ_INPUT	10
 #define NSREQ_OUTPUT	11
 
+// The following message passes no page
 #define NSREQ_TIMER	12
 
 struct Nsreq_accept {
