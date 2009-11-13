@@ -8,7 +8,7 @@ then
 	verbose=true
 	out=/dev/stdout
 	err=/dev/stderr
-else
+ else
 	out=/dev/null
 	err=/dev/null
 fi
