@@ -1,3 +1,4 @@
+#if LAB >= 6
 #!/bin/sh
 
 verbose=false
@@ -175,4 +176,4 @@ echo PART A SCORE: $score/100
 if [ $score -lt 100 ]; then
     exit 1
 fi
-
+#endif
