@@ -1,5 +1,5 @@
 #if LAB >= 6
-#!/bin/dash
+#!/bin/sh
 
 qemuopts="-hda obj/kern/kernel.img -hdb obj/fs/fs.img"
 . ./grade-functions.sh
