@@ -386,8 +386,8 @@ xrun-%:
 ifdef LAB6
 # For network connections
 which-ports:
-	@echo Local port $(PORT80) forwards to JOS port 80
-	@echo Local port $(PORT7) forwards to JOS port 7
+	@echo "Local port $(PORT7) forwards to JOS port 7 (echo server)"
+	@echo "Local port $(PORT80) forwards to JOS port 80 (web server)"
 
 nc-80:
 	nc localhost $(PORT80)
