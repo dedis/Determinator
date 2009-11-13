@@ -1,29 +1,10 @@
 #if LAB >= 6
-#!/bin/sh
+#!/bin/dash
 
-verbose=false
+qemuopts="-hda obj/kern/kernel.img -hdb obj/fs/fs.img"
+. ./grade-functions.sh
 
-if [ "x$1" = "x-v" ]
-then
-	verbose=true
-	out=/dev/stdout
-	err=/dev/stderr
- else
-	out=/dev/null
-	err=/dev/null
-fi
-
-if gmake --version >/dev/null 2>&1; then make=gmake; else make=make; fi
-
-pts=2
-timeout=30
-preservefs=n
-
-echo_n () {
-	# suns can't echo -n, and Mac OS X can't echo "x\c"
-	# assume argument has no doublequotes
-	awk 'BEGIN { printf("'"$*"'"); }' </dev/null
-}
+$make
 
 rand() {
 	perl -e "my \$r = int(1024 + rand() * (65535 - 1024));print \"\$r\\n\";"
@@ -79,6 +60,8 @@ qemu_test_httpd() {
 }
 
 qemu_test_echosrv() {
+	pts=85
+
 	str="$t0: network server works"
 	echo $str | nc -q 3 localhost $echosrv_port > qemu.out
 
@@ -98,60 +81,19 @@ qemu_test_echosrv() {
 	fi
 }
 
-# Usage: runqemu <tagname> <defs> <strings...>
-runqemu() {
-	perl -e "print '$1: '"
-	rm -f obj/kern/init.o obj/kern/kernel obj/kern/bochs.img 
-	[ "$preservefs" = y ] || rm -f obj/fs/fs.img
-	if $verbose
-	then
-		echo "$make $2... "
-	fi
-	$make $2 >$out
-	if [ $? -ne 0 ]
-	then
-		echo $make $2 failed 
-		exit 1
-	fi
-
+# Override run to start QEMU and return without waiting
+run() {
 	t0=`date +%s.%N 2>/dev/null`
-	qemu -hda obj/kern/kernel.img -hdb obj/fs/fs.img \
-	     -net user -net nic,model=i82559er -serial mon:stdio \
-	     -redir tcp:$echosrv_port::7 -redir tcp:$http_port::80 \
-	     -nographic -pidfile qemu.pid -pcap slirp.cap &#2>/dev/null&
+        $qemu -nographic $qemuopts -serial file:jos.out -monitor null -no-reboot >$out 2>$err &
+        qemu_pid=$!
 
 	sleep 8 # wait for qemu to start up
-
-	qemu_pid=`cat qemu.pid`
-	rm -f qemu.pid
 }
 
-# Usage: runtestq [-tag <tagname>] <progname> [-Ddef...] STRINGS...
-runtestq() {
-	if [ $1 = -tag ]
-	then
-		shift
-		tag=$1
-		prog=$2
-		shift
-		shift
-	else
-		tag=$1
-		prog=$1
-		shift
-	fi
-	testnet_defs=
-	while expr "x$1" : 'x-D.*' >/dev/null; do
-		testnet_defs="DEFS+='$1' $testnet_defs"
-		shift
-	done
-	runqemu "$tag" "DEFS='-DTEST=_binary_obj_user_${prog}_start' DEFS+='-DTESTSIZE=_binary_obj_user_${prog}_size' $testnet_defs" "$@"
-
-	# now run the actuall test
-	qemu_test_${prog}
+# Make continuetest a no-op and run the tests ourselves
+continuetest () {
+	return
 }
-
-score=0
 
 # Reset the file system to its original, pristine state
 resetfs() {
@@ -159,19 +101,23 @@ resetfs() {
 	$make obj/fs/fs.img >$out
 }
 
+score=0
+
 http_port=`rand`
 echosrv_port=`rand`
 echo "using http port: $http_port"
 echo "using echo server port: $echosrv_port"
 
-score=0
-pts=85
-preservefs=n
-runtestq -tag 'tcp echo server [echosrv]' echosrv
+qemuopts="$qemuopts -net user -net nic,model=i82559er"
+qemuopts="$qemuopts -redir tcp:$echosrv_port::7 -redir tcp:$http_port::80"
 
-#pts=15 # points are allocated in the test code
-preservefs=n
-runtestq -tag 'web server [httpd]' httpd
+resetfs
+
+runtest1 -tag 'tcp echo server [echosrv]' echosrv
+qemu_test_echosrv
+
+runtest1 -tag 'web server [httpd]' httpd
+qemu_test_httpd
 
 echo "Score: $score/100"
 
