@@ -84,7 +84,12 @@ qemu_test_echosrv() {
 # Override run to start QEMU and return without waiting
 run() {
 	t0=`date +%s.%N 2>/dev/null`
-        $qemu -nographic $qemuopts -serial file:jos.out -monitor null -no-reboot >$out 2>$err &
+	# The timeout here doesn't really matter, but it helps prevent
+	# runaway qemu's
+	(
+		ulimit -t $timeout
+		exec $qemu -nographic $qemuopts -serial file:jos.out -monitor null -no-reboot
+	) >$out 2>$err &
         qemu_pid=$!
 
 	sleep 8 # wait for qemu to start up
