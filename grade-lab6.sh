@@ -115,10 +115,10 @@ runqemu() {
 	fi
 
 	t0=`date +%s.%N 2>/dev/null`
-	qemu -hda obj/kern/bochs.img -hdb obj/fs/fs.img \
-	     -net user -net nic,model=i82559er -parallel /dev/stdout \
-	     -redir tcp:$echosrv_port::10000 -redir tcp:$http_port::80 \
-	     -nographic -pidfile qemu.pid -pcap slirp.cap 2>/dev/null&
+	qemu -hda obj/kern/kernel.img -hdb obj/fs/fs.img \
+	     -net user -net nic,model=i82559er -serial mon:stdio \
+	     -redir tcp:$echosrv_port::7 -redir tcp:$http_port::80 \
+	     -nographic -pidfile qemu.pid -pcap slirp.cap &#2>/dev/null&
 
 	sleep 3 # wait for qemu to start up
 
