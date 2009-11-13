@@ -120,7 +120,7 @@ runqemu() {
 	     -redir tcp:$echosrv_port::7 -redir tcp:$http_port::80 \
 	     -nographic -pidfile qemu.pid -pcap slirp.cap &#2>/dev/null&
 
-	sleep 3 # wait for qemu to start up
+	sleep 8 # wait for qemu to start up
 
 	qemu_pid=`cat qemu.pid`
 	rm -f qemu.pid
