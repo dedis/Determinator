@@ -117,7 +117,7 @@ i386_init(void)
 	ENV_CREATE2(TEST, TESTSIZE);
 #else
 	// Touch all you want.
-	// ENV_CREATE(user_tcpsrv);
+	// ENV_CREATE(user_echosrv);
 	// ENV_CREATE(user_httpd);
 #endif
 #elif LAB >= 5

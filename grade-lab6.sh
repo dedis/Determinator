@@ -76,9 +76,9 @@ qemu_test_httpd() {
 	time="(${time}s)"
 }
 
-qemu_test_tcpsrv() {
+qemu_test_echosrv() {
 	str="$t0: network server works"
-	echo $str | nc -q 3 localhost $tcpsrv_port > qemu.out
+	echo $str | nc -q 3 localhost $echosrv_port > qemu.out
 
 	kill $qemu_pid
 	wait 2> /dev/null
@@ -115,7 +115,7 @@ runqemu() {
 	t0=`date +%s.%N 2>/dev/null`
 	qemu -hda obj/kern/bochs.img -hdb obj/fs/fs.img \
 	     -net user -net nic,model=i82559er -parallel /dev/stdout \
-	     -redir tcp:$tcpsrv_port::10000 -redir tcp:$http_port::80 \
+	     -redir tcp:$echosrv_port::10000 -redir tcp:$http_port::80 \
 	     -nographic -pidfile qemu.pid -pcap slirp.cap 2>/dev/null&
 
 	sleep 3 # wait for qemu to start up
@@ -158,14 +158,14 @@ resetfs() {
 }
 
 http_port=`rand`
-tcpsrv_port=`rand`
+echosrv_port=`rand`
 echo "using http port: $http_port"
-echo "using echo server port: $tcpsrv_port"
+echo "using echo server port: $echosrv_port"
 
 score=0
 pts=85
 preservefs=n
-runtestq -tag 'tcp echo server [tcpsrv]' tcpsrv
+runtestq -tag 'tcp echo server [echosrv]' echosrv
 
 #pts=15 # points are allocated in the test code
 preservefs=n
