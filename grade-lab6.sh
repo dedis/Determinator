@@ -173,7 +173,7 @@ runtestq -tag 'tcp echo server [echosrv]' echosrv
 preservefs=n
 runtestq -tag 'web server [httpd]' httpd
 
-echo PART A SCORE: $score/100
+echo "Score: $score/100"
 
 if [ $score -lt 100 ]; then
     exit 1
