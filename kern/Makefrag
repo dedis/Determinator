@@ -89,6 +89,7 @@ KERN_BINFILES :=	user/idle \
 			user/faultread \
 			user/faultwrite \
 			user/faultdie \
+			user/faultregs \
 			user/faultalloc \
 			user/faultallocbad \
 			user/faultnostack \
