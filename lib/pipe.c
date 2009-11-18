@@ -1,4 +1,9 @@
 #if LAB >= 7
+#if SOL >= 1
+// NOTE: The "#if LAB >= 1" sections below used to be "#if SOL >= 7"
+// sections.  Now we gave them pipes in the last lab so they would
+// have more time to focus on the final project.
+#endif
 #include <inc/lib.h>
 
 #define debug 0
@@ -76,7 +81,7 @@ pipe(int pfd[2])
 static int
 _pipeisclosed(struct Fd *fd, struct Pipe *p)
 {
-#if SOL >= 7
+#if LAB >= 1
 	int n, nn, ret;
 
 	while (1) {
@@ -125,7 +130,7 @@ pipeisclosed(int fdnum)
 static ssize_t
 piperead(struct Fd *fd, void *vbuf, size_t n, off_t offset)
 {
-#if SOL >= 7
+#if LAB >= 1
 	uint8_t *buf;
 	size_t i;
 	struct Pipe *p;
@@ -177,7 +182,7 @@ piperead(struct Fd *fd, void *vbuf, size_t n, off_t offset)
 static ssize_t
 pipewrite(struct Fd *fd, const void *vbuf, size_t n, off_t offset)
 {
-#if SOL >= 7
+#if LAB >= 1
 	const uint8_t *buf;
 	size_t i;
 	struct Pipe *p;
@@ -238,7 +243,7 @@ pipestat(struct Fd *fd, struct Stat *stat)
 static int
 pipeclose(struct Fd *fd)
 {
-#if SOL >= 7
+#if LAB >= 1
 	(void) sys_page_unmap(0, fd);
 #endif
 	return sys_page_unmap(0, fd2data(fd));

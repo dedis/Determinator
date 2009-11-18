@@ -1,4 +1,9 @@
 #if LAB >= 7
+#if SOL >= 1
+// NOTE: The "#if LAB >= 1" sections below used to be "#if SOL >= 7"
+// sections.  Now we gave them the entire shell in the last lab so
+// they would have more time to focus on the final project.
+#endif
 #include <inc/lib.h>
 
 #define BUFSIZ 1024		/* Find the buffer overrun bug! */
@@ -47,7 +52,7 @@ again:
 				cprintf("syntax error: < not followed by word\n");
 				exit();
 			}
-#if SOL >= 7
+#if LAB >= 1
 			if ((fd = open(t, O_RDONLY)) < 0) {
 				cprintf("open %s for read: %e", t, fd);
 				exit();
@@ -76,7 +81,7 @@ again:
 				cprintf("syntax error: > not followed by word\n");
 				exit();
 			}
-#if SOL >= 7
+#if LAB >= 1
 			if ((fd = open(t, O_WRONLY)) < 0) {
 				cprintf("open %s for write: %e", t, fd);
 				exit();
@@ -102,7 +107,7 @@ again:
 			break;
 			
 		case '|':	// Pipe
-#if SOL >= 7
+#if LAB >= 1
 			if ((r = pipe(p)) < 0) {
 				cprintf("pipe: %e", r);
 				exit();
