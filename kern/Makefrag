@@ -55,7 +55,8 @@ KERN_BINFILES :=	user/icode \
 			user/primespipe \
 			user/testkbd \
 			user/testshell \
-			fs/fs
+			fs/fs \
+			net/ns
 else
 ifdef LAB6
 KERN_BINFILES :=	user/idle \
