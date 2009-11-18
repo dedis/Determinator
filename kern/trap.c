@@ -220,7 +220,7 @@ trap_dispatch(struct Trapframe *tf)
 #if LAB >= 4
 #if SOL >= 4
 	// New in Lab 4: Handle external interrupts
-	if (tf->tf_trapno == IRQ_OFFSET + 0) {
+	if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
 		// irq 0 -- clock interrupt
 #if SOL >= 6
 		time_tick();
@@ -228,12 +228,12 @@ trap_dispatch(struct Trapframe *tf)
 		sched_yield();
 	}
 #if SOL >= 7
-	if (tf->tf_trapno == IRQ_OFFSET + 1) {
+	if (tf->tf_trapno == IRQ_OFFSET + IRQ_KBD) {
 		kbd_intr();
 		return;
 	}
 #endif	// SOL >= 7
-	if (tf->tf_trapno == IRQ_OFFSET + 4) {
+	if (tf->tf_trapno == IRQ_OFFSET + IRQ_SERIAL) {
 		serial_intr();
 		return;
 	}
