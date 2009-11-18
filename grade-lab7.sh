@@ -32,7 +32,8 @@ runtest1 -tag 'PTE_SHARE [testpteshare]' testpteshare \
 pts=10
 runtest1 -tag 'fd sharing [testfdsharing]' testfdsharing \
 	'read in parent succeeded' \
-	'read in child succeeded' 
+	'read in child succeeded' \
+	'write to file data page succeeded'
 
 # 10 points - run-testpipe
 pts=10
