@@ -130,7 +130,8 @@ spawn(const char *prog, const char **argv)
 
 #if LAB >= 7
 	// Copy shared library state.
-	copy_shared_pages(child);
+	if ((r = copy_shared_pages(child)) < 0)
+		panic("copy_shared_pages: %e", r);
 
 #endif
 	if ((r = sys_env_set_trapframe(child, &child_tf)) < 0)
