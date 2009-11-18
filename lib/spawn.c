@@ -128,7 +128,7 @@ spawn(const char *prog, const char **argv)
 	close(fd);
 	fd = -1;
 
-#if SOL >= 7
+#if LAB >= 7
 	// Copy shared library state.
 	copy_shared_pages(child);
 
@@ -285,11 +285,12 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 	return 0;
 }
 
-#if SOL >= 7
+#if LAB >= 7
 // Copy the mappings for shared pages into the child address space.
 static int
 copy_shared_pages(envid_t child)
 {
+#if SOL >= 7
 	int pn, last_pn, r;
 	void* va;
 
@@ -306,6 +307,9 @@ copy_shared_pages(envid_t child)
 				}
 		}
 	}
+#else
+	// LAB 7: Your code here.
+#endif
 	return 0;
 }
 #endif
