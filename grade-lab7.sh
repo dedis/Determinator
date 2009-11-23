@@ -1,4 +1,7 @@
-#if LAB >= 7
+#if LAB >= 99
+# Some tests have been removed via "LAB >= 99" below, since they only
+# test code which we now provide.
+#elif LAB >= 7
 #!/bin/sh
 
 qemuopts="-hda obj/kern/kernel.img -hdb obj/fs/fs.img -net user -net nic,model=i82559er"
@@ -9,6 +12,19 @@ $make
 run
 
 score=0
+
+# 10 points - run-testpteshare
+pts=10
+runtest1 -tag 'PTE_SHARE [testpteshare]' testpteshare \
+	'fork handles PTE_SHARE right' \
+	'spawn handles PTE_SHARE right' \
+
+# 10 points - run-testfdsharing
+pts=10
+runtest1 -tag 'fd sharing [testfdsharing]' testfdsharing \
+	'read in parent succeeded' \
+	'read in child succeeded' \
+	'write to file data page succeeded'
 
 # 20 points - run-icode
 pts=20
@@ -23,18 +39,13 @@ runtest1 -tag 'updated file system switch [icode]' icode \
 	"init: args: 'init' 'initarg1' 'initarg2'" \
 	'init: running sh' \
 
-pts=10
-runtest1 -tag 'PTE_SHARE [testpteshare]' testpteshare \
-	'fork handles PTE_SHARE right' \
-	'spawn handles PTE_SHARE right' \
+# 20 points - run-testshell
+pts=20
+timeout=60
+runtest1 -tag 'shell [testshell]' testshell \
+	'shell ran correctly' \
 
-# 10 points - run-testfdsharing
-pts=10
-runtest1 -tag 'fd sharing [testfdsharing]' testfdsharing \
-	'read in parent succeeded' \
-	'read in child succeeded' \
-	'write to file data page succeeded'
-
+#if LAB >= 99
 # 10 points - run-testpipe
 pts=10
 runtest1 -tag 'pipe [testpipe]' testpipe \
@@ -55,6 +66,7 @@ runtest1 -tag 'pipe race 2 [testpiperace2]' testpiperace2 \
 	! 'child detected race' \
 	"race didn't happen" \
 
+#endif
 # 10 points - run-primespipe
 pts=10
 timeout=120
@@ -66,15 +78,9 @@ runtest1 -tag 'primespipe' primespipe \
 	! 30 31 ! 32 ! 33 ! 34 ! 35 ! 36 37 ! 38 ! 39 \
 	541 1009 1097
 
-# 20 points - run-testshell
-pts=20
-timeout=60
-runtest1 -tag 'shell [testshell]' testshell \
-	'shell ran correctly' \
+echo "Score: $score/70"
 
-echo "Score: $score/100"
-
-if [ $score -lt 100 ]; then
+if [ $score -lt 70 ]; then
     exit 1
 fi
 #endif
