@@ -1,7 +1,7 @@
 #if LAB >= 7
 #!/bin/sh
 
-qemuopts="-hda obj/kern/kernel.img -hdb obj/fs/fs.img"
+qemuopts="-hda obj/kern/kernel.img -hdb obj/fs/fs.img -net user -net nic,model=i82559er"
 . ./grade-functions.sh
 
 
