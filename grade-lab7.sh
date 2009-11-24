@@ -6,6 +6,7 @@
 
 qemuopts="-hda obj/kern/kernel.img -hdb obj/fs/fs.img -net user -net nic,model=i82559er"
 . ./grade-functions.sh
+brkfn=cons_getc
 
 
 $make
