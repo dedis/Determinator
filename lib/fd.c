@@ -1,4 +1,9 @@
 #if LAB >= 5
+#if SOL >= 1
+// NOTE: The "#if LAB >= 1" sections below used to be "#if SOL >= 7"
+// sections.  Now we gave them pipes in the last lab so they would
+// have more time to focus on the final project.
+#endif
 #include <inc/lib.h>
 
 #define debug		0
@@ -186,7 +191,7 @@ dup(int oldfdnum, int newfdnum)
 	ova = fd2data(oldfd);
 	nva = fd2data(newfd);
 
-#if SOL >= 7
+#if LAB >= 1
 #else
 	if ((r = sys_page_map(0, oldfd, 0, newfd, vpt[VPN(oldfd)] & PTE_USER)) < 0)
 		goto err;
@@ -201,7 +206,7 @@ dup(int oldfdnum, int newfdnum)
 			}
 		}
 	}
-#if SOL >= 7
+#if LAB >= 1
 	if ((r = sys_page_map(0, oldfd, 0, newfd, vpt[VPN(oldfd)] & PTE_USER)) < 0)
 		goto err;
 #else
