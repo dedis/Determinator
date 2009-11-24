@@ -1,4 +1,5 @@
 #if LAB >= 7
+#include <inc/x86.h>
 #include <inc/lib.h>
 
 #define VA	((char *) 0xA0000000)
@@ -33,6 +34,8 @@ umain(int argc, char **argv)
 		panic("spawn: %e", r);
 	wait(r);
 	cprintf("spawn handles PTE_SHARE %s\n", strcmp(VA, msg2) == 0 ? "right" : "wrong");
+
+	breakpoint();
 }
 
 void

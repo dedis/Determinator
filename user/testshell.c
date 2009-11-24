@@ -1,4 +1,5 @@
 #if LAB >= 7
+#include <inc/x86.h>
 #include <inc/lib.h>
 
 void wrong(int, int, int);
@@ -59,6 +60,8 @@ umain(void)
 			nloff = off+1;
 	}
 	cprintf("shell ran correctly\n");			
+
+	breakpoint();
 }
 
 void
