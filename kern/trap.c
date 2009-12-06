@@ -284,6 +284,10 @@ void
 trap(struct Trapframe *tf)
 {
 #if LAB == 3
+	// The environment may have set DF and some versions
+	// of GCC rely on DF being clear
+	asm volatile("cld" ::: "cc");
+
 	cprintf("Incoming TRAP frame at %p\n", tf);
 
 #endif
