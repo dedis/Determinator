@@ -114,6 +114,25 @@ qemu_test_testinput() {
 	fi
 }
 
+qemu_test_echosrv() {
+	if ! wait_for_line 'bound'; then
+		return
+	fi
+
+	str="$t0: network server works"
+	echo $str | nc -q 3 localhost $echosrv_port > qemu.out
+
+	kill $PID
+	wait 2> /dev/null
+
+	if egrep "^$str\$" qemu.out > /dev/null
+	then
+		pass
+	else
+		fail
+	fi
+}
+
 qemu_test_httpd() {
 	if ! wait_for_line 'Waiting for http connections'; then
 		return
@@ -156,25 +175,6 @@ qemu_test_httpd() {
 
 	kill $PID
 	wait 2> /dev/null
-}
-
-qemu_test_echosrv() {
-	if ! wait_for_line 'bound'; then
-		return
-	fi
-
-	str="$t0: network server works"
-	echo $str | nc -q 3 localhost $echosrv_port > qemu.out
-
-	kill $PID
-	wait 2> /dev/null
-
-	if egrep "^$str\$" qemu.out > /dev/null
-	then
-		pass
-	else
-		fail
-	fi
 }
 
 score=0
