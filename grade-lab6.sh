@@ -81,25 +81,6 @@ qemu_test_echosrv() {
 	fi
 }
 
-# Override run to start QEMU and return without waiting
-run() {
-	t0=`date +%s.%N 2>/dev/null`
-	# The timeout here doesn't really matter, but it helps prevent
-	# runaway qemu's
-	(
-		ulimit -t $timeout
-		exec $qemu -nographic $qemuopts -serial file:jos.out -monitor null -no-reboot
-	) >$out 2>$err &
-        qemu_pid=$!
-
-	sleep 8 # wait for qemu to start up
-}
-
-# Make continuetest a no-op and run the tests ourselves
-continuetest () {
-	return
-}
-
 # Reset the file system to its original, pristine state
 resetfs() {
 	rm -f obj/fs/fs.img
@@ -117,6 +98,25 @@ qemuopts="$qemuopts -net user -net nic,model=i82559er"
 qemuopts="$qemuopts -redir tcp:$echosrv_port::7 -redir tcp:$http_port::80"
 
 resetfs
+
+# Make continuetest a no-op and check results ourselves
+continuetest () {
+	return
+}
+
+# Override run to start QEMU and return without waiting
+run() {
+	t0=`date +%s.%N 2>/dev/null`
+	# The timeout here doesn't really matter, but it helps prevent
+	# runaway qemu's
+	(
+		ulimit -t $timeout
+		exec $qemu -nographic $qemuopts -serial file:jos.out -monitor null -no-reboot
+	) >$out 2>$err &
+        qemu_pid=$!
+
+	sleep 8 # wait for qemu to start up
+}
 
 runtest1 -tag 'tcp echo server [echosrv]' echosrv
 qemu_test_echosrv
