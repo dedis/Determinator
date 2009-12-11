@@ -128,8 +128,6 @@ qemu_test_testinput() {
 }
 
 qemu_test_httpd() {
-	pts=5
-
 	echo ""
 
 	perl -e "print '    wget localhost:$http_port/: '"
@@ -177,8 +175,6 @@ qemu_test_httpd() {
 }
 
 qemu_test_echosrv() {
-	pts=85
-
 	str="$t0: network server works"
 	echo $str | nc -q 3 localhost $echosrv_port > qemu.out
 
@@ -259,15 +255,17 @@ pts=10
 runtest1 -tag "testinput [100 packets]" -dir net testinput -DTEST_NO_NS
 qemu_test_testinput 100
 
+pts=15
 runtest1 -tag 'tcp echo server [echosrv]' echosrv
 qemu_test_echosrv
 
+pts=10 # Times 3 tests
 runtest1 -tag 'web server [httpd]' httpd
 qemu_test_httpd
 
-echo "Score: $score/155"
+echo "Score: $score/100"
 
-if [ $score -lt 155 ]; then
+if [ $score -lt 100 ]; then
     exit 1
 fi
 #endif
