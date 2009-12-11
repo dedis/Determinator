@@ -46,6 +46,87 @@ qemu_test_testoutput() {
 	fi
 }
 
+wait_for_line() {
+	found=0
+	for tries in `seq 10`; do
+		if egrep "$1" jos.out >/dev/null; then
+			found=1
+			break
+		fi
+		sleep 1
+	done
+
+	if [ $found -eq 0 ]; then
+		kill $qemu_pid
+		wait 2> /dev/null
+
+		t1=`date +%s.%N 2>/dev/null`
+		time=`echo "scale=1; ($t1-$t0)/1" | sed 's/.N/.0/g' | bc 2>/dev/null`
+		time="(${time}s)"
+
+		echo "missing '$1'"
+		echo WRONG $time
+		return 1
+	fi
+}
+
+qemu_test_testinput() {
+	num=$1
+
+	# Wait until it's ready to receive packets
+	if ! wait_for_line 'Waiting for packets'; then
+		return
+	fi
+
+	# Send num UDP packets
+	for m in `seq -f '%03g' $num`; do
+		echo "Packet $m" | nc -u -q 0 localhost $echosrv_port
+	done
+
+	# Wait for the packets to be processed
+	sleep 1
+
+	kill $qemu_pid
+	wait 2> /dev/null
+	t1=`date +%s.%N 2>/dev/null`
+	time=`echo "scale=1; ($t1-$t0)/1" | sed 's/.N/.0/g' | bc 2>/dev/null`
+	time="(${time}s)"
+
+	egrep '^input: ' jos.out | (
+		expect() {
+			if ! read line; then
+				echo "WRONG, $name not received" $time
+				exit 1
+			fi
+			if ! echo "$line" | egrep "$1$" >/dev/null; then
+				echo "WRONG, receiving $name" $time
+				echo "expected input: $1"
+				echo "got      $line"
+				exit 1
+			fi
+		}
+
+		# ARP reply
+		name="ARP reply"
+		expect "0000   5254 0012 3456 ....  .... .... 0806 0001"
+		expect "0010   0800 0604 0002 ....  .... .... 0a00 0202"
+		expect "0020   5254 0012 3456 0a00  020f"
+
+		for m in `seq -f '%03g' $num`; do
+			name="packet $m/$num"
+			hex=$(echo $m | sed -re 's/(.)(.)(.)/3\1 3\23\3/')
+			expect "0000   5254 0012 3456 ....  .... .... 0800 4500"
+			expect "0010   0027 .... 0000 ..11  .... .... .... 0a00"
+			expect "0020   020f .... 0007 0013  .... 5061 636b 6574"
+			expect "0030   20$hex 0a"
+		done
+	)
+	if [ $? = 0 ]; then
+		score=`expr $pts + $score`
+		echo "OK" $time
+	fi
+}
+
 qemu_test_httpd() {
 	pts=5
 
@@ -132,6 +213,7 @@ echo "using echo server port: $echosrv_port"
 
 qemuopts="$qemuopts -net user -net nic,model=i82559er"
 qemuopts="$qemuopts -redir tcp:$echosrv_port::7 -redir tcp:$http_port::80"
+qemuopts="$qemuopts -redir udp:$echosrv_port::7"
 qemuopts="$qemuopts -pcap slirp.cap"
 
 resetfs
@@ -169,15 +251,23 @@ run() {
 	sleep 8 # wait for qemu to start up
 }
 
+pts=15
+runtest1 -tag "testinput [5 packets]" -dir net testinput -DTEST_NO_NS
+qemu_test_testinput 5
+
+pts=10
+runtest1 -tag "testinput [100 packets]" -dir net testinput -DTEST_NO_NS
+qemu_test_testinput 100
+
 runtest1 -tag 'tcp echo server [echosrv]' echosrv
 qemu_test_echosrv
 
 runtest1 -tag 'web server [httpd]' httpd
 qemu_test_httpd
 
-echo "Score: $score/130"
+echo "Score: $score/155"
 
-if [ $score -lt 130 ]; then
+if [ $score -lt 155 ]; then
     exit 1
 fi
 #endif
