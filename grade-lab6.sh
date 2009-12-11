@@ -52,7 +52,7 @@ wait_for_line() {
 	done
 
 	if [ $found -eq 0 ]; then
-		kill $qemu_pid
+		kill $PID
 		wait 2> /dev/null
 
 		echo "missing '$1'"
@@ -77,7 +77,7 @@ qemu_test_testinput() {
 	# Wait for the packets to be processed
 	sleep 1
 
-	kill $qemu_pid
+	kill $PID
 	wait 2> /dev/null
 
 	egrep '^input: ' jos.out | (
@@ -154,7 +154,7 @@ qemu_test_httpd() {
 		fi
 	fi
 
-	kill $qemu_pid
+	kill $PID
 	wait 2> /dev/null
 }
 
@@ -166,7 +166,7 @@ qemu_test_echosrv() {
 	str="$t0: network server works"
 	echo $str | nc -q 3 localhost $echosrv_port > qemu.out
 
-	kill $qemu_pid
+	kill $PID
 	wait 2> /dev/null
 
 	if egrep "^$str\$" qemu.out > /dev/null
@@ -208,20 +208,9 @@ rm -f obj/net/testoutput*
 runtest1 -tag 'testoutput [100 packets]' -dir net testoutput -DTEST_NO_NS -DTESTOUTPUT_COUNT=100
 qemu_test_testoutput 100
 
-# Override run to start QEMU and return without waiting
-run() {
-	t0=`date +%s.%N 2>/dev/null`
-	# The timeout here doesn't really matter, but it helps prevent
-	# runaway qemu's
-	(
-		ulimit -t $timeout
-		exec $qemu -nographic $qemuopts -serial file:jos.out -monitor null -no-reboot
-	) >$out 2>$err &
-        qemu_pid=$!
-
-	# Wait for jos.out
-	sleep 1
-}
+# From here on, we need to drive the network while QEMU is running, so
+# switch into asynchronous mode.
+brkfn=
 
 pts=15
 runtest1 -tag "testinput [5 packets]" -dir net testinput -DTEST_NO_NS

@@ -24,36 +24,45 @@ echo_n () {
 	awk 'BEGIN { printf("'"$*"'"); }' </dev/null
 }
 
+# Run QEMU with serial output redirected to jos.out.  If $brkfn is
+# non-empty, wait until $brkfn is reached or $timeout expires, then
+# kill QEMU.
 run () {
-	# Find the address of the kernel readline function,
-	# which the kernel monitor uses to read commands interactively.
-	brkaddr=`grep " $brkfn\$" obj/kern/kernel.sym | sed -e's/ .*$//g'`
-	#echo "brkaddr $brkaddr"
+	qemuextra=
+	if [ "$brkfn" ]; then
+		# Generate a unique GDB port
+		port=$(expr `id -u` % 5000 + 25000)
+		qemuextra="-s -S -p $port"
+	fi
 
-	# Generate a unique GDB port
-	port=$(expr `id -u` % 5000 + 25000)
-
-	# Run qemu, setting a breakpoint at readline(),
-	# and feeding in appropriate commands to run, then quit.
 	t0=`date +%s.%N 2>/dev/null`
 	(
 		ulimit -t $timeout
-		exec $qemu -nographic $qemuopts -serial file:jos.out -monitor null -no-reboot -s -S -p $port
+		exec $qemu -nographic $qemuopts -serial file:jos.out -monitor null -no-reboot $qemuextra
 	) >$out 2>$err &
 	PID=$!
 
-	(
-		echo "target remote localhost:$port"
-		echo "br *0x$brkaddr"
-		echo c
-	) > jos.in
-
+	# Wait for QEMU to start
 	sleep 1
-	gdb -batch -nx -x jos.in > /dev/null 2>&1
-	rm jos.in
 
-	# Make sure QEMU is dead.  On OS X, exiting gdb doesn't always exit QEMU.
-	kill $PID > /dev/null 2>&1
+	if [ "$brkfn" ]; then
+		# Find the address of the kernel $brkfn function,
+		# which is typically what the kernel monitor uses to
+		# read commands interactively.
+		brkaddr=`grep " $brkfn\$" obj/kern/kernel.sym | sed -e's/ .*$//g'`
+
+		(
+			echo "target remote localhost:$port"
+			echo "br *0x$brkaddr"
+			echo c
+		) > jos.in
+		gdb -batch -nx -x jos.in > /dev/null 2>&1
+		rm jos.in
+
+		# Make sure QEMU is dead.  On OS X, exiting gdb
+		# doesn't always exit QEMU.
+		kill $PID > /dev/null 2>&1
+	fi
 }
 
 passfailmsg () {
