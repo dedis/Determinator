@@ -47,11 +47,6 @@ quicktest 'serv_* [testfsipc]' \
 	'serve_close is good' \
 	'stale fileid is good' \
 
-echo Part A score: $score/55
-echo
-total=`expr $total + $score`
-
-score=0
 pts=10
 runtest1 -tag 'motd display [writemotd]' writemotd \
 	'OLD MOTD' \
@@ -79,13 +74,9 @@ runtest1 -tag 'spawn via icode [icode]' icode \
 	"init: args: 'init' 'initarg1' 'initarg2'" \
 	'init: exiting' \
 
-echo Part B score: $score/45
-echo
-total=`expr $total + $score`
+echo "Score: $score/100"
 
-echo "Score: $total/100"
-
-if [ $total -lt 100 ]; then
+if [ $score -lt 100 ]; then
     exit 1
 fi
 #endif
