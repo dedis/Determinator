@@ -17,32 +17,27 @@ rand() {
 }
 
 qemu_test_testoutput() {
-	t1=`date +%s.%N 2>/dev/null`
-	time=`echo "scale=1; ($t1-$t0)/1" | sed 's/.N/.0/g' | bc 2>/dev/null`
-	time="(${time}s)"
-
 	num=$1
 	$TCPDUMP -XX -r slirp.cap 2>/dev/null | egrep 0x0000 | (
 		n=0
 		while read line; do
 			if [ $n -eq $num ]; then
-				echo "WRONG, extra packets sent" $time
+				fail "extra packets sent"
 				return 1
 			fi
 			if ! echo $line | egrep ": 5061 636b 6574 203. 3. Packet.0?$n$" > /dev/null; then
-				echo "WRONG, incorrect packet $n of $num" $time
+				fail "incorrect packet $n of $num"
 				return 1
 			fi
 			n=`expr $n + 1`
 		done
 		if [ $n -ne $num ]; then
-			echo "WRONG, only got $n of $num packets" $time
+			fail "only got $n of $num packets"
 			return 1
 		fi
 	)
 	if [ $? = 0 ]; then
-		score=`expr $pts + $score`
-		echo "OK" $time
+		pass
 	fi
 }
 
@@ -60,12 +55,8 @@ wait_for_line() {
 		kill $qemu_pid
 		wait 2> /dev/null
 
-		t1=`date +%s.%N 2>/dev/null`
-		time=`echo "scale=1; ($t1-$t0)/1" | sed 's/.N/.0/g' | bc 2>/dev/null`
-		time="(${time}s)"
-
 		echo "missing '$1'"
-		echo WRONG $time
+		fail
 		return 1
 	fi
 }
@@ -88,18 +79,15 @@ qemu_test_testinput() {
 
 	kill $qemu_pid
 	wait 2> /dev/null
-	t1=`date +%s.%N 2>/dev/null`
-	time=`echo "scale=1; ($t1-$t0)/1" | sed 's/.N/.0/g' | bc 2>/dev/null`
-	time="(${time}s)"
 
 	egrep '^input: ' jos.out | (
 		expect() {
 			if ! read line; then
-				echo "WRONG, $name not received" $time
+				fail "$name not received"
 				exit 1
 			fi
 			if ! echo "$line" | egrep "$1$" >/dev/null; then
-				echo "WRONG, receiving $name" $time
+				fail "receiving $name"
 				echo "expected input: $1"
 				echo "got      $line"
 				exit 1
@@ -122,8 +110,7 @@ qemu_test_testinput() {
 		done
 	)
 	if [ $? = 0 ]; then
-		score=`expr $pts + $score`
-		echo "OK" $time
+		pass
 	fi
 }
 
@@ -136,46 +123,39 @@ qemu_test_httpd() {
 
 	perl -e "print '    wget localhost:$http_port/: '"
 	if wget -o wget.log -O /dev/null localhost:$http_port/; then
-		echo "WRONG, got back data";
+		fail "got back data";
 	else
 		if egrep "ERROR 404" wget.log >/dev/null; then
-			score=`expr $pts + $score`
-			echo "OK";
+			pass;
 		else
-			echo "WRONG, did not get 404 error";
+			fail "did not get 404 error";
 		fi
 	fi
 
 	perl -e "print '    wget localhost:$http_port/index.html: '"
 	if wget -o /dev/null -O qemu.out localhost:$http_port/index.html; then
 		if diff qemu.out fs/index.html > /dev/null; then
-			score=`expr $pts + $score`
-			echo "OK";
+			pass;
 		else
-			echo "WRONG, returned data does not match index.html";
+			fail "returned data does not match index.html";
 		fi
 	else
-		echo "WRONG, got error";
+		fail "got error";
 	fi
 
 	perl -e "print '    wget localhost:$http_port/random_file.txt: '"
 	if wget -o wget.log -O /dev/null localhost:$http_port/random_file.txt; then
-		echo "WRONG, got back data";
+		fail "got back data";
 	else
 		if egrep "ERROR 404" wget.log >/dev/null; then
-			score=`expr $pts + $score`
-			echo "OK";
+			pass;
 		else
-			echo "WRONG, did not get 404 error";
+			fail "did not get 404 error";
 		fi
 	fi
 
 	kill $qemu_pid
 	wait 2> /dev/null
-
-	t1=`date +%s.%N 2>/dev/null`
-	time=`echo "scale=1; ($t1-$t0)/1" | sed 's/.N/.0/g' | bc 2>/dev/null`
-	time="(${time}s)"
 }
 
 qemu_test_echosrv() {
@@ -189,16 +169,11 @@ qemu_test_echosrv() {
 	kill $qemu_pid
 	wait 2> /dev/null
 
-	t1=`date +%s.%N 2>/dev/null`
-	time=`echo "scale=1; ($t1-$t0)/1" | sed 's/.N/.0/g' | bc 2>/dev/null`
-	time="(${time}s)"
-
 	if egrep "^$str\$" qemu.out > /dev/null
 	then
-		score=`expr $pts + $score`
-		echo OK $time
+		pass
 	else
-		echo WRONG $time
+		fail
 	fi
 }
 

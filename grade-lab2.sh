@@ -10,22 +10,22 @@ run
 
 score=0
 
+pts=20
 echo_n "Page directory: "
  if grep "check_boot_pgdir() succeeded!" jos.out >/dev/null
  then
-	score=`expr 20 + $score`
-	echo OK $time
+	pass
  else
-	echo WRONG $time
+	fail
  fi
 
+pts=30
 echo_n "Page management: "
  if grep "page_check() succeeded!" jos.out >/dev/null
  then
-	score=`expr 30 + $score`
-	echo OK $time
+	pass
  else
-	echo WRONG $time
+	fail
  fi
 
 echo "Score: $score/50"

@@ -10,6 +10,7 @@ run
 
 score=0
 
+	pts=20
 	echo_n "Printf: "
 #ifdef ENV_CLASS_NYU
 	if grep "480 decimal is 740 octal!" jos.out >/dev/null
@@ -17,40 +18,40 @@ score=0
 	if grep "6828 decimal is 15254 octal!" jos.out >/dev/null
 #endif /* !ENV_CLASS_NYU */
 	then
-		score=`expr 20 + $score`
-		echo OK $time
+		pass
 	else
-		echo WRONG $time
+		fail
 	fi
 
-	echo_n "Backtrace: "
+	pts=10
+	echo "Backtrace:"
 	args=`grep "ebp f01.* eip f0100.* args" jos.out | awk '{ print $6 }'`
 	cnt=`echo $args | grep '^00000000 00000000 00000001 00000002 00000003 00000004 00000005' | wc -w`
+	echo_n "   Count "
 	if [ $cnt -eq 8 ]
 	then
-		score=`expr 10 + $score`
-		echo_n "Count OK"
+		pass
 	else
-		echo_n "Count WRONG"
+		fail
 	fi
 
 	cnt=`grep "ebp f01.* eip f0100.* args" jos.out | awk 'BEGIN { FS = ORS = " " }
 { print $6 }
 END { printf("\n") }' | grep '^00000000 00000000 00000001 00000002 00000003 00000004 00000005' | wc -w`
+	echo_n "   Args "
 	if [ $cnt -eq 8 ]; then
-		score=`expr 10 + $score`
-		echo_n ', Args OK'
+		pass
 	else
-		echo_n ', Args WRONG (' $args ')'
+		fail "($args)"
 	fi
 
 	syms=`grep "kern/init.c:.* test_backtrace" jos.out`
 	symcnt=`grep "kern/init.c:.* test_backtrace" jos.out | wc -l`
+	echo_n "   Symbols "
 	if [ $symcnt -eq 6 ]; then
-		score=`expr 10 + $score`
-		echo , Symbols OK $time
+		pass
 	else
-		echo , Symbols WRONG "($syms)" $time
+		fail "($syms)"
 	fi
 
 echo "Score: $score/50"

@@ -50,14 +50,34 @@ run () {
 
 	sleep 1
 	gdb -batch -nx -x jos.in > /dev/null 2>&1
-	t1=`date +%s.%N 2>/dev/null`
-	time=`echo "scale=1; ($t1-$t0)/1" | sed 's/.N/.0/g' | bc 2>/dev/null`
-	time="(${time}s)"
 	rm jos.in
 
 	# Make sure QEMU is dead.  On OS X, exiting gdb doesn't always exit QEMU.
 	kill $PID > /dev/null 2>&1
 }
+
+passfailmsg () {
+	msg="$1"
+	shift
+	if [ $# -gt 0 ]; then
+		msg="$msg,"
+	fi
+
+	t1=`date +%s.%N 2>/dev/null`
+	time=`echo "scale=1; ($t1-$t0)/1" | sed 's/.N/.0/g' | bc 2>/dev/null`
+
+	echo $msg "$@" "(${time}s)"
+}
+
+pass () {
+	passfailmsg OK "$@"
+	score=`expr $pts + $score`
+}
+
+fail () {
+	passfailmsg WRONG "$@"
+}
+
 #if LAB >= 3
 
 # Usage: runtest <tagname> <defs> <strings...>
@@ -141,10 +161,9 @@ continuetest () {
 	done
 	if [ "$okay" = "yes" ]
 	then
-		score=`expr $pts + $score`
-		echo OK $time
+		pass
 	else
-		echo WRONG $time
+		fail
 	fi
 }
 
