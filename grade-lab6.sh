@@ -99,6 +99,10 @@ qemuopts="$qemuopts -redir tcp:$echosrv_port::7 -redir tcp:$http_port::80"
 
 resetfs
 
+pts=5
+runtest1 -tag 'testtime' testtime -DTEST_NO_NS \
+	'starting count down: 5 4 3 2 1 0 ' \
+
 # Make continuetest a no-op and check results ourselves
 continuetest () {
 	return
@@ -124,9 +128,9 @@ qemu_test_echosrv
 runtest1 -tag 'web server [httpd]' httpd
 qemu_test_httpd
 
-echo "Score: $score/100"
+echo "Score: $score/105"
 
-if [ $score -lt 100 ]; then
+if [ $score -lt 105 ]; then
     exit 1
 fi
 #endif
