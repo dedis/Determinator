@@ -57,6 +57,7 @@ KERN_BINFILES :=	user/icode \
 			user/testshell \
 			fs/fs \
 			net/testoutput \
+			net/testinput \
 			net/ns
 else
 ifdef LAB6
@@ -71,6 +72,7 @@ KERN_BINFILES :=	user/idle \
 			user/echotest \
 			fs/fs \
 			net/testoutput \
+			net/testinput \
 			net/ns
 else
 ifdef LAB5
