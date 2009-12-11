@@ -6,6 +6,9 @@
 
 qemuopts="-hda obj/kern/kernel.img -hdb obj/fs/fs.img -net user -net nic,model=i82559er"
 . ./grade-functions.sh
+
+# Break on cons_getc instead of readline.  This will trap if we either
+# enter the kernel monitor or the shell prompt.
 brkfn=cons_getc
 
 
