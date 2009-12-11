@@ -177,12 +177,6 @@ qemu_test_echosrv() {
 	fi
 }
 
-# Reset the file system to its original, pristine state
-resetfs() {
-	rm -f obj/fs/fs.img
-	$make obj/fs/fs.img >$out
-}
-
 score=0
 
 http_port=`rand`
@@ -194,8 +188,6 @@ qemuopts="$qemuopts -net user -net nic,model=i82559er"
 qemuopts="$qemuopts -redir tcp:$echosrv_port::7 -redir tcp:$http_port::80"
 qemuopts="$qemuopts -redir udp:$echosrv_port::7"
 qemuopts="$qemuopts -pcap slirp.cap"
-
-resetfs
 
 pts=5
 runtest1 -tag 'testtime' testtime -DTEST_NO_NS \

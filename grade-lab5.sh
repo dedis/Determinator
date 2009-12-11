@@ -11,15 +11,6 @@ run
 score=0
 total=0
 
-# Reset the file system to its original, pristine state
-resetfs() {
-	rm -f obj/fs/fs.img
-	$make obj/fs/fs.img >$out
-}
-
-
-resetfs
-
 runtest1 -tag 'fs i/o [testfsipc]' testfsipc \
 	'FS can do I/O' \
 	! 'idle loop can do I/O' \
