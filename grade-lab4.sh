@@ -6,7 +6,6 @@ qemuopts="-hda obj/kern/kernel.img"
 
 
 $make
-run
 
 score=0
 total=0

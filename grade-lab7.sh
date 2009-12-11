@@ -10,7 +10,6 @@ brkfn=cons_getc
 
 
 $make
-run
 
 score=0
 
