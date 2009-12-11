@@ -4,6 +4,12 @@
 qemuopts="-hda obj/kern/kernel.img -hdb obj/fs/fs.img"
 . ./grade-functions.sh
 
+TCPDUMP=`PATH=$PATH:/usr/sbin:/sbin which tcpdump`
+if [ x$TCPDUMP = x ]; then
+	echo "Unable to find tcpdump in path, /usr/sbin, or /sbin" >&2
+	exit 1
+fi
+
 $make
 
 rand() {
