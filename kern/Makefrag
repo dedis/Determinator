@@ -55,6 +55,7 @@ KERN_BINFILES :=	user/icode \
 			user/primespipe \
 			user/testkbd \
 			user/testshell \
+			net/testoutput \
 			fs/fs \
 			net/ns
 else
