@@ -148,26 +148,35 @@ continuetest () {
 	fi
 }
 
-# Usage: runtest1 [-tag <tagname>] <progname> [-Ddef...] STRINGS...
+# Usage: runtest1 [-tag <tagname>] [-dir <dirname>] <progname> [-Ddef...] STRINGS...
 runtest1 () {
-	if [ $1 = -tag ]
+	tag=
+	dir=user
+	while true; do
+		if [ $1 = -tag ]
+		then
+			tag=$2
+		elif [ $1 = -dir ]
+		then
+			dir=$2
+		else
+			break
+		fi
+		shift
+		shift
+	done
+	prog=$1
+	shift
+	if [ "x$tag" = x ]
 	then
-		shift
-		tag=$1
-		prog=$2
-		shift
-		shift
-	else
-		tag=$1
-		prog=$1
-		shift
+		tag=$prog
 	fi
 	runtest1_defs=
 	while expr "x$1" : 'x-D.*' >/dev/null; do
 		runtest1_defs="DEFS+='$1' $runtest1_defs"
 		shift
 	done
-	runtest "$tag" "DEFS='-DTEST=_binary_obj_user_${prog}_start' DEFS+='-DTESTSIZE=_binary_obj_user_${prog}_size' $runtest1_defs" "$@"
+	runtest "$tag" "DEFS='-DTEST=_binary_obj_${dir}_${prog}_start' DEFS+='-DTESTSIZE=_binary_obj_${dir}_${prog}_size' $runtest1_defs" "$@"
 }
 
 #endif
