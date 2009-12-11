@@ -16,6 +16,36 @@ rand() {
 	perl -e "my \$r = int(1024 + rand() * (65535 - 1024));print \"\$r\\n\";"
 }
 
+qemu_test_testoutput() {
+	t1=`date +%s.%N 2>/dev/null`
+	time=`echo "scale=1; ($t1-$t0)/1" | sed 's/.N/.0/g' | bc 2>/dev/null`
+	time="(${time}s)"
+
+	num=$1
+	$TCPDUMP -XX -r slirp.cap 2>/dev/null | egrep 0x0000 | (
+		n=0
+		while read line; do
+			if [ $n -eq $num ]; then
+				echo "WRONG, extra packets sent" $time
+				return 1
+			fi
+			if ! echo $line | egrep ": 5061 636b 6574 203. 3. Packet.0?$n$" > /dev/null; then
+				echo "WRONG, incorrect packet $n of $num" $time
+				return 1
+			fi
+			n=`expr $n + 1`
+		done
+		if [ $n -ne $num ]; then
+			echo "WRONG, only got $n of $num packets" $time
+			return 1
+		fi
+	)
+	if [ $? = 0 ]; then
+		score=`expr $pts + $score`
+		echo "OK" $time
+	fi
+}
+
 qemu_test_httpd() {
 	pts=5
 
@@ -102,6 +132,7 @@ echo "using echo server port: $echosrv_port"
 
 qemuopts="$qemuopts -net user -net nic,model=i82559er"
 qemuopts="$qemuopts -redir tcp:$echosrv_port::7 -redir tcp:$http_port::80"
+qemuopts="$qemuopts -pcap slirp.cap"
 
 resetfs
 
@@ -113,6 +144,16 @@ runtest1 -tag 'testtime' testtime -DTEST_NO_NS \
 continuetest () {
 	return
 }
+
+pts=15
+rm -f obj/net/testoutput*
+runtest1 -tag 'testoutput [5 packets]' -dir net testoutput -DTEST_NO_NS -DTESTOUTPUT_COUNT=5
+qemu_test_testoutput 5
+
+pts=10
+rm -f obj/net/testoutput*
+runtest1 -tag 'testoutput [100 packets]' -dir net testoutput -DTEST_NO_NS -DTESTOUTPUT_COUNT=100
+qemu_test_testoutput 100
 
 # Override run to start QEMU and return without waiting
 run() {
@@ -134,9 +175,9 @@ qemu_test_echosrv
 runtest1 -tag 'web server [httpd]' httpd
 qemu_test_httpd
 
-echo "Score: $score/105"
+echo "Score: $score/130"
 
-if [ $score -lt 105 ]; then
+if [ $score -lt 130 ]; then
     exit 1
 fi
 #endif
