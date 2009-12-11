@@ -128,6 +128,10 @@ qemu_test_testinput() {
 }
 
 qemu_test_httpd() {
+	if ! wait_for_line 'Waiting for http connections'; then
+		return
+	fi
+
 	echo ""
 
 	perl -e "print '    wget localhost:$http_port/: '"
@@ -175,6 +179,10 @@ qemu_test_httpd() {
 }
 
 qemu_test_echosrv() {
+	if ! wait_for_line 'bound'; then
+		return
+	fi
+
 	str="$t0: network server works"
 	echo $str | nc -q 3 localhost $echosrv_port > qemu.out
 
@@ -244,7 +252,8 @@ run() {
 	) >$out 2>$err &
         qemu_pid=$!
 
-	sleep 8 # wait for qemu to start up
+	# Wait for jos.out
+	sleep 1
 }
 
 pts=15

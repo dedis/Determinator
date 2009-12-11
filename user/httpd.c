@@ -347,6 +347,8 @@ umain(void)
 	if (listen(serversock, MAXPENDING) < 0)
 		die("Failed to listen on server socket");
 
+	cprintf("Waiting for http connections...\n");
+
 	while (1) {
 		unsigned int clientlen = sizeof(client);
 		// Wait for client connection
