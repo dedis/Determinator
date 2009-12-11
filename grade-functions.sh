@@ -118,12 +118,6 @@ quicktest () {
 	continuetest "$@"
 }
 
-stubtest () {
-    perl -e "print qq|$1: OK $2\n|";
-    shift
-    score=`expr $pts + $score`
-}
-
 continuetest () {
 	okay=yes
 
