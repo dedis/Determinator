@@ -111,19 +111,13 @@ PERL	:= perl
 CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -O1 -fno-builtin -I$(TOP) -MD 
 CFLAGS += -Wall -Wno-format -Wno-unused -Werror -gstabs -m32
 
-#if LAB >= 6
-CFLAGS += -I$(TOP)/net/lwip/include \
-	  -I$(TOP)/net/lwip/include/ipv4 \
-	  -I$(TOP)/net/lwip/jos
-
-#endif
 # Add -fno-stack-protector if the option exists.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 # Common linker flags
 LDFLAGS := -m elf_i386
 
-# Linker flags for JOS user programs
+# Linker flags for PIOS user programs
 ULDFLAGS := -T user/user.ld
 
 GCC_LIB := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
@@ -145,8 +139,8 @@ all:
 	   $(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/net/%.o \
 	   $(OBJDIR)/user/%.o
 
-KERN_CFLAGS := $(CFLAGS) -DJOS_KERNEL -gstabs
-USER_CFLAGS := $(CFLAGS) -DJOS_USER -gstabs
+KERN_CFLAGS := $(CFLAGS) -DPIOS_KERNEL -gstabs
+USER_CFLAGS := $(CFLAGS) -DPIOS_USER -gstabs
 
 
 
@@ -213,15 +207,13 @@ include user/Makefrag
 #if LAB >= 5
 include fs/Makefrag
 #endif
-#if LAB >= 6
-include net/Makefrag
-#endif
 
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S *.ld
 LAB_DIRS := inc boot kern lib user fs net
-LAB_FILES := CODING GNUmakefile mergedep.pl grade-functions.sh .gdbinit.tmpl boot/sign.pl \
+LAB_FILES := CODING GNUmakefile mergedep.pl grade-functions.sh .gdbinit.tmpl \
+	boot/sign.pl \
 	fs/lorem fs/motd fs/newmotd fs/script \
 	fs/testshell.sh fs/testshell.key fs/testshell.out fs/out \
 	fs/index.html net/lwip \
@@ -383,25 +375,6 @@ xrun-%:
 	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" $(IMAGES)
 	$(QEMU) $(QEMUOPTS)
 
-ifdef LAB6
-# For network connections
-which-ports:
-	@echo "Local port $(PORT7) forwards to JOS port 7 (echo server)"
-	@echo "Local port $(PORT80) forwards to JOS port 80 (web server)"
-
-nc-80:
-	nc localhost $(PORT80)
-
-nc-7:
-	nc localhost $(PORT7)
-
-telnet-80:
-	telnet localhost $(PORT80)
-
-telnet-7:
-	telnet localhost $(PORT7)
-
-endif
 # This magic automatically generates makefile dependencies
 # for header files included from C source files we compile,
 # and keeps those dependencies up-to-date every time we recompile.

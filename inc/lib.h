@@ -1,12 +1,12 @@
-#if LAB >= 3
+#if LAB >= 4
 // Main public header file for our user-land support library,
 // whose code lives in the lib directory.
 // This library is roughly our OS's version of a standard C library,
 // and is intended to be linked into all user-mode applications
 // (NOT the kernel or boot loader).
 
-#ifndef JOS_INC_LIB_H
-#define JOS_INC_LIB_H 1
+#ifndef PIOS_INC_LIB_H
+#define PIOS_INC_LIB_H 1
 
 #include <inc/types.h>
 #include <inc/stdio.h>
@@ -181,5 +181,5 @@ void	wait(envid_t env);
 #define	O_EXCL		0x0400		/* error if already exists */
 #define O_MKDIR		0x0800		/* create directory, not regular file */
 
-#endif	// !JOS_INC_LIB_H
-#endif	// LAB >= 3
+#endif	// !PIOS_INC_LIB_H
+#endif	// LAB >= 4

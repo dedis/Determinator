@@ -1,4 +1,0 @@
-#if LAB >= 5
-This is the NEW message of the day!
-
-#endif // LAB >= 5

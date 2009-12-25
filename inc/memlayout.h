@@ -1,6 +1,6 @@
 #if LAB >= 1
-#ifndef JOS_INC_MEMLAYOUT_H
-#define JOS_INC_MEMLAYOUT_H
+#ifndef PIOS_INC_MEMLAYOUT_H
+#define PIOS_INC_MEMLAYOUT_H
 
 #ifndef __ASSEMBLER__
 #include <inc/types.h>
@@ -74,7 +74,7 @@
  *
  * (*) Note: The kernel ensures that "Invalid Memory" (ULIM) is *never*
  *     mapped.  "Empty Memory" is normally unmapped, but user programs may
- *     map pages there if desired.  JOS user programs map pages temporarily
+ *     map pages there if desired.  PIOS user programs map pages temporarily
  *     at UTEMP.
  */
 
@@ -179,5 +179,5 @@ struct Page {
 };
 
 #endif /* !__ASSEMBLER__ */
-#endif /* !JOS_INC_MEMLAYOUT_H */
+#endif /* !PIOS_INC_MEMLAYOUT_H */
 #endif // LAB >= 1

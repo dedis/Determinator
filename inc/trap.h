@@ -1,6 +1,6 @@
-#if LAB >= 2
-#ifndef JOS_INC_TRAP_H
-#define JOS_INC_TRAP_H
+#if LAB >= 1
+#ifndef PIOS_INC_TRAP_H
+#define PIOS_INC_TRAP_H
 
 // Trap numbers
 // These are processor defined:
@@ -93,5 +93,5 @@ struct UTrapframe {
 // A static_assert in kern/trap.c checks this.
 #define SIZEOF_STRUCT_TRAPFRAME	0x44
 
-#endif /* !JOS_INC_TRAP_H */
-#endif /* LAB >= 3 */
+#endif /* !PIOS_INC_TRAP_H */
+#endif /* LAB >= 1 */

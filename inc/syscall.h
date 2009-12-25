@@ -1,6 +1,6 @@
-#if LAB >= 3
-#ifndef JOS_INC_SYSCALL_H
-#define JOS_INC_SYSCALL_H
+#if LAB >= 4
+#ifndef PIOS_INC_SYSCALL_H
+#define PIOS_INC_SYSCALL_H
 
 /* system call numbers */
 enum
@@ -31,5 +31,5 @@ enum
 	NSYSCALLS
 };
 
-#endif /* !JOS_INC_SYSCALL_H */
-#endif /* LAB >= 3 */
+#endif /* !PIOS_INC_SYSCALL_H */
+#endif /* LAB >= 4 */

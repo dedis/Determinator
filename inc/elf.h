@@ -1,5 +1,8 @@
-#ifndef JOS_INC_ELF_H
-#define JOS_INC_ELF_H
+#if LAB >= 4
+/* See COPYRIGHT for copyright information. */
+
+#ifndef PIOS_INC_ELF_H
+#define PIOS_INC_ELF_H
 
 #define ELF_MAGIC 0x464C457FU	/* "\x7FELF" in little endian */
 
@@ -62,4 +65,5 @@ struct Secthdr {
 // Values for Secthdr::sh_name
 #define ELF_SHN_UNDEF		0
 
-#endif /* !JOS_INC_ELF_H */
+#endif /* !PIOS_INC_ELF_H */
+#endif /* LAB >= 4 */

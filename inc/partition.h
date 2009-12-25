@@ -1,6 +1,6 @@
 #if LAB >= 99
-#ifndef JOS_INC_PARTITION_H
-#define JOS_INC_PARTITION_H
+#ifndef PIOS_INC_PARTITION_H
+#define PIOS_INC_PARTITION_H
 #include <inc/types.h>
 
 /*
@@ -15,8 +15,8 @@
 #define PTABLE_MAGIC		"\x55\xAA"
 
 // Partition type constants
-#define PTYPE_JOS_KERN		0x27	// JOS kernel
-#define PTYPE_JOSFS		0x28	// JOS file system
+#define PTYPE_PIOS_KERN		0x27	// PIOS kernel
+#define PTYPE_PIOSFS		0x28	// PIOS file system
 // Extended partition identifiers
 #define PTYPE_DOS_EXTENDED	0x05
 #define PTYPE_W95_EXTENDED	0x0F

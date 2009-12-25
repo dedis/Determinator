@@ -1,4 +1,9 @@
 #if LAB >= 5
+/* See COPYRIGHT for copyright information. */
+
+#ifndef PIOS_INC_ARGS_H
+#define PIOS_INC_ARGS_H
+
 /*
 
 Simple command-line argument parser.
@@ -97,4 +102,6 @@ extern char	*argv0;
 				(*_argt? _argt: argv[1]? (argc--, *++argv): ((x), abort(), (char*)0)))
 
 #define	ARGC()		_argc
+
+#endif /* !PIOS_INC_ARGS_H */
 #endif /* LAB >= 5 */

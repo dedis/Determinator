@@ -1,5 +1,6 @@
-#ifndef JOS_INC_MMU_H
-#define JOS_INC_MMU_H
+#if LAB >= 3
+#ifndef PIOS_INC_MMU_H
+#define PIOS_INC_MMU_H
 
 /*
  * This file contains definitions for the x86 memory management unit (MMU),
@@ -309,4 +310,5 @@ struct Pseudodesc {
 
 #endif /* !__ASSEMBLER__ */
 
-#endif /* !JOS_INC_MMU_H */
+#endif /* !PIOS_INC_MMU_H */
+#endif // LAB >= 3

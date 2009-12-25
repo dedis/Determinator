@@ -1,4 +1,4 @@
-#if LAB >= 2
+#if LAB >= 3
 /* See COPYRIGHT for copyright information. */
 
 #ifndef JOS_KERN_PMAP_H
@@ -98,4 +98,4 @@ page2kva(struct Page *pp)
 pte_t *pgdir_walk(pde_t *pgdir, const void *va, int create);
 
 #endif /* !JOS_KERN_PMAP_H */
-#endif // LAB >= 2
+#endif // LAB >= 3

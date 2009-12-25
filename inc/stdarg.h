@@ -1,8 +1,8 @@
 #if LAB >= 1
 /*	$NetBSD: stdarg.h,v 1.12 1995/12/25 23:15:31 mycroft Exp $	*/
 
-#ifndef JOS_INC_STDARG_H
-#define	JOS_INC_STDARG_H
+#ifndef PIOS_INC_STDARG_H
+#define	PIOS_INC_STDARG_H
 
 typedef char *va_list;
 
@@ -17,5 +17,5 @@ typedef char *va_list;
 
 #define	va_end(ap)	((void)0)
 
-#endif	/* !JOS_INC_STDARG_H */
+#endif	/* !PIOS_INC_STDARG_H */
 #endif	// LAB >= 1
