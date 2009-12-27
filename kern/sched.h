@@ -1,14 +1,16 @@
-#if LAB >= 4
+#if LAB >= 2
 /* See COPYRIGHT for copyright information. */
 
-#ifndef JOS_KERN_SCHED_H
-#define JOS_KERN_SCHED_H
+#ifndef PIOS_KERN_SCHED_H
+#define PIOS_KERN_SCHED_H
 #ifndef JOS_KERNEL
 # error "This is a JOS kernel header; user programs should not #include it"
 #endif
 
-// This function does not return.
-void sched_yield(void) __attribute__((noreturn));
+void sched_init(void);			// Initialize the scheduler on startup
+void sched_dispatch(struct thread *self); // Dispatch a ready thread
+void sched_ready(struct thread *t);	// Schedule thread t to run
+void sched_yield();			// Yield to some other ready thread
 
-#endif	// !JOS_KERN_SCHED_H
-#endif	// LAB >= 4
+#endif	// !PIOS_KERN_SCHED_H
+#endif	// LAB >= 2
