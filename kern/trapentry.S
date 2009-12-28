@@ -93,8 +93,6 @@ TRAPHANDLER     (Xdefault, T_DEFAULT)
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
-
-
 #endif /* SOL >= 3 */
 
 #if SOL >= 3	
@@ -105,12 +103,15 @@ _alltraps:
 	pushl %ds		# build trap frame
 	pushl %es
 	pushal
-	movl $GD_KD,%eax	# load kernel segments
+
+	movl $GD_KD,%eax	# load kernel's data segment
 	movw %ax,%ds
 	movw %ax,%es
+
 	pushl %esp		# pass pointer to this trapframe 
 	call trap		# and call trap (does not return)
-spin:	jmp spin
+
+spin:	jmp spin		# should never get here...
 #else /* SOL >= 3 */	
 /*
  * Lab 3: Your code here for _alltraps

@@ -106,7 +106,7 @@ serial_init(void)
 #if LAB >= 4
 	// Enable serial interrupts
 	if (serial_exists)
-		irq_setmask_8259A(irq_mask_8259A & ~(1<<4));
+		pic_setmask(irq_mask_8259A & ~(1<<4));
 #endif
 }
 
@@ -479,7 +479,7 @@ kbd_init(void)
 #if LAB >= 4
 	// Drain the kbd buffer so that Bochs generates interrupts.
 	kbd_intr();
-	irq_setmask_8259A(irq_mask_8259A & ~(1<<1));
+	pic_setmask(irq_mask_8259A & ~(1<<1));
 #endif
 }
 

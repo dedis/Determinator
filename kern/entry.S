@@ -19,7 +19,7 @@
 # location in physical memory (its load address).	 
 ###################################################################
 
-#define	RELOC(x) ((x) - KERNBASE)
+#define	RELOC(x) ((x) - VM_PHYSLO)
 
 
 .set CODE_SEL,0x8		# index of code seg within mygdt
@@ -104,9 +104,9 @@ bootstacktop:
 ###################################################################
 	.p2align	2		# force 4 byte alignment
 mygdt:
-	SEG_NULL				# null seg
-	SEG(STA_X|STA_R, -KERNBASE, 0xffffffff)	# code seg
-	SEG(STA_W, -KERNBASE, 0xffffffff)	# data seg
+	SEG_NULL					# null seg
+	SEG(STA_X|STA_R, -VM_PHYSLO, 0xffffffff)	# code seg
+	SEG(STA_W, -VM_PHYSLO, 0xffffffff)		# data seg
 mygdtdesc:
 	.word	0x17			# sizeof(mygdt) - 1
 	.long	RELOC(mygdt)		# address mygdt

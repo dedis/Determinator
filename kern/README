@@ -1,0 +1,4 @@
+This directory contains the source code for the primary PIOS kernel logic.
+Besides this code, device driver code from the 'dev' directory
+and general library code from the 'lib' directory
+also gets linked into the kernel.

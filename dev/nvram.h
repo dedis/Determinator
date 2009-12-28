@@ -27,9 +27,14 @@
 /* NVRAM byte 36: current century.  (please increment in Dec99!) */
 #define NVRAM_CENTURY	(MC_NVRAM_START + 36)	/* RTC offset 0x32 */
 
-unsigned mc146818_read(unsigned reg);
-void mc146818_write(unsigned reg, unsigned datum);
-void kclock_init(void);
+
+// Read NVRAM registers
+unsigned nvram_read(unsigned reg);	// read an 8-bit byte from NVRAM
+unsigned nvram_read16(unsigned reg);	// read a 16-bit word from NVRAM
+
+// Write to NVRAM
+void nvram_write(unsigned reg, unsigned datum);
+
 
 #endif	// !JOS_KERN_KCLOCK_H
 #endif	// LAB >= 2

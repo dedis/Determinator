@@ -67,7 +67,7 @@ i386_init(void)
 #if LAB >= 3
 	// Lab 3 user environment initialization functions
 	env_init();
-	idt_init();
+	trap_init();
 #endif
 
 #if LAB >= 4

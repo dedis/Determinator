@@ -10,7 +10,7 @@ lab6: student-defined
 lab2
 ~~~~
 
-Implement a simple multiprocessor schedule.
+Implement a simple multiprocessor scheduler.
 
 Challenge!  Implement an interesting prioritization algorithm,
 such as Unix-style variable priority, lottery/stride scheduling, etc.

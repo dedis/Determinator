@@ -1,0 +1,5 @@
+This directory contains definitions and driver code
+for the PC hardware devices that PIOS supports and uses.
+We keep it in a separate directory from the main kernel logic
+in order to avoid cluttering the 'kern' directory
+with code specific to the various legacy PC hardware devices.

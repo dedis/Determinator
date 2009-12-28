@@ -1,6 +1,4 @@
 #if LAB >= 2
-/*	$NetBSD: timerreg.h,v 1.4 1994/10/27 04:18:17 cgd Exp $	*/
-
 /*
  * Register definitions for the Intel
  * 8253/8254/82C54 Programmable Interval Timer (PIT).
@@ -64,5 +62,9 @@
 #define		TIMER_MSB	0x20	/* r/w counter MSB */
 #define		TIMER_16BIT	0x30	/* r/w counter 16 bits, LSB first */
 #define		TIMER_BCD	0x01	/* count in BCD */
+
+
+// Initialize system's real-time clock to produce interrupts at 100Hz
+void timer_init(unsigned hz);
 
 #endif // LAB >= 2

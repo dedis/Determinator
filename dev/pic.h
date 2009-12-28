@@ -1,9 +1,11 @@
 #if LAB >= 4
-/* See COPYRIGHT for copyright information. */
+// Hardware definitions for the 8259A Programmable Interrupt Controller (PIC).
+// See COPYRIGHT for copyright information.
 
-#ifndef JOS_KERN_PICIRQ_H
-#define JOS_KERN_PICIRQ_H
-#ifndef JOS_KERNEL
+#ifndef PIOS_DEV_PIC_H
+#define PIOS_DEV_PIC_H
+
+#ifndef PIOS_KERNEL
 # error "This is a JOS kernel header; user programs should not #include it"
 #endif
 
@@ -24,11 +26,11 @@
 
 extern uint16_t irq_mask_8259A;
 void pic_init(void);
-void irq_setmask_8259A(uint16_t mask);
+void pic_setmask(uint16_t mask);
 #if LAB >= 6
-void irq_eoi(void);
+void pic_eoi(void);
 #endif
 #endif // !__ASSEMBLER__
 
-#endif // !JOS_KERN_PICIRQ_H
+#endif // !PIOS_DEV_PIC_H
 #endif // LAB >= 4

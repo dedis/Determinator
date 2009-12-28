@@ -57,7 +57,6 @@ sched_dispatch(struct thread *self, thread_state newstate)
 		return;
 	}
 
-#if LAB > 99
 	// Lock the thread we'll be switching to.
 	// In general, acquiring locks on two of the same type of object
 	// can be risky from a deadlock perspective and must be done carefully:
@@ -71,10 +70,12 @@ sched_dispatch(struct thread *self, thread_state newstate)
 	// (b) we always lock the currently running thread first,
 	// followed by a non-running thread taken from a ready or wait queue.
 	spinlock_acquire(&next->lock);
-#endif
 
 	// Mark the new thread currently running.
 	next->state = THREAD_RUN;
+
+	// That's all we needed the next thread's lock for...
+	spinlock_release(&next->lock);
 
 	// Mark the new thread running and context switch to it.
 	// The new thread will release the lock on 'self'.

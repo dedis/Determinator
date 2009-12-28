@@ -17,14 +17,14 @@
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
 #if SOL >= 3
-static int mon_exit(int argc, char** argv, struct Trapframe* tf);
+static int mon_exit(int argc, char** argv, trapframe* tf);
 #endif
 
 struct Command {
 	const char *name;
 	const char *desc;
 	// return -1 to force monitor to exit
-	int (*func)(int argc, char** argv, struct Trapframe* tf);
+	int (*func)(int argc, char** argv, trapframe* tf);
 };
 
 static struct Command commands[] = {
@@ -44,7 +44,7 @@ unsigned read_eip();
 /***** Implementations of basic kernel monitor commands *****/
 
 int
-mon_help(int argc, char **argv, struct Trapframe *tf)
+mon_help(int argc, char **argv, trapframe *tf)
 {
 	int i;
 
@@ -54,7 +54,7 @@ mon_help(int argc, char **argv, struct Trapframe *tf)
 }
 
 int
-mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
+mon_kerninfo(int argc, char **argv, trapframe *tf)
 {
 	extern char _start[], etext[], edata[], end[];
 
@@ -69,7 +69,7 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 }
 
 int
-mon_backtrace(int argc, char **argv, struct Trapframe *tf)
+mon_backtrace(int argc, char **argv, trapframe *tf)
 {
 #if SOL >= 1
 	int i;
@@ -103,7 +103,7 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 
 #if SOL >= 3
 int
-mon_exit(int argc, char** argv, struct Trapframe* tf)
+mon_exit(int argc, char** argv, trapframe* tf)
 {
 	return -1;
 }
@@ -116,7 +116,7 @@ mon_exit(int argc, char** argv, struct Trapframe* tf)
 #define MAXARGS 16
 
 static int
-runcmd(char *buf, struct Trapframe *tf)
+runcmd(char *buf, trapframe *tf)
 {
 	int argc;
 	char *argv[MAXARGS];
@@ -155,7 +155,7 @@ runcmd(char *buf, struct Trapframe *tf)
 }
 
 void
-monitor(struct Trapframe *tf)
+monitor(trapframe *tf)
 {
 	char *buf;
 

@@ -42,8 +42,13 @@
 
 #include <inc/types.h>
 
-struct PushRegs {
-	/* registers as pushed by pusha */
+
+// General registers in the format pushed by PUSHA instruction.
+// We use this instruction to push the general registers only for convenience:
+// modern kernels generally avoid it and save the registers manually,
+// because that's just as fast or faster and they get to choose
+// exactly which registers to save and where.
+typedef struct pushregs {
 	uint32_t reg_edi;
 	uint32_t reg_esi;
 	uint32_t reg_ebp;
@@ -52,44 +57,44 @@ struct PushRegs {
 	uint32_t reg_edx;
 	uint32_t reg_ecx;
 	uint32_t reg_eax;
-};
+} pushregs;
 
-struct Trapframe {
+
+// This struct represents the format of the trap frames
+// that get pushed on the kernel stack by the processor
+// in conjunction with the interrupt/trap entry code in trapentry.S.
+// All interrupts and traps use this same format,
+// although not all fields are always used:
+// e.g., the error code (tf_err) applies only to some traps,
+// and the processor pushes tf_esp and tf_ss
+// only when taking a trap from user mode (privilege level >0).
+typedef struct trapframe {
+
+	// registers and other info we push manually in trapentry.S
 	struct PushRegs tf_regs;
 	uint16_t tf_es;
 	uint16_t tf_padding1;
 	uint16_t tf_ds;
 	uint16_t tf_padding2;
 	uint32_t tf_trapno;
-	/* below here defined by x86 hardware */
+
+	// format from here on determined by x86 hardware architecture
 	uint32_t tf_err;
 	uintptr_t tf_eip;
 	uint16_t tf_cs;
 	uint16_t tf_padding3;
 	uint32_t tf_eflags;
-	/* below here only when crossing rings, such as from user to kernel */
+
+	// rest included only when crossing rings, e.g., user to kernel
 	uintptr_t tf_esp;
 	uint16_t tf_ss;
 	uint16_t tf_padding4;
-};
+} trapframe;
 
-#if LAB >= 4
-struct UTrapframe {
-	/* information about the fault */
-	uint32_t utf_fault_va;	/* va for T_PGFLT, 0 otherwise */
-	uint32_t utf_err;
-	/* trap-time return state */
-	struct PushRegs utf_regs;
-	uintptr_t utf_eip;
-	uint32_t utf_eflags;
-	/* the trap-time stack to return to */
-	uintptr_t utf_esp;
-};
-#endif
 
 #endif /* !__ASSEMBLER__ */
 
-// Must equal 'sizeof(struct Trapframe)'.
+// Must equal 'sizeof(struct trapframe)'.
 // A static_assert in kern/trap.c checks this.
 #define SIZEOF_STRUCT_TRAPFRAME	0x44
 

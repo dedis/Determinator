@@ -1,9 +1,10 @@
 #if LAB >= 4
-/* See COPYRIGHT for copyright information. */
+// Driver code for the 8259A Programmable Interrupt Controller (PIC).
+// See COPYRIGHT for copyright information.
 
 #include <inc/assert.h>
 
-#include <kern/picirq.h>
+#include <dev/pic.h>
 
 
 // Current IRQ mask.
@@ -65,11 +66,11 @@ pic_init(void)
 	outb(IO_PIC2, 0x0a);               /* OCW3 */
 
 	if (irq_mask_8259A != 0xFFFF)
-		irq_setmask_8259A(irq_mask_8259A);
+		pic_setmask(irq_mask_8259A);
 }
 
 void
-irq_setmask_8259A(uint16_t mask)
+pic_setmask(uint16_t mask)
 {
 	int i;
 	irq_mask_8259A = mask;
@@ -86,7 +87,7 @@ irq_setmask_8259A(uint16_t mask)
 
 #if LAB >= 6
 void
-irq_eoi(void)
+pic_eoi(void)
 {
 	// OCW2: rse00xxx
 	//   r: rotate

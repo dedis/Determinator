@@ -152,7 +152,7 @@
 #include <inc/types.h>
 
 // Segment Descriptors
-struct Segdesc {
+typedef struct segdesc {
 	unsigned sd_lim_15_0 : 16;  // Low bits of segment limit
 	unsigned sd_base_15_0 : 16; // Low bits of segment base address
 	unsigned sd_base_23_16 : 8; // Middle bits of segment base address
@@ -166,7 +166,7 @@ struct Segdesc {
 	unsigned sd_db : 1;         // 0 = 16-bit segment, 1 = 32-bit segment
 	unsigned sd_g : 1;          // Granularity: limit scaled by 4K when set
 	unsigned sd_base_31_24 : 8; // High bits of segment base address
-};
+} segdesc;
 // Null segment
 #define SEG_NULL	(struct Segdesc){ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 // Segment that is loadable but faults when used
@@ -214,8 +214,8 @@ struct Segdesc {
 
 #ifndef __ASSEMBLER__
 
-// Task state segment format (as described by the Pentium architecture book)
-struct Taskstate {
+// Task state segment format, as defined by the x86 architecture.
+typedef struct taskstate {
 	uint32_t ts_link;	// Old ts selector
 	uintptr_t ts_esp0;	// Stack pointers and segment selectors
 	uint16_t ts_ss0;	//   after an increase in privilege level
@@ -253,10 +253,10 @@ struct Taskstate {
 	uint16_t ts_padding10;
 	uint16_t ts_t;		// Trap on task switch
 	uint16_t ts_iomb;	// I/O map base address
-};
+} taskstate;
 
 // Gate descriptors for interrupts and traps
-struct Gatedesc {
+typedef struct gatedesc {
 	unsigned gd_off_15_0 : 16;   // low 16 bits of offset in segment
 	unsigned gd_ss : 16;         // segment selector
 	unsigned gd_args : 5;        // # args, 0 for interrupt/trap gates
@@ -266,7 +266,7 @@ struct Gatedesc {
 	unsigned gd_dpl : 2;         // descriptor(meaning new) privilege level
 	unsigned gd_p : 1;           // Present
 	unsigned gd_off_31_16 : 16;  // high bits of offset in segment
-};
+} gatedesc;
 
 // Set up a normal interrupt/trap gate descriptor.
 // - istrap: 1 for a trap (= exception) gate, 0 for an interrupt gate.
@@ -303,10 +303,11 @@ struct Gatedesc {
 }
 
 // Pseudo-descriptors used for LGDT, LLDT and LIDT instructions.
-struct Pseudodesc {
+struct pseudodesc {
 	uint16_t pd_lim;		// Limit
 	uint32_t pd_base;		// Base address
-} __attribute__ ((packed));
+} __attribute__ ((packed));		// GCC mustn't 4-byte-align pd_base!
+typedef struct pseudodesc pseudodesc;
 
 #endif /* !__ASSEMBLER__ */
 

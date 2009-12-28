@@ -1,5 +1,6 @@
 #if LAB >= 3
-/* See COPYRIGHT for copyright information. */
+// Physical memory management.
+// See COPYRIGHT for copyright information.
 
 #include <inc/x86.h>
 #include <inc/mmu.h>
@@ -38,9 +39,6 @@ struct Segdesc gdt[] =
 	// 0x0 - unused (always faults -- for trapping NULL far pointers)
 	SEG_NULL,
 
-	// 0x28 - tss, initialized in trap_init()
-	[GD_TSS >> 3] = SEG_NULL,
-
 	// 0x8 - kernel code segment
 	[GD_KT >> 3] = SEG(STA_X | STA_R, 0x0, 0xffffffff, 0),
 
@@ -52,17 +50,14 @@ struct Segdesc gdt[] =
 
 	// 0x20 - user data segment
 	[GD_UD >> 3] = SEG(STA_W, 0x0, 0xffffffff, 3),
+
+	// 0x28 - tss, initialized in idt_init()
+	[GD_TSS >> 3] = SEG_NULL
 };
 
 struct Pseudodesc gdt_pd = {
 	sizeof(gdt) - 1, (unsigned long) gdt
 };
-
-static int
-nvram_read(int r)
-{
-	return mc146818_read(r) | (mc146818_read(r + 1) << 8);
-}
 
 void
 i386_detect_memory(void)

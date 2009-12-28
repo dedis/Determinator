@@ -1,4 +1,7 @@
 #if LAB >= 3
+// Processor trap handling.
+// See COPYRIGHT for copyright information.
+
 #include <inc/mmu.h>
 #include <inc/x86.h>
 #include <inc/assert.h>
@@ -21,58 +24,29 @@
 #include <kern/e100.h>
 #endif
 
-static struct Taskstate ts;
 
-/* Interrupt descriptor table.  (Must be built at run time because
- * shifted function addresses can't be represented in relocation records.)
- */
-struct Gatedesc idt[256] = { { 0 } };
-struct Pseudodesc idt_pd = {
+// We'll need an x86 Task State Segment (TSS) to handle traps from user mode,
+// because when the processor switches from lower to higher privilege,
+// it loads a new stack pointer (ESP) and stack segment (SS)
+// for the higher privilege level from this task state structure.
+// We'll only need one TSS, though, and this is it.
+static taskstate ts;
+
+// Interrupt descriptor table.  Must be built at run time because
+// shifted function addresses can't be represented in relocation records.
+static struct gatedesc idt[256];
+
+// This "pseudo-descriptor" is needed only by the LIDT instruction,
+// to specify both the size and address of th IDT at once.
+static struct pseudodesc idt_pd = {
 	sizeof(idt) - 1, (uint32_t) idt
 };
 
 
-static const char *trapname(int trapno)
-{
-	static const char * const excnames[] = {
-		"Divide error",
-		"Debug",
-		"Non-Maskable Interrupt",
-		"Breakpoint",
-		"Overflow",
-		"BOUND Range Exceeded",
-		"Invalid Opcode",
-		"Device Not Available",
-		"Double Fault",
-		"Coprocessor Segment Overrun",
-		"Invalid TSS",
-		"Segment Not Present",
-		"Stack Fault",
-		"General Protection",
-		"Page Fault",
-		"(unknown trap)",
-		"x87 FPU Floating-Point Error",
-		"Alignment Check",
-		"Machine-Check",
-		"SIMD Floating-Point Exception"
-	};
-
-	if (trapno < sizeof(excnames)/sizeof(excnames[0]))
-		return excnames[trapno];
-	if (trapno == T_SYSCALL)
-		return "System call";
-#if LAB >= 4
-	if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + 16)
-		return "Hardware Interrupt";
-#endif
-	return "(unknown trap)";
-}
-
-
 void
-idt_init(void)
+trap_init(void)
 {
-	extern struct Segdesc gdt[];
+	extern segdesc gdt[];
 #if SOL >= 3
 	extern char
 		Xdivide,Xdebug,Xnmi,Xbrkpt,Xoflow,Xbound,
@@ -87,7 +61,7 @@ idt_init(void)
 	int i;
 
 	// check that the SIZEOF_STRUCT_TRAPFRAME symbol is defined correctly
-	static_assert(sizeof(struct Trapframe) == SIZEOF_STRUCT_TRAPFRAME);
+	static_assert(sizeof(trapframe) == SIZEOF_STRUCT_TRAPFRAME);
 #if SOL >= 4
 	// check that IRQ_OFFSET is a multiple of 8
 	static_assert((IRQ_OFFSET & 7) == 0);
@@ -159,14 +133,63 @@ idt_init(void)
 	asm volatile("lidt idt_pd");
 }
 
+const char *trap_name(int trapno)
+{
+	static const char * const excnames[] = {
+		"Divide error",
+		"Debug",
+		"Non-Maskable Interrupt",
+		"Breakpoint",
+		"Overflow",
+		"BOUND Range Exceeded",
+		"Invalid Opcode",
+		"Device Not Available",
+		"Double Fault",
+		"Coprocessor Segment Overrun",
+		"Invalid TSS",
+		"Segment Not Present",
+		"Stack Fault",
+		"General Protection",
+		"Page Fault",
+		"(unknown trap)",
+		"x87 FPU Floating-Point Error",
+		"Alignment Check",
+		"Machine-Check",
+		"SIMD Floating-Point Exception"
+	};
+
+	if (trapno < sizeof(excnames)/sizeof(excnames[0]))
+		return excnames[trapno];
+	if (trapno == T_SYSCALL)
+		return "System call";
+#if LAB >= 4
+	if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + 16)
+		return "Hardware Interrupt";
+#endif
+	return "(unknown trap)";
+}
+
 void
-print_trapframe(struct Trapframe *tf)
+trap_print_regs(pushregs *regs)
+{
+	cprintf("  edi  0x%08x\n", regs->reg_edi);
+	cprintf("  esi  0x%08x\n", regs->reg_esi);
+	cprintf("  ebp  0x%08x\n", regs->reg_ebp);
+//	cprintf("  oesp 0x%08x\n", regs->reg_oesp);	don't print - useless
+	cprintf("  ebx  0x%08x\n", regs->reg_ebx);
+	cprintf("  edx  0x%08x\n", regs->reg_edx);
+	cprintf("  ecx  0x%08x\n", regs->reg_ecx);
+	cprintf("  eax  0x%08x\n", regs->reg_eax);
+}
+
+void
+trap_print(trapframe *tf)
 {
 	cprintf("TRAP frame at %p\n", tf);
 	print_regs(&tf->tf_regs);
 	cprintf("  es   0x----%04x\n", tf->tf_es);
 	cprintf("  ds   0x----%04x\n", tf->tf_ds);
-	cprintf("  trap 0x%08x %s\n", tf->tf_trapno, trapname(tf->tf_trapno));
+	cprintf("  trap 0x%08x %s\n", tf->tf_trapno, trap_name(tf->tf_trapno));
 	cprintf("  err  0x%08x\n", tf->tf_err);
 	cprintf("  eip  0x%08x\n", tf->tf_eip);
 	cprintf("  cs   0x----%04x\n", tf->tf_cs);
@@ -175,23 +198,10 @@ print_trapframe(struct Trapframe *tf)
 	cprintf("  ss   0x----%04x\n", tf->tf_ss);
 }
 
-void
-print_regs(struct PushRegs *regs)
-{
-	cprintf("  edi  0x%08x\n", regs->reg_edi);
-	cprintf("  esi  0x%08x\n", regs->reg_esi);
-	cprintf("  ebp  0x%08x\n", regs->reg_ebp);
-	cprintf("  oesp 0x%08x\n", regs->reg_oesp);
-	cprintf("  ebx  0x%08x\n", regs->reg_ebx);
-	cprintf("  edx  0x%08x\n", regs->reg_edx);
-	cprintf("  ecx  0x%08x\n", regs->reg_ecx);
-	cprintf("  eax  0x%08x\n", regs->reg_eax);
-}
-
 static void
-trap_dispatch(struct Trapframe *tf)
+trap_dispatch(trapframe *tf)
 {
-	// Handle processor exceptions.
+	// Handle processor traps.
 #if SOL >= 3
 	if (tf->tf_trapno == T_PGFLT) {
 		page_fault_handler(tf);
@@ -216,7 +226,7 @@ trap_dispatch(struct Trapframe *tf)
 #else	// SOL >= 3
 	// LAB 3: Your code here.
 #endif	// SOL >= 3
-	
+
 #if LAB >= 4
 #if SOL >= 4
 	// New in Lab 4: Handle external interrupts
@@ -240,7 +250,7 @@ trap_dispatch(struct Trapframe *tf)
 #if SOL >= 6
 	if (tf->tf_trapno == IRQ_OFFSET + e100_irq) {
 		e100_intr();
-		irq_eoi();
+		pic_eoi();
 		return;
 	}
 #endif  // SOL >= 6
@@ -281,14 +291,14 @@ trap_dispatch(struct Trapframe *tf)
 }
 
 void
-trap(struct Trapframe *tf)
+trap(trapframe *tf)
 {
-	// The environment may have set DF and some versions
-	// of GCC rely on DF being clear
+	// The user-level environment may have set the DF flag,
+	// and some versions of GCC rely on DF being clear.
 	asm volatile("cld" ::: "cc");
 
 #if LAB == 3
-	cprintf("Incoming TRAP frame at %p\n", tf);
+	cprintf("Incoming trap frame at %p\n", tf);
 
 #endif
 #if LAB >= 3
@@ -323,8 +333,31 @@ trap(struct Trapframe *tf)
 }
 
 
+//
+// Restore the CPU state from a given trapframe struct
+// and return from the trap using the processor's 'iret' instruction.
+// This function does not return to the caller,
+// since the new CPU state this function loads
+// replaces the caller's stack pointer and other registers.
+//
 void
-page_fault_handler(struct Trapframe *tf)
+trap_return(trapframe *tf)
+{
+	__asm __volatile(
+		"movl %0,%%esp;"
+		"popal;"
+		"popl %%es;"
+		"popl %%ds;"
+		"addl $0x8,%%esp;" /* skip tf_trapno and tf_errcode */
+		"iret"
+		: : "g" (tf) : "memory");
+
+	panic("iret failed");  /* mostly to placate the compiler */
+}
+
+
+void
+page_fault_handler(trapframe *tf)
 {
 	uint32_t fault_va;
 #if SOL >= 4
