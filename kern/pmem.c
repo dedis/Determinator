@@ -78,8 +78,8 @@ pmem_init(void)
 	// is available in the system,
 	// by reading the PC's BIOS-managed nonvolatile RAM (NVRAM).
 	// The NVRAM tells us how many kilobytes there are.
-	basemem = ROUNDDOWN(nvram_read(NVRAM_BASELO)*1024, PAGESIZE);
-	extmem = ROUNDDOWN(nvram_read(NVRAM_EXTLO)*1024, PAGESIZE);
+	basemem = ROUNDDOWN(nvram_read16(NVRAM_BASELO)*1024, PAGESIZE);
+	extmem = ROUNDDOWN(nvram_read16(NVRAM_EXTLO)*1024, PAGESIZE);
 
 	// The maximum physical address is the top of extended memory.
 	pmem_max = EXTPHYSMEM + extmem;

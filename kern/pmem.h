@@ -1,8 +1,8 @@
 #if LAB >= 1
 // Physical memory management definitions.
 // See COPYRIGHT for copyright information.
-#ifndef PIOS_KERN_MEM_H
-#define PIOS_KERN_MEM_H
+#ifndef PIOS_KERN_PMEM_H
+#define PIOS_KERN_PMEM_H
 #ifndef PIOS_KERNEL
 # error "This is a PIOS kernel header; user programs should not #include it"
 #endif
@@ -46,5 +46,5 @@ void pmem_free(pageinfo *pi);
 // for correct operation after initialization via pmem_init().
 void pmem_check(void);
 
-#endif /* !PIOS_KERN_MEM_H */
+#endif /* !PIOS_KERN_PMEM_H */
 #endif // LAB >= 1

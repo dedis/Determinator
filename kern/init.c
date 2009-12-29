@@ -60,7 +60,7 @@ i386_init(void)
 
 #if LAB >= 2
 	// Lab 2 memory management initialization functions
-	i386_detect_memory();
+	pmem_init();
 	i386_vm_init();
 #endif
 
@@ -236,3 +236,4 @@ _warn(const char *file, int line, const char *fmt,...)
 	cprintf("\n");
 	va_end(ap);
 }
+
