@@ -1,8 +1,8 @@
 /* See COPYRIGHT for copyright information. */
 
-#ifndef _CONSOLE_H_
-#define _CONSOLE_H_
-#ifndef JOS_KERNEL
+#ifndef PIOS_KERN_CONSOLE_H_
+#define PIOS_KERN_CONSOLE_H_
+#ifndef PIOS_KERNEL
 # error "This is a JOS kernel header; user programs should not #include it"
 #endif
 
@@ -23,4 +23,4 @@ int cons_getc(void);
 void kbd_intr(void); // irq 1
 void serial_intr(void); // irq 4
 
-#endif /* _CONSOLE_H_ */
+#endif /* PIOS_KERN_CONSOLE_H_ */

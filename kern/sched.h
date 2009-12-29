@@ -3,7 +3,7 @@
 
 #ifndef PIOS_KERN_SCHED_H
 #define PIOS_KERN_SCHED_H
-#ifndef JOS_KERNEL
+#ifndef PIOS_KERNEL
 # error "This is a JOS kernel header; user programs should not #include it"
 #endif
 

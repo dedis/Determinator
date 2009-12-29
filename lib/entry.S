@@ -9,15 +9,15 @@
 	.p2align PGSHIFT
 	.globl fsipcbuf
 fsipcbuf:
-	.space PGSIZE
+	.space PAGESIZE
 	.globl fdtab
 fdtab:
-	.space PGSIZE
+	.space PAGESIZE
 #if LAB >= 6
 	.globl nsipcbuf
 	// page-aligned nsipcbuf for nsipc.c
 nsipcbuf:
-	.space PGSIZE
+	.space PAGESIZE
 #endif
 #endif
 

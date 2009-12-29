@@ -268,5 +268,5 @@ rwlock_unlock(rwlock *l)
 }
 
 
-#endif // !JOS_KERN_THREAD_H
+#endif // !PIOS_KERN_THREAD_H
 #endif // LAB >= 2

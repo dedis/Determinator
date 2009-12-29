@@ -86,5 +86,5 @@ void threadq_enqueue(threadq *w, thread *t);
 thread *threadq_dequeue(threadq *w);
 
 
-#endif // !JOS_KERN_THREAD_H
+#endif // !PIOS_KERN_THREAD_H
 #endif // LAB >= 2

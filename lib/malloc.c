@@ -32,7 +32,7 @@ isfree(void *v, size_t n)
 {
 	uintptr_t va, end_va = (uintptr_t) v + n;
 
-	for (va = (uintptr_t) v; va < end_va; va += PGSIZE)
+	for (va = (uintptr_t) v; va < end_va; va += PAGESIZE)
 		if (va >= (uintptr_t) mend
 		    || ((vpd[PDX(va)] & PTE_P) && (vpt[VPN(va)] & PTE_P)))
 			return 0;
@@ -55,14 +55,14 @@ malloc(size_t n)
 	if (n >= MAXMALLOC)
 		return 0;
 
-	if ((uintptr_t) mptr % PGSIZE){
+	if ((uintptr_t) mptr % PAGESIZE){
 		/*
 		 * we're in the middle of a partially
 		 * allocated page - can we add this chunk?
 		 * the +4 below is for the ref count.
 		 */
-		ref = (uint32_t*) (ROUNDUP(mptr, PGSIZE) - 4);
-		if ((uintptr_t) mptr / PGSIZE == (uintptr_t) (mptr + n - 1 + 4) / PGSIZE) {
+		ref = (uint32_t*) (ROUNDUP(mptr, PAGESIZE) - 4);
+		if ((uintptr_t) mptr / PAGESIZE == (uintptr_t) (mptr + n - 1 + 4) / PAGESIZE) {
 			(*ref)++;
 			v = mptr;
 			mptr += n;
@@ -72,7 +72,7 @@ malloc(size_t n)
 		 * stop working on this page and move on.
 		 */
 		free(mptr);	/* drop reference to this page */
-		mptr = ROUNDDOWN(mptr + PGSIZE, PGSIZE);
+		mptr = ROUNDDOWN(mptr + PAGESIZE, PAGESIZE);
 	}
 
 	/*
@@ -85,7 +85,7 @@ malloc(size_t n)
 	while (1) {
 		if (isfree(mptr, n + 4))
 			break;
-		mptr += PGSIZE;
+		mptr += PAGESIZE;
 		if (mptr == mend) {
 			mptr = mbegin;
 			if (++nwrap == 2)
@@ -96,10 +96,10 @@ malloc(size_t n)
 	/*
 	 * allocate at mptr - the +4 makes sure we allocate a ref count.
 	 */
-	for (i = 0; i < n + 4; i += PGSIZE){
-		cont = (i + PGSIZE < n + 4) ? PTE_CONTINUED : 0;
+	for (i = 0; i < n + 4; i += PAGESIZE){
+		cont = (i + PAGESIZE < n + 4) ? PTE_CONTINUED : 0;
 		if (sys_page_alloc(0, mptr + i, PTE_P|PTE_U|PTE_W|cont) < 0){
-			for (; i >= 0; i -= PGSIZE)
+			for (; i >= 0; i -= PAGESIZE)
 				sys_page_unmap(0, mptr + i);
 			return 0;	/* out of physical memory */
 		}
@@ -122,11 +122,11 @@ free(void *v)
 		return;
 	assert(mbegin <= (uint8_t*) v && (uint8_t*) v < mend);
 
-	c = ROUNDDOWN(v, PGSIZE);
+	c = ROUNDDOWN(v, PAGESIZE);
 
 	while (vpt[VPN(c)] & PTE_CONTINUED) {
 		sys_page_unmap(0, c);
-		c += PGSIZE;
+		c += PAGESIZE;
 		assert(mbegin <= c && c < mend);
 	}
 
@@ -134,7 +134,7 @@ free(void *v)
 	 * c is just a piece of this page, so dec the ref count
 	 * and maybe free the page.
 	 */
-	ref = (uint32_t*) (c + PGSIZE - 4);
+	ref = (uint32_t*) (c + PAGESIZE - 4);
 	if (--(*ref) == 0)
 		sys_page_unmap(0, c);	
 }

@@ -68,5 +68,5 @@ void rwlock_writelock(rwlock *l);	// Acquire exclusive write lock
 void rwlock_unlock(rwlock *l);		// Release inclusive or exclusive lock
 
 
-#endif // !JOS_KERN_THREAD_H
+#endif // !PIOS_KERN_THREAD_H
 #endif // LAB >= 2

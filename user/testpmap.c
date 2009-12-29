@@ -9,7 +9,7 @@ int sequence[] = { 0,  1,   1,   2,   3,
 
 void
 mark_page(int* pg, int i) {
-  memset(pg, 0, PGSIZE);
+  memset(pg, 0, PAGESIZE);
 
   // now dump a non-random sequence into the page
   // offset by i
@@ -52,7 +52,7 @@ int *page_id;
 int
 alloc_range(int initaddr, int maxpa, int startn) {
   n = startn;
-  maxnum = maxpa / PGSIZE;
+  maxnum = maxpa / PAGESIZE;
   initva = initaddr;
   maxva = initva + maxpa;
   
@@ -60,7 +60,7 @@ alloc_range(int initaddr, int maxpa, int startn) {
 
   // how many pages can I alloc? 
   // - limit to 256 M worth of pages
-  for (va = initva; va < maxva; va += PGSIZE, n++) { 
+  for (va = initva; va < maxva; va += PAGESIZE, n++) { 
     // alloc a page 
     if ((r = sys_mem_alloc(0, va, PTE_P | PTE_U | PTE_W | PTE_AVAIL)) < 0) { 
       //cprintf("\nsys_mem_alloc failed: %e", r);
@@ -69,10 +69,10 @@ alloc_range(int initaddr, int maxpa, int startn) {
 
     //page_id = (int*)va;
     //*page_id = n;              // mark this page...
-    //memset((int*)va, n, PGSIZE / sizeof(int));
+    //memset((int*)va, n, PAGESIZE / sizeof(int));
     mark_page((int*)va, n);
 
-    if ( (((va - initva) / PGSIZE) % 128) == 0) cprintf(".");
+    if ( (((va - initva) / PAGESIZE) % 128) == 0) cprintf(".");
   }
   cprintf("\n");
 
@@ -88,7 +88,7 @@ test_range(int startva, int endva, int startn) {
   cprintf("[%08x] testing pages in [%08x, %08x] to see if they look okay\n", env->env_id, startva, endva);
   n = startn;
   failures = 0;  
-  for (va = startva, c = 0; va < endva; va += PGSIZE, n++, c++) { 
+  for (va = startva, c = 0; va < endva; va += PAGESIZE, n++, c++) { 
     page_id = (int*)va;
 
     if (test_page((int*)va, n)) {
@@ -115,7 +115,7 @@ test_range(int startva, int endva, int startn) {
       //cprintf("}");
     }
 
-    if ( (((va - startva) / PGSIZE) % 128) == 0) cprintf(".");
+    if ( (((va - startva) / PAGESIZE) % 128) == 0) cprintf(".");
     //if ((va % PDMAP) == 0) cprintf(".");
   }
   cprintf("\n");
@@ -129,7 +129,7 @@ void
 unmap_range(int startva, int endva) {
   cprintf("[%08x] unmapping range [%08x, %08x].\n", env->env_id, startva, endva);
   int xva, z;
-  for (z=0, xva = startva; xva < endva; xva += PGSIZE, z++) { 
+  for (z=0, xva = startva; xva < endva; xva += PAGESIZE, z++) { 
     sys_mem_unmap(0, xva);
   }
   cprintf("[%08x] unmapped %d pages.\n", env->env_id, z);
@@ -140,7 +140,7 @@ duplicate_range(int startva, int dupeva, int nbytes) {
   cprintf("[%08x] duplicating range [%08x, %08x] at [%08x, %08x]\n", 
 	 env->env_id, startva, startva+nbytes, dupeva, dupeva+nbytes);
   int xva, r, k;
-  for (xva = 0, k = 0; xva < nbytes; xva += PGSIZE, k+=PGSIZE) { 
+  for (xva = 0, k = 0; xva < nbytes; xva += PAGESIZE, k+=PAGESIZE) { 
     if ((r = sys_mem_map(0, startva+xva, 0, dupeva+xva, PTE_P | PTE_U | PTE_W | PTE_USER)) < 0) {
       cprintf ("[%08x] duplicate_range FAILURE: %e\n", env->env_id, r);
       return r;
@@ -172,8 +172,8 @@ umain(int argc, char **argv)
     cprintf("PMAPTEST[%08x] back.\n", env->env_id);
 
     // Free a couple of pages for use by page tables and other envs...
-    unmap_range(max-16 * PGSIZE, max);                           // free some pages so we have wiggle room, if extra
-    max -= 16 * PGSIZE;                                          // pages are needed for page tables...
+    unmap_range(max-16 * PAGESIZE, max);                           // free some pages so we have wiggle room, if extra
+    max -= 16 * PAGESIZE;                                          // pages are needed for page tables...
     
     // Unmap last 1024 pages and then try to reallocate them in the same place
     unmap_range(max - PDMAP, max);                              // unmap last 1024 pages
@@ -182,7 +182,7 @@ umain(int argc, char **argv)
     test_range(max - PDMAP, max2, 0);                           // test if new pages are unique
   
     // Create duplicate mappings of the last 1024
-    dupesize = duplicate_range(max2-PDMAP, max+PDMAP, j*PGSIZE); // create duplicate mappings
+    dupesize = duplicate_range(max2-PDMAP, max+PDMAP, j*PAGESIZE); // create duplicate mappings
     test_range(max2-PDMAP, max2-PDMAP+dupesize, 0);             // test lower mapping
     test_range(max+PDMAP, max + PDMAP + dupesize, 0);           // test upper mapping
     dupen = *((int*)(max+PDMAP));

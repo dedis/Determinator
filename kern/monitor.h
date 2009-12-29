@@ -1,6 +1,6 @@
-#ifndef JOS_KERN_MONITOR_H
-#define JOS_KERN_MONITOR_H
-#ifndef JOS_KERNEL
+#ifndef PIOS_KERN_MONITOR_H
+#define PIOS_KERN_MONITOR_H
+#ifndef PIOS_KERNEL
 # error "This is a JOS kernel header; user programs should not #include it"
 #endif
 
@@ -16,4 +16,4 @@ int mon_help(int argc, char **argv, struct Trapframe *tf);
 int mon_kerninfo(int argc, char **argv, struct Trapframe *tf);
 int mon_backtrace(int argc, char **argv, struct Trapframe *tf);
 
-#endif	// !JOS_KERN_MONITOR_H
+#endif	// !PIOS_KERN_MONITOR_H

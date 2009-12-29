@@ -195,7 +195,7 @@ fmap(struct Fd* fd, off_t oldsize, off_t newsize)
 	int r;
 
 	va = fd2data(fd);
-	for (i = ROUNDUP(oldsize, PGSIZE); i < newsize; i += PGSIZE) {
+	for (i = ROUNDUP(oldsize, PAGESIZE); i < newsize; i += PAGESIZE) {
 		if ((r = fsipc_map(fd->fd_file.id, i, va + i)) < 0) {
 			// unmap anything we may have mapped so far
 			funmap(fd, i, oldsize, 0);
@@ -233,7 +233,7 @@ funmap(struct Fd* fd, off_t oldsize, off_t newsize, bool dirty)
 		return 0;
 
 	ret = 0;
-	for (i = ROUNDUP(newsize, PGSIZE); i < oldsize; i += PGSIZE)
+	for (i = ROUNDUP(newsize, PAGESIZE); i < oldsize; i += PAGESIZE)
 		if (vpt[VPN(va + i)] & PTE_P) {
 			if (dirty
 			    && (vpt[VPN(va + i)] & PTE_D)

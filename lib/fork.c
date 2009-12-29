@@ -44,7 +44,7 @@ pgfault(struct UTrapframe *utf)
  	// copy page
 	if ((r = sys_page_alloc(0, (void*) PFTEMP, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_page_alloc: %e", r);
-	memmove((void*) PFTEMP, ROUNDDOWN(addr, PGSIZE), PGSIZE);
+	memmove((void*) PFTEMP, ROUNDDOWN(addr, PAGESIZE), PAGESIZE);
 
 	// remap over faulting page
 	if ((r = sys_page_map(0, (void*) PFTEMP, 0, addr, PTE_P|PTE_U|PTE_W)) < 0)
@@ -68,7 +68,7 @@ pgfault(struct UTrapframe *utf)
 }
 
 //
-// Map our virtual page pn (address pn*PGSIZE) into the target envid
+// Map our virtual page pn (address pn*PAGESIZE) into the target envid
 // at the same virtual address.  If the page is writable or copy-on-write,
 // the new mapping must be created copy-on-write, and then our mapping must be
 // marked copy-on-write as well.  (Exercise: Why might we need to mark ours
@@ -182,7 +182,7 @@ fork(void)
 	}
 
 	// The child needs to start out with a valid exception stack.
-	if ((r = sys_page_alloc(envid, (void*) (UXSTACKTOP - PGSIZE), PTE_P|PTE_U|PTE_W)) < 0)
+	if ((r = sys_page_alloc(envid, (void*) (UXSTACKTOP - PAGESIZE), PTE_P|PTE_U|PTE_W)) < 0)
 		panic("allocating exception stack: %e", r);
 
 	// Copy the user-mode exception entrypoint.

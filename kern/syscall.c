@@ -245,7 +245,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 		page_free(pp);
 		return r;
 	}
-	memset(page2kva(pp), 0, PGSIZE);
+	memset(page2kva(pp), 0, PAGESIZE);
 	return 0;
 #else
 	// Hint: This function is a wrapper around page_alloc() and
@@ -494,8 +494,8 @@ sys_net_buf(void *bufva, unsigned int size, int rx)
 		return r;
 	}
 
-	offset = (unsigned int) bufva % PGSIZE;
-	if (offset + size > PGSIZE) {
+	offset = (unsigned int) bufva % PAGESIZE;
+	if (offset + size > PAGESIZE) {
 		cprintf("[%08x] page overlap %x in sys_net_txbuf\n", 
 			curenv->env_id, offset + size);
 		return r;

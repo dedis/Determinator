@@ -1,9 +1,9 @@
 #if LAB >= 3
 /* See COPYRIGHT for copyright information. */
 
-#ifndef JOS_KERN_PMAP_H
-#define JOS_KERN_PMAP_H
-#ifndef JOS_KERNEL
+#ifndef PIOS_KERN_PMAP_H
+#define PIOS_KERN_PMAP_H
+#ifndef PIOS_KERNEL
 # error "This is a JOS kernel header; user programs should not #include it"
 #endif
 
@@ -42,9 +42,6 @@ struct Env;
 
 extern char bootstacktop[], bootstack[];
 
-extern struct Page *pages;
-extern size_t npage;
-
 extern physaddr_t boot_cr3;
 extern pde_t *boot_pgdir;
 
@@ -55,8 +52,6 @@ void	i386_vm_init();
 void	i386_detect_memory();
 
 void	page_init(void);
-int	page_alloc(struct Page **pp_store);
-void	page_free(struct Page *pp);
 int	page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm);
 void	page_remove(pde_t *pgdir, void *va);
 struct Page *page_lookup(pde_t *pgdir, void *va, pte_t **pte_store);
@@ -97,5 +92,5 @@ page2kva(struct Page *pp)
 
 pte_t *pgdir_walk(pde_t *pgdir, const void *va, int create);
 
-#endif /* !JOS_KERN_PMAP_H */
+#endif /* !PIOS_KERN_PMAP_H */
 #endif // LAB >= 3

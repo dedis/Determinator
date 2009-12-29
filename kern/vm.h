@@ -70,8 +70,8 @@
 // Each kernel stack consists of KSTACKRED bytes of unmapped address space
 // followed by KSTACKSIZE bytes of usable memory mapped read/write,
 // for a total of KSTACKSPACE bytes of address space per stack (i.e., per CPU).
-#define VM_KSTACKSIZE	(8*PGSIZE)
-#define VM_KSTACKRED	(8*PGSIZE)
+#define VM_KSTACKSIZE	(8*PAGESIZE)
+#define VM_KSTACKRED	(8*PAGESIZE)
 #define VM_KSTACKSPACE	(VM_KSTACKRED+VM_KSTACKSIZE)
 
 

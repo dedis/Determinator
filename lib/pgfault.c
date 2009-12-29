@@ -28,7 +28,7 @@ set_pgfault_handler(void (*handler)(struct UTrapframe *utf))
 	if (_pgfault_handler == 0) {
 #if SOL >= 4
 		// map exception stack
-		if ((r = sys_page_alloc(0, (void*) (UXSTACKTOP - PGSIZE), PTE_P|PTE_U|PTE_W)) < 0)
+		if ((r = sys_page_alloc(0, (void*) (UXSTACKTOP - PAGESIZE), PTE_P|PTE_U|PTE_W)) < 0)
 			panic("allocating exception stack: %e", r);
 
 		// register assembly pgfault entrypoint with JOS kernel

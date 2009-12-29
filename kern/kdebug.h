@@ -1,5 +1,5 @@
-#ifndef JOS_KERN_KDEBUG_H
-#define JOS_KERN_KDEBUG_H
+#ifndef PIOS_KERN_KDEBUG_H
+#define PIOS_KERN_KDEBUG_H
 
 #include <inc/types.h>
 
