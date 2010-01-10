@@ -1,4 +1,4 @@
-#if LAB >= 3
+#if LAB >= 1
 // Processor trap handling.
 // See COPYRIGHT for copyright information.
 
@@ -24,13 +24,6 @@
 #include <kern/e100.h>
 #endif
 
-
-// We'll need an x86 Task State Segment (TSS) to handle traps from user mode,
-// because when the processor switches from lower to higher privilege,
-// it loads a new stack pointer (ESP) and stack segment (SS)
-// for the higher privilege level from this task state structure.
-// We'll only need one TSS, though, and this is it.
-static taskstate ts;
 
 // Interrupt descriptor table.  Must be built at run time because
 // shifted function addresses can't be represented in relocation records.
@@ -69,65 +62,52 @@ trap_init(void)
 
 	// install a default handler
 	for (i = 0; i < sizeof(idt)/sizeof(idt[0]); i++)
-		SETGATE(idt[i], 0, GD_KT, &Xdefault, 0);
+		SETGATE(idt[i], 0, SEG_GDT_KCODE, &Xdefault, 0);
 
-	SETGATE(idt[T_DIVIDE], 0, GD_KT, &Xdivide, 0);
-	SETGATE(idt[T_DEBUG],  0, GD_KT, &Xdebug,  0);
-	SETGATE(idt[T_NMI],    0, GD_KT, &Xnmi,    0);
-	SETGATE(idt[T_BRKPT],  0, GD_KT, &Xbrkpt,  3);
-	SETGATE(idt[T_OFLOW],  0, GD_KT, &Xoflow,  0);
-	SETGATE(idt[T_BOUND],  0, GD_KT, &Xbound,  0);
-	SETGATE(idt[T_ILLOP],  0, GD_KT, &Xillop,  0);
-	SETGATE(idt[T_DEVICE], 0, GD_KT, &Xdevice, 0);
-	SETGATE(idt[T_DBLFLT], 0, GD_KT, &Xdblflt, 0);
-	SETGATE(idt[T_TSS],    0, GD_KT, &Xtss,    0);
-	SETGATE(idt[T_SEGNP],  0, GD_KT, &Xsegnp,  0);
-	SETGATE(idt[T_STACK],  0, GD_KT, &Xstack,  0);
-	SETGATE(idt[T_GPFLT],  0, GD_KT, &Xgpflt,  0);
-	SETGATE(idt[T_PGFLT],  0, GD_KT, &Xpgflt,  0);
-	SETGATE(idt[T_FPERR],  0, GD_KT, &Xfperr,  0);
-	SETGATE(idt[T_ALIGN],  0, GD_KT, &Xalign,  0);
-	SETGATE(idt[T_MCHK],   0, GD_KT, &Xmchk,   0);
+	SETGATE(idt[T_DIVIDE], 0, SEG_GDT_KCODE, &Xdivide, 0);
+	SETGATE(idt[T_DEBUG],  0, SEG_GDT_KCODE, &Xdebug,  0);
+	SETGATE(idt[T_NMI],    0, SEG_GDT_KCODE, &Xnmi,    0);
+	SETGATE(idt[T_BRKPT],  0, SEG_GDT_KCODE, &Xbrkpt,  3);
+	SETGATE(idt[T_OFLOW],  0, SEG_GDT_KCODE, &Xoflow,  0);
+	SETGATE(idt[T_BOUND],  0, SEG_GDT_KCODE, &Xbound,  0);
+	SETGATE(idt[T_ILLOP],  0, SEG_GDT_KCODE, &Xillop,  0);
+	SETGATE(idt[T_DEVICE], 0, SEG_GDT_KCODE, &Xdevice, 0);
+	SETGATE(idt[T_DBLFLT], 0, SEG_GDT_KCODE, &Xdblflt, 0);
+	SETGATE(idt[T_TSS],    0, SEG_GDT_KCODE, &Xtss,    0);
+	SETGATE(idt[T_SEGNP],  0, SEG_GDT_KCODE, &Xsegnp,  0);
+	SETGATE(idt[T_STACK],  0, SEG_GDT_KCODE, &Xstack,  0);
+	SETGATE(idt[T_GPFLT],  0, SEG_GDT_KCODE, &Xgpflt,  0);
+	SETGATE(idt[T_PGFLT],  0, SEG_GDT_KCODE, &Xpgflt,  0);
+	SETGATE(idt[T_FPERR],  0, SEG_GDT_KCODE, &Xfperr,  0);
+	SETGATE(idt[T_ALIGN],  0, SEG_GDT_KCODE, &Xalign,  0);
+	SETGATE(idt[T_MCHK],   0, SEG_GDT_KCODE, &Xmchk,   0);
 
 #if SOL >= 4
-	SETGATE(idt[IRQ_OFFSET + 0], 0, GD_KT, &Xirq0, 0);
-	SETGATE(idt[IRQ_OFFSET + 1], 0, GD_KT, &Xirq1, 0);
-	SETGATE(idt[IRQ_OFFSET + 2], 0, GD_KT, &Xirq2, 0);
-	SETGATE(idt[IRQ_OFFSET + 3], 0, GD_KT, &Xirq3, 0);
-	SETGATE(idt[IRQ_OFFSET + 4], 0, GD_KT, &Xirq4, 0);
-	SETGATE(idt[IRQ_OFFSET + 5], 0, GD_KT, &Xirq5, 0);
-	SETGATE(idt[IRQ_OFFSET + 6], 0, GD_KT, &Xirq6, 0);
-	SETGATE(idt[IRQ_OFFSET + 7], 0, GD_KT, &Xirq7, 0);
-	SETGATE(idt[IRQ_OFFSET + 8], 0, GD_KT, &Xirq8, 0);
-	SETGATE(idt[IRQ_OFFSET + 9], 0, GD_KT, &Xirq9, 0);
-	SETGATE(idt[IRQ_OFFSET + 10], 0, GD_KT, &Xirq10, 0);
-	SETGATE(idt[IRQ_OFFSET + 11], 0, GD_KT, &Xirq11, 0);
-	SETGATE(idt[IRQ_OFFSET + 12], 0, GD_KT, &Xirq12, 0);
-	SETGATE(idt[IRQ_OFFSET + 13], 0, GD_KT, &Xirq13, 0);
-	SETGATE(idt[IRQ_OFFSET + 14], 0, GD_KT, &Xirq14, 0);
-	SETGATE(idt[IRQ_OFFSET + 15], 0, GD_KT, &Xirq15, 0);
+	SETGATE(idt[IRQ_OFFSET + 0], 0, SEG_GDT_KCODE, &Xirq0, 0);
+	SETGATE(idt[IRQ_OFFSET + 1], 0, SEG_GDT_KCODE, &Xirq1, 0);
+	SETGATE(idt[IRQ_OFFSET + 2], 0, SEG_GDT_KCODE, &Xirq2, 0);
+	SETGATE(idt[IRQ_OFFSET + 3], 0, SEG_GDT_KCODE, &Xirq3, 0);
+	SETGATE(idt[IRQ_OFFSET + 4], 0, SEG_GDT_KCODE, &Xirq4, 0);
+	SETGATE(idt[IRQ_OFFSET + 5], 0, SEG_GDT_KCODE, &Xirq5, 0);
+	SETGATE(idt[IRQ_OFFSET + 6], 0, SEG_GDT_KCODE, &Xirq6, 0);
+	SETGATE(idt[IRQ_OFFSET + 7], 0, SEG_GDT_KCODE, &Xirq7, 0);
+	SETGATE(idt[IRQ_OFFSET + 8], 0, SEG_GDT_KCODE, &Xirq8, 0);
+	SETGATE(idt[IRQ_OFFSET + 9], 0, SEG_GDT_KCODE, &Xirq9, 0);
+	SETGATE(idt[IRQ_OFFSET + 10], 0, SEG_GDT_KCODE, &Xirq10, 0);
+	SETGATE(idt[IRQ_OFFSET + 11], 0, SEG_GDT_KCODE, &Xirq11, 0);
+	SETGATE(idt[IRQ_OFFSET + 12], 0, SEG_GDT_KCODE, &Xirq12, 0);
+	SETGATE(idt[IRQ_OFFSET + 13], 0, SEG_GDT_KCODE, &Xirq13, 0);
+	SETGATE(idt[IRQ_OFFSET + 14], 0, SEG_GDT_KCODE, &Xirq14, 0);
+	SETGATE(idt[IRQ_OFFSET + 15], 0, SEG_GDT_KCODE, &Xirq15, 0);
 #endif	// SOL >= 4
 
 	// Use DPL=3 here because system calls are explicitly invoked
 	// by the user process (with "int $T_SYSCALL").
-	SETGATE(idt[T_SYSCALL], 0, GD_KT, &Xsyscall, 3);
+	SETGATE(idt[T_SYSCALL], 0, SEG_GDT_KCODE, &Xsyscall, 3);
 #else	// not SOL >= 3
 	
 	// LAB 3: Your code here.
 #endif	// SOL >= 3
-
-	// Setup a TSS so that we get the right stack
-	// when we trap to the kernel.
-	ts.ts_esp0 = KSTACKTOP;
-	ts.ts_ss0 = GD_KD;
-
-	// Initialize the TSS field of the gdt.
-	gdt[GD_TSS >> 3] = SEG16(STS_T32A, (uint32_t) (&ts),
-					sizeof(struct Taskstate), 0);
-	gdt[GD_TSS >> 3].sd_s = 0;
-
-	// Load the TSS
-	ltr(GD_TSS);
 
 	// Load the IDT
 	asm volatile("lidt idt_pd");
@@ -282,7 +262,7 @@ trap_dispatch(trapframe *tf)
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
-	if (tf->tf_cs == GD_KT)
+	if (tf->tf_cs == SEG_GDT_KCODE)
 		panic("unhandled trap in kernel");
 	else {
 		env_destroy(curenv);
@@ -465,4 +445,4 @@ page_fault_handler(trapframe *tf)
 #endif	// not SOL >= 4
 }
 
-#endif /* LAB >= 3 */
+#endif /* LAB >= 1 */

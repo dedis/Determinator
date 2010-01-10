@@ -54,22 +54,22 @@ TOP = .
 # Cross-compiler jos toolchain
 #
 # This Makefile will automatically use the cross-compiler toolchain
-# installed as 'i386-jos-elf-*', if one exists.  If the host tools ('gcc',
+# installed as 'i386-elf-*', if one exists.  If the host tools ('gcc',
 # 'objdump', and so forth) compile for a 32-bit x86 ELF target, that will
 # be detected as well.  If you have the right compiler toolchain installed
 # using a different name, set GCCPREFIX explicitly in conf/env.mk
 
 # try to infer the correct GCCPREFIX
 ifndef GCCPREFIX
-GCCPREFIX := $(shell if i386-jos-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
-	then echo 'i386-jos-elf-'; \
+GCCPREFIX := $(shell if i386-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
+	then echo 'i386-elf-'; \
 	elif objdump -i 2>&1 | grep 'elf32-i386' >/dev/null 2>&1; \
 	then echo ''; \
 	else echo "***" 1>&2; \
-	echo "*** Error: Couldn't find an i386-*-elf version of GCC/binutils." 1>&2; \
-	echo "*** Is the directory with i386-jos-elf-gcc in your PATH?" 1>&2; \
-	echo "*** If your i386-*-elf toolchain is installed with a command" 1>&2; \
-	echo "*** prefix other than 'i386-jos-elf-', set your GCCPREFIX" 1>&2; \
+	echo "*** Error: Couldn't find an i386-elf version of GCC/binutils." 1>&2; \
+	echo "*** Is the directory with i386-elf-gcc in your PATH?" 1>&2; \
+	echo "*** If your i386-elf toolchain is installed with a command" 1>&2; \
+	echo "*** prefix other than 'i386-elf-', set your GCCPREFIX" 1>&2; \
 	echo "*** environment variable to that prefix and run 'make' again." 1>&2; \
 	echo "*** To turn off this error, run 'gmake GCCPREFIX= ...'." 1>&2; \
 	echo "***" 1>&2; exit 1; fi)
@@ -204,9 +204,6 @@ include lib/Makefrag
 #if LAB >= 3
 include user/Makefrag
 #endif
-#if LAB >= 5
-include fs/Makefrag
-#endif
 
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 # Find all potentially exportable files
@@ -214,9 +211,6 @@ LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S *.ld
 LAB_DIRS := inc boot kern lib user fs net
 LAB_FILES := CODING GNUmakefile mergedep.pl grade-functions.sh .gdbinit.tmpl \
 	boot/sign.pl \
-	fs/lorem fs/motd fs/newmotd fs/script \
-	fs/testshell.sh fs/testshell.key fs/testshell.out fs/out \
-	fs/index.html net/lwip \
 	conf/env.mk \
 	$(foreach lab,1 2 3 4 5 6 7,grade-lab$(lab).sh) \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))

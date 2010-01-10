@@ -1,29 +1,10 @@
 #if LAB >= 1
 /* See COPYRIGHT for copyright information. */
 
-#include <inc/mmu.h>
-#include <inc/memlayout.h>
 #if LAB >= 3
 #include <inc/trap.h>
 #endif
 
-# Shift Right Logical 
-#define SRL(val, shamt)		(((val) >> (shamt)) & ~(-1 << (32 - (shamt))))
-
-
-###################################################################
-# The kernel (this code) is linked at address ~(KERNBASE + 1 Meg), 
-# but the bootloader loads it at address ~1 Meg.
-#	
-# RELOC(x) maps a symbol x from its link address to its actual
-# location in physical memory (its load address).	 
-###################################################################
-
-#define	RELOC(x) ((x) - VM_PHYSLO)
-
-
-.set CODE_SEL,0x8		# index of code seg within mygdt
-.set DATA_SEL,0x10		# index of data seg within mygdt
 
 #define MULTIBOOT_PAGE_ALIGN  (1<<0)
 #define MULTIBOOT_MEMORY_INFO (1<<1)
@@ -45,19 +26,7 @@
 
 .globl		_start
 _start:
-	movw	$0x1234,0x472			# warm boot
-
-	# Establish our own GDT in place of the boot loader's temporary GDT.
-	lgdt	RELOC(mygdtdesc)		# load descriptor table
-
-	# Immediately reload all segment registers (including CS!)
-	# with segment selectors from the new GDT.
-	movl	$DATA_SEL, %eax			# Data segment selector
-	movw	%ax,%ds				# -> DS: Data Segment
-	movw	%ax,%es				# -> ES: Extra Segment
-	movw	%ax,%ss				# -> SS: Stack Segment
-	ljmp	$CODE_SEL,$relocated		# reload CS by jumping
-relocated:
+	movw	$0x1234,0x472			# warm boot BIOS flag
 
 	# Clear the frame pointer register (EBP)
 	# so that once we get into debugging C code,
@@ -73,42 +42,20 @@ relocated:
 #endif
 
 	# now to C code
-	call	i386_init
+	call	init
 
 	# Should never get here, but in case we do, just spin.
 spin:	jmp	spin
 
 
-###################################################################	
-# See <inc/memlayout.h> for a complete description of these two symbols.
-###################################################################
-.data
-	.globl	vpt
-	.set	vpt, VPT
-	.globl	vpd
-	.set	vpd, (VPT + SRL(VPT, 10))
-
-
 ###################################################################
 # boot stack
 ###################################################################
-	.p2align	PGSHIFT		# force page alignment
+#	.p2align	PAGESHIFT		# XXX force page alignment
 	.globl		bootstack
 bootstack:
-	.space		KSTKSIZE
+	.space		8*4096			# XXX KSTACKSIZE
 	.globl		bootstacktop   
 bootstacktop:
-
-###################################################################
-# setup the GDT	
-###################################################################
-	.p2align	2		# force 4 byte alignment
-mygdt:
-	SEG_NULL					# null seg
-	SEG(STA_X|STA_R, -VM_PHYSLO, 0xffffffff)	# code seg
-	SEG(STA_W, -VM_PHYSLO, 0xffffffff)		# data seg
-mygdtdesc:
-	.word	0x17			# sizeof(mygdt) - 1
-	.long	RELOC(mygdt)		# address mygdt
 
 #endif // LAB >= 1

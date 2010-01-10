@@ -39,7 +39,7 @@ test_backtrace(int x)
 #endif
 
 void
-i386_init(void)
+init(void)
 {
 	extern char edata[], end[];
 

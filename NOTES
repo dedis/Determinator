@@ -1,7 +1,7 @@
 map:
-lab1: bootstrap, trap/interrupt handling
+lab1: bootstrap, trap/interrupt handling, physical memory allocation
 lab2: threads and synchronization
-lab3: virtual memory, copy-on-write, fork
+lab3: virtual memory, copy-on-write
 lab4: program loading, process reconciliation
 lab5: file system and checkpointing
 lab6: student-defined

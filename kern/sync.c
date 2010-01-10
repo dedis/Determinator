@@ -268,5 +268,4 @@ rwlock_unlock(rwlock *l)
 }
 
 
-#endif // !PIOS_KERN_THREAD_H
 #endif // LAB >= 2

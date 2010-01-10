@@ -8,14 +8,6 @@
 #endif
 
 
-// Global segment descriptor numbers used by the kernel
-#define GD_TSS    0x08     // Task segment selector
-#define GD_KT     0x10     // kernel text
-#define GD_KD     0x18     // kernel data
-#define GD_UT     0x20     // user text
-#define GD_UD     0x28     // user data
-
-
 /*
  * Kernel-private virtual memory map:                 Permissions
  *                                                    kernel/user

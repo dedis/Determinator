@@ -17,6 +17,8 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/init.c \
 			kern/console.c \
 			kern/monitor.c \
+			kern/mem.c \
+			kern/seg.c \
 			kern/pmap.c \
 			kern/env.c \
 			kern/printf.c \
@@ -31,13 +33,6 @@ KERN_SRCFILES :=	kern/entry.S \
 			lib/readline.c \
 			lib/string.c
 
-ifdef LAB6
-# Source files for LAB6
-KERN_SRCFILES +=	kern/e100.c \
-			kern/pci.c \
-			kern/time.c
-
-endif
 # Only build files if they exist.
 KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
 

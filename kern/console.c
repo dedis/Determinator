@@ -1,12 +1,12 @@
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/x86.h>
-#include <inc/memlayout.h>
 #include <inc/kbdreg.h>
 #include <inc/string.h>
 #include <inc/assert.h>
 
 #include <kern/console.h>
+#include <kern/mem.h>
 #if LAB >= 4
 #include <kern/picirq.h>
 #endif
@@ -156,11 +156,12 @@ cga_init(void)
 	uint16_t was;
 	unsigned pos;
 
-	cp = (uint16_t*) (KERNBASE + CGA_BUF);
+	/* Get a pointer to the memory-mapped text display buffer. */
+	cp = (uint16_t*) mem_ptr(CGA_BUF);
 	was = *cp;
 	*cp = (uint16_t) 0xA55A;
 	if (*cp != 0xA55A) {
-		cp = (uint16_t*) (KERNBASE + MONO_BUF);
+		cp = (uint16_t*) mem_ptr(MONO_BUF);
 		addr_6845 = MONO_BASE;
 	} else {
 		*cp = was;

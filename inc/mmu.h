@@ -1,4 +1,4 @@
-#if LAB >= 3
+#if LAB >= 1
 #ifndef PIOS_INC_MMU_H
 #define PIOS_INC_MMU_H
 
@@ -168,15 +168,15 @@ typedef struct segdesc {
 	unsigned sd_base_31_24 : 8; // High bits of segment base address
 } segdesc;
 // Null segment
-#define SEG_NULL	(struct Segdesc){ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+#define SEGDESC_NULL	(struct segdesc){ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 // Segment that is loadable but faults when used
-#define SEG_FAULT	(struct Segdesc){ 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0 }
+#define SEGDESC_FAULT	(struct segdesc){ 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0 }
 // Normal segment
-#define SEG(type, base, lim, dpl) (struct Segdesc)			\
+#define SEGDESC32(type, base, lim, dpl) (struct segdesc)		\
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
     type, 1, dpl, 1, (unsigned) (lim) >> 28, 0, 0, 1, 1,		\
     (unsigned) (base) >> 24 }
-#define SEG16(type, base, lim, dpl) (struct Segdesc)			\
+#define SEGDESC16(type, base, lim, dpl) (struct segdesc)		\
 { (lim) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,		\
     type, 1, dpl, 1, (unsigned) (lim) >> 16, 0, 0, 1, 0,		\
     (unsigned) (base) >> 24 }
@@ -312,4 +312,4 @@ typedef struct pseudodesc pseudodesc;
 #endif /* !__ASSEMBLER__ */
 
 #endif /* !PIOS_INC_MMU_H */
-#endif // LAB >= 3
+#endif // LAB >= 1

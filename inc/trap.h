@@ -71,7 +71,7 @@ typedef struct pushregs {
 typedef struct trapframe {
 
 	// registers and other info we push manually in trapentry.S
-	struct PushRegs tf_regs;
+	pushregs tf_regs;
 	uint16_t tf_es;
 	uint16_t tf_padding1;
 	uint16_t tf_ds;

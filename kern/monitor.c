@@ -3,16 +3,13 @@
 
 #include <inc/stdio.h>
 #include <inc/string.h>
-#include <inc/memlayout.h>
 #include <inc/assert.h>
 #include <inc/x86.h>
 
 #include <kern/console.h>
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
-#if LAB >= 3
 #include <kern/trap.h>
-#endif
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
@@ -59,10 +56,10 @@ mon_kerninfo(int argc, char **argv, trapframe *tf)
 	extern char _start[], etext[], edata[], end[];
 
 	cprintf("Special kernel symbols:\n");
-	cprintf("  _start %08x (virt)  %08x (phys)\n", _start, _start - KERNBASE);
-	cprintf("  etext  %08x (virt)  %08x (phys)\n", etext, etext - KERNBASE);
-	cprintf("  edata  %08x (virt)  %08x (phys)\n", edata, edata - KERNBASE);
-	cprintf("  end    %08x (virt)  %08x (phys)\n", end, end - KERNBASE);
+	cprintf("  _start %08x\n", _start);
+	cprintf("  etext  %08x\n", etext);
+	cprintf("  edata  %08x\n", edata);
+	cprintf("  end    %08x\n", end);
 	cprintf("Kernel executable memory footprint: %dKB\n",
 		(end-_start+1023)/1024);
 	return 0;
@@ -159,7 +156,7 @@ monitor(trapframe *tf)
 {
 	char *buf;
 
-	cprintf("Welcome to the JOS kernel monitor!\n");
+	cprintf("Welcome to the PIOS kernel monitor!\n");
 	cprintf("Type 'help' for a list of commands.\n");
 
 #if LAB >= 3

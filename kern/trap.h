@@ -1,7 +1,6 @@
-#if LAB >= 2
+#if LAB >= 1
 // Trap handling module definitions.
 // See COPYRIGHT for copyright information.
-
 #ifndef PIOS_KERN_TRAP_H
 #define PIOS_KERN_TRAP_H
 #ifndef PIOS_KERNEL
@@ -12,7 +11,7 @@
 #include <inc/mmu.h>
 
 /* The kernel's interrupt descriptor table */
-extern struct Gatedesc idt[];
+extern gatedesc idt[];
 
 
 // Initialize the trap-handling module and the processor's IDT.
@@ -30,4 +29,4 @@ void trap_print(trapframe *tf);
 
 
 #endif /* PIOS_KERN_TRAP_H */
-#endif /* LAB >= 2 */
+#endif /* LAB >= 1 */
