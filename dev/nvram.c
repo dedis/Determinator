@@ -1,4 +1,4 @@
-#if LAB >= 2
+#if LAB >= 1
 /* See COPYRIGHT for copyright information. */
 
 /* Support for two time-related hardware gadgets: 1) the run time
@@ -32,4 +32,4 @@ nvram_write(unsigned reg, unsigned datum)
 }
 
 
-#endif /* LAB >= 2 */
+#endif /* LAB >= 1 */

@@ -11,7 +11,7 @@ readline(const char *prompt)
 	int i, c, echoing;
 
 #if LAB >= 5
-#if JOS_KERNEL
+#if PIOS_KERNEL
 	if (prompt != NULL)
 		cprintf("%s", prompt);
 #else

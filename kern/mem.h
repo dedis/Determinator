@@ -8,11 +8,10 @@
 #endif
 
 
-// At PHYS_IOMEM (640K) there is a 384K hole for I/O.  From the kernel,
-// PHYS_IOMEM can be addressed at VM_KERNLO + PHYS_IOMEM.  The hole ends
-// at physical address PHYS_EXTMEM.
-#define MEM_IOMEM	0x0A0000
-#define MEM_EXTMEM	0x100000
+// At physical address MEM_IO (640K) there is a 384K hole for I/O.
+// The hole ends at physical address MEM_EXT, where extended memory begins.
+#define MEM_IO		0x0A0000
+#define MEM_EXT		0x100000
 
 
 // Given a physical address,
@@ -23,6 +22,9 @@
 // which must do some translation here (usually just adding an offset).
 #define mem_ptr(physaddr)	((void*)(physaddr))
 
+// The converse to the above: given a C pointer, return a physical address.
+#define mem_phys(ptr)		((uint32_t)(ptr))
+
 
 // A pageinfo struct holds metadata on how a particular physical page is used.
 // On boot we allocate a big array of pageinfo structs, one per physical page.
@@ -31,7 +33,7 @@
 // but that might make debugging a bit more challenging.
 typedef struct pageinfo {
 	struct pageinfo	*free_next;	// Next page number on free list
-	uint32_t	refs;		// Reference count on allocated pages
+	uint32_t	refcount;	// Reference count on allocated pages
 } pageinfo;
 
 
@@ -39,6 +41,13 @@ typedef struct pageinfo {
 extern size_t mem_max;		// Maximum physical address
 extern size_t mem_npage;	// Total number of physical memory pages
 extern pageinfo *mem_pageinfo;	// Metadata array indexed by page number
+
+
+// Convert between pageinfo pointers, page indexes, and physical page addresses
+#define mem_phys2pi(phys)	(&mem_pageinfo[(phys)/PAGESIZE])
+#define mem_pi2phys(pi)		(((pi)-mem_pageinfo) * PAGESIZE)
+#define mem_ptr2pi(ptr)		(mem_phys2pi(mem_phys(ptr)))
+#define mem_pi2ptr(pi)		(mem_ptr(mem_pi2phys(pi)))
 
 
 // Detect available physical memory and initialize the mem_pageinfo array.

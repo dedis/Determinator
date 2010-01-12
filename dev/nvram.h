@@ -1,9 +1,11 @@
-#if LAB >= 2	// pmap.c must read NVRAM to detect how much memory we have
-/* See COPYRIGHT for copyright information. */
-
-#ifndef JOS_KERN_KCLOCK_H
-#define JOS_KERN_KCLOCK_H
-#ifndef JOS_KERNEL
+#if LAB >= 1
+// Definition's for the PC's nonvolatile RAM (NVRAM),
+// part of the battery-backed real-timem clock.
+// The kernel reads the NVRAM to detect how much memory we have.
+// See COPYRIGHT for copyright information.
+#ifndef PIOS_DEV_NVRAM_H
+#define PIOS_DEV_NVRAM_H
+#ifndef PIOS_KERNEL
 # error "This is a JOS kernel header; user programs should not #include it"
 #endif
 
@@ -36,5 +38,5 @@ unsigned nvram_read16(unsigned reg);	// read a 16-bit word from NVRAM
 void nvram_write(unsigned reg, unsigned datum);
 
 
-#endif	// !JOS_KERN_KCLOCK_H
-#endif	// LAB >= 2
+#endif	// !PIOS_DEV_NVRAM_H
+#endif	// LAB >= 1

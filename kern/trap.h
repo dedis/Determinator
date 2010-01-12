@@ -10,9 +10,6 @@
 #include <inc/trap.h>
 #include <inc/mmu.h>
 
-/* The kernel's interrupt descriptor table */
-extern gatedesc idt[];
-
 
 // Initialize the trap-handling module and the processor's IDT.
 void trap_init(void);
@@ -27,6 +24,7 @@ void trap_print_regs(pushregs *regs);
 // Pretty-print the entire contents of a trapframe to the console.
 void trap_print(trapframe *tf);
 
+void trap_return(trapframe *tf);
 
 #endif /* PIOS_KERN_TRAP_H */
 #endif /* LAB >= 1 */

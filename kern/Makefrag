@@ -17,6 +17,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/init.c \
 			kern/console.c \
 			kern/monitor.c \
+			kern/spinlock.c \
 			kern/mem.c \
 			kern/seg.c \
 			kern/pmap.c \
@@ -26,9 +27,9 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/trapentry.S \
 			kern/sched.c \
 			kern/syscall.c \
-			kern/kdebug.c \
-			dev/clock.c \
 			dev/pic.c \
+			dev/nvram.c \
+			dev/timer.c \
 			lib/printfmt.c \
 			lib/readline.c \
 			lib/string.c
@@ -142,6 +143,11 @@ $(OBJDIR)/kern/%.o: kern/%.S
 	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/kern/%.o: lib/%.c
+	@echo + cc $<
+	@mkdir -p $(@D)
+	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/dev/%.o: dev/%.c
 	@echo + cc $<
 	@mkdir -p $(@D)
 	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<

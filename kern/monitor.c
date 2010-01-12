@@ -8,7 +8,6 @@
 
 #include <kern/console.h>
 #include <kern/monitor.h>
-#include <kern/kdebug.h>
 #include <kern/trap.h>
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
@@ -71,7 +70,6 @@ mon_backtrace(int argc, char **argv, trapframe *tf)
 #if SOL >= 1
 	int i;
 	const uint32_t *ebp; 
-	struct Eipdebuginfo info;
 
 	ebp = (const uint32_t*)read_ebp();
 #if SOL >= 3
@@ -87,8 +85,6 @@ mon_backtrace(int argc, char **argv, trapframe *tf)
 			cprintf(" %08x", ebp[2+i]);
 		cprintf("\n");
 
-		if (debuginfo_eip(ebp[1], &info) >= 0)
-			cprintf("         %s:%d: %.*s+%x\n", info.eip_file, info.eip_line, info.eip_fn_namelen, info.eip_fn_name, ebp[1] - info.eip_fn_addr);
 		// move to next lower stack frame
 		ebp = (const uint32_t*) ebp[0];
 	}

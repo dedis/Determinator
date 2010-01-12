@@ -8,18 +8,19 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 
-#include <kern/pmap.h>
+#include <kern/spinlock.h>
+#include <kern/mem.h>
 
 #include <dev/nvram.h>
 
 
-size_t mem_max;		// Maximum physical address
+size_t mem_max;			// Maximum physical address
 size_t mem_npage;		// Total number of physical memory pages
 
-pageinfo *mem_pageinfo;	// Metadata array indexed by page number
+pageinfo *mem_pageinfo;		// Metadata array indexed by page number
 
-pageinfo *mem_free;		// Start of free page list
-spinlock mem_free_lock;	// Spinlock protecting the free page list
+pageinfo *mem_freelist;		// Start of free page list
+spinlock mem_freelock;		// Spinlock protecting the free page list
 
 
 
@@ -47,13 +48,14 @@ mem_init(void)
 	extmem = ROUNDDOWN(nvram_read16(NVRAM_EXTLO)*1024, PAGESIZE);
 
 	// The maximum physical address is the top of extended memory.
-	mem_max = EXTPHYSMEM + extmem;
+	mem_max = MEM_EXT + extmem;
 
 	// Compute the total number of physical pages (including I/O space)
 	mem_npage = mem_max / PAGESIZE;
 
-	cprintf("Physical memory: %dK available, ", (int)(maxpa/1024));
-	cprintf("base = %dK, extended = %dK\n", (int)(basemem/1024), (int)(extmem/1024));
+	cprintf("Physical memory: %dK available, ", (int)(mem_max/1024));
+	cprintf("base = %dK, extended = %dK\n",
+		(int)(basemem/1024), (int)(extmem/1024));
 
 
 #if SOL >= 1
@@ -68,15 +70,16 @@ mem_init(void)
 	memset(mem_pageinfo, 0, sizeof(pageinfo) * mem_npage);
 
 	// Free extended memory starts just past the pageinfo array.
-	freemem = &pageinfo[mem_npage];
+	freemem = &mem_pageinfo[mem_npage];
 
 
 	// Align freemem to page boundary.
 	freemem = ROUNDUP(freemem, PAGESIZE);
 
 	// Chain all the available physical pages onto the free page list.
-	mem_free = 0;		// Initialize mem_free list to empty.
-	for (i = 0; i < npage; i++) {
+	spinlock_init(&mem_freelock, "mem_freelist lock");
+	mem_freelist = 0;	// Initialize mem_freelist to empty.
+	for (i = 0; i < mem_npage; i++) {
 		// Off-limits until proven otherwise.
 		inuse = 1;
 
@@ -87,14 +90,14 @@ mem_init(void)
 		// The IO hole and the kernel abut.
 
 		// The memory past the kernel is free.
-		if (i >= PADDR(boot_freemem) / PAGESIZE)
+		if (i >= mem_phys(freemem) / PAGESIZE)
 			inuse = 0;
 
 		mem_pageinfo[i].refcount = inuse;
 		if (!inuse) {
 			// Insert page into the free page list.
-			mem_pageinfo[i].free_next = mem_free;
-			mem_free = &mem_pageinfo[i];
+			mem_pageinfo[i].free_next = mem_freelist;
+			mem_freelist = &mem_pageinfo[i];
 		}
 	}
 
@@ -118,9 +121,9 @@ mem_init(void)
 		// A free page has no references to it.
 		mem_pageinfo[i].refcount = 0;
 
-		// Add the page to the mem_free list.
-		mem_pageinfo[i].free_next = mem_free;
-		mem_free = &mem_pageinfo[i];
+		// Add the page to the mem_freelist.
+		mem_pageinfo[i].free_next = mem_freelist;
+		mem_freelist = &mem_pageinfo[i];
 	}
 #endif /* not SOL >= 1 */
 
@@ -144,15 +147,15 @@ mem_alloc(void)
 {
 	// Fill this function in
 #if SOL >= 2
-	spinlock_acquire(&mem_free_lock);
+	spinlock_acquire(&mem_freelock);
 
 	pageinfo *pi = mem_free;
 	if (pi != NULL) {
-		mem_free = pi->free_next;	// Remove page from free list
+		mem_freelist = pi->free_next;	// Remove page from free list
 		pi->free_next = NULL;		// Mark it not on the free list
 	}
 
-	spinlock_release(&mem_free_lock);
+	spinlock_release(&mem_freelock);
 
 	return pi;	// Return pageinfo pointer or NULL
 
@@ -175,13 +178,13 @@ mem_free(pageinfo *pi)
 	if (pi->free_next != NULL)
 		panic("mem_free: attempt to free already free page!");
 
-	spinlock_acquire(&mem_free_lock);
+	spinlock_acquire(&mem_freelock);
 
 	// Insert the page at the head of the free list.
 	pi->free_next = mem_free;
 	mem_free = pi;
 
-	spinlock_release(&mem_free_lock);
+	spinlock_release(&mem_freelock);
 #else /* not SOL >= 2 */
 	// Fill this function in.
 	panic("mem_free not implemented.");
@@ -195,8 +198,8 @@ mem_free(pageinfo *pi)
 void
 page_decref(pageinfo* pp)
 {
-	if (--pp->pp_ref == 0)
-		page_free(pp);
+	if (--pp->refcount == 0)
+		mem_free(pp);
 }
 
 
@@ -208,57 +211,57 @@ void
 mem_check()
 {
 	pageinfo *pp, *pp0, *pp1, *pp2;
-	pageinfo fl;
+	pageinfo *fl;
 	int i;
 
         // if there's a page that shouldn't be on
         // the free list, try to make sure it
         // eventually causes trouble.
-	for (i = mem_free; i != 0; i = mem_pageinfo[i].free_next)
-		memset((void*)(i * PAGESIZE), 0x97, 128);
+	for (pp = mem_freelist; pp != 0; pp = pp->free_next)
+		memset(mem_pi2ptr(pp), 0x97, 128);
 
 	// should be able to allocate three pages
 	pp0 = pp1 = pp2 = 0;
-	assert(page_alloc(&pp0) == 0);
-	assert(page_alloc(&pp1) == 0);
-	assert(page_alloc(&pp2) == 0);
+	pp0 = mem_alloc(); assert(pp0 != 0);
+	pp1 = mem_alloc(); assert(pp1 != 0);
+	pp2 = mem_alloc(); assert(pp2 != 0);
 
 	assert(pp0);
 	assert(pp1 && pp1 != pp0);
 	assert(pp2 && pp2 != pp1 && pp2 != pp0);
-        assert(page2pa(pp0) < npage*PAGESIZE);
-        assert(page2pa(pp1) < npage*PAGESIZE);
-        assert(page2pa(pp2) < npage*PAGESIZE);
+        assert(mem_pi2phys(pp0) < mem_npage*PAGESIZE);
+        assert(mem_pi2phys(pp1) < mem_npage*PAGESIZE);
+        assert(mem_pi2phys(pp2) < mem_npage*PAGESIZE);
 
 	// temporarily steal the rest of the free pages
-	fl = page_free_list;
-	LIST_INIT(&page_free_list);
+	fl = mem_freelist;
+	mem_freelist = 0;
 
 	// should be no free memory
-	assert(page_alloc(&pp) == -E_NO_MEM);
+	assert(mem_alloc() == 0);
 
         // free and re-allocate?
-        page_free(pp0);
-        page_free(pp1);
-        page_free(pp2);
+        mem_free(pp0);
+        mem_free(pp1);
+        mem_free(pp2);
 	pp0 = pp1 = pp2 = 0;
-	assert(page_alloc(&pp0) == 0);
-	assert(page_alloc(&pp1) == 0);
-	assert(page_alloc(&pp2) == 0);
+	pp0 = mem_alloc(); assert(pp0 != 0);
+	pp1 = mem_alloc(); assert(pp1 != 0);
+	pp2 = mem_alloc(); assert(pp2 != 0);
 	assert(pp0);
 	assert(pp1 && pp1 != pp0);
 	assert(pp2 && pp2 != pp1 && pp2 != pp0);
-	assert(page_alloc(&pp) == -E_NO_MEM);
+	assert(mem_alloc() == 0);
 
 	// give free list back
-	page_free_list = fl;
+	mem_freelist = fl;
 
 	// free the pages we took
-	page_free(pp0);
-	page_free(pp1);
-	page_free(pp2);
+	mem_free(pp0);
+	mem_free(pp1);
+	mem_free(pp2);
 
 	cprintf("mem_check() succeeded!\n");
 }
 
-#endif /* LAB >= 3 */
+#endif /* LAB >= 1 */

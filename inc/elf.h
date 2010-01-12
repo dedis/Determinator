@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 1
 /* See COPYRIGHT for copyright information. */
 
 #ifndef PIOS_INC_ELF_H
@@ -66,4 +66,4 @@ struct Secthdr {
 #define ELF_SHN_UNDEF		0
 
 #endif /* !PIOS_INC_ELF_H */
-#endif /* LAB >= 4 */
+#endif /* LAB >= 1 */

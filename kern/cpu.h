@@ -7,6 +7,10 @@
 # error "This is a PIOS kernel header; user programs should not #include it"
 #endif
 
+#include <inc/types.h>
+#include <inc/x86.h>
+#include <inc/mmu.h>
+
 
 // Global segment descriptor numbers used by the kernel
 #define CPU_GDT_NULL	0x00	// null descriptor (required by x86 processor)
@@ -34,9 +38,14 @@ typedef struct cpu {
 	// each processor needs its own TSS segment descriptor.
 	// We could have a single, "global" GDT with multiple TSS descriptors,
 	// but it's easier just to have a separate fixed-size GDT per CPU.
-	segdesc		gdt[CPU_GDT_NDESC] =
-	
+	segdesc		gdt[CPU_GDT_NDESC];
+
 } cpu;
+
+
+// Find the CPU struct representing the current CPU.
+// It always resides at the bottom of the page containing the CPU's stack.
+#define cpu_cur()	((cpu*) ROUNDDOWN(read_esp(), PAGESIZE))
 
 
 #endif // PIOS_KERN_CPU_H
