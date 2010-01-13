@@ -4,14 +4,18 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 
+#include <kern/main.h>
 #include <kern/monitor.h>
 #include <kern/console.h>
+#include <kern/mem.h>
+#include <kern/cpu.h>
+#include <kern/mp.h>
+#include <kern/trap.h>
 #if LAB >= 2
 #include <kern/pmap.h>
 #include <kern/kclock.h>
 #if LAB >= 3
 #include <kern/env.h>
-#include <kern/trap.h>
 #if LAB >= 4
 #include <kern/sched.h>
 #include <kern/picirq.h>
@@ -22,6 +26,10 @@
 #endif	// LAB >= 4
 #endif	// LAB >= 3
 #endif	// LAB >= 2
+
+#include <dev/lapic.h>
+
+
 
 #if LAB >= 2	// ...then leave this code out.
 #elif LAB >= 1
@@ -38,6 +46,9 @@ test_backtrace(int x)
 }
 #endif
 
+// Called from entry.S, only on the bootstrap processor.
+// PIOS conventional: all '_init' functions get called
+// only at bootstrap and only on the bootstrap processor.
 void
 init(void)
 {
@@ -52,11 +63,23 @@ init(void)
 	// Can't call cprintf until after we do this!
 	cons_init();
 
-#ifndef ENV_CLASS_NYU
-	cprintf("6828 decimal is %o octal!\n", 6828);
-#else /* !ENV_CLASS_NYU */
-	cprintf("480 decimal is %o octal!\n", 480);
-#endif /* !ENV_CLASS_NYU */
+	cprintf("1234 decimal is %o octal!\n", 1234);
+
+	// Initialize and load the bootstrap CPU's GDT, TSS, and IDT.
+	cpu_init(&bootcpu);
+	assert(cpu_cur() == &bootcpu);	// cpu_cur() should now work
+	trap_init();
+
+	cpu_startup();		// load GDT, TSS
+	trap_startup();		// load IDT
+	lapic_startup();	// setup boot CPU's local APIC
+
+	// Find and init other processors in a multiprocessor system
+	mp_init();
+
+	// Physical memory detection/initialization.
+	// Can't call mem_alloc until after we do this!
+	mem_init();
 
 #if LAB >= 2
 	// Lab 2 memory management initialization functions
@@ -179,7 +202,13 @@ init(void)
 #endif
 #endif
 
+	cpu_bootothers();	// Get other processors started
+
+	startup();		// Continue with per-CPU startup
+
+#if LAB >= 99
 #if LAB >= 2
+
 #else
 	// Test the stack backtrace function (lab 1 only)
 	test_backtrace(5);
@@ -190,6 +219,25 @@ init(void)
 	while (1)
 		monitor(NULL);
 #endif
+#endif
+}
+
+
+// Called after bootstrap initialization on ALL processors,
+// to initialize each CPU's private state and start it doing work.
+// PIOS convention: all '_startup' functions get called on every processor.
+void
+startup(void)
+{
+	if (cpu_cur() != &bootcpu) {	// already done by init() on boot CPU
+		cpu_startup();
+		trap_startup();
+		lapic_startup();
+	}
+
+	cprintf("CPU %d has booted\n", cpu_cur()->id);
+	while (1)
+		;
 }
 
 

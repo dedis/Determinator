@@ -49,13 +49,15 @@ spin:	jmp	spin
 
 
 ###################################################################
-# boot stack
+# bootstrap CPU struct and bootstrap stack:
+# cpu struct is at the beginning of a page-aligned page;
+# its stack starts at the top of the same page.
 ###################################################################
-#	.p2align	PAGESHIFT		# XXX force page alignment
-	.globl		bootstack
-bootstack:
-	.space		8*4096			# XXX KSTACKSIZE
-	.globl		bootstacktop   
+	.p2align	12			# force page alignment
+	.globl		bootcpu
+bootcpu:
+	.space		4096			# PAGESIZE
+	.globl		bootstacktop
 bootstacktop:
 
 #endif // LAB >= 1

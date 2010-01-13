@@ -31,7 +31,7 @@ pic_init(void)
 	outb(IO_PIC1, 0x11);
 
 	// ICW2:  Vector offset
-	outb(IO_PIC1+1, IRQ_OFFSET);
+	outb(IO_PIC1+1, T_IRQ0);
 
 	// ICW3:  bit mask of IR lines connected to slave PICs (master PIC),
 	//        3-bit No of IR line at which slave connects to master(slave PIC).
@@ -49,7 +49,7 @@ pic_init(void)
 
 	// Set up slave (8259A-2)
 	outb(IO_PIC2, 0x11);			// ICW1
-	outb(IO_PIC2+1, IRQ_OFFSET + 8);	// ICW2
+	outb(IO_PIC2+1, T_IRQ0 + 8);		// ICW2
 	outb(IO_PIC2+1, IRQ_SLAVE);		// ICW3
 	// NB Automatic EOI mode doesn't tend to work on the slave.
 	// Linux source code says it's "to be investigated".

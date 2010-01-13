@@ -7,6 +7,8 @@
 # error "This is a PIOS kernel header; user programs should not #include it"
 #endif
 
+#include <inc/types.h>
+
 
 // At physical address MEM_IO (640K) there is a 384K hole for I/O.
 // The hole ends at physical address MEM_EXT, where extended memory begins.

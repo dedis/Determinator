@@ -16,7 +16,6 @@
 #define IO_PIC2		0xA0	// Slave (IRQs 8-15)
 
 #define IRQ_SLAVE	2	// IRQ at which slave connects to master
-#define IRQ_OFFSET	32	// IRQ 0 corresponds to int IRQ_OFFSET
 
 
 #ifndef __ASSEMBLER__

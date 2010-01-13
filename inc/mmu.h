@@ -99,29 +99,6 @@
 #define CR4_PVI		0x00000002	// Protected-Mode Virtual Interrupts
 #define CR4_VME		0x00000001	// V86 Mode Extensions
 
-// Eflags register
-#define FL_CF		0x00000001	// Carry Flag
-#define FL_PF		0x00000004	// Parity Flag
-#define FL_AF		0x00000010	// Auxiliary carry Flag
-#define FL_ZF		0x00000040	// Zero Flag
-#define FL_SF		0x00000080	// Sign Flag
-#define FL_TF		0x00000100	// Trap Flag
-#define FL_IF		0x00000200	// Interrupt Flag
-#define FL_DF		0x00000400	// Direction Flag
-#define FL_OF		0x00000800	// Overflow Flag
-#define FL_IOPL_MASK	0x00003000	// I/O Privilege Level bitmask
-#define FL_IOPL_0	0x00000000	//   IOPL == 0
-#define FL_IOPL_1	0x00001000	//   IOPL == 1
-#define FL_IOPL_2	0x00002000	//   IOPL == 2
-#define FL_IOPL_3	0x00003000	//   IOPL == 3
-#define FL_NT		0x00004000	// Nested Task
-#define FL_RF		0x00010000	// Resume Flag
-#define FL_VM		0x00020000	// Virtual 8086 mode
-#define FL_AC		0x00040000	// Alignment Check
-#define FL_VIF		0x00080000	// Virtual Interrupt Flag
-#define FL_VIP		0x00100000	// Virtual Interrupt Pending
-#define FL_ID		0x00200000	// ID flag
-
 // Page fault error codes
 #define FEC_PR		0x1	// Page fault caused by protection violation
 #define FEC_WR		0x2	// Page fault caused by a write
@@ -167,6 +144,7 @@ typedef struct segdesc {
 	unsigned sd_g : 1;          // Granularity: limit scaled by 4K when set
 	unsigned sd_base_31_24 : 8; // High bits of segment base address
 } segdesc;
+
 // Null segment
 #define SEGDESC_NULL	(struct segdesc){ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 // Segment that is loadable but faults when used

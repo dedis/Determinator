@@ -3,28 +3,25 @@
 // http://developer.intel.com/design/pentium/datashts/24201606.pdf
 // This source file adapted from xv6.
 
-#include "types.h"
-#include "defs.h"
-#include "param.h"
-#include "mp.h"
-#include "x86.h"
-#include "mmu.h"
-#include "proc.h"
+#include <inc/types.h>
+#include <inc/string.h>
+#include <inc/assert.h>
 
-struct cpu      cpus[NCPU];
-static struct cpu *bcpu;
-int             ismp;
-int             ncpu;
-uchar           ioapicid;
+#include <kern/main.h>
+#include <kern/cpu.h>
+#include <kern/mp.h>
 
-int
-mpbcpu(void)
-{
-	return bcpu - cpus;
-}
+#include <dev/lapic.h>
+#include <dev/ioapic.h>
 
-static uchar
-sum(uchar * addr, int len)
+
+int ismp;
+int ncpu;
+uint8_t ioapicid;
+
+
+static uint8_t
+sum(uint8_t * addr, int len)
 {
 	int i, sum;
 
@@ -36,8 +33,9 @@ sum(uchar * addr, int len)
 
 //Look for an MP structure in the len bytes at addr.
 static struct mp *
-mpsearch1(uchar * addr, int len) {
-	uchar *e, *p;
+mpsearch1(uint8_t * addr, int len)
+{
+	uint8_t *e, *p;
 
 	e = addr + len;
 	for (p = addr; p < e; p += sizeof(struct mp))
@@ -54,20 +52,20 @@ mpsearch1(uchar * addr, int len) {
 static struct mp *
 mpsearch(void)
 {
-	uchar          *bda;
-	uint            p;
+	uint8_t          *bda;
+	uint32_t            p;
 	struct mp      *mp;
 
-	bda = (uchar *) 0x400;
+	bda = (uint8_t *) 0x400;
 	if ((p = ((bda[0x0F] << 8) | bda[0x0E]) << 4)) {
-		if ((mp = mpsearch1((uchar *) p, 1024)))
+		if ((mp = mpsearch1((uint8_t *) p, 1024)))
 			return mp;
 	} else {
 		p = ((bda[0x14] << 8) | bda[0x13]) * 1024;
-		if ((mp = mpsearch1((uchar *) p - 1024, 1024)))
+		if ((mp = mpsearch1((uint8_t *) p - 1024, 1024)))
 			return mp;
 	}
-	return mpsearch1((uchar *) 0xF0000, 0x10000);
+	return mpsearch1((uint8_t *) 0xF0000, 0x10000);
 }
 
 // Search for an MP configuration table.  For now,
@@ -87,38 +85,37 @@ mpconfig(struct mp **pmp) {
 		return 0;
 	if (conf->version != 1 && conf->version != 4)
 		return 0;
-	if (sum((uchar *) conf, conf->length) != 0)
+	if (sum((uint8_t *) conf, conf->length) != 0)
 		return 0;
        *pmp = mp;
 	return conf;
 }
 
 void
-mpinit(void) {
-	uchar          *p, *e;
+mp_init(void)
+{
+	uint8_t          *p, *e;
 	struct mp      *mp;
 	struct mpconf  *conf;
 	struct mpproc  *proc;
 	struct mpioapic *ioapic;
 
-	bcpu = &cpus[0];
 	if ((conf = mpconfig(&mp)) == 0)
-				return;
+		return; // Not a multiprocessor machine - just use bootcpu.
+
 	ismp = 1;
-	lapic = (uint *) conf->lapicaddr;
-	for (p = (uchar *) (conf + 1), e = (uchar *) conf + conf->length;
+	lapic = (uint32_t *) conf->lapicaddr;
+	for (p = (uint8_t *) (conf + 1), e = (uint8_t *) conf + conf->length;
 			p < e;) {
 		switch (*p) {
 		case MPPROC:
 			proc = (struct mpproc *) p;
-			if (ncpu != proc->apicid) {
-				cprintf("mpinit: ncpu=%d apicpid=%d",
-					ncpu, proc->apicid);
-				panic("mpinit");
-			}
-			if (proc->flags & MPBOOT)
-				bcpu = &cpus[ncpu];
-			cpus[ncpu].id = ncpu;
+
+			// Get a cpu struct and kernel stack for this CPU.
+			cpu *c = (proc->flags & MPBOOT)
+					? &bootcpu : cpu_alloc();
+			c->id = proc->apicid;
+
 			ncpu++;
 			p += sizeof(struct mpproc);
 			continue;
@@ -133,8 +130,7 @@ mpinit(void) {
 			p += 8;
 			continue;
 		default:
-			cprintf("mpinit: unknown config type %x\n", *p);
-			panic("mpinit");
+			panic("mpinit: unknown config type %x\n", *p);
 		}
 	}
 	if (mp->imcrp) {

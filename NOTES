@@ -1,6 +1,6 @@
 map:
 lab1: bootstrap, trap/interrupt handling, physical memory allocation
-lab2: threads and synchronization
+lab2: multiprocessors, threads, and synchronization
 lab3: virtual memory, copy-on-write
 lab4: program loading, process reconciliation
 lab5: file system and checkpointing

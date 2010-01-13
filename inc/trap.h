@@ -30,7 +30,9 @@
 #define T_SYSCALL   48		// system call
 #define T_DEFAULT   500		// catchall
 
-// Hardware IRQ numbers. We receive these as (IRQ_OFFSET+IRQ_WHATEVER)
+#define T_IRQ0		32	// This trap corresponds to IRQ0.
+
+// Hardware IRQ numbers. We receive these as (T_IRQ0 + IRQ_WHATEVER)
 #define IRQ_TIMER        0
 #define IRQ_KBD          1
 #define IRQ_SERIAL       4

@@ -14,12 +14,13 @@ KERN_LDFLAGS := $(LDFLAGS) -T kern/kernel.ld -nostdlib
 # We also snatch the use of a couple handy source files
 # from the lib directory, to avoid gratuitous code duplication.
 KERN_SRCFILES :=	kern/entry.S \
-			kern/init.c \
+			kern/main.c \
 			kern/console.c \
 			kern/monitor.c \
-			kern/spinlock.c \
 			kern/mem.c \
-			kern/seg.c \
+			kern/cpu.c \
+			kern/mp.c \
+			kern/spinlock.c \
 			kern/pmap.c \
 			kern/env.c \
 			kern/printf.c \
@@ -30,6 +31,8 @@ KERN_SRCFILES :=	kern/entry.S \
 			dev/pic.c \
 			dev/nvram.c \
 			dev/timer.c \
+			dev/lapic.c \
+			dev/ioapic.c \
 			lib/printfmt.c \
 			lib/readline.c \
 			lib/string.c
@@ -118,7 +121,7 @@ KERN_BINFILES :=	user/hello \
 			user/faultwrite \
 			user/faultwritekernel
 else
-KERN_BINFILES := 
+KERN_BINFILES :=	boot/bootother
 endif	# not LAB3
 endif	# not LAB4
 endif	# not LAB5
@@ -174,3 +177,4 @@ grub: $(OBJDIR)/jos-grub
 $(OBJDIR)/jos-grub: $(OBJDIR)/kern/kernel
 	@echo + oc $@
 	$(V)$(OBJCOPY) --adjust-vma=0x10000000 $^ $@
+

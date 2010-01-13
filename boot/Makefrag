@@ -30,3 +30,9 @@ $(OBJDIR)/boot/boot: $(BOOT_OBJS)
 	$(V)$(OBJCOPY) -S -O binary $@.out $@
 	$(V)perl boot/sign.pl $(OBJDIR)/boot/boot
 
+$(OBJDIR)/boot/bootother: $(OBJDIR)/boot/bootother.o
+	@echo + ld boot/boot
+	$(V)$(LD) $(LDFLAGS) -N -e start -Ttext 0x7000 -o $@.out $^
+	$(V)$(OBJDUMP) -S $@.out >$@.asm
+	$(V)$(OBJCOPY) -S -O binary $@.out $@
+

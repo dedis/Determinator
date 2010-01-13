@@ -56,8 +56,8 @@ trap_init(void)
 	// check that the SIZEOF_STRUCT_TRAPFRAME symbol is defined correctly
 	static_assert(sizeof(trapframe) == SIZEOF_STRUCT_TRAPFRAME);
 #if SOL >= 4
-	// check that IRQ_OFFSET is a multiple of 8
-	static_assert((IRQ_OFFSET & 7) == 0);
+	// check that T_IRQ0 is a multiple of 8
+	static_assert((T_IRQ0 & 7) == 0);
 #endif
 
 	// install a default handler
@@ -83,22 +83,22 @@ trap_init(void)
 	SETGATE(idt[T_MCHK],   0, CPU_GDT_KCODE, &Xmchk,   0);
 
 #if SOL >= 4
-	SETGATE(idt[IRQ_OFFSET + 0], 0, CPU_GDT_KCODE, &Xirq0, 0);
-	SETGATE(idt[IRQ_OFFSET + 1], 0, CPU_GDT_KCODE, &Xirq1, 0);
-	SETGATE(idt[IRQ_OFFSET + 2], 0, CPU_GDT_KCODE, &Xirq2, 0);
-	SETGATE(idt[IRQ_OFFSET + 3], 0, CPU_GDT_KCODE, &Xirq3, 0);
-	SETGATE(idt[IRQ_OFFSET + 4], 0, CPU_GDT_KCODE, &Xirq4, 0);
-	SETGATE(idt[IRQ_OFFSET + 5], 0, CPU_GDT_KCODE, &Xirq5, 0);
-	SETGATE(idt[IRQ_OFFSET + 6], 0, CPU_GDT_KCODE, &Xirq6, 0);
-	SETGATE(idt[IRQ_OFFSET + 7], 0, CPU_GDT_KCODE, &Xirq7, 0);
-	SETGATE(idt[IRQ_OFFSET + 8], 0, CPU_GDT_KCODE, &Xirq8, 0);
-	SETGATE(idt[IRQ_OFFSET + 9], 0, CPU_GDT_KCODE, &Xirq9, 0);
-	SETGATE(idt[IRQ_OFFSET + 10], 0, CPU_GDT_KCODE, &Xirq10, 0);
-	SETGATE(idt[IRQ_OFFSET + 11], 0, CPU_GDT_KCODE, &Xirq11, 0);
-	SETGATE(idt[IRQ_OFFSET + 12], 0, CPU_GDT_KCODE, &Xirq12, 0);
-	SETGATE(idt[IRQ_OFFSET + 13], 0, CPU_GDT_KCODE, &Xirq13, 0);
-	SETGATE(idt[IRQ_OFFSET + 14], 0, CPU_GDT_KCODE, &Xirq14, 0);
-	SETGATE(idt[IRQ_OFFSET + 15], 0, CPU_GDT_KCODE, &Xirq15, 0);
+	SETGATE(idt[T_IRQ0 + 0], 0, CPU_GDT_KCODE, &Xirq0, 0);
+	SETGATE(idt[T_IRQ0 + 1], 0, CPU_GDT_KCODE, &Xirq1, 0);
+	SETGATE(idt[T_IRQ0 + 2], 0, CPU_GDT_KCODE, &Xirq2, 0);
+	SETGATE(idt[T_IRQ0 + 3], 0, CPU_GDT_KCODE, &Xirq3, 0);
+	SETGATE(idt[T_IRQ0 + 4], 0, CPU_GDT_KCODE, &Xirq4, 0);
+	SETGATE(idt[T_IRQ0 + 5], 0, CPU_GDT_KCODE, &Xirq5, 0);
+	SETGATE(idt[T_IRQ0 + 6], 0, CPU_GDT_KCODE, &Xirq6, 0);
+	SETGATE(idt[T_IRQ0 + 7], 0, CPU_GDT_KCODE, &Xirq7, 0);
+	SETGATE(idt[T_IRQ0 + 8], 0, CPU_GDT_KCODE, &Xirq8, 0);
+	SETGATE(idt[T_IRQ0 + 9], 0, CPU_GDT_KCODE, &Xirq9, 0);
+	SETGATE(idt[T_IRQ0 + 10], 0, CPU_GDT_KCODE, &Xirq10, 0);
+	SETGATE(idt[T_IRQ0 + 11], 0, CPU_GDT_KCODE, &Xirq11, 0);
+	SETGATE(idt[T_IRQ0 + 12], 0, CPU_GDT_KCODE, &Xirq12, 0);
+	SETGATE(idt[T_IRQ0 + 13], 0, CPU_GDT_KCODE, &Xirq13, 0);
+	SETGATE(idt[T_IRQ0 + 14], 0, CPU_GDT_KCODE, &Xirq14, 0);
+	SETGATE(idt[T_IRQ0 + 15], 0, CPU_GDT_KCODE, &Xirq15, 0);
 #endif	// SOL >= 4
 
 	// Use DPL=3 here because system calls are explicitly invoked
@@ -108,8 +108,12 @@ trap_init(void)
 	
 	// LAB 3: Your code here.
 #endif	// SOL >= 3
+}
 
-	// Load the IDT
+void
+trap_startup(void)
+{
+	// Load the IDT into this processor's IDT register.
 	asm volatile("lidt %0" : : "m" (idt_pd));
 }
 
@@ -143,7 +147,7 @@ const char *trap_name(int trapno)
 	if (trapno == T_SYSCALL)
 		return "System call";
 #if LAB >= 4
-	if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + 16)
+	if (trapno >= T_IRQ0 && trapno < T_IRQ0 + 16)
 		return "Hardware Interrupt";
 #endif
 	return "(unknown trap)";
@@ -210,7 +214,7 @@ trap_dispatch(trapframe *tf)
 #if LAB >= 4
 #if SOL >= 4
 	// New in Lab 4: Handle external interrupts
-	if (tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER) {
+	if (tf->tf_trapno == T_IRQ0 + IRQ_TIMER) {
 		// irq 0 -- clock interrupt
 #if SOL >= 6
 		time_tick();
@@ -218,17 +222,17 @@ trap_dispatch(trapframe *tf)
 		sched_yield();
 	}
 #if SOL >= 7
-	if (tf->tf_trapno == IRQ_OFFSET + IRQ_KBD) {
+	if (tf->tf_trapno == T_IRQ0 + IRQ_KBD) {
 		kbd_intr();
 		return;
 	}
 #endif	// SOL >= 7
-	if (tf->tf_trapno == IRQ_OFFSET + IRQ_SERIAL) {
+	if (tf->tf_trapno == T_IRQ0 + IRQ_SERIAL) {
 		serial_intr();
 		return;
 	}
 #if SOL >= 6
-	if (tf->tf_trapno == IRQ_OFFSET + e100_irq) {
+	if (tf->tf_trapno == T_IRQ0 + e100_irq) {
 		e100_intr();
 		pic_eoi();
 		return;
@@ -246,7 +250,7 @@ trap_dispatch(trapframe *tf)
 	// Handle spurious interupts
 	// The hardware sometimes raises these because of noise on the
 	// IRQ line or other reasons. We don't care.
-	if (tf->tf_trapno == IRQ_OFFSET + IRQ_SPURIOUS) {
+	if (tf->tf_trapno == T_IRQ0 + IRQ_SPURIOUS) {
 		cprintf("Spurious interrupt on irq 7\n");
 		print_trapframe(tf);
 		return;
@@ -322,6 +326,10 @@ trap(trapframe *tf)
 void
 trap_return(trapframe *tf)
 {
+	// Check to make sure the ring 0 stack hasn't overflowed
+	// onto the current cpu struct.
+	assert(cpu_cur()->magic == CPU_MAGIC);
+
 	__asm __volatile(
 		"movl %0,%%esp;"
 		"popal;"

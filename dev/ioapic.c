@@ -3,9 +3,14 @@
 // See also picirq.c.
 // This source file adapted from xv6.
 
-#include "types.h"
-#include "defs.h"
-#include "traps.h"
+#include <inc/types.h>
+#include <inc/trap.h>
+#include <inc/assert.h>
+
+#include <kern/mp.h>
+
+#include <dev/ioapic.h>
+
 
 #define IOAPIC  0xFEC00000   // Default physical address of IO APIC
 
@@ -23,60 +28,62 @@
 #define INT_ACTIVELOW  0x00002000  // Active low (vs high)
 #define INT_LOGICAL    0x00000800  // Destination is CPU id (vs APIC ID)
 
-volatile struct ioapic *ioapic;
+
+static volatile struct ioapic *ioapic;
+
 
 // IO APIC MMIO structure: write reg, then read or write data.
 struct ioapic {
-  uint reg;
-  uint pad[3];
-  uint data;
+	uint32_t reg;
+	uint32_t pad[3];
+	uint32_t data;
 };
 
-static uint
-ioapicread(int reg)
+static uint32_t
+ioapic_read(int reg)
 {
-  ioapic->reg = reg;
-  return ioapic->data;
+	ioapic->reg = reg;
+	return ioapic->data;
 }
 
 static void
-ioapicwrite(int reg, uint data)
+ioapic_write(int reg, uint32_t data)
 {
-  ioapic->reg = reg;
-  ioapic->data = data;
+	ioapic->reg = reg;
+	ioapic->data = data;
 }
 
 void
-ioapicinit(void)
+ioapic_init(void)
 {
-  int i, id, maxintr;
+	int i, id, maxintr;
 
-  if(!ismp)
-    return;
+	if(!ismp)
+		return;
 
-  ioapic = (volatile struct ioapic*)IOAPIC;
-  maxintr = (ioapicread(REG_VER) >> 16) & 0xFF;
-  id = ioapicread(REG_ID) >> 24;
-  if(id != ioapicid)
-    cprintf("ioapicinit: id isn't equal to ioapicid; not a MP\n");
+	ioapic = (volatile struct ioapic*)IOAPIC;
+	maxintr = (ioapic_read(REG_VER) >> 16) & 0xFF;
+	id = ioapic_read(REG_ID) >> 24;
+	if (id != ioapicid)
+		cprintf("ioapicinit: id isn't equal to ioapicid; not a MP\n");
 
-  // Mark all interrupts edge-triggered, active high, disabled,
-  // and not routed to any CPUs.
-  for(i = 0; i <= maxintr; i++){
-    ioapicwrite(REG_TABLE+2*i, INT_DISABLED | (T_IRQ0 + i));
-    ioapicwrite(REG_TABLE+2*i+1, 0);
-  }
+	// Mark all interrupts edge-triggered, active high, disabled,
+	// and not routed to any CPUs.
+	for (i = 0; i <= maxintr; i++){
+		ioapic_write(REG_TABLE+2*i, INT_DISABLED | (T_IRQ0 + i));
+		ioapic_write(REG_TABLE+2*i+1, 0);
+	}
 }
 
 void
-ioapicenable(int irq, int cpunum)
+ioapic_enable(int irq, int apicid)
 {
-  if(!ismp)
-    return;
+	if (!ismp)
+		return;
 
-  // Mark interrupt edge-triggered, active high,
-  // enabled, and routed to the given cpunum,
-  // which happens to be that cpu's APIC ID.
-  ioapicwrite(REG_TABLE+2*irq, T_IRQ0 + irq);
-  ioapicwrite(REG_TABLE+2*irq+1, cpunum << 24);
+	// Mark interrupt edge-triggered, active high,
+	// enabled, and routed to the given APIC ID,
+	ioapic_write(REG_TABLE+2*irq, T_IRQ0 + irq);
+	ioapic_write(REG_TABLE+2*irq+1, apicid << 24);
 }
+

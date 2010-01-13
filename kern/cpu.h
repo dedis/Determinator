@@ -7,6 +7,7 @@
 # error "This is a PIOS kernel header; user programs should not #include it"
 #endif
 
+#include <inc/assert.h>
 #include <inc/types.h>
 #include <inc/x86.h>
 #include <inc/mmu.h>
@@ -24,9 +25,8 @@
 
 // Per-CPU kernel state structure.
 typedef struct cpu {
-
-	// Each CPU has its own privileged (ring 0) interrupt stack
-	uint32_t	istack;
+	// Next in list of all CPUs (cpu_list) below
+	struct cpu	*next;
 
 	// Each CPU needs its own TSS,
 	// because when the processor switches from lower to higher privilege,
@@ -40,12 +40,56 @@ typedef struct cpu {
 	// but it's easier just to have a separate fixed-size GDT per CPU.
 	segdesc		gdt[CPU_GDT_NDESC];
 
+	// Local APIC ID of this CPU, for inter-processor interrupts etc.
+	uint8_t		id;
+
+	// Flag used in cpu.c to serialize bootstrap of all CPUs
+	uint32_t	booted;
+
+	// Magic verification tag (CPU_MAGIC) to help detect corruption,
+	// e.g., if the CPU's ring 0 stack overflows down onto the cpu struct.
+	uint32_t	magic;
 } cpu;
+
+#define CPU_MAGIC	0x98765432	// cpu.magic should always = this
+
+// Compute the location of a CPU's ring 0 kernel stack given a cpu struct.
+// The cpu struct always begins at a page boundary,
+// and the stack grows downward from the top of that same page.
+#define cpu_kstack(cpu)	((void*)(cpu) + PAGESIZE)
+
+
+// List of CPU structs for all CPUs.
+// Set up at initialization time and then never changed;
+// thus no lock required to protect this list.
+cpu *cpu_list;
 
 
 // Find the CPU struct representing the current CPU.
 // It always resides at the bottom of the page containing the CPU's stack.
-#define cpu_cur()	((cpu*) ROUNDDOWN(read_esp(), PAGESIZE))
+static inline cpu *
+cpu_cur() {
+	cpu *c = (cpu*)ROUNDDOWN(read_esp(), PAGESIZE);
+	assert(c->magic == CPU_MAGIC);
+	return c;
+}
+
+
+// Initialize a new cpu struct, and add it to the cpu_list.
+// Must be provided a whole, page-aligned page, to make room for kstack.
+void cpu_init(cpu *c);
+
+// Allocate and initialize a new cpu struct, and add it to the cpu_list.
+// Only called during bootup.
+cpu *cpu_alloc(void);
+
+// Get any additional processors booted up and running.
+void cpu_bootothers(void);
+
+// Set up the current CPU's private register state such as GDT and TSS.
+// Assumes the cpu struct for this CPU is already initialized
+// and that we're running on the cpu's correct kernel stack.
+void cpu_startup(void);
 
 
 #endif // PIOS_KERN_CPU_H
