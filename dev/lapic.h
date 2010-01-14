@@ -1,4 +1,4 @@
-#if LAB >= 1
+#if LAB >= 2
 // Local APIC (Advanced Programmable Interrupt Controller) definitions.
 // Adapted from xv6.
 // See COPYRIGHT for copyright information.
@@ -54,4 +54,4 @@ void lapic_startcpu(uint8_t apicid, uint32_t addr);
 
 
 #endif /* !PIOS_DEV_LAPIC_H */
-#endif // LAB >= 1
+#endif // LAB >= 2

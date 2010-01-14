@@ -9,7 +9,9 @@
 #include <kern/mem.h>
 #include <kern/cpu.h>
 
+#if LAB >= 2
 #include <dev/lapic.h>
+#endif
 
 
 // Global descriptor table initialization prototype.
@@ -84,6 +86,7 @@ cpu_alloc(void)
 	return c;
 }
 
+#if LAB >= 2
 void
 cpu_bootothers(void)
 {
@@ -112,6 +115,7 @@ cpu_bootothers(void)
 			;
 	}
 }
+#endif	// LAB >= 2
 
 void cpu_setup()
 {

@@ -1,3 +1,5 @@
+#if LAB >= 2
+
 #include <inc/mmu.h>
 
 # Each non-boot CPU ("AP") is started up in response to a STARTUP
@@ -82,3 +84,4 @@ gdtdesc:
 	.word   (gdtdesc - gdt - 1)             # sizeof(gdt) - 1
 	.long   gdt                             # address gdt
 
+#endif	// LAB >= 2

@@ -1,4 +1,4 @@
-#if LAB >= 1
+#if LAB >= 2
 // Multiprocessor bootstrap definitions.
 // See MultiProcessor Specification Version 1.[14]
 // This source file adapted from xv6.
@@ -71,4 +71,4 @@ uint8_t ioapicid;		// I/O APIC ID
 void mp_init(void);
 
 #endif /* !PIOS_KERN_MP_H */
-#endif // LAB >= 1
+#endif // LAB >= 2

@@ -1,3 +1,4 @@
+#if LAB >= 2
 // Multiprocessor bootstrap.
 // Search memory for MP description structures.
 // http://developer.intel.com/design/pentium/datashts/24201606.pdf
@@ -141,3 +142,4 @@ mp_init(void)
 	}
 }
 
+#endif	// LAB >= 2

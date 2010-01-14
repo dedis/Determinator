@@ -1,3 +1,4 @@
+#if LAB >= 2
 // The I/O APIC manages hardware interrupts for an SMP system.
 // http://www.intel.com/design/chipsets/datashts/29056601.pdf
 // See also picirq.c.
@@ -87,3 +88,4 @@ ioapic_enable(int irq, int apicid)
 	ioapic_write(REG_TABLE+2*irq+1, apicid << 24);
 }
 
+#endif	// LAB >= 2

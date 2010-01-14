@@ -1,4 +1,4 @@
-#if LAB >= 1
+#if LAB >= 2
 // I/O APIC (Advanced Programmable Interrupt Controller) definitions.
 // Adapted from xv6.
 // See COPYRIGHT for copyright information.
@@ -15,4 +15,4 @@ void ioapic_enable(int irq, int apicid);
 
 
 #endif /* !PIOS_DEV_IOAPIC_H */
-#endif // LAB >= 1
+#endif // LAB >= 2

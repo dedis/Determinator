@@ -14,7 +14,7 @@ KERN_LDFLAGS := $(LDFLAGS) -Ttext=0x00100000 -e start -nostdlib
 # We also snatch the use of a couple handy source files
 # from the lib directory, to avoid gratuitous code duplication.
 KERN_SRCFILES :=	kern/entry.S \
-			kern/main.c \
+			kern/init.c \
 			kern/console.c \
 			kern/debug.c \
 			kern/mem.c \
@@ -123,7 +123,9 @@ KERN_BINFILES :=	user/hello \
 			user/faultwrite \
 			user/faultwritekernel
 else
+ifdef LAB2
 KERN_BINFILES :=	boot/bootother
+endif	# not LAB2
 endif	# not LAB3
 endif	# not LAB4
 endif	# not LAB5

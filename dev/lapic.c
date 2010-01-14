@@ -1,3 +1,4 @@
+#if LAB >= 2
 // The local APIC manages internal (non-I/O) interrupts.
 // See Chapter 8 & Appendix C of Intel processor manual volume 3.
 // Adapted from xv6.
@@ -143,3 +144,4 @@ lapic_startcpu(uint8_t apicid, uint32_t addr)
 	}
 }
 
+#endif	// LAB >= 2
