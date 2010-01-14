@@ -20,7 +20,6 @@ void init(void);
 
 // Called after bootstrap initialization on ALL processors,
 // to initialize each CPU's private state and start it doing work.
-// PIOS convention: all '_startup' functions get called on every processor.
 void startup(void);
 
 

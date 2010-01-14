@@ -47,7 +47,7 @@ typedef struct cpu {
 	uint8_t		id;
 
 	// Flag used in cpu.c to serialize bootstrap of all CPUs
-	uint32_t	booted;
+	volatile uint32_t booted;
 
 	// For trap handling: recovery EIP when running sensitive code.
 	void *		recovery;
@@ -95,7 +95,7 @@ void cpu_bootothers(void);
 // Set up the current CPU's private register state such as GDT and TSS.
 // Assumes the cpu struct for this CPU is already initialized
 // and that we're running on the cpu's correct kernel stack.
-void cpu_startup(void);
+void cpu_setup(void);
 
 #endif	// ! __ASSEMBLER__
 

@@ -15,7 +15,7 @@
 void trap_init(void);
 
 // Load the (already-initialized) IDT into the current processor.
-void trap_startup(void);
+void trap_setup(void);
 
 // Return a string constant describing a given trap number,
 // or "(unknown trap)" if not known.

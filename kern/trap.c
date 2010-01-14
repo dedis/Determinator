@@ -113,7 +113,7 @@ trap_init(void)
 }
 
 void
-trap_startup(void)
+trap_setup(void)
 {
 	// Load the IDT into this processor's IDT register.
 	asm volatile("lidt %0" : : "m" (idt_pd));
@@ -241,7 +241,7 @@ trap_return(trapframe *tf)
 
 
 // Check the trap handling mechanism for correct operation
-// after trap_init() and trap_startup().
+// after trap_init() and trap_setup().
 void
 trap_check(void)
 {

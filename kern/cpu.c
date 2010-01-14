@@ -113,7 +113,7 @@ cpu_bootothers(void)
 	}
 }
 
-void cpu_startup()
+void cpu_setup()
 {
 	cpu *c = cpu_cur();
 	assert(c->magic == CPU_MAGIC);

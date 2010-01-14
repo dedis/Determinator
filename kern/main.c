@@ -57,16 +57,16 @@ init(void)
 	assert(cpu_cur() == &bootcpu);	// cpu_cur() should now work
 	trap_init();
 
-	cpu_startup();		// load GDT, TSS
-	trap_startup();		// load IDT
-	lapic_startup();	// setup boot CPU's local APIC
-
-	// Find and init other processors in a multiprocessor system
-	mp_init();
+	cpu_setup();		// load GDT, TSS
+	trap_setup();		// load IDT
+	lapic_setup();		// setup boot CPU's local APIC
 
 	// Physical memory detection/initialization.
 	// Can't call mem_alloc until after we do this!
 	mem_init();
+
+	// Find and init other processors in a multiprocessor system
+	mp_init();
 
 #if LAB >= 2
 	// Lab 2 memory management initialization functions
@@ -197,17 +197,18 @@ init(void)
 
 // Called after bootstrap initialization on ALL processors,
 // to initialize each CPU's private state and start it doing work.
-// PIOS convention: all '_startup' functions get called on every processor.
+// PIOS convention: all '_setup' functions get called on every processor.
 void
 startup(void)
 {
 	if (cpu_cur() != &bootcpu) {	// already done by init() on boot CPU
-		cpu_startup();
-		trap_startup();
-		lapic_startup();
+		cpu_setup();
+		trap_setup();
+		lapic_setup();
 	}
 
-	cprintf("CPU %d has booted\n", cpu_cur()->id);
+	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
+		cpu_cur() == &bootcpu ? "BP" : "AP");
 	while (1)
 		;
 }
