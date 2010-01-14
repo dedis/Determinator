@@ -109,9 +109,9 @@ mem_init(void)
 	//     This way we preserve the real-mode IDT and BIOS structures
 	//     in case we ever need them.  (Currently we don't, but...)
 	//  2) Mark the rest of base memory as free.
-	//  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM).
+	//  3) Then comes the IO hole [MEM_IO, MEM_EXT).
 	//     Mark it as in use so that it can never be allocated.      
-	//  4) Then extended memory [EXTPHYSMEM, ...).
+	//  4) Then extended memory [MEM_EXT, ...).
 	//     Some of it is in use, some is free. Where is the kernel?
 	//     Which pages are used for page tables and other data structures?
 	//

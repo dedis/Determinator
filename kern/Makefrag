@@ -28,6 +28,9 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/trapentry.S \
 			kern/sched.c \
 			kern/syscall.c \
+			dev/video.c \
+			dev/kbd.c \
+			dev/serial.c \
 			dev/pic.c \
 			dev/nvram.c \
 			dev/timer.c \

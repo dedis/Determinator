@@ -1,5 +1,11 @@
-#ifndef PIOS_KBDREG_H
-#define PIOS_KBDREG_H
+// PC keyboard input.
+// See COPYRIGHT for copyright information.
+#ifndef PIOS_KERN_KBD_H_
+#define PIOS_KERN_KBD_H_
+#ifndef PIOS_KERNEL
+# error "This is a PIOS kernel header; user programs should not #include it"
+#endif
+
 
 // Special keycodes
 #define KEY_HOME	0xE0
@@ -80,4 +86,8 @@
 #define	KBR_RSTDONE	0xAA	/* reset complete */
 #define	KBR_ECHO	0xEE	/* echo response */
 
-#endif /* !PIOS_KBDREG_H */
+
+void kbd_init(void);
+void kbd_intr(void);
+
+#endif /* PIOS_KERN_KBD_H_ */
