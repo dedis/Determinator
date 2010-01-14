@@ -5,8 +5,8 @@
 #include <inc/assert.h>
 
 #include <kern/main.h>
-#include <kern/monitor.h>
 #include <kern/console.h>
+#include <kern/debug.h>
 #include <kern/mem.h>
 #include <kern/cpu.h>
 #include <kern/mp.h>
@@ -31,21 +31,6 @@
 
 
 
-#if LAB >= 2	// ...then leave this code out.
-#elif LAB >= 1
-// Test the stack backtrace function (lab 1 only)
-void
-test_backtrace(int x)
-{
-	cprintf("entering test_backtrace %d\n", x);
-	if (x > 0)
-		test_backtrace(x-1);
-	else
-		mon_backtrace(0, 0, 0);
-	cprintf("leaving test_backtrace %d\n", x);
-}
-#endif
-
 // Called from entry.S, only on the bootstrap processor.
 // PIOS conventional: all '_init' functions get called
 // only at bootstrap and only on the bootstrap processor.
@@ -63,7 +48,9 @@ init(void)
 	// Can't call cprintf until after we do this!
 	cons_init();
 
+	// Lab 1: test cprintf and debug_trace
 	cprintf("1234 decimal is %o octal!\n", 1234);
+	debug_check();
 
 	// Initialize and load the bootstrap CPU's GDT, TSS, and IDT.
 	cpu_init(&bootcpu);
@@ -205,21 +192,6 @@ init(void)
 	cpu_bootothers();	// Get other processors started
 
 	startup();		// Continue with per-CPU startup
-
-#if LAB >= 99
-#if LAB >= 2
-
-#else
-	// Test the stack backtrace function (lab 1 only)
-	test_backtrace(5);
-#endif
-
-#if LAB <= 2
-	// Drop into the kernel monitor.
-	while (1)
-		monitor(NULL);
-#endif
-#endif
 }
 
 
@@ -238,50 +210,5 @@ startup(void)
 	cprintf("CPU %d has booted\n", cpu_cur()->id);
 	while (1)
 		;
-}
-
-
-/*
- * Variable panicstr contains argument to first call to panic; used as flag
- * to indicate that the kernel has already called panic.
- */
-static const char *panicstr;
-
-/*
- * Panic is called on unresolvable fatal errors.
- * It prints "panic: mesg", and then enters the kernel monitor.
- */
-void
-_panic(const char *file, int line, const char *fmt,...)
-{
-	va_list ap;
-
-	if (panicstr)
-		goto dead;
-	panicstr = fmt;
-
-	va_start(ap, fmt);
-	cprintf("kernel panic at %s:%d: ", file, line);
-	vcprintf(fmt, ap);
-	cprintf("\n");
-	va_end(ap);
-
-dead:
-	/* break into the kernel monitor */
-	while (1)
-		monitor(NULL);
-}
-
-/* like panic, but don't */
-void
-_warn(const char *file, int line, const char *fmt,...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	cprintf("kernel warning at %s:%d: ", file, line);
-	vcprintf(fmt, ap);
-	cprintf("\n");
-	va_end(ap);
 }
 

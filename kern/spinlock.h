@@ -10,6 +10,9 @@
 
 #include <inc/types.h>
 
+#include <kern/debug.h>
+
+
 // Mutual exclusion lock.
 typedef struct spinlock {
 	uint32_t locked;	// Is the lock held?
@@ -17,8 +20,7 @@ typedef struct spinlock {
 	// For debugging:
 	char *name;		// Name of lock.
 	struct cpu *cpu;	// The cpu holding the lock.
-	uint32_t pcs[10];	// The call stack (an array of program counters)
-				// that locked the lock.
+	uint32_t eips[DEBUG_TRACEFRAMES]; // Call stack that locked the lock.
 } spinlock;
 
 

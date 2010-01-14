@@ -8,6 +8,10 @@
 
 #include <inc/types.h>
 
+
+#define DEBUG_TRACEFRAMES	10
+
+
 void cons_init(void);
 int cons_getc(void);
 
@@ -16,8 +20,5 @@ int cons_getc(void);
 // Device-specific code supplies 'proc', which polls for a character
 // and returns that character or 0 if no more available from device.
 void cons_intr(int (*proc)(void));
-
-void kbd_intr(void); // irq 1
-void serial_intr(void); // irq 4
 
 #endif /* PIOS_KERN_CONSOLE_H_ */

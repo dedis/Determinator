@@ -6,10 +6,10 @@
 
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
+#include <kern/console.h>
 
 
 static int holding(struct spinlock *lock);
-static void getcallerpcs(void *v, uint32_t pcs[]);
 
 void
 spinlock_init(struct spinlock *lk, char *name)
@@ -37,7 +37,7 @@ spinlock_acquire(struct spinlock *lk)
 
 	// Record info about lock acquisition for debugging.
 	lk->cpu = cpu_cur();
-	getcallerpcs(&lk, lk->pcs);
+	debug_trace(read_ebp(), lk->eips);
 }
 
 // Release the lock.
@@ -47,7 +47,7 @@ spinlock_release(struct spinlock *lk)
 	if(!holding(lk))
 		panic("spinlock_release");
 
-	lk->pcs[0] = 0;
+	lk->eips[0] = 0;
 	lk->cpu = 0;
 
 	// The xchg serializes, so that reads before release are 
@@ -60,24 +60,6 @@ spinlock_release(struct spinlock *lk)
 	// The xchg being asm volatile ensures gcc emits it after
 	// the above assignments (and after the critical section).
 	xchg(&lk->locked, 0);
-}
-
-// Record the current call stack in pcs[] by following the %ebp chain.
-static void
-getcallerpcs(void *v, uint32_t pcs[])
-{
-	uint32_t *ebp;
-	int i;
-  
-	ebp = (uint32_t*)v - 2;
-	for(i = 0; i < 10; i++){
-		if(ebp == 0 || ebp == (uint32_t*)0xffffffff)
-  		break;
-		pcs[i] = ebp[1]; 		// saved %eip
-		ebp = (uint32_t*)ebp[0]; // saved %ebp
-	}
-	for(; i < 10; i++)
-		pcs[i] = 0;
 }
 
 // Check whether this cpu is holding the lock.

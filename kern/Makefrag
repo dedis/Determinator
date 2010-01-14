@@ -16,7 +16,7 @@ KERN_LDFLAGS := $(LDFLAGS) -Ttext=0x00100000 -e start -nostdlib
 KERN_SRCFILES :=	kern/entry.S \
 			kern/main.c \
 			kern/console.c \
-			kern/monitor.c \
+			kern/debug.c \
 			kern/mem.c \
 			kern/cpu.c \
 			kern/mp.c \
