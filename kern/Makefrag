@@ -23,7 +23,6 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/spinlock.c \
 			kern/pmap.c \
 			kern/env.c \
-			kern/printf.c \
 			kern/trap.c \
 			kern/trapentry.S \
 			kern/sched.c \

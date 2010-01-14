@@ -209,7 +209,7 @@ include user/Makefrag
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S *.ld
-LAB_DIRS := inc boot kern lib user fs net
+LAB_DIRS := inc boot kern dev lib
 LAB_FILES := CODING GNUmakefile mergedep.pl grade-functions.sh .gdbinit.tmpl \
 	boot/sign.pl \
 	conf/env.mk \

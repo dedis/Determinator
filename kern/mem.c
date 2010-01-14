@@ -4,12 +4,13 @@
 
 #include <inc/x86.h>
 #include <inc/mmu.h>
-#include <inc/error.h>
 #include <inc/string.h>
 #include <inc/assert.h>
 
-#include <kern/spinlock.h>
 #include <kern/mem.h>
+#if LAB >= 2
+#include <kern/spinlock.h>
+#endif
 
 #include <dev/nvram.h>
 
@@ -20,7 +21,9 @@ size_t mem_npage;		// Total number of physical memory pages
 pageinfo *mem_pageinfo;		// Metadata array indexed by page number
 
 pageinfo *mem_freelist;		// Start of free page list
+#if SOL >= 2
 spinlock mem_freelock;		// Spinlock protecting the free page list
+#endif
 
 
 void mem_check(void);
@@ -28,30 +31,23 @@ void mem_check(void);
 void
 mem_init(void)
 {
-	// The linker generates the special symbol 'end'
-	// representing the end of the program's statically assigned
-	// code, data, and bss (uninitialized data) sections:
-	// this is where the dynamically allocated heap typically starts,
-	// and in our case is where we'll put the pageinfo array.
-	extern char end[];
-
-	size_t basemem;		// Amount of base memory in bytes
-	size_t extmem;		// Amount of extended memory in bytes
-	void *freemem;		// Pointer used to assign free memory
-	int i, inuse;
-
+	// These special symbols mark the start and end of
+	// the program's entire linker-arranged memory region,
+	// including the program's code, data, and bss sections.
+	// Use these to avoid treating kernel code/data pages as free memory!
+	extern char start[], end[];
 
 	// Determine how much base (<640K) and extended (>1MB) memory
-	// is available in the system,
+	// is available in the system (in bytes),
 	// by reading the PC's BIOS-managed nonvolatile RAM (NVRAM).
 	// The NVRAM tells us how many kilobytes there are.
-	basemem = ROUNDDOWN(nvram_read16(NVRAM_BASELO)*1024, PAGESIZE);
-	extmem = ROUNDDOWN(nvram_read16(NVRAM_EXTLO)*1024, PAGESIZE);
+	size_t basemem = ROUNDDOWN(nvram_read16(NVRAM_BASELO)*1024, PAGESIZE);
+	size_t extmem = ROUNDDOWN(nvram_read16(NVRAM_EXTLO)*1024, PAGESIZE);
 
 	// The maximum physical address is the top of extended memory.
 	mem_max = MEM_EXT + extmem;
 
-	// Compute the total number of physical pages (including I/O space)
+	// Compute the total number of physical pages (including I/O holes)
 	mem_npage = mem_max / PAGESIZE;
 
 	cprintf("Physical memory: %dK available, ", (int)(mem_max/1024));
@@ -71,18 +67,20 @@ mem_init(void)
 	memset(mem_pageinfo, 0, sizeof(pageinfo) * mem_npage);
 
 	// Free extended memory starts just past the pageinfo array.
-	freemem = &mem_pageinfo[mem_npage];
-
+	void *freemem = &mem_pageinfo[mem_npage];
 
 	// Align freemem to page boundary.
 	freemem = ROUNDUP(freemem, PAGESIZE);
 
 	// Chain all the available physical pages onto the free page list.
+#if SOL >= 2
 	spinlock_init(&mem_freelock, "mem_freelist lock");
-	mem_freelist = 0;	// Initialize mem_freelist to empty.
+#endif
+	pageinfo **freetail = &mem_freelist;
+	int i;
 	for (i = 0; i < mem_npage; i++) {
 		// Off-limits until proven otherwise.
-		inuse = 1;
+		int inuse = 1;
 
 		// The bottom basemem bytes are free except page 0.
 		if (i != 0 && i < basemem / PAGESIZE)
@@ -96,36 +94,47 @@ mem_init(void)
 
 		mem_pageinfo[i].refcount = inuse;
 		if (!inuse) {
-			// Insert page into the free page list.
-			mem_pageinfo[i].free_next = mem_freelist;
-			mem_freelist = &mem_pageinfo[i];
+			// Add the page to the end of the free list.
+			*freetail = &mem_pageinfo[i];
+			freetail = &mem_pageinfo[i].free_next;
 		}
 	}
+	*freetail = NULL;	// null-terminate the freelist
 
 #else /* not SOL >= 1 */
-	// The example code here marks all pages as free.
-	// However this is not truly the case.  What memory is free?
-	//  1) Mark page 0 as in use.
+	// Insert code here to:
+	// (1)	allocate physical memory for the mem_pageinfo array,
+	//	making it big enough to hold mem_npage entries.
+	// (2)	add all pageinfo structs in the array representing
+	//	available memory that is not in use for other purposes.
+	//
+	// For step (2), here is some incomplete/incorrect example code
+	// that simply marks all mem_npage pages as free.
+	// Which memory is actually free?
+	//  1) Treat page 0 as in-use (not available).
 	//     This way we preserve the real-mode IDT and BIOS structures
 	//     in case we ever need them.  (Currently we don't, but...)
 	//  2) Mark the rest of base memory as free.
 	//  3) Then comes the IO hole [MEM_IO, MEM_EXT).
-	//     Mark it as in use so that it can never be allocated.      
+	//     Mark it as in-use so that it can never be allocated.      
 	//  4) Then extended memory [MEM_EXT, ...).
-	//     Some of it is in use, some is free. Where is the kernel?
-	//     Which pages are used for page tables and other data structures?
-	//
+	//     Some of it is in use, some is free.
+	//     Which pages hold the kernel and the pageinfo array?
 	// Change the code to reflect this.
+	pageinfo **freetail = &mem_freelist;
 	int i;
-	mem_free = 0;		// Initialize mem_free list to empty.
-	for (i = 0; i < npage; i++) {
+	for (i = 0; i < mem_npage; i++) {
 		// A free page has no references to it.
 		mem_pageinfo[i].refcount = 0;
 
-		// Add the page to the mem_freelist.
-		mem_pageinfo[i].free_next = mem_freelist;
-		mem_freelist = &mem_pageinfo[i];
+		// Add the page to the end of the free list.
+		*freetail = &mem_pageinfo[i];
+		freetail = &mem_pageinfo[i].free_next;
 	}
+	*freetail = NULL;	// null-terminate the freelist
+
+	// ...and remove this when you're ready.
+	panic("mem_init() not implemented");
 #endif /* not SOL >= 1 */
 
 	// Check to make sure the page allocator seems to work correctly.
@@ -148,7 +157,9 @@ mem_alloc(void)
 {
 	// Fill this function in
 #if SOL >= 1
+#if SOL >= 2
 	spinlock_acquire(&mem_freelock);
+#endif
 
 	pageinfo *pi = mem_freelist;
 	if (pi != NULL) {
@@ -156,7 +167,9 @@ mem_alloc(void)
 		pi->free_next = NULL;		// Mark it not on the free list
 	}
 
+#if SOL >= 2
 	spinlock_release(&mem_freelock);
+#endif
 
 	return pi;	// Return pageinfo pointer or NULL
 
@@ -179,13 +192,17 @@ mem_free(pageinfo *pi)
 	if (pi->free_next != NULL)
 		panic("mem_free: attempt to free already free page!");
 
+#if SOL >= 2
 	spinlock_acquire(&mem_freelock);
+#endif
 
 	// Insert the page at the head of the free list.
 	pi->free_next = mem_freelist;
 	mem_freelist = pi;
 
+#if SOL >= 2
 	spinlock_release(&mem_freelock);
+#endif
 #else /* not SOL >= 1 */
 	// Fill this function in.
 	panic("mem_free not implemented.");

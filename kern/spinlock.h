@@ -1,4 +1,4 @@
-#if LAB >= 1
+#if LAB >= 2
 // Spinlock primitive for mutual exclusion within the kernel.
 // Adapted from xv6.
 // See COPYRIGHT for copyright information.
@@ -29,4 +29,4 @@ void spinlock_acquire(spinlock *lk);
 void spinlock_release(spinlock *lk);
 
 #endif /* !PIOS_KERN_SPINLOCK_H */
-#endif // LAB >= 1
+#endif // LAB >= 2

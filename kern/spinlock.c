@@ -1,3 +1,4 @@
+#if LAB >= 2
 // Mutual exclusion spin locks.
 // Adapted from xv6.
 
@@ -69,3 +70,4 @@ holding(struct spinlock *lock)
 	return lock->locked && lock->cpu == cpu_cur();
 }
 
+#endif // LAB >= 2

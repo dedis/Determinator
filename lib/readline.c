@@ -1,6 +1,5 @@
-#if LAB >= 1
+#if LAB >= 4
 #include <inc/stdio.h>
-#include <inc/error.h>
 
 #define BUFLEN 1024
 static char buf[BUFLEN];
@@ -52,4 +51,4 @@ readline(const char *prompt)
 	}
 }
 
-#endif	// LAB >= 1
+#endif	// LAB >= 4

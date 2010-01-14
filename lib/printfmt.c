@@ -7,40 +7,11 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/stdarg.h>
-#include <inc/error.h>
 
 /*
  * Space or zero padding and a field width are supported for the numeric
  * formats only. 
- * 
- * The special format %e takes an integer error code
- * and prints a string describing the error.
- * The integer may be positive or negative,
- * so that -E_NO_MEM and E_NO_MEM are equivalent.
  */
-
-static const char * const error_string[MAXERROR + 1] =
-{
-	NULL,
-	"unspecified error",
-	"bad environment",
-	"invalid parameter",
-	"out of memory",
-	"out of environments",
-	"segmentation fault",
-#if LAB >= 4
-	"env is not recving",
-	"unexpected end of file",
-#if LAB >= 5
-	"no free space on disk",
-	"too many files are open",
-	"file or block not found",
-	"invalid path",
-	"file already exists",
-	"file is not a valid executable",
-#endif // !LAB >= 5
-#endif // !LAB >= 4
-};
 
 /*
  * Print a number (base <= 16) in reverse order,
@@ -174,17 +145,6 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			putch(va_arg(ap, int), putdat);
 			break;
 
-		// error message
-		case 'e':
-			err = va_arg(ap, int);
-			if (err < 0)
-				err = -err;
-			if (err > MAXERROR || (p = error_string[err]) == NULL)
-				printfmt(putch, putdat, "error %d", err);
-			else
-				printfmt(putch, putdat, "%s", p);
-			break;
-
 		// string
 		case 's':
 			if ((p = va_arg(ap, char *)) == NULL)
@@ -293,7 +253,7 @@ vsnprintf(char *buf, int n, const char *fmt, va_list ap)
 	struct sprintbuf b = {buf, buf+n-1, 0};
 
 	if (buf == NULL || n < 1)
-		return -E_INVAL;
+		return -1;
 
 	// print the string to the buffer
 	vprintfmt((void*)sprintputch, &b, fmt, ap);

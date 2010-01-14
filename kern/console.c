@@ -1,5 +1,7 @@
 /* See COPYRIGHT for copyright information. */
 
+#include <inc/stdio.h>
+#include <inc/stdarg.h>
 #include <inc/x86.h>
 #include <inc/string.h>
 #include <inc/assert.h>
@@ -113,5 +115,34 @@ iscons(int fdnum)
 {
 	// used by readline
 	return 1;
+}
+
+static void
+putch(int ch, int *cnt)
+{
+	cputchar(ch);
+	*cnt++;
+}
+
+int
+vcprintf(const char *fmt, va_list ap)
+{
+	int cnt = 0;
+
+	vprintfmt((void*)putch, &cnt, fmt, ap);
+	return cnt;
+}
+
+int
+cprintf(const char *fmt, ...)
+{
+	va_list ap;
+	int cnt;
+
+	va_start(ap, fmt);
+	cnt = vcprintf(fmt, ap);
+	va_end(ap);
+
+	return cnt;
 }
 

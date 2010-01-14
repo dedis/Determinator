@@ -108,7 +108,7 @@ trap_init(void)
 	SETGATE(idt[T_SYSCALL], 0, CPU_GDT_KCODE, &Xsyscall, 3);
 #else	// not SOL >= 1
 	
-	// LAB 3: Your code here.
+	panic("trap_init() not implemented.");
 #endif	// SOL >= 1
 }
 

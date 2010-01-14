@@ -12,7 +12,6 @@
 #include <inc/stdio.h>
 #include <inc/stdarg.h>
 #include <inc/string.h>
-#include <inc/error.h>
 #include <inc/assert.h>
 #include <inc/env.h>
 #include <inc/memlayout.h>

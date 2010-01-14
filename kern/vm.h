@@ -1,4 +1,4 @@
-#if LAB >= 1
+#if LAB >= 3
 // Kernel-private virtual memory definitions.
 // See COPYRIGHT for copyright information.
 #ifndef PIOS_KERN_VM_H
@@ -68,4 +68,4 @@
 
 
 #endif /* !PIOS_KERN_VM_H */
-#endif // LAB >= 1
+#endif // LAB >= 3
