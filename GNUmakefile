@@ -99,6 +99,7 @@ LD	:= $(GCCPREFIX)ld
 OBJCOPY	:= $(GCCPREFIX)objcopy
 OBJDUMP	:= $(GCCPREFIX)objdump
 NM	:= $(GCCPREFIX)nm
+GDB	:= $(GCCPREFIX)gdb
 
 # Native commands
 NCC	:= gcc $(CC_VER) -pipe
@@ -283,16 +284,6 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 gra
 
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
-#if LAB <= 999
-ifdef LAB6
-PORT7	:= $(shell expr $(GDBPORT) + 1)
-PORT80	:= $(shell expr $(GDBPORT) + 2)
-
-IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
-QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio \
-	   -net user -net nic,model=i82559er -redir tcp:$(PORT7)::7 \
-	   -redir tcp:$(PORT80)::80 $(QEMUEXTRA)
-else
 ifdef LAB5
 IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
 QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio
@@ -300,13 +291,6 @@ else
 IMAGES = $(OBJDIR)/kern/kernel.img
 QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio
 endif  # LAB 5
-endif  # LAB 6
-#else
-IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
-QEMUOPTS = -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio \
-	   -net user -net nic,model=i82559er -redir tcp:$(PORT7)::7 \
-	   -redir tcp:$(PORT80)::80 $(QEMUEXTRA)
-#endif
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
@@ -329,6 +313,12 @@ qemu-gdb-nox: $(IMAGES) .gdbinit
 which-qemu:
 	@echo $(QEMU)
 
+gdb: $(IMAGES)
+	$(GDB) $(OBJDIR)/kern/kernel
+
+gdb-boot: $(IMAGS)
+	$(GDB) $(OBJDIR)/boot/bootblock.elf
+
 # For deleting the build
 clean:
 	rm -rf $(OBJDIR)
@@ -343,16 +333,6 @@ grade: $(LABSETUP)grade-lab$(LAB).sh
 	$(V)$(MAKE) clean >/dev/null 2>/dev/null
 	$(MAKE) all
 	sh $(LABSETUP)grade-lab$(LAB).sh
-
-#ifdef ENV_HANDIN_COPY
-HANDIN_CMD = tar cf - . | gzip > ~class/handin/lab$(LAB)/$$USER/lab$(LAB)-handin.tar.gz
-handin: realclean
-	$(HANDIN_CMD)
-#else
-handin: tarball
-	@echo Please visit http://pdos.csail.mit.edu/cgi-bin/828handin
-	@echo and upload lab$(LAB)-handin.tar.gz.  Thanks!
-#endif
 
 tarball: realclean
 	tar cf - `find . -type f | grep -v '^\.*$$' | grep -v '/CVS/' | grep -v '/\.svn/' | grep -v '/\.git/' | grep -v 'lab[0-9].*\.tar\.gz'` | gzip > lab$(LAB)-handin.tar.gz
@@ -384,3 +364,4 @@ always:
 
 .PHONY: all always \
 	handin tarball clean realclean clean-labsetup distclean grade labsetup
+

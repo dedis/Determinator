@@ -52,15 +52,15 @@ mon_help(int argc, char **argv, trapframe *tf)
 int
 mon_kerninfo(int argc, char **argv, trapframe *tf)
 {
-	extern char _start[], etext[], edata[], end[];
+	extern char start[], etext[], edata[], end[];
 
 	cprintf("Special kernel symbols:\n");
-	cprintf("  _start %08x\n", _start);
+	cprintf("  start %08x\n",  start);
 	cprintf("  etext  %08x\n", etext);
 	cprintf("  edata  %08x\n", edata);
 	cprintf("  end    %08x\n", end);
 	cprintf("Kernel executable memory footprint: %dKB\n",
-		(end-_start+1023)/1024);
+		(end-start+1023)/1024);
 	return 0;
 }
 

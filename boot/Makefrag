@@ -23,16 +23,16 @@ $(OBJDIR)/boot/main.o: boot/main.c
 	@echo + cc -Os $<
 	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -Os -c -o $(OBJDIR)/boot/main.o boot/main.c
 
-$(OBJDIR)/boot/boot: $(BOOT_OBJS)
-	@echo + ld boot/boot
-	$(V)$(LD) $(LDFLAGS) -N -e start -Ttext 0x7C00 -o $@.out $^
-	$(V)$(OBJDUMP) -S $@.out >$@.asm
-	$(V)$(OBJCOPY) -S -O binary $@.out $@
-	$(V)perl boot/sign.pl $(OBJDIR)/boot/boot
+$(OBJDIR)/boot/bootblock: $(BOOT_OBJS)
+	@echo + ld boot/bootblock
+	$(V)$(LD) $(LDFLAGS) -N -e start -Ttext 0x7C00 -o $@.elf $^
+	$(V)$(OBJDUMP) -S $@.elf >$@.asm
+	$(V)$(OBJCOPY) -S -O binary $@.elf $@
+	$(V)perl boot/sign.pl $(OBJDIR)/boot/bootblock
 
 $(OBJDIR)/boot/bootother: $(OBJDIR)/boot/bootother.o
-	@echo + ld boot/boot
-	$(V)$(LD) $(LDFLAGS) -N -e start -Ttext 0x7000 -o $@.out $^
-	$(V)$(OBJDUMP) -S $@.out >$@.asm
-	$(V)$(OBJCOPY) -S -O binary $@.out $@
+	@echo + ld boot/bootother
+	$(V)$(LD) $(LDFLAGS) -N -e start -Ttext 0x7000 -o $@.elf $^
+	$(V)$(OBJDUMP) -S $@.elf >$@.asm
+	$(V)$(OBJCOPY) -S -O binary $@.elf $@
 
