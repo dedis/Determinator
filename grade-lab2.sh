@@ -12,7 +12,7 @@ score=0
 
 pts=20
 echo_n "Page directory: "
- if grep "check_boot_pgdir() succeeded!" pios.out >/dev/null
+ if grep "check_boot_pgdir() succeeded!" grade-out >/dev/null
  then
 	pass
  else
@@ -21,7 +21,7 @@ echo_n "Page directory: "
 
 pts=30
 echo_n "Page management: "
- if grep "page_check() succeeded!" pios.out >/dev/null
+ if grep "page_check() succeeded!" grade-out >/dev/null
  then
 	pass
  else

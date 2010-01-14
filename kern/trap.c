@@ -9,7 +9,7 @@
 #include <kern/cpu.h>
 #include <kern/trap.h>
 #include <kern/console.h>
-#include <kern/main.h>
+#include <kern/init.h>
 #if LAB >= 3
 #include <kern/env.h>
 #include <kern/syscall.h>

@@ -22,13 +22,6 @@ ifndef LABADJUST
 LABADJUST := 0
 endif
 
-#if LAB >= 999
-LABSETUP := labsetup/
-#endif
-ifndef LABSETUP
-LABSETUP := ./
-endif
-
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 #
 # Anything in an #if LAB >= 999 always gets cut out by mklab.pl on export,
@@ -181,9 +174,6 @@ endif	# LAB != 3
 endif	# LAB != 2
 endif	# LAB != 1
 
-labsetup/grade-functions.sh: grade-functions.sh mklab.pl
-	$(MKLABENV) $(PERL) mklab.pl $(LAB) 0 labsetup grade-functions.sh
-
 ifndef LAB5
 all: $(OBJDIR)/fs/fs.img
 $(OBJDIR)/fs/fs.img:
@@ -280,7 +270,7 @@ build-all: build-all-sols build-all-labs
 grade-sol%: export-sol% always
 	cd sol$*; $(MAKE) grade
 
-grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 grade-sol7 always
+grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 always
 
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
@@ -324,15 +314,15 @@ clean:
 	rm -rf $(OBJDIR)
 
 realclean: clean
-	rm -rf lab$(LAB).tar.gz pios.out
+	rm -rf lab$(LAB).tar.gz grade-log
 
 distclean: realclean
 	rm -rf conf/gcc.mk
 
-grade: $(LABSETUP)grade-lab$(LAB).sh
+grade: grade-lab$(LAB).sh
 	$(V)$(MAKE) clean >/dev/null 2>/dev/null
 	$(MAKE) all
-	sh $(LABSETUP)grade-lab$(LAB).sh
+	sh grade-lab$(LAB).sh
 
 tarball: realclean
 	tar cf - `find . -type f | grep -v '^\.*$$' | grep -v '/CVS/' | grep -v '/\.svn/' | grep -v '/\.git/' | grep -v 'lab[0-9].*\.tar\.gz'` | gzip > lab$(LAB)-handin.tar.gz

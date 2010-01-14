@@ -5,3 +5,5 @@ bochs.out
 conf/lab.mk
 lab?-handin.tar.gz
 lab?/
+sol?/
+grade-out

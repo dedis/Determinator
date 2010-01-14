@@ -4,7 +4,7 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 
-#include <kern/main.h>
+#include <kern/init.h>
 #include <kern/console.h>
 #include <kern/debug.h>
 #include <kern/mem.h>
@@ -83,7 +83,12 @@ startup(void)
 
 	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
 		cpu_cur() == &bootcpu ? "BP" : "AP");
-	while (1)
-		;
+	done();
+}
+
+void
+done()
+{
+	asm volatile("hlt");	// Halt the processor
 }
 

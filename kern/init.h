@@ -22,6 +22,10 @@ void init(void);
 // to initialize each CPU's private state and start it doing work.
 void startup(void);
 
+// Called when there is no more work left to do in the system.
+// The grading scripts trap calls to this to know when to stop.
+void done(void);
+
 
 #endif /* !PIOS_KERN_MAIN_H */
 #endif // LAB >= 1

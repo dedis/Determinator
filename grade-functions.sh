@@ -16,7 +16,7 @@ pts=5
 timeout=30
 preservefs=n
 qemu=`$make -s --no-print-directory which-qemu`
-brkfn=readline
+brkfn=done
 
 echo_n () {
 	# suns can't echo -n, and Mac OS X can't echo "x\c"
@@ -24,7 +24,7 @@ echo_n () {
 	awk 'BEGIN { printf("'"$*"'"); }' </dev/null
 }
 
-# Run QEMU with serial output redirected to pios.out.  If $brkfn is
+# Run QEMU with serial output redirected to grade-out.  If $brkfn is
 # non-empty, wait until $brkfn is reached or $timeout expires, then
 # kill QEMU.
 run () {
@@ -38,7 +38,7 @@ run () {
 	t0=`date +%s.%N 2>/dev/null`
 	(
 		ulimit -t $timeout
-		exec $qemu -nographic $qemuopts -serial file:pios.out -monitor null -no-reboot $qemuextra
+		exec $qemu -nographic $qemuopts -serial file:grade-out -monitor null -no-reboot $qemuextra
 	) >$out 2>$err &
 	PID=$!
 
@@ -55,9 +55,9 @@ run () {
 			echo "target remote localhost:$port"
 			echo "br *0x$brkaddr"
 			echo c
-		) > pios.in
-		gdb -batch -nx -x pios.in > /dev/null 2>&1
-		rm pios.in
+		) > grade-in
+		gdb -batch -nx -x grade-in > /dev/null 2>&1
+		rm grade-in
 
 		# Make sure QEMU is dead.  On OS X, exiting gdb
 		# doesn't always exit QEMU.
@@ -87,82 +87,9 @@ fail () {
 	passfailmsg WRONG "$@"
 }
 
-#if LAB >= 3
-
-# Usage: runtest <tagname> <defs> <strings...>
-runtest () {
-	perl -e "print '$1: '"
-	rm -f obj/kern/init.o obj/kern/kernel obj/kern/kernel.img 
-	[ "$preservefs" = y ] || rm -f obj/fs/fs.img
-	if $verbose
-	then
-		echo "$make $2... "
-	fi
-	$make $2 >$out
-	if [ $? -ne 0 ]
-	then
-		rm -f obj/kern/init.o
-		echo $make $2 failed 
-		exit 1
-	fi
-	# We just built a weird init.o that runs a specific test.  As
-	# a result, 'make qemu' will run the last graded test and
-	# 'make clean; make qemu' will run the user-specified
-	# environment.  Remove our weird init.o to fix this.
-	rm -f obj/kern/init.o
-	run
-	if [ ! -s pios.out ]
-	then
-		echo 'no pios.out'
-	else
-		shift
-		shift
-		continuetest "$@"
-	fi
-}
-
-quicktest () {
-	perl -e "print '$1: '"
-	shift
-	continuetest "$@"
-}
-
-continuetest () {
-	okay=yes
-
-	not=false
-	for i
-	do
-		if [ "x$i" = "x!" ]
-		then
-			not=true
-		elif $not
-		then
-			if egrep "^$i\$" pios.out >/dev/null
-			then
-				echo "got unexpected line '$i'"
-				if $verbose
-				then
-					exit 1
-				fi
-				okay=no
-			fi
-			not=false
-		else
-			egrep "^$i\$" pios.out >/dev/null
-			if [ $? -ne 0 ]
-			then
-				echo "missing '$i'"
-				if $verbose
-				then
-					exit 1
-				fi
-				okay=no
-			fi
-			not=false
-		fi
-	done
-	if [ "$okay" = "yes" ]
+greptest () {
+	echo_n "$1"
+	if grep "$2" grade-out >/dev/null
 	then
 		pass
 	else
@@ -170,35 +97,3 @@ continuetest () {
 	fi
 }
 
-# Usage: runtest1 [-tag <tagname>] [-dir <dirname>] <progname> [-Ddef...] STRINGS...
-runtest1 () {
-	tag=
-	dir=user
-	while true; do
-		if [ $1 = -tag ]
-		then
-			tag=$2
-		elif [ $1 = -dir ]
-		then
-			dir=$2
-		else
-			break
-		fi
-		shift
-		shift
-	done
-	prog=$1
-	shift
-	if [ "x$tag" = x ]
-	then
-		tag=$prog
-	fi
-	runtest1_defs=
-	while expr "x$1" : 'x-D.*' >/dev/null; do
-		runtest1_defs="DEFS+='$1' $runtest1_defs"
-		shift
-	done
-	runtest "$tag" "DEFS='-DTEST=_binary_obj_${dir}_${prog}_start' DEFS+='-DTESTSIZE=_binary_obj_${dir}_${prog}_size' $runtest1_defs" "$@"
-}
-
-#endif
