@@ -146,10 +146,10 @@ pageinfo *
 mem_alloc(void)
 {
 	// Fill this function in
-#if SOL >= 2
+#if SOL >= 1
 	spinlock_acquire(&mem_freelock);
 
-	pageinfo *pi = mem_free;
+	pageinfo *pi = mem_freelist;
 	if (pi != NULL) {
 		mem_freelist = pi->free_next;	// Remove page from free list
 		pi->free_next = NULL;		// Mark it not on the free list
@@ -162,7 +162,7 @@ mem_alloc(void)
 #else
 	// Fill this function in.
 	panic("mem_alloc not implemented.");
-#endif /* not SOL >= 2 */
+#endif /* not SOL >= 1 */
 }
 
 //
@@ -172,8 +172,8 @@ mem_alloc(void)
 void
 mem_free(pageinfo *pi)
 {
-#if SOL >= 2
-	if (pi->refs != 0)
+#if SOL >= 1
+	if (pi->refcount != 0)
 		panic("mem_free: attempt to free in-use page");
 	if (pi->free_next != NULL)
 		panic("mem_free: attempt to free already free page!");
@@ -181,14 +181,14 @@ mem_free(pageinfo *pi)
 	spinlock_acquire(&mem_freelock);
 
 	// Insert the page at the head of the free list.
-	pi->free_next = mem_free;
-	mem_free = pi;
+	pi->free_next = mem_freelist;
+	mem_freelist = pi;
 
 	spinlock_release(&mem_freelock);
-#else /* not SOL >= 2 */
+#else /* not SOL >= 1 */
 	// Fill this function in.
 	panic("mem_free not implemented.");
-#endif /* not SOL >= 2 */
+#endif /* not SOL >= 1 */
 }
 
 //
