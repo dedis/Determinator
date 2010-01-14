@@ -4,7 +4,7 @@
 #ifndef PIOS_KERN_DEBUG_H_
 #define PIOS_KERN_DEBUG_H_
 #ifndef PIOS_KERNEL
-# error "This is a JOS kernel header; user programs should not #include it"
+# error "This is a kernel header; user programs should not #include it"
 #endif
 
 #include <inc/types.h>

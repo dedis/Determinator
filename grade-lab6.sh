@@ -44,7 +44,7 @@ qemu_test_testoutput() {
 wait_for_line() {
 	found=0
 	for tries in `seq 10`; do
-		if egrep "$1" jos.out >/dev/null; then
+		if egrep "$1" pios.out >/dev/null; then
 			found=1
 			break
 		fi
@@ -80,7 +80,7 @@ qemu_test_testinput() {
 	kill $PID
 	wait 2> /dev/null
 
-	egrep '^input: ' jos.out | (
+	egrep '^input: ' pios.out | (
 		expect() {
 			if ! read line; then
 				fail "$name not received"

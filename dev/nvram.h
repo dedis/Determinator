@@ -6,7 +6,7 @@
 #ifndef PIOS_DEV_NVRAM_H
 #define PIOS_DEV_NVRAM_H
 #ifndef PIOS_KERNEL
-# error "This is a JOS kernel header; user programs should not #include it"
+# error "This is a kernel header; user programs should not #include it"
 #endif
 
 #define	IO_RTC		0x070		/* RTC port */

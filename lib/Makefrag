@@ -54,7 +54,7 @@ $(OBJDIR)/lib/%.o: lib/%.S
 	@mkdir -p $(@D)
 	$(V)$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
 
-$(OBJDIR)/lib/libjos.a: $(LIB_OBJFILES)
+$(OBJDIR)/lib/libpios.a: $(LIB_OBJFILES)
 	@echo + ar $@
 	$(V)$(AR) r $@ $(LIB_OBJFILES)
 endif

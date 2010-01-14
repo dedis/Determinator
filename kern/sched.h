@@ -4,7 +4,7 @@
 #ifndef PIOS_KERN_SCHED_H
 #define PIOS_KERN_SCHED_H
 #ifndef PIOS_KERNEL
-# error "This is a JOS kernel header; user programs should not #include it"
+# error "This is a kernel header; user programs should not #include it"
 #endif
 
 void sched_init(void);			// Initialize the scheduler on startup

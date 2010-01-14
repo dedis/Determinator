@@ -4,7 +4,7 @@
 #ifndef PIOS_KERN_VM_H
 #define PIOS_KERN_VM_H
 #ifndef PIOS_KERNEL
-# error "This is a PIOS kernel header; user programs should not #include it"
+# error "This is a kernel header; user programs should not #include it"
 #endif
 
 

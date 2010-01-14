@@ -3,7 +3,7 @@
 #ifndef PIOS_KERN_KBD_H_
 #define PIOS_KERN_KBD_H_
 #ifndef PIOS_KERNEL
-# error "This is a PIOS kernel header; user programs should not #include it"
+# error "This is a kernel header; user programs should not #include it"
 #endif
 
 

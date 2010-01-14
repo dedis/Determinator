@@ -4,7 +4,7 @@
 #ifndef PIOS_KERN_PMAP_H
 #define PIOS_KERN_PMAP_H
 #ifndef PIOS_KERNEL
-# error "This is a JOS kernel header; user programs should not #include it"
+# error "This is a kernel header; user programs should not #include it"
 #endif
 
 #include <inc/memlayout.h>

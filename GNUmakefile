@@ -51,7 +51,7 @@ LABDEFS = -DLAB=$(LAB) -DSOL=$(SOL)
 
 TOP = .
 
-# Cross-compiler jos toolchain
+# Cross-compiler toolchain
 #
 # This Makefile will automatically use the cross-compiler toolchain
 # installed as 'i386-elf-*', if one exists.  If the host tools ('gcc',
@@ -324,7 +324,7 @@ clean:
 	rm -rf $(OBJDIR)
 
 realclean: clean
-	rm -rf lab$(LAB).tar.gz jos.out
+	rm -rf lab$(LAB).tar.gz pios.out
 
 distclean: realclean
 	rm -rf conf/gcc.mk

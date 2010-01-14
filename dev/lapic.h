@@ -5,7 +5,7 @@
 #ifndef PIOS_DEV_LAPIC_H
 #define PIOS_DEV_LAPIC_H
 #ifndef PIOS_KERNEL
-# error "This is a PIOS kernel header; user programs should not #include it"
+# error "This is a kernel header; user programs should not #include it"
 #endif
 
 

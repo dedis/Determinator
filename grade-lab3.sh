@@ -24,7 +24,7 @@ runtest1 divzero \
 	'.00001000. free env 00001000'
 
 runtest1 softint \
-	'Welcome to the JOS kernel monitor!' \
+	'Welcome to the PIOS kernel monitor!' \
 	'Incoming TRAP frame at 0xefbfffbc' \
         'TRAP frame at 0xf.......' \
 	'  trap 0x0000000d General Protection' \
@@ -77,7 +77,7 @@ runtest1 faultwritekernel \
 
 
 runtest1 breakpoint \
-	'Welcome to the JOS kernel monitor!' \
+	'Welcome to the PIOS kernel monitor!' \
 	'Incoming TRAP frame at 0xefbfffbc' \
         'TRAP frame at 0xf.......' \
 	'  trap 0x00000003 Breakpoint' \

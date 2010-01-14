@@ -6,7 +6,7 @@
 #define PIOS_DEV_PIC_H
 
 #ifndef PIOS_KERNEL
-# error "This is a JOS kernel header; user programs should not #include it"
+# error "This is a kernel header; user programs should not #include it"
 #endif
 
 #define MAX_IRQS	16	// Number of IRQs

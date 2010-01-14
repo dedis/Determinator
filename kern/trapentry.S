@@ -91,7 +91,7 @@ TRAPHANDLER     (Xdefault, T_DEFAULT)
 
 #else /* SOL >= 1 */
 /*
- * Lab 3: Your code here for generating entry points for the different traps.
+ * Lab 1: Your code here for generating entry points for the different traps.
  */
 #endif /* SOL >= 1 */
 
@@ -114,7 +114,7 @@ _alltraps:
 spin:	jmp spin		# should never get here...
 #else /* SOL >= 1 */	
 /*
- * Lab 3: Your code here for _alltraps
+ * Lab 1: Your code here for _alltraps
  */
 	
 #endif // SOL >= 1

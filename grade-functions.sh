@@ -24,7 +24,7 @@ echo_n () {
 	awk 'BEGIN { printf("'"$*"'"); }' </dev/null
 }
 
-# Run QEMU with serial output redirected to jos.out.  If $brkfn is
+# Run QEMU with serial output redirected to pios.out.  If $brkfn is
 # non-empty, wait until $brkfn is reached or $timeout expires, then
 # kill QEMU.
 run () {
@@ -38,7 +38,7 @@ run () {
 	t0=`date +%s.%N 2>/dev/null`
 	(
 		ulimit -t $timeout
-		exec $qemu -nographic $qemuopts -serial file:jos.out -monitor null -no-reboot $qemuextra
+		exec $qemu -nographic $qemuopts -serial file:pios.out -monitor null -no-reboot $qemuextra
 	) >$out 2>$err &
 	PID=$!
 
@@ -55,9 +55,9 @@ run () {
 			echo "target remote localhost:$port"
 			echo "br *0x$brkaddr"
 			echo c
-		) > jos.in
-		gdb -batch -nx -x jos.in > /dev/null 2>&1
-		rm jos.in
+		) > pios.in
+		gdb -batch -nx -x pios.in > /dev/null 2>&1
+		rm pios.in
 
 		# Make sure QEMU is dead.  On OS X, exiting gdb
 		# doesn't always exit QEMU.
@@ -111,9 +111,9 @@ runtest () {
 	# environment.  Remove our weird init.o to fix this.
 	rm -f obj/kern/init.o
 	run
-	if [ ! -s jos.out ]
+	if [ ! -s pios.out ]
 	then
-		echo 'no jos.out'
+		echo 'no pios.out'
 	else
 		shift
 		shift
@@ -138,7 +138,7 @@ continuetest () {
 			not=true
 		elif $not
 		then
-			if egrep "^$i\$" jos.out >/dev/null
+			if egrep "^$i\$" pios.out >/dev/null
 			then
 				echo "got unexpected line '$i'"
 				if $verbose
@@ -149,7 +149,7 @@ continuetest () {
 			fi
 			not=false
 		else
-			egrep "^$i\$" jos.out >/dev/null
+			egrep "^$i\$" pios.out >/dev/null
 			if [ $? -ne 0 ]
 			then
 				echo "missing '$i'"
