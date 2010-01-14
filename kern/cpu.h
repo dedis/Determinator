@@ -7,11 +7,6 @@
 # error "This is a PIOS kernel header; user programs should not #include it"
 #endif
 
-#include <inc/assert.h>
-#include <inc/types.h>
-#include <inc/x86.h>
-#include <inc/mmu.h>
-
 
 // Global segment descriptor numbers used by the kernel
 #define CPU_GDT_NULL	0x00	// null descriptor (required by x86 processor)
@@ -21,6 +16,14 @@
 #define CPU_GDT_UCODE	0x20	// user text
 #define CPU_GDT_UDATA	0x28	// user data
 #define CPU_GDT_NDESC	6	// number of GDT entries used, including null
+
+
+#ifndef __ASSEMBLER__
+
+#include <inc/assert.h>
+#include <inc/types.h>
+#include <inc/x86.h>
+#include <inc/mmu.h>
 
 
 // Per-CPU kernel state structure.
@@ -45,6 +48,9 @@ typedef struct cpu {
 
 	// Flag used in cpu.c to serialize bootstrap of all CPUs
 	uint32_t	booted;
+
+	// For trap handling: recovery EIP when running sensitive code.
+	void *		recovery;
 
 	// Magic verification tag (CPU_MAGIC) to help detect corruption,
 	// e.g., if the CPU's ring 0 stack overflows down onto the cpu struct.
@@ -91,6 +97,7 @@ void cpu_bootothers(void);
 // and that we're running on the cpu's correct kernel stack.
 void cpu_startup(void);
 
+#endif	// ! __ASSEMBLER__
 
 #endif // PIOS_KERN_CPU_H
 #endif // LAB >= 1

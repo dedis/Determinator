@@ -1,10 +1,10 @@
-#if LAB >= 3
+#if LAB >= 1
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/mmu.h>
-#include <inc/memlayout.h>
 #include <inc/trap.h>
 
+#include <kern/cpu.h>
 #if LAB >= 4
 #include <kern/picirq.h>
 #endif
@@ -41,7 +41,7 @@
 
 .text
 
-#if SOL >= 3
+#if SOL >= 1
 
 /* CPU traps */
 TRAPHANDLER_NOEC(Xdivide, T_DIVIDE)
@@ -89,13 +89,13 @@ TRAPHANDLER_NOEC(Xsyscall, T_SYSCALL)
 TRAPHANDLER     (Xdefault, T_DEFAULT)
 
 
-#else /* SOL >= 3 */
+#else /* SOL >= 1 */
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
-#endif /* SOL >= 3 */
+#endif /* SOL >= 1 */
 
-#if SOL >= 3	
+#if SOL >= 1
 .globl	_alltraps
 .type	_alltraps,@function
 .p2align 4, 0x90		/* 16-byte alignment, nop filled */
@@ -104,7 +104,7 @@ _alltraps:
 	pushl %es
 	pushal
 
-	movl $GD_KD,%eax	# load kernel's data segment
+	movl $CPU_GDT_KDATA,%eax # load kernel's data segment
 	movw %ax,%ds
 	movw %ax,%es
 
@@ -112,10 +112,10 @@ _alltraps:
 	call trap		# and call trap (does not return)
 
 spin:	jmp spin		# should never get here...
-#else /* SOL >= 3 */	
+#else /* SOL >= 1 */	
 /*
  * Lab 3: Your code here for _alltraps
  */
 	
-#endif // SOL >= 3
-#endif // LAB >= 3
+#endif // SOL >= 1
+#endif // LAB >= 1

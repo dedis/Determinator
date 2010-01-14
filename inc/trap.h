@@ -93,6 +93,10 @@ typedef struct trapframe {
 	uint16_t tf_padding4;
 } trapframe;
 
+// size of trapframe pushed when called from user and kernel mode, respectively
+#define trapframe_usize sizeof(trapframe)	// full trapframe struct
+#define trapframe_ksize (sizeof(trapframe) - 8)	// no esp, ss, padding4
+
 
 #endif /* !__ASSEMBLER__ */
 

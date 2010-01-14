@@ -10,6 +10,7 @@
 #include <kern/trap.h>
 #include <kern/console.h>
 #include <kern/monitor.h>
+#include <kern/main.h>
 #if LAB >= 3
 #include <kern/env.h>
 #include <kern/syscall.h>
@@ -36,11 +37,13 @@ static struct pseudodesc idt_pd = {
 };
 
 
+void trap_check();
+
 void
 trap_init(void)
 {
 	extern segdesc gdt[];
-#if SOL >= 3
+#if SOL >= 1
 	extern char
 		Xdivide,Xdebug,Xnmi,Xbrkpt,Xoflow,Xbound,
 		Xillop,Xdevice,Xdblflt,Xtss,Xsegnp,Xstack,
@@ -104,10 +107,10 @@ trap_init(void)
 	// Use DPL=3 here because system calls are explicitly invoked
 	// by the user process (with "int $T_SYSCALL").
 	SETGATE(idt[T_SYSCALL], 0, CPU_GDT_KCODE, &Xsyscall, 3);
-#else	// not SOL >= 3
+#else	// not SOL >= 1
 	
 	// LAB 3: Your code here.
-#endif	// SOL >= 3
+#endif	// SOL >= 1
 }
 
 void
@@ -115,6 +118,10 @@ trap_startup(void)
 {
 	// Load the IDT into this processor's IDT register.
 	asm volatile("lidt %0" : : "m" (idt_pd));
+
+	// Check for the correct IDT and trap handler operation.
+	if (cpu_cur() == &bootcpu)
+		trap_check();
 }
 
 const char *trap_name(int trapno)
@@ -182,98 +189,6 @@ trap_print(trapframe *tf)
 	cprintf("  ss   0x----%04x\n", tf->tf_ss);
 }
 
-static void
-trap_dispatch(trapframe *tf)
-{
-	// Handle processor traps.
-#if SOL >= 3
-	if (tf->tf_trapno == T_PGFLT) {
-		page_fault_handler(tf);
-		return;
-	}
-	if (tf->tf_trapno == T_SYSCALL) {
-		// handle system call
-		tf->tf_regs.reg_eax =
-			syscall(tf->tf_regs.reg_eax,
-				tf->tf_regs.reg_edx,
-				tf->tf_regs.reg_ecx,
-				tf->tf_regs.reg_ebx,
-				tf->tf_regs.reg_edi,
-				tf->tf_regs.reg_esi);
-		return;
-	}
-	if (tf->tf_trapno == T_BRKPT) {
-		// Invoke the kernel monitor.
-		monitor(tf);
-		return;
-	}
-#else	// SOL >= 3
-	// LAB 3: Your code here.
-#endif	// SOL >= 3
-
-#if LAB >= 4
-#if SOL >= 4
-	// New in Lab 4: Handle external interrupts
-	if (tf->tf_trapno == T_IRQ0 + IRQ_TIMER) {
-		// irq 0 -- clock interrupt
-#if SOL >= 6
-		time_tick();
-#endif
-		sched_yield();
-	}
-#if SOL >= 7
-	if (tf->tf_trapno == T_IRQ0 + IRQ_KBD) {
-		kbd_intr();
-		return;
-	}
-#endif	// SOL >= 7
-	if (tf->tf_trapno == T_IRQ0 + IRQ_SERIAL) {
-		serial_intr();
-		return;
-	}
-#if SOL >= 6
-	if (tf->tf_trapno == T_IRQ0 + e100_irq) {
-		e100_intr();
-		pic_eoi();
-		return;
-	}
-#endif  // SOL >= 6
-#else	// SOL >= 4
-	// Handle clock interrupts.
-	// LAB 4: Your code here.
-
-#if LAB >= 6
-	// Add time tick increment to clock interrupts.
-	// LAB 6: Your code here.
-
-#endif
-	// Handle spurious interupts
-	// The hardware sometimes raises these because of noise on the
-	// IRQ line or other reasons. We don't care.
-	if (tf->tf_trapno == T_IRQ0 + IRQ_SPURIOUS) {
-		cprintf("Spurious interrupt on irq 7\n");
-		print_trapframe(tf);
-		return;
-	}
-
-#if LAB >= 7
-
-	// Handle keyboard interrupts.
-	// LAB 7: Your code here.
-#endif	// LAB >= 7
-#endif	// SOL >= 4
-#endif	// LAB >= 4
-
-	// Unexpected trap: The user process or the kernel has a bug.
-	trap_print(tf);
-	if (tf->tf_cs == CPU_GDT_KCODE)
-		panic("unhandled trap in kernel");
-	else {
-		panic("XXX handle general user traps correctly");
-		return;
-	}
-}
-
 void
 trap(trapframe *tf)
 {
@@ -281,38 +196,21 @@ trap(trapframe *tf)
 	// and some versions of GCC rely on DF being clear.
 	asm volatile("cld" ::: "cc");
 
-#if LAB == 3
-	cprintf("Incoming trap frame at %p\n", tf);
-
-#endif
-#if LAB >= 3
-	if ((tf->tf_cs & 3) == 3) {
-		// Trapped from user mode.
-		// Copy trap frame (which is currently on the stack)
-		// into 'curenv->env_tf', so that running the environment
-		// will restart at the trap point.
-		assert(curenv);
-		curenv->env_tf = *tf;
-		// The trapframe on the stack should be ignored from here on.
-		tf = &curenv->env_tf;
+	// See if a trap was anticipated.
+	// If so, just return from the trap at the designated recovery point
+	// instead of at the point in the code that actually caused the trap.
+#if SOL >= 1
+	cpu *c = cpu_cur();
+	if (c->recovery) {
+		tf->tf_eip = (uint32_t) c->recovery;
+		trap_return(tf);
 	}
-	
-#endif
-	// Dispatch based on what type of trap occurred
-	trap_dispatch(tf);
-
-#if LAB >= 4
-	// If we made it to this point, then no other environment was
-	// scheduled, so we should return to the current environment
-	// if doing so makes sense.
-	if (curenv && curenv->env_status == ENV_RUNNABLE)
-		env_run(curenv);
-	else
-		sched_yield();
 #else
-	// Return to the interrupted process.
-	trap_return(tf);
+	// (fill in your code here)
 #endif
+
+	trap_print(tf);
+	panic("unhandled trap");
 }
 
 
@@ -343,115 +241,69 @@ trap_return(trapframe *tf)
 }
 
 
-#if LAB >= 3
+// Check the trap handling mechanism for correct operation
+// after trap_init() and trap_startup().
 void
-page_fault_handler(trapframe *tf)
+trap_check(void)
 {
-	uint32_t fault_va;
-#if SOL >= 4
-	struct UTrapframe *utf;
-#endif
+	cpu *c = cpu_cur();
+	volatile int cookie = 0xfeedface;
 
-	// Read processor's CR2 register to find the faulting address
-	fault_va = rcr2();
+	// Compute where the trap frame will get pushed when we cause a trap.
+	trapframe *tf = (trapframe*)(read_esp() - trapframe_ksize);
 
-#if SOL >= 3
-	if ((tf->tf_cs & 3) == 0) {
-		print_trapframe(tf);
-		panic("page fault");
-	}
-#else
-	// Handle kernel-mode page faults.
-	
-	// LAB 3: Your code here.
-#endif	// SOL >= 3
+	// Try a divide by zero trap.
+	// Be careful when using && to take the address of a label:
+	// some versions of GCC (4.4.2 at least) will incorrectly try to
+	// eliminate code it thinks is _only_ reachable via such a pointer.
+	c->recovery = &&after_div0;
+	int zero = 0;
+	cookie = 1 / zero;
+after_div0:
+	assert(tf->tf_trapno == T_DIVIDE);
 
-#if SOL >= 4
-	// See if the environment has installed a user page fault handler.
-	if (curenv->env_pgfault_upcall == 0) {
-		cprintf("[%08x] user fault va %08x ip %08x\n",
-			curenv->env_id, fault_va, tf->tf_eip);
-		print_trapframe(tf);
-		env_destroy(curenv);
-	}
+	// Make sure we got our correct stack back with us.
+	// The asm ensures gcc uses ebp/esp to get the cookie.
+	asm volatile("" : : : "eax","ebx","ecx","edx","esi","edi");
+	assert(cookie == 0xfeedface);
 
-	// Decide where to push our exception stack frame.
-	if (tf->tf_esp >= UXSTACKTOP - PAGESIZE && tf->tf_esp < UXSTACKTOP) {
-		// The user's ESP is ALREADY in the user exception stack area,
-		// so push the new frame on the exception stack,
-		// preserving the existing exception stack contents.
-		utf = (struct UTrapframe*)(tf->tf_esp
-					   - sizeof(struct UTrapframe)
-					   // Save a spare word for return
-					   - 4);
-	} else {
-		// The user's ESP is NOT in the user exception stack area,
-		// so it's presumably pointing to a normal user stack
-		// and the user exception stack is not in use.
-		// Therefore, switch the user's ESP onto the exception stack
-		// and push the new frame at the top of the exception stack.
-		utf = (struct UTrapframe*)(UXSTACKTOP
-					   - sizeof(struct UTrapframe));
-	}
+	// Breakpoint trap
+	c->recovery = &&after_breakpoint;
+	asm volatile("int3");
+after_breakpoint:
+	assert(tf->tf_trapno == T_BRKPT);
 
-	// If we can't write to the exception stack,
-	// it means the user environment is seriously screwed up,
-	// so just terminate it.
-	user_mem_assert(curenv, utf, sizeof(struct UTrapframe), PTE_U | PTE_W);
+	// Overflow trap
+	c->recovery = &&after_overflow;
+	asm volatile("addl %0,%0; into" : : "r" (0x70000000));
+after_overflow:
+	assert(tf->tf_trapno == T_OFLOW);
 
-	// fill utf
-	utf->utf_fault_va = fault_va;
-	utf->utf_err = tf->tf_err;
-	utf->utf_regs = tf->tf_regs;
-	utf->utf_eip = tf->tf_eip;
-	utf->utf_eflags = tf->tf_eflags;
-	utf->utf_esp = tf->tf_esp;
- 
- 	// set user registers so that env_run switches to fault handler
-	tf->tf_esp = (uintptr_t) utf;
- 	tf->tf_eip = (uintptr_t) curenv->env_pgfault_upcall;
+	// Bounds trap
+	c->recovery = &&after_bound;
+	int bounds[2] = { 1, 3 };
+	asm volatile("boundl %0,%1" : : "r" (0), "m" (bounds[0]));
+after_bound:
+	assert(tf->tf_trapno == T_BOUND);
 
-	env_run(curenv);
-#else	// not SOL >= 4
-	// We've already handled kernel-mode exceptions, so if we get here,
-	// the page fault happened in user mode.
+	// Illegal instruction trap
+	c->recovery = &&after_illegal;
+	asm volatile("ud2");	// guaranteed to be undefined
+after_illegal:
+	assert(tf->tf_trapno == T_ILLOP);
 
-#if LAB >= 4
-	// Call the environment's page fault upcall, if one exists.  Set up a
-	// page fault stack frame on the user exception stack (below
-	// UXSTACKTOP), then branch to curenv->env_pgfault_upcall.
-	//
-	// The page fault upcall might cause another page fault, in which case
-	// we branch to the page fault upcall recursively, pushing another
-	// page fault stack frame on top of the user exception stack.
-	//
-	// The trap handler needs one word of scratch space at the top of the
-	// trap-time stack in order to return.  In the non-recursive case, we
-	// don't have to worry about this because the top of the regular user
-	// stack is free.  In the recursive case, this means we have to leave
-	// an extra word between the current top of the exception stack and
-	// the new stack frame because the exception stack _is_ the trap-time
-	// stack.
-	//
-	// If there's no page fault upcall, the environment didn't allocate a
-	// page for its exception stack or can't write to it, or the exception
-	// stack overflows, then destroy the environment that caused the fault.
-	//
-	// Hints:
-	//   user_mem_assert() and env_run() are useful here.
-	//   To change what the user environment runs, modify 'curenv->env_tf'
-	//   (the 'tf' variable points at 'curenv->env_tf').
+	// General protection fault
+	c->recovery = &&after_gpfault;
+	asm volatile("movl %0,%%fs" : : "r" (-1)); // invalid segment selector
+after_gpfault:
+	assert(tf->tf_trapno == T_GPFLT);
 
-	// LAB 4: Your code here.
+	// Make sure our stack cookie is still with us
+	assert(cookie == 0xfeedface);
 
-#endif
-	// Destroy the environment that caused the fault.
-	cprintf("[%08x] user fault va %08x ip %08x\n",
-		curenv->env_id, fault_va, tf->tf_eip);
-	print_trapframe(tf);
-	env_destroy(curenv);
-#endif	// not SOL >= 4
+	c->recovery = NULL;	// No more mr. nice-guy; traps are real again
+
+	cprintf("trap_check() succeeded!\n");
 }
-#endif	// LAB >= 3
 
 #endif /* LAB >= 1 */

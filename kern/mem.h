@@ -62,9 +62,5 @@ pageinfo *mem_alloc(void);
 // Return a physical page to the free list.
 void mem_free(pageinfo *pi);
 
-// Check the physical page allocator (mem_alloc(), mem_free())
-// for correct operation after initialization via mem_init().
-void mem_check(void);
-
 #endif /* !PIOS_KERN_MEM_H */
 #endif // LAB >= 1

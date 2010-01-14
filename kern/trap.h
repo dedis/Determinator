@@ -29,5 +29,6 @@ void trap_print(trapframe *tf);
 
 void trap_return(trapframe *tf);
 
+
 #endif /* PIOS_KERN_TRAP_H */
 #endif /* LAB >= 1 */

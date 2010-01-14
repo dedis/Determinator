@@ -23,6 +23,7 @@ pageinfo *mem_freelist;		// Start of free page list
 spinlock mem_freelock;		// Spinlock protecting the free page list
 
 
+void mem_check(void);
 
 void
 mem_init(void)

@@ -1,5 +1,7 @@
 obj
 bochs.log
 bochs.out
+.gdbinit
+conf/lab.mk
 lab?-handin.tar.gz
 lab?/
