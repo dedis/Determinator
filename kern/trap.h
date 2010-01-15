@@ -14,9 +14,6 @@
 // Initialize the trap-handling module and the processor's IDT.
 void trap_init(void);
 
-// Load the (already-initialized) IDT into the current processor.
-void trap_setup(void);
-
 // Return a string constant describing a given trap number,
 // or "(unknown trap)" if not known.
 const char *trap_name(int trapno);

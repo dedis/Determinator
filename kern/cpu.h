@@ -27,9 +27,13 @@
 
 
 // Per-CPU kernel state structure.
+// Exactly one page (4096 bytes) in size.
 typedef struct cpu {
-	// Next in list of all CPUs (cpu_list) below
-	struct cpu	*next;
+	// Since the x86 processor finds the TSS from a descriptor in the GDT,
+	// each processor needs its own TSS segment descriptor in some GDT.
+	// We could have a single, "global" GDT with multiple TSS descriptors,
+	// but it's easier just to have a separate fixed-size GDT per CPU.
+	segdesc		gdt[CPU_GDT_NDESC];
 
 	// Each CPU needs its own TSS,
 	// because when the processor switches from lower to higher privilege,
@@ -37,11 +41,12 @@ typedef struct cpu {
 	// for the higher privilege level from this task state structure.
 	taskstate	tss;
 
-	// Since the x86 processor finds the TSS from a descriptor in the GDT,
-	// each processor needs its own TSS segment descriptor.
-	// We could have a single, "global" GDT with multiple TSS descriptors,
-	// but it's easier just to have a separate fixed-size GDT per CPU.
-	segdesc		gdt[CPU_GDT_NDESC];
+	// For trap handling: recovery EIP when running sensitive code.
+	void *		recovery;
+
+#if LAB >= 2
+	// Next in list of all CPUs - cpu_boot (below) is the list head.
+	struct cpu	*next;
 
 	// Local APIC ID of this CPU, for inter-processor interrupts etc.
 	uint8_t		id;
@@ -49,26 +54,24 @@ typedef struct cpu {
 	// Flag used in cpu.c to serialize bootstrap of all CPUs
 	volatile uint32_t booted;
 
-	// For trap handling: recovery EIP when running sensitive code.
-	void *		recovery;
-
+#endif
 	// Magic verification tag (CPU_MAGIC) to help detect corruption,
 	// e.g., if the CPU's ring 0 stack overflows down onto the cpu struct.
 	uint32_t	magic;
+
+	// Low end (growth limit) of the kernel stack.
+	char		kstacklo[1];
+
+	// High end (starting point) of the kernel stack.
+	char __attribute__((aligned(PAGESIZE))) kstackhi[0];
 } cpu;
 
 #define CPU_MAGIC	0x98765432	// cpu.magic should always = this
 
-// Compute the location of a CPU's ring 0 kernel stack given a cpu struct.
-// The cpu struct always begins at a page boundary,
-// and the stack grows downward from the top of that same page.
-#define cpu_kstack(cpu)	((void*)(cpu) + PAGESIZE)
 
-
-// List of CPU structs for all CPUs.
-// Set up at initialization time and then never changed;
-// thus no lock required to protect this list.
-cpu *cpu_list;
+// We have one statically-allocated cpu struct representing the boot CPU;
+// others get chained onto this via cpu_boot.next as we find them.
+extern cpu cpu_boot;
 
 
 // Find the CPU struct representing the current CPU.
@@ -80,22 +83,24 @@ cpu_cur() {
 	return c;
 }
 
+// Returns true if we're running on the bootstrap CPU.
+static inline int
+cpu_onboot() {
+	return cpu_cur() == &cpu_boot;
+}
 
-// Initialize a new cpu struct, and add it to the cpu_list.
-// Must be provided a whole, page-aligned page, to make room for kstack.
-void cpu_init(cpu *c);
 
-// Allocate and initialize a new cpu struct, and add it to the cpu_list.
-// Only called during bootup.
+// Set up the current CPU's private register state such as GDT and TSS.
+// Assumes the cpu struct for this CPU is basically initialized
+// and that we're running on the cpu's correct kernel stack.
+void cpu_init(void);
+
+// Allocate an additional cpu struct representing a non-bootstrap processor,
+// and chain it onto the list of all CPUs.
 cpu *cpu_alloc(void);
 
 // Get any additional processors booted up and running.
 void cpu_bootothers(void);
-
-// Set up the current CPU's private register state such as GDT and TSS.
-// Assumes the cpu struct for this CPU is already initialized
-// and that we're running on the cpu's correct kernel stack.
-void cpu_setup(void);
 
 #endif	// ! __ASSEMBLER__
 

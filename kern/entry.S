@@ -35,10 +35,10 @@ start:
 
 #if LAB >= 3
 	# Leave a few words on the stack for the user trap frame
-	movl	$(bootstacktop-SIZEOF_STRUCT_TRAPFRAME),%esp
+	movl	$(cpu_boot+4096-SIZEOF_STRUCT_TRAPFRAME),%esp
 #else
 	# Set the stack pointer
-	movl	$(bootstacktop),%esp
+	movl	$(cpu_boot+4096),%esp
 #endif
 
 	# now to C code
@@ -47,17 +47,5 @@ start:
 	# Should never get here, but in case we do, just spin.
 spin:	jmp	spin
 
-
-###################################################################
-# bootstrap CPU struct and bootstrap stack:
-# cpu struct is at the beginning of a page-aligned page;
-# its stack starts at the top of the same page.
-###################################################################
-	.p2align	12			# force page alignment
-	.globl		bootcpu
-bootcpu:
-	.space		4096			# PAGESIZE
-	.globl		bootstacktop
-bootstacktop:
 
 #endif // LAB >= 1

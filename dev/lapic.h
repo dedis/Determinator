@@ -44,7 +44,7 @@ extern volatile uint32_t *lapic;
 
 
 // Initialize current CPU's local APIC
-void lapic_setup(void);
+void lapic_init(void);
 
 // Acknowledge interrupt
 void lapic_eoi(void);

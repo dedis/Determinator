@@ -38,8 +38,8 @@ static struct pseudodesc idt_pd = {
 
 void trap_check();
 
-void
-trap_init(void)
+static void
+trap_init_idt(void)
 {
 	extern segdesc gdt[];
 #if SOL >= 1
@@ -113,13 +113,18 @@ trap_init(void)
 }
 
 void
-trap_setup(void)
+trap_init(void)
 {
+	// The first time we get called on the bootstrap processor,
+	// initialize the IDT.  Other CPUs will share the same IDT.
+	if (cpu_onboot())
+		trap_init_idt();
+
 	// Load the IDT into this processor's IDT register.
 	asm volatile("lidt %0" : : "m" (idt_pd));
 
 	// Check for the correct IDT and trap handler operation.
-	if (cpu_cur() == &bootcpu)
+	if (cpu_onboot())
 		trap_check();
 }
 

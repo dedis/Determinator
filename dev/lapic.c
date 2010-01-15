@@ -22,7 +22,7 @@ lapicw(int index, int value)
 }
 
 void
-lapic_setup()
+lapic_init()
 {
 	if (!lapic) 
 		return;
