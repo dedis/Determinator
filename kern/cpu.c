@@ -127,7 +127,6 @@ cpu_alloc(void)
 	*cpu_tail = c;
 	cpu_tail = &c->next;
 
-	cpu_init(c);
 	return c;
 }
 
@@ -145,12 +144,12 @@ cpu_bootothers(void)
 		(uint32_t)_binary_obj_boot_bootother_size);
 
 	cpu *c;
-	for(c = cpu_list; c; c = c->next){
+	for(c = &cpu_boot; c; c = c->next){
 		if(c == cpu_cur())  // We''ve started already.
 			continue;
 
 		// Fill in %esp, %eip and start code on cpu.
-		*(void**)(code-4) = cpu_kstack(c);
+		*(void**)(code-4) = c->kstackhi;
 		*(void**)(code-8) = startup;
 		lapic_startcpu(c->id, (uint32_t)code);
 

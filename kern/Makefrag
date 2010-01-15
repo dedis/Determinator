@@ -19,14 +19,13 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/debug.c \
 			kern/mem.c \
 			kern/cpu.c \
-			kern/mp.c \
-			kern/spinlock.c \
-			kern/pmap.c \
-			kern/env.c \
 			kern/trap.c \
 			kern/trapentry.S \
-			kern/sched.c \
+			kern/mp.c \
+			kern/spinlock.c \
+			kern/proc.c \
 			kern/syscall.c \
+			kern/vm.c \
 			dev/video.c \
 			dev/kbd.c \
 			dev/serial.c \

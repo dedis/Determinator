@@ -1,4 +1,4 @@
-#if LAB >= 3
+#if LAB >= 2
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/x86.h>
@@ -18,19 +18,22 @@
 #include <kern/e100.h>
 #endif
 
+
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
 // Destroys the environment on memory errors.
 static void
 sys_cputs(const char *s, size_t len)
 {
+#if LAB >= 3
 	// Check that the user has permission to read memory [s, s+len).
 	// Destroy the environment if not.
-	
-	// LAB 3: Your code here.
 #if SOL >= 3
-	user_mem_assert(curenv, s, len, PTE_U);
-#endif
+	vm_checkperm(curenv, s, len, PTE_U);
+#else
+	// LAB 3: Your code here.
+#endif	// SOL >= 3
+#endif	// LAB >= 3
 
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
@@ -572,4 +575,4 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 #endif	// not SOL >= 3
 }
 
-#endif	// LAB >= 3
+#endif	// LAB >= 2

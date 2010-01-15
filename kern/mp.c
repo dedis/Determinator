@@ -102,7 +102,7 @@ mp_init(void)
 	struct mpioapic *ioapic;
 
 	if ((conf = mpconfig(&mp)) == 0)
-		return; // Not a multiprocessor machine - just use bootcpu.
+		return; // Not a multiprocessor machine - just use boot CPU.
 
 	ismp = 1;
 	lapic = (uint32_t *) conf->lapicaddr;
@@ -114,7 +114,7 @@ mp_init(void)
 
 			// Get a cpu struct and kernel stack for this CPU.
 			cpu *c = (proc->flags & MPBOOT)
-					? &bootcpu : cpu_alloc();
+					? &cpu_boot : cpu_alloc();
 			c->id = proc->apicid;
 
 			ncpu++;

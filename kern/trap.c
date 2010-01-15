@@ -213,6 +213,11 @@ trap(trapframe *tf)
 	// (fill in your code here)
 #endif
 
+#if SOL >= 2
+	if (tf->tf_trapno == T_SYSCALL)
+		return syscall(trapframe *tf);
+
+#endif	// LAB >= 2
 	trap_print(tf);
 	panic("unhandled trap");
 }

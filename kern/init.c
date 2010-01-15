@@ -45,7 +45,7 @@ init(void)
 	cpu_init();
 	trap_init();
 #if LAB >= 2
-	lapic_init();		// setup boot CPU's local APIC
+	lapic_init();		// setup this CPU's local APIC
 #endif	// LAB >= 2
 
 	// Initialize PC hardware state that is shared between CPUs.
@@ -67,7 +67,7 @@ init(void)
 
 #if LAB >= 2
 	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
-		cpu_cur() == &bootcpu ? "BP" : "AP");
+		cpu_onboot() ? "BP" : "AP");
 #endif
 	done();
 }

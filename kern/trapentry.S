@@ -62,6 +62,10 @@ TRAPHANDLER_NOEC(Xfperr,  T_FPERR)
 TRAPHANDLER     (Xalign,  T_ALIGN)
 TRAPHANDLER_NOEC(Xmchk,   T_MCHK)
 
+#if SOL >= 2
+/* system call entry point */
+TRAPHANDLER_NOEC(Xsyscall, T_SYSCALL)
+
 #if SOL >= 4
 /* the external device interrupts */
 TRAPHANDLER_NOEC(Xirq0,   T_IRQ0+0)
@@ -81,10 +85,8 @@ TRAPHANDLER_NOEC(Xirq13,  T_IRQ0+13)
 TRAPHANDLER_NOEC(Xirq14,  T_IRQ0+14)
 TRAPHANDLER_NOEC(Xirq15,  T_IRQ0+15)
 
-#endif /* SOL >=4 */
-/* system call entry point */
-TRAPHANDLER_NOEC(Xsyscall, T_SYSCALL)
-
+#endif	// SOL >=4
+#endif	// SOL >= 2
 /* default handler -- not for any specific trap */
 TRAPHANDLER     (Xdefault, T_DEFAULT)
 

@@ -54,6 +54,9 @@ typedef struct cpu {
 	// Flag used in cpu.c to serialize bootstrap of all CPUs
 	volatile uint32_t booted;
 
+	// Process currently running on this CPU.
+	struct proc	*proc;
+
 #endif
 	// Magic verification tag (CPU_MAGIC) to help detect corruption,
 	// e.g., if the CPU's ring 0 stack overflows down onto the cpu struct.
