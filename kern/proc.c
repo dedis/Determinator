@@ -7,7 +7,7 @@
 
 #if SOL >= 2
 static spinlock readylock;	// Spinlock protecting ready queue
-static waitqueue ready;		// Queue of procs waiting to run
+static proc *ready;		// Queue of procs waiting to run
 #else
 // LAB 2: insert your scheduling data structure declarations here.
 #endif

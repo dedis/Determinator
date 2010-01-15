@@ -84,6 +84,11 @@ trap_init_idt(void)
 	SETGATE(idt[T_ALIGN],  0, CPU_GDT_KCODE, &Xalign,  0);
 	SETGATE(idt[T_MCHK],   0, CPU_GDT_KCODE, &Xmchk,   0);
 
+#if SOL >= 2
+	// Use DPL=3 here because system calls are explicitly invoked
+	// by the user process (with "int $T_SYSCALL").
+	SETGATE(idt[T_SYSCALL], 0, CPU_GDT_KCODE, &Xsyscall, 3);
+
 #if SOL >= 4
 	SETGATE(idt[T_IRQ0 + 0], 0, CPU_GDT_KCODE, &Xirq0, 0);
 	SETGATE(idt[T_IRQ0 + 1], 0, CPU_GDT_KCODE, &Xirq1, 0);
@@ -102,10 +107,7 @@ trap_init_idt(void)
 	SETGATE(idt[T_IRQ0 + 14], 0, CPU_GDT_KCODE, &Xirq14, 0);
 	SETGATE(idt[T_IRQ0 + 15], 0, CPU_GDT_KCODE, &Xirq15, 0);
 #endif	// SOL >= 4
-
-	// Use DPL=3 here because system calls are explicitly invoked
-	// by the user process (with "int $T_SYSCALL").
-	SETGATE(idt[T_SYSCALL], 0, CPU_GDT_KCODE, &Xsyscall, 3);
+#endif	// SOL >= 2
 #else	// not SOL >= 1
 	
 	panic("trap_init() not implemented.");

@@ -11,10 +11,10 @@
 #define PROC_CHILDREN	256	// Max # of children a process can have
 
 typedef enum proc_state {
-	PROC_READY,	= 1,	// Scheduled to run but not running now
+	PROC_STOP	= 0,	// Passively waiting for parent to run it
+	PROC_READY,		// Scheduled to run but not running now
 	PROC_RUN,		// Running on some CPU
-	PROC_WAIT,		// Waiting (blocked) for some event
-	PROC_DONE,		// Terminated and waiting to rejoin parent
+	PROC_EXIT,		// Waiting for parent to collect results
 } proc_state;
 
 // Thread control block structure.
@@ -29,10 +29,9 @@ typedef struct proc {
 	struct proc	*child[PROC_CHILDREN];
 
 	// Scheduling state of this process.
-	proc_state	state;
-
-	// CPU this process is running on, or NULL if not running.
-	struct cpu	*runcpu;
+	proc_state	state;		// current state
+	struct proc	*readynext;	// chain on ready queue
+	struct cpu	*runcpu;	// cpu we're running on if running
 
 	// Save area for user-mode register state when proc is not running.
 	trapframe	tf;
