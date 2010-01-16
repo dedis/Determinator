@@ -217,33 +217,6 @@ trap(trapframe *tf)
 }
 
 
-//
-// Restore the CPU state from a given trapframe struct
-// and return from the trap using the processor's 'iret' instruction.
-// This function does not return to the caller,
-// since the new CPU state this function loads
-// replaces the caller's stack pointer and other registers.
-//
-void
-trap_return(trapframe *tf)
-{
-	// Check to make sure the ring 0 stack hasn't overflowed
-	// onto the current cpu struct.
-	assert(cpu_cur()->magic == CPU_MAGIC);
-
-	__asm __volatile(
-		"movl %0,%%esp;"
-		"popal;"
-		"popl %%es;"
-		"popl %%ds;"
-		"addl $0x8,%%esp;" /* skip tf_trapno and tf_errcode */
-		"iret"
-		: : "g" (tf) : "memory");
-
-	panic("iret failed");  /* mostly to placate the compiler */
-}
-
-
 // Helper function for trap_check_recover(), below:
 // handles "anticipated" traps by simply resuming at a new EIP.
 static void gcc_noreturn

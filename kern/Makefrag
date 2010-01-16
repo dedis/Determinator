@@ -20,7 +20,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/mem.c \
 			kern/cpu.c \
 			kern/trap.c \
-			kern/trapentry.S \
+			kern/trapasm.S \
 			kern/mp.c \
 			kern/spinlock.c \
 			kern/proc.c \

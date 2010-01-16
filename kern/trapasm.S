@@ -1,4 +1,5 @@
 #if LAB >= 1
+/* Trap handler entry and exit code. */
 /* See COPYRIGHT for copyright information. */
 
 #include <inc/mmu.h>
@@ -10,9 +11,7 @@
 #endif
 
 
-###################################################################
-# exceptions/interrupts
-###################################################################
+#if SOL >= 1
 
 /* The TRAPHANDLER macro defines a globally-visible function for handling
  * a trap.  It pushes a trap number onto the stack, then jumps to _alltraps.
@@ -40,8 +39,6 @@
 	jmp _alltraps
 
 .text
-
-#if SOL >= 1
 
 /* CPU traps */
 TRAPHANDLER_NOEC(Xdivide, T_DIVIDE)
@@ -113,11 +110,42 @@ _alltraps:
 	pushl %esp		# pass pointer to this trapframe 
 	call trap		# and call trap (does not return)
 
-spin:	jmp spin		# should never get here...
+1:	jmp 1b			# should never get here; just spin...
+
 #else /* SOL >= 1 */	
 /*
  * Lab 1: Your code here for _alltraps
  */
-	
+
 #endif // SOL >= 1
+
+
+//
+// Trap return code.
+// C code in the kernel will call this function to return from a trap,
+// providing the 
+// Restore the CPU state from a given trapframe struct
+// and return from the trap using the processor's 'iret' instruction.
+// This function does not return to the caller,
+// since the new CPU state this function loads
+// replaces the caller's stack pointer and other registers.
+//
+.globl	trap_return
+.type	trap_return,@function
+.p2align 4, 0x90		/* 16-byte alignment, nop filled */
+trap_return:
+#if SOL >= 1
+	movl	4(%esp),%esp	// reset stack pointer to point to trap frame
+	popal			// restore general-purpose registers except esp
+	popl	%es		// restore data segment registers
+	popl	%ds
+	addl	$8,%esp		// skip tf_trapno and tf_errcode
+	iret			// return from trap handler
+#else // SOL >= 1
+/*
+ * Lab 1: Your code here for trap_return
+ */
+1:	jmp	1b		// just spin
+#endif // SOL >= 1
+
 #endif // LAB >= 1

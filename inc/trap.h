@@ -64,7 +64,7 @@ typedef struct pushregs {
 
 // This struct represents the format of the trap frames
 // that get pushed on the kernel stack by the processor
-// in conjunction with the interrupt/trap entry code in trapentry.S.
+// in conjunction with the interrupt/trap entry code in trapasm.S.
 // All interrupts and traps use this same format,
 // although not all fields are always used:
 // e.g., the error code (tf_err) applies only to some traps,
@@ -72,7 +72,7 @@ typedef struct pushregs {
 // only when taking a trap from user mode (privilege level >0).
 typedef struct trapframe {
 
-	// registers and other info we push manually in trapentry.S
+	// registers and other info we push manually in trapasm.S
 	pushregs tf_regs;
 	uint16_t tf_es;
 	uint16_t tf_padding1;
