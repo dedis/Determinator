@@ -11,7 +11,6 @@
 #endif
 
 
-#if SOL >= 1
 
 /* The TRAPHANDLER macro defines a globally-visible function for handling
  * a trap.  It pushes a trap number onto the stack, then jumps to _alltraps.
@@ -40,6 +39,7 @@
 
 .text
 
+#if SOL >= 1
 /* CPU traps */
 TRAPHANDLER_NOEC(Xdivide, T_DIVIDE)
 TRAPHANDLER_NOEC(Xdebug,  T_DEBUG)

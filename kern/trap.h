@@ -25,6 +25,7 @@ void trap_print_regs(pushregs *regs);
 // Pretty-print the entire contents of a trapframe to the console.
 void trap_print(trapframe *tf);
 
+void trap(trapframe *tf) gcc_noreturn;
 void trap_return(trapframe *tf) gcc_noreturn;
 
 
