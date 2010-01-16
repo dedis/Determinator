@@ -71,20 +71,6 @@ int	     sys_net_rxbuf(void *bufva, unsigned int size);
 #endif	// SOL >= 6
 #endif  // LAB >= 6
 
-// This must be inlined.  Exercise for reader: why?
-static __inline envid_t sys_exofork(void) __attribute__((always_inline));
-static __inline envid_t
-sys_exofork(void)
-{
-	envid_t ret;
-	__asm __volatile("int %2"
-		: "=a" (ret)
-		: "a" (SYS_exofork),
-		  "i" (T_SYSCALL)
-	);
-	return ret;
-}
-
 // ipc.c
 void	ipc_send(envid_t to_env, uint32_t value, void *pg, int perm);
 int32_t ipc_recv(envid_t *from_env_store, void *pg, int *perm_store);

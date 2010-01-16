@@ -66,7 +66,7 @@ typedef struct cpu {
 	char		kstacklo[1];
 
 	// High end (starting point) of the kernel stack.
-	char __attribute__((aligned(PAGESIZE))) kstackhi[0];
+	char gcc_aligned(PAGESIZE) kstackhi[0];
 } cpu;
 
 #define CPU_MAGIC	0x98765432	// cpu.magic should always = this

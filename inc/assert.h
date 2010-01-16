@@ -4,9 +4,10 @@
 #define PIOS_INC_ASSERT_H
 
 #include <inc/stdio.h>
+#include <inc/gcc.h>
 
 void debug_warn(const char*, int, const char*, ...);
-void debug_panic(const char*, int, const char*, ...) __attribute__((noreturn));
+void debug_panic(const char*, int, const char*, ...) gcc_noreturn;
 
 #define warn(...)	debug_warn(__FILE__, __LINE__, __VA_ARGS__)
 #define panic(...)	debug_panic(__FILE__, __LINE__, __VA_ARGS__)

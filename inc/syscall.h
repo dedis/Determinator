@@ -39,5 +39,11 @@
 //	EBP:	reserved
 
 
+// CPU state save area format for GET/PUT with SYS_REGS flags
+struct cpustate {
+	
+};
+
+
 #endif /* !PIOS_INC_SYSCALL_H */
 #endif /* LAB >= 2 */

@@ -2,6 +2,8 @@
 #ifndef PIOS_INC_MMU_H
 #define PIOS_INC_MMU_H
 
+#include <inc/gcc.h>
+
 /*
  * This file contains definitions for the x86 memory management unit (MMU),
  * including paging- and segmentation-related data structures and constants,
@@ -282,9 +284,9 @@ typedef struct gatedesc {
 
 // Pseudo-descriptors used for LGDT, LLDT and LIDT instructions.
 struct pseudodesc {
-	uint16_t pd_lim;		// Limit
-	uint32_t pd_base;		// Base address
-} __attribute__ ((packed));		// GCC mustn't 4-byte-align pd_base!
+	uint16_t		pd_lim;		// Limit
+	uint32_t gcc_packed	pd_base;	// Base - NOT 4-byte aligned!
+};
 typedef struct pseudodesc pseudodesc;
 
 #endif /* !__ASSEMBLER__ */

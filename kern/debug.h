@@ -8,13 +8,14 @@
 #endif
 
 #include <inc/types.h>
+#include <inc/gcc.h>
 
 
 #define DEBUG_TRACEFRAMES	10
 
 
 void debug_warn(const char*, int, const char*, ...);
-void debug_panic(const char*, int, const char*, ...) __attribute__((noreturn));
+void debug_panic(const char*, int, const char*, ...) gcc_noreturn;
 void debug_trace(uint32_t ebp, uint32_t eips[DEBUG_TRACEFRAMES]);
 void debug_check(void);
 

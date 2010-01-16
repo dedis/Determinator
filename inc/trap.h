@@ -98,6 +98,28 @@ typedef struct trapframe {
 #define trapframe_ksize (sizeof(trapframe) - 8)	// no esp, ss, padding4
 
 
+// Floating-point/MMX/XMM register save area format,
+// in the layout defined by the processor's FXSAVE/FXRSTOR instructions.
+gcc_aligned(16) struct fxsave {
+	uint16_t fcw;	// byte 0
+	uint16_t	fsw;
+	uint16_t	ftw;
+	uint16_t	fop;
+	uint32_t	fpu_ip;
+	uint16_t	cs;
+	uint16_t	reserved1;
+	uint32_t	fpu_dp;			// byte 16
+	uint16_t	ds;
+	uint16_t	reserved2;
+	uint32_t	mxcsr;
+	uint32_t	mxcsr_mask;
+	uint8_t		st_mm[8][16];		// byte 32: x87/MMX registers
+	uint8_t		xmm[8][16];		// byte 160: XMM registers
+	uint8_t		reserved3[11][16];	// byte 288: reserved area
+	uint8_t		available[3][16];	// byte 464: available to OS
+};
+
+
 #endif /* !__ASSEMBLER__ */
 
 // Must equal 'sizeof(struct trapframe)'.
