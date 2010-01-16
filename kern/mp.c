@@ -101,6 +101,9 @@ mp_init(void)
 	struct mpproc  *proc;
 	struct mpioapic *ioapic;
 
+	if (!cpu_onboot())	// only do once, on the boot CPU
+		return;
+
 	if ((conf = mpconfig(&mp)) == 0)
 		return; // Not a multiprocessor machine - just use boot CPU.
 

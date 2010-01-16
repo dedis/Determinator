@@ -136,10 +136,12 @@ cpu_bootothers(void)
 	extern void startup(void);
 	extern uint8_t _binary_obj_boot_bootother_start[],
 			_binary_obj_boot_bootother_size[];
-	uint8_t *code;
+
+	if (!cpu_onboot())	// only do once, on the boot CPU
+		return;
 
 	// Write bootstrap code to unused memory at 0x7000.
-	code = (uint8_t*)0x7000;
+	uint8_t *code = (uint8_t*)0x7000;
 	memmove(code, _binary_obj_boot_bootother_start,
 		(uint32_t)_binary_obj_boot_bootother_size);
 

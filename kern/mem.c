@@ -7,6 +7,7 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 
+#include <kern/cpu.h>
 #include <kern/mem.h>
 #if LAB >= 2
 #include <kern/spinlock.h>
@@ -31,6 +32,9 @@ void mem_check(void);
 void
 mem_init(void)
 {
+	if (!cpu_onboot())	// only do once, on the boot CPU
+		return;
+
 	// These special symbols mark the start and end of
 	// the program's entire linker-arranged memory region,
 	// including the program's code, data, and bss sections.

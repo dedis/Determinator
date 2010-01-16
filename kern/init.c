@@ -21,22 +21,24 @@
 
 // Called first from entry.S on the bootstrap processor,
 // and later from boot/bootother.S on all other processors.
+// As a rule, "init" functions in PIOS are called once on EACH processor.
 void
 init(void)
 {
-	if (cpu_onboot()) {
-		extern char edata[], end[];
+	extern char edata[], end[];
 
-		// Before anything else, complete the ELF loading process.
-		// Clear all uninitialized global data (BSS) in our program,
-		// ensuring that all static/global variables start out zero.
+	// Before anything else, complete the ELF loading process.
+	// Clear all uninitialized global data (BSS) in our program,
+	// ensuring that all static/global variables start out zero.
+	if (cpu_onboot())
 		memset(edata, 0, end - edata);
 
-		// Initialize the console.
-		// Can't call cprintf until after we do this!
-		cons_init();
+	// Initialize the console.
+	// Can't call cprintf until after we do this!
+	cons_init();
 
-		// Lab 1: test cprintf and debug_trace
+	// Lab 1: test cprintf and debug_trace
+	if (cpu_onboot()) {
 		cprintf("1234 decimal is %o octal!\n", 1234);
 		debug_check();
 	}
@@ -48,22 +50,16 @@ init(void)
 	lapic_init();		// setup this CPU's local APIC
 #endif	// LAB >= 2
 
-	// Initialize PC hardware state that is shared between CPUs.
-	// We do this only once on the bootstrap processor,
-	// before we start any of the other CPUs.
-	if (cpu_onboot()) {
-
-		// Physical memory detection/initialization.
-		// Can't call mem_alloc until after we do this!
-		mem_init();
+	// Physical memory detection/initialization.
+	// Can't call mem_alloc until after we do this!
+	mem_init();
 
 #if LAB >= 2
-		// Find and init other processors in a multiprocessor system
-		mp_init();
+	// Find and init other processors in a multiprocessor system
+	mp_init();
 
-		cpu_bootothers();	// Get other processors started
+	cpu_bootothers();	// Get other processors started
 #endif	// LAB >= 2
-	}
 
 #if LAB >= 2
 	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,

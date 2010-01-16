@@ -6,6 +6,7 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 
+#include <kern/cpu.h>
 #include <kern/console.h>
 #include <kern/mem.h>
 #if LAB >= 4
@@ -83,6 +84,9 @@ cons_putc(int c)
 void
 cons_init(void)
 {
+	if (!cpu_onboot())	// only do once, on the boot CPU
+		return;
+
 	video_init();
 	kbd_init();
 	serial_init();
