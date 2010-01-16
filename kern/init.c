@@ -37,12 +37,12 @@ init(void)
 	// Can't call cprintf until after we do this!
 	cons_init();
 
+#if LAB == 1
 	// Lab 1: test cprintf and debug_trace
-	if (cpu_onboot()) {
-		cprintf("1234 decimal is %o octal!\n", 1234);
-		debug_check();
-	}
+	cprintf("1234 decimal is %o octal!\n", 1234);
+	debug_check();
 
+#endif	// LAB == 1
 	// Initialize and load the bootstrap CPU's GDT, TSS, and IDT.
 	cpu_init();
 	trap_init();

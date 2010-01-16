@@ -9,6 +9,7 @@
 
 #include <inc/trap.h>
 #include <inc/mmu.h>
+#include <inc/gcc.h>
 
 
 // Initialize the trap-handling module and the processor's IDT.
@@ -24,7 +25,7 @@ void trap_print_regs(pushregs *regs);
 // Pretty-print the entire contents of a trapframe to the console.
 void trap_print(trapframe *tf);
 
-void trap_return(trapframe *tf);
+void trap_return(trapframe *tf) gcc_noreturn;
 
 
 #endif /* PIOS_KERN_TRAP_H */

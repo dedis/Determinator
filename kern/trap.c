@@ -195,29 +195,21 @@ trap_print(trapframe *tf)
 	cprintf("  ss   0x----%04x\n", tf->tf_ss);
 }
 
-void
+void gcc_noreturn
 trap(trapframe *tf)
 {
 	// The user-level environment may have set the DF flag,
 	// and some versions of GCC rely on DF being clear.
 	asm volatile("cld" ::: "cc");
 
-	// See if a trap was anticipated.
-	// If so, just return from the trap at the designated recovery point
-	// instead of at the point in the code that actually caused the trap.
-#if SOL >= 1
+	// If this trap was anticipated, just use the designated handler.
 	cpu *c = cpu_cur();
-	if (c->recovery) {
-		tf->tf_eip = (uint32_t) c->recovery;
-		trap_return(tf);
-	}
-#else
-	// (fill in your code here)
-#endif
+	if (c->recover)
+		c->recover(tf, c->recover_data);
 
 #if SOL >= 2
 	if (tf->tf_trapno == T_SYSCALL)
-		return syscall(trapframe *tf);
+		syscall(trapframe *tf);
 
 #endif	// LAB >= 2
 	trap_print(tf);
@@ -252,6 +244,15 @@ trap_return(trapframe *tf)
 }
 
 
+// Helper function for trap_check_recover(), below:
+// handles "anticipated" traps by simply resuming at a new EIP.
+static void gcc_noreturn
+trap_check_recover(trapframe *tf, void *recover_data)
+{
+	tf->tf_eip = (uint32_t) recover_data;
+	trap_return(tf);
+}
+
 // Check the trap handling mechanism for correct operation
 // after trap_init() and trap_setup().
 void
@@ -260,6 +261,9 @@ trap_check(void)
 	cpu *c = cpu_cur();
 	volatile int cookie = 0xfeedface;
 
+	// Recover from the traps we're going to cause.
+	c->recover = trap_check_recover;
+
 	// Compute where the trap frame will get pushed when we cause a trap.
 	trapframe *tf = (trapframe*)(read_esp() - trapframe_ksize);
 
@@ -267,7 +271,7 @@ trap_check(void)
 	// Be careful when using && to take the address of a label:
 	// some versions of GCC (4.4.2 at least) will incorrectly try to
 	// eliminate code it thinks is _only_ reachable via such a pointer.
-	c->recovery = &&after_div0;
+	c->recover_data = &&after_div0;
 	int zero = 0;
 	cookie = 1 / zero;
 after_div0:
@@ -279,32 +283,32 @@ after_div0:
 	assert(cookie == 0xfeedface);
 
 	// Breakpoint trap
-	c->recovery = &&after_breakpoint;
+	c->recover_data = &&after_breakpoint;
 	asm volatile("int3");
 after_breakpoint:
 	assert(tf->tf_trapno == T_BRKPT);
 
 	// Overflow trap
-	c->recovery = &&after_overflow;
+	c->recover_data = &&after_overflow;
 	asm volatile("addl %0,%0; into" : : "r" (0x70000000));
 after_overflow:
 	assert(tf->tf_trapno == T_OFLOW);
 
 	// Bounds trap
-	c->recovery = &&after_bound;
+	c->recover_data = &&after_bound;
 	int bounds[2] = { 1, 3 };
 	asm volatile("boundl %0,%1" : : "r" (0), "m" (bounds[0]));
 after_bound:
 	assert(tf->tf_trapno == T_BOUND);
 
 	// Illegal instruction trap
-	c->recovery = &&after_illegal;
+	c->recover_data = &&after_illegal;
 	asm volatile("ud2");	// guaranteed to be undefined
 after_illegal:
 	assert(tf->tf_trapno == T_ILLOP);
 
 	// General protection fault
-	c->recovery = &&after_gpfault;
+	c->recover_data = &&after_gpfault;
 	asm volatile("movl %0,%%fs" : : "r" (-1)); // invalid segment selector
 after_gpfault:
 	assert(tf->tf_trapno == T_GPFLT);
@@ -312,7 +316,7 @@ after_gpfault:
 	// Make sure our stack cookie is still with us
 	assert(cookie == 0xfeedface);
 
-	c->recovery = NULL;	// No more mr. nice-guy; traps are real again
+	c->recover = NULL;	// No more mr. nice-guy; traps are real again
 
 	cprintf("trap_check() succeeded!\n");
 }

@@ -24,6 +24,7 @@
 #include <inc/types.h>
 #include <inc/x86.h>
 #include <inc/mmu.h>
+#include <inc/trap.h>
 
 
 // Per-CPU kernel state structure.
@@ -41,8 +42,9 @@ typedef struct cpu {
 	// for the higher privilege level from this task state structure.
 	taskstate	tss;
 
-	// For trap handling: recovery EIP when running sensitive code.
-	void *		recovery;
+	// When non-NULL, all traps get diverted to this handler.
+	gcc_noreturn void (*recover)(trapframe *tf, void *recover_data);
+	void		*recover_data;
 
 #if LAB >= 2
 	// Next in list of all CPUs - cpu_boot (below) is the list head.
