@@ -3,6 +3,7 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/assert.h>
+#include <inc/gcc.h>
 
 #include <kern/init.h>
 #include <kern/console.h>
@@ -17,6 +18,10 @@
 #if LAB >= 2
 #include <dev/lapic.h>
 #endif	// LAB >= 2
+
+
+// User-mode stack for user(), below, to run on.
+static char gcc_aligned(16) user_stack[PAGESIZE];
 
 
 // Called first from entry.S on the bootstrap processor,
@@ -55,22 +60,55 @@ init(void)
 	mem_init();
 
 #if LAB >= 2
-	// Find and init other processors in a multiprocessor system
-	mp_init();
-
+	// Find and start other processors in a multiprocessor system
+	mp_init();		// Find info about processors in system
 	cpu_bootothers();	// Get other processors started
-#endif	// LAB >= 2
-
-#if LAB >= 2
 	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
 		cpu_onboot() ? "BP" : "AP");
 #endif
+
+#if SOL >= 1
+	// Conjure up a trapframe and "return" to it to enter user mode.
+	static trapframe utf = {
+		tf_ds: CPU_GDT_UDATA | 3,
+		tf_es: CPU_GDT_UDATA | 3,
+		tf_eip: (uint32_t) user,
+		tf_cs: CPU_GDT_UCODE | 3,
+		tf_eflags: FL_IOPL_3,	// let user() output to console
+		tf_esp: (uint32_t) &user_stack[PAGESIZE],
+		tf_ss: CPU_GDT_UDATA | 3,
+	};
+	trap_return(&utf);
+#else
+	// Lab 1: change this so it enters user() in user mode,
+	// running on the user_stack declared above,
+	// instead of just calling user() directly.
+	user();
+#endif
+}
+
+// This is the first function that gets run in user mode (ring 3).
+// It acts as PIOS's "root process",
+// of which all other processes are descendants.
+void
+user()
+{
+	cprintf("in user()\n");
+	assert(read_esp() > (uint32_t) &user_stack[0]);
+	assert(read_esp() < (uint32_t) &user_stack[sizeof(user_stack)]);
+
+#if LAB == 1
+	// Check that we're in user mode and can handle traps from there.
+	trap_check(1);
+#endif
+
 	done();
 }
 
 void
 done()
 {
-	asm volatile("hlt");	// Halt the processor
+	while (1)
+		;	// just spin
 }
 

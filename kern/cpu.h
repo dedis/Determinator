@@ -10,11 +10,11 @@
 
 // Global segment descriptor numbers used by the kernel
 #define CPU_GDT_NULL	0x00	// null descriptor (required by x86 processor)
-#define CPU_GDT_TSS	0x08	// task state segment
-#define CPU_GDT_KCODE	0x10	// kernel text
-#define CPU_GDT_KDATA	0x18	// kernel data
-#define CPU_GDT_UCODE	0x20	// user text
-#define CPU_GDT_UDATA	0x28	// user data
+#define CPU_GDT_KCODE	0x08	// kernel text
+#define CPU_GDT_KDATA	0x10	// kernel data
+#define CPU_GDT_UCODE	0x18	// user text
+#define CPU_GDT_UDATA	0x20	// user data
+#define CPU_GDT_TSS	0x28	// task state segment
 #define CPU_GDT_NDESC	6	// number of GDT entries used, including null
 
 

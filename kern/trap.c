@@ -36,8 +36,6 @@ static struct pseudodesc idt_pd = {
 };
 
 
-void trap_check();
-
 static void
 trap_init_idt(void)
 {
@@ -70,7 +68,7 @@ trap_init_idt(void)
 	SETGATE(idt[T_DEBUG],  0, CPU_GDT_KCODE, &Xdebug,  0);
 	SETGATE(idt[T_NMI],    0, CPU_GDT_KCODE, &Xnmi,    0);
 	SETGATE(idt[T_BRKPT],  0, CPU_GDT_KCODE, &Xbrkpt,  3);
-	SETGATE(idt[T_OFLOW],  0, CPU_GDT_KCODE, &Xoflow,  0);
+	SETGATE(idt[T_OFLOW],  0, CPU_GDT_KCODE, &Xoflow,  3);
 	SETGATE(idt[T_BOUND],  0, CPU_GDT_KCODE, &Xbound,  0);
 	SETGATE(idt[T_ILLOP],  0, CPU_GDT_KCODE, &Xillop,  0);
 	SETGATE(idt[T_DEVICE], 0, CPU_GDT_KCODE, &Xdevice, 0);
@@ -127,7 +125,7 @@ trap_init(void)
 
 	// Check for the correct IDT and trap handler operation.
 	if (cpu_onboot())
-		trap_check();
+		trap_check(0);
 }
 
 const char *trap_name(int trapno)
@@ -226,19 +224,38 @@ trap_check_recover(trapframe *tf, void *recover_data)
 	trap_return(tf);
 }
 
-// Check the trap handling mechanism for correct operation
-// after trap_init() and trap_setup().
+// Check the trap handling mechanism for correct operation.
+// Called twice: first in kernel mode after trap_init() and trap_setup(),
+// then later from user() in kern/init.c after we're in user mode.
+// We assume the "current cpu" is always the boot cpu;
+// this true for the call of this function from trap_init(),
+// and is called from user mode only in lab 1,
+// before any other CPUs have been started.
 void
-trap_check(void)
+trap_check(int usermode)
 {
-	cpu *c = cpu_cur();
+	cpu *c = &cpu_boot;
 	volatile int cookie = 0xfeedface;
 
+	// First - are we actually in the correct mode?
+	uint16_t cs;
+	asm volatile("movw %%cs,%0" : "=r" (cs));
+	if (usermode)
+		assert((cs & 3) == 3);
+	else
+		assert((cs & 3) == 0);
+
 	// Recover from the traps we're going to cause.
+	if (c->recover != NULL) {
+		c->recover = NULL;
+		panic("trap_check(): oops, did we get called recursively!?");
+	}
 	c->recover = trap_check_recover;
 
 	// Compute where the trap frame will get pushed when we cause a trap.
-	trapframe *tf = (trapframe*)(read_esp() - trapframe_ksize);
+	trapframe *tf = usermode
+		? (trapframe*)(c->kstackhi - trapframe_usize)
+		: (trapframe*)(read_esp() - trapframe_ksize);
 
 	// Try a divide by zero trap.
 	// Be careful when using && to take the address of a label:
@@ -280,18 +297,27 @@ after_bound:
 after_illegal:
 	assert(tf->tf_trapno == T_ILLOP);
 
-	// General protection fault
+	// General protection fault due to invalid segment load
 	c->recover_data = &&after_gpfault;
-	asm volatile("movl %0,%%fs" : : "r" (-1)); // invalid segment selector
+	asm volatile("movl %0,%%fs" : : "r" (-1));
 after_gpfault:
 	assert(tf->tf_trapno == T_GPFLT);
+
+	// General protection fault due to privilege violation
+	if (usermode) {
+		c->recover_data = &&after_priv;
+		asm volatile("lidt %0" : : "m" (idt_pd));
+	after_priv:
+		assert(tf->tf_trapno == T_GPFLT);
+	}
 
 	// Make sure our stack cookie is still with us
 	assert(cookie == 0xfeedface);
 
 	c->recover = NULL;	// No more mr. nice-guy; traps are real again
 
-	cprintf("trap_check() succeeded!\n");
+	cprintf("trap_check() succeeded from %s mode!\n",
+		usermode ? "user" : "kernel");
 }
 
 #endif /* LAB >= 1 */

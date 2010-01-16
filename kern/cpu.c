@@ -29,24 +29,26 @@ cpu cpu_boot = {
 		// 0x0 - unused (always faults: for trapping NULL far pointers)
 		[0] = SEGDESC_NULL,
 
-		// 0x08 - tss, initialized in cpu_init()
-		[CPU_GDT_TSS >> 3] = SEGDESC_NULL,
-
-		// 0x10 - kernel code segment
+		// 0x08 - kernel code segment
 		[CPU_GDT_KCODE >> 3] = SEGDESC32(STA_X | STA_R, 0x0,
 					0xffffffff, 0),
 
-		// 0x18 - kernel data segment
+		// 0x10 - kernel data segment
 		[CPU_GDT_KDATA >> 3] = SEGDESC32(STA_W, 0x0,
 					0xffffffff, 0),
+#if SOL >= 1
 
-		// 0x20 - user code segment
+		// 0x18 - user code segment
 		[CPU_GDT_UCODE >> 3] = SEGDESC32(STA_X | STA_R, 0x0,
 					0xffffffff, 3),
 
-		// 0x28 - user data segment
+		// 0x20 - user data segment
 		[CPU_GDT_UDATA >> 3] = SEGDESC32(STA_W, 0x0,
 					0xffffffff, 3),
+
+		// 0x28 - tss, initialized in cpu_init()
+		[CPU_GDT_TSS >> 3] = SEGDESC_NULL,
+#endif	// SOL >= 1
 	},
 
 	magic: CPU_MAGIC
@@ -57,6 +59,7 @@ void cpu_init()
 {
 	cpu *c = cpu_cur();
 
+#if SOL >= 1
 	// Setup the TSS for this cpu so that we get the right stack
 	// when we trap into the kernel from user mode.
 	c->tss.ts_esp0 = (uint32_t) c->kstackhi;
@@ -68,6 +71,7 @@ void cpu_init()
 					sizeof(taskstate), 0);
 	c->gdt[CPU_GDT_TSS >> 3].sd_s = 0;
 
+#endif	// SOL >= 1
 	// Load the GDT
 	struct pseudodesc gdt_pd = {
 		sizeof(c->gdt) - 1, (uint32_t) c->gdt };
@@ -83,13 +87,10 @@ void cpu_init()
 
 	// We don't need an LDT.
 	asm volatile("lldt %%ax" :: "a" (0));
+#if SOL >= 1
 
 	// Load the TSS (from the GDT)
 	ltr(CPU_GDT_TSS);
-#if LAB >= 2
-
-	// This CPU has booted - let other CPUs boot (see cpu_bootothers).
-	xchg(&c->booted, 1);
 #endif
 }
 
@@ -137,8 +138,11 @@ cpu_bootothers(void)
 	extern uint8_t _binary_obj_boot_bootother_start[],
 			_binary_obj_boot_bootother_size[];
 
-	if (!cpu_onboot())	// only do once, on the boot CPU
+	if (!cpu_onboot()) {
+		// Just inform the boot cpu we've booted.
+		xchg(&cpu_cur()->booted, 1);
 		return;
+	}
 
 	// Write bootstrap code to unused memory at 0x7000.
 	uint8_t *code = (uint8_t*)0x7000;
