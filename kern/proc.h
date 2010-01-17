@@ -7,6 +7,10 @@
 # error "This is a kernel header; user programs should not #include it"
 #endif
 
+#include <inc/trap.h>
+
+#include <kern/spinlock.h>
+
 
 #define PROC_CHILDREN	256	// Max # of children a process can have
 
@@ -22,32 +26,32 @@ typedef enum proc_state {
 typedef struct proc {
 
 	// Master spinlock protecting proc's state.
-	spin_lock	lock;
+	spinlock	lock;
 
 	// Process hierarchy information.
 	struct proc	*parent;
 	struct proc	*child[PROC_CHILDREN];
 
-	// Scheduling state of this process.
+	// Scheduling state for this process.
 	proc_state	state;		// current state
 	struct proc	*readynext;	// chain on ready queue
 	struct cpu	*runcpu;	// cpu we're running on if running
 
 	// Save area for user-mode register state when proc is not running.
-	trapframe	tf;
+	trapframe	tf;		// general registers
+	fxsave		fx;		// FPU/MMX/XMM state
+
+#if SOL >= 3
+	// Virtual memory state for this process.
+	uint32_t	pdbr;		// Top-level page directory
+
+#endif
 } proc;
 
 #define proc_cur()	(cpu_cur()->proc)
 
 
 void proc_init(proc *t);	// Initialize a new proc control block page
-
-void proc_switch(proc *cur, proc *next);
-proc *proc_self();		// Return a pointer to the current proc
-
-void procq_enqueue(procq *w, proc *t);
-proc *procq_dequeue(procq *w);
-
 
 void sched_dispatch(struct proc *self); // Dispatch a ready proc
 void sched_ready(struct proc *t);	// Schedule proc t to run

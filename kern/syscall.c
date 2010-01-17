@@ -35,7 +35,7 @@ syscall(trapframe *tf)
 {
 #if SOL >= 2
 	// EAX register holds system call command/flags
-	uint32_t cmd = tf->tf_regs.eax;
+	uint32_t cmd = tf->tf_regs.reg_eax;
 	switch (cmd & SYS_TYPE) {
 	case SYS_PUT:	return sys_put(tf);
 	case SYS_GET:	return sys_get(tf);

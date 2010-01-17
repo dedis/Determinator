@@ -1,4 +1,4 @@
-#if LAB >= 3
+#if LAB >= 2
 #ifndef PIOS_KERN_SYSCALL_H
 #define PIOS_KERN_SYSCALL_H
 #ifndef PIOS_KERNEL
@@ -11,4 +11,4 @@
 void syscall(trapframe *tf);
 
 #endif /* !PIOS_KERN_SYSCALL_H */
-#endif /* LAB >= 3 */
+#endif /* LAB >= 2 */

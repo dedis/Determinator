@@ -10,18 +10,13 @@
 #include <kern/trap.h>
 #include <kern/console.h>
 #include <kern/init.h>
-#if LAB >= 3
-#include <kern/env.h>
+#if LAB >= 2
 #include <kern/syscall.h>
 #endif
 #if LAB >= 4
 #include <kern/sched.h>
 #include <kern/kclock.h>
 #include <kern/picirq.h>
-#endif
-#if LAB >= 6
-#include <kern/time.h>
-#include <kern/e100.h>
 #endif
 
 
@@ -207,7 +202,7 @@ trap(trapframe *tf)
 
 #if SOL >= 2
 	if (tf->tf_trapno == T_SYSCALL)
-		syscall(trapframe *tf);
+		syscall(tf);
 
 #endif	// LAB >= 2
 	trap_print(tf);

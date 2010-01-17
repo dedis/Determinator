@@ -2,6 +2,9 @@
 #ifndef PIOS_INC_TRAP_H
 #define PIOS_INC_TRAP_H
 
+#include <inc/gcc.h>
+
+
 // Trap numbers
 // These are processor defined:
 #define T_DIVIDE     0		// divide error
@@ -100,7 +103,7 @@ typedef struct trapframe {
 
 // Floating-point/MMX/XMM register save area format,
 // in the layout defined by the processor's FXSAVE/FXRSTOR instructions.
-gcc_aligned(16) struct fxsave {
+typedef gcc_aligned(16) struct fxsave {
 	uint16_t fcw;	// byte 0
 	uint16_t	fsw;
 	uint16_t	ftw;
@@ -117,7 +120,7 @@ gcc_aligned(16) struct fxsave {
 	uint8_t		xmm[8][16];		// byte 160: XMM registers
 	uint8_t		reserved3[11][16];	// byte 288: reserved area
 	uint8_t		available[3][16];	// byte 464: available to OS
-};
+} fxsave;
 
 
 #endif /* !__ASSEMBLER__ */

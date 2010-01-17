@@ -8,6 +8,7 @@
 
 #include <kern/mem.h>
 #include <kern/cpu.h>
+#include <kern/init.h>
 
 #if LAB >= 2
 #include <dev/lapic.h>
@@ -134,7 +135,6 @@ cpu_alloc(void)
 void
 cpu_bootothers(void)
 {
-	extern void startup(void);
 	extern uint8_t _binary_obj_boot_bootother_start[],
 			_binary_obj_boot_bootother_size[];
 
@@ -156,7 +156,7 @@ cpu_bootothers(void)
 
 		// Fill in %esp, %eip and start code on cpu.
 		*(void**)(code-4) = c->kstackhi;
-		*(void**)(code-8) = startup;
+		*(void**)(code-8) = init;
 		lapic_startcpu(c->id, (uint32_t)code);
 
 		// Wait for cpu to get through bootstrap.
