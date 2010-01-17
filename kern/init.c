@@ -13,6 +13,7 @@
 #include <kern/trap.h>
 #if LAB >= 2
 #include <kern/mp.h>
+#include <kern/proc.h>
 #endif	// LAB >= 2
 
 #if LAB >= 2
@@ -65,6 +66,9 @@ init(void)
 	cpu_bootothers();	// Get other processors started
 	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
 		cpu_onboot() ? "BP" : "AP");
+
+	// Initialize the process management code and the root process.
+	proc_init();
 #endif
 
 #if SOL >= 1

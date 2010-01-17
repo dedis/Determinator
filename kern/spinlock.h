@@ -27,6 +27,7 @@ typedef struct spinlock {
 void spinlock_init(spinlock *lk, char *name);
 void spinlock_acquire(spinlock *lk);
 void spinlock_release(spinlock *lk);
+int spinlock_holding(spinlock *lk);
 
 #endif /* !PIOS_KERN_SPINLOCK_H */
 #endif // LAB >= 2

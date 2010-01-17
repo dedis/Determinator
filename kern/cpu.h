@@ -43,8 +43,8 @@ typedef struct cpu {
 	taskstate	tss;
 
 	// When non-NULL, all traps get diverted to this handler.
-	gcc_noreturn void (*recover)(trapframe *tf, void *recover_data);
-	void		*recover_data;
+	gcc_noreturn void (*recover)(trapframe *tf, void *recoverdata);
+	void		*recoverdata;
 
 #if LAB >= 2
 	// Next in list of all CPUs - cpu_boot (below) is the list head.

@@ -198,7 +198,7 @@ trap(trapframe *tf)
 	// If this trap was anticipated, just use the designated handler.
 	cpu *c = cpu_cur();
 	if (c->recover)
-		c->recover(tf, c->recover_data);
+		c->recover(tf, c->recoverdata);
 
 #if SOL >= 2
 	if (tf->tf_trapno == T_SYSCALL)
@@ -213,9 +213,9 @@ trap(trapframe *tf)
 // Helper function for trap_check_recover(), below:
 // handles "anticipated" traps by simply resuming at a new EIP.
 static void gcc_noreturn
-trap_check_recover(trapframe *tf, void *recover_data)
+trap_check_recover(trapframe *tf, void *recoverdata)
 {
-	tf->tf_eip = (uint32_t) recover_data;
+	tf->tf_eip = (uint32_t) recoverdata;
 	trap_return(tf);
 }
 
@@ -256,7 +256,7 @@ trap_check(int usermode)
 	// Be careful when using && to take the address of a label:
 	// some versions of GCC (4.4.2 at least) will incorrectly try to
 	// eliminate code it thinks is _only_ reachable via such a pointer.
-	c->recover_data = &&after_div0;
+	c->recoverdata = &&after_div0;
 	int zero = 0;
 	cookie = 1 / zero;
 after_div0:
@@ -268,39 +268,39 @@ after_div0:
 	assert(cookie == 0xfeedface);
 
 	// Breakpoint trap
-	c->recover_data = &&after_breakpoint;
+	c->recoverdata = &&after_breakpoint;
 	asm volatile("int3");
 after_breakpoint:
 	assert(tf->tf_trapno == T_BRKPT);
 
 	// Overflow trap
-	c->recover_data = &&after_overflow;
+	c->recoverdata = &&after_overflow;
 	asm volatile("addl %0,%0; into" : : "r" (0x70000000));
 after_overflow:
 	assert(tf->tf_trapno == T_OFLOW);
 
 	// Bounds trap
-	c->recover_data = &&after_bound;
+	c->recoverdata = &&after_bound;
 	int bounds[2] = { 1, 3 };
 	asm volatile("boundl %0,%1" : : "r" (0), "m" (bounds[0]));
 after_bound:
 	assert(tf->tf_trapno == T_BOUND);
 
 	// Illegal instruction trap
-	c->recover_data = &&after_illegal;
+	c->recoverdata = &&after_illegal;
 	asm volatile("ud2");	// guaranteed to be undefined
 after_illegal:
 	assert(tf->tf_trapno == T_ILLOP);
 
 	// General protection fault due to invalid segment load
-	c->recover_data = &&after_gpfault;
+	c->recoverdata = &&after_gpfault;
 	asm volatile("movl %0,%%fs" : : "r" (-1));
 after_gpfault:
 	assert(tf->tf_trapno == T_GPFLT);
 
 	// General protection fault due to privilege violation
 	if (usermode) {
-		c->recover_data = &&after_priv;
+		c->recoverdata = &&after_priv;
 		asm volatile("lidt %0" : : "m" (idt_pd));
 	after_priv:
 		assert(tf->tf_trapno == T_GPFLT);

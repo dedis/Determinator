@@ -18,7 +18,7 @@ typedef enum proc_state {
 	PROC_STOP	= 0,	// Passively waiting for parent to run it
 	PROC_READY,		// Scheduled to run but not running now
 	PROC_RUN,		// Running on some CPU
-	PROC_EXIT,		// Waiting for parent to collect results
+	PROC_WAIT,		// Waiting to synchronize with child
 } proc_state;
 
 // Thread control block structure.
@@ -36,6 +36,7 @@ typedef struct proc {
 	proc_state	state;		// current state
 	struct proc	*readynext;	// chain on ready queue
 	struct cpu	*runcpu;	// cpu we're running on if running
+	struct proc	*waitchild;	// child proc if waiting for child
 
 	// Save area for user-mode register state when proc is not running.
 	trapframe	tf;		// general registers
@@ -43,20 +44,26 @@ typedef struct proc {
 
 #if SOL >= 3
 	// Virtual memory state for this process.
-	uint32_t	pdbr;		// Top-level page directory
-
-#endif
+	uint32_t	pdbr;		// Working page directory
+#if SOL >= 4
+	uint32_t	oldpd;		// Snapshot from last Put, NULL if Got
+#endif	// SOL >= 4
+#endif	// SOL >= 3
 } proc;
 
 #define proc_cur()	(cpu_cur()->proc)
 
 
-void proc_init(proc *t);	// Initialize a new proc control block page
+// Special "null process" - always just contains zero in all fields.
+extern proc proc_null;
 
-void sched_dispatch(struct proc *self); // Dispatch a ready proc
-void sched_ready(struct proc *t);	// Schedule proc t to run
-void proc_yield();			// Yield to some other ready proc
 
+void proc_init(void);	// Initialize process management code
+proc *proc_alloc(proc *p, uint32_t cn);	// Allocate new child
+void proc_ready(proc *p);	// Make process p ready
+void gcc_noreturn proc_wait(proc *p, proc *cp, trapframe *tf);
+void proc_sched(void) gcc_noreturn;	// Find and run some ready process
+void gcc_noreturn proc_run(proc *p);	// Run a specific process
 
 
 #endif // !PIOS_KERN_PROC_H

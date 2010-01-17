@@ -10,8 +10,6 @@
 #include <kern/console.h>
 
 
-static int holding(struct spinlock *lock);
-
 void
 spinlock_init(struct spinlock *lk, char *name)
 {
@@ -27,7 +25,7 @@ spinlock_init(struct spinlock *lk, char *name)
 void
 spinlock_acquire(struct spinlock *lk)
 {
-	if(holding(lk))
+	if(spinlock_holding(lk))
 		panic("spinlock_acquire");
 
 	// The xchg is atomic.
@@ -45,7 +43,7 @@ spinlock_acquire(struct spinlock *lk)
 void
 spinlock_release(struct spinlock *lk)
 {
-	if(!holding(lk))
+	if(!spinlock_holding(lk))
 		panic("spinlock_release");
 
 	lk->eips[0] = 0;
@@ -64,8 +62,8 @@ spinlock_release(struct spinlock *lk)
 }
 
 // Check whether this cpu is holding the lock.
-static int
-holding(struct spinlock *lock)
+int
+spinlock_holding(spinlock *lock)
 {
 	return lock->locked && lock->cpu == cpu_cur();
 }
