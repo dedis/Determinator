@@ -31,20 +31,20 @@ cpu cpu_boot = {
 		[0] = SEGDESC_NULL,
 
 		// 0x08 - kernel code segment
-		[CPU_GDT_KCODE >> 3] = SEGDESC32(STA_X | STA_R, 0x0,
+		[CPU_GDT_KCODE >> 3] = SEGDESC32(1, STA_X | STA_R, 0x0,
 					0xffffffff, 0),
 
 		// 0x10 - kernel data segment
-		[CPU_GDT_KDATA >> 3] = SEGDESC32(STA_W, 0x0,
+		[CPU_GDT_KDATA >> 3] = SEGDESC32(1, STA_W, 0x0,
 					0xffffffff, 0),
 #if SOL >= 1
 
 		// 0x18 - user code segment
-		[CPU_GDT_UCODE >> 3] = SEGDESC32(STA_X | STA_R, 0x0,
+		[CPU_GDT_UCODE >> 3] = SEGDESC32(1, STA_X | STA_R, 0x0,
 					0xffffffff, 3),
 
 		// 0x20 - user data segment
-		[CPU_GDT_UDATA >> 3] = SEGDESC32(STA_W, 0x0,
+		[CPU_GDT_UDATA >> 3] = SEGDESC32(1, STA_W, 0x0,
 					0xffffffff, 3),
 
 		// 0x28 - tss, initialized in cpu_init()
@@ -68,9 +68,8 @@ void cpu_init()
 
 	// Initialize the non-constant part of the cpu's GDT:
 	// the TSS descriptor is different for each cpu.
-	c->gdt[CPU_GDT_TSS >> 3] = SEGDESC16(STS_T32A, (uint32_t) (&c->tss),
+	c->gdt[CPU_GDT_TSS >> 3] = SEGDESC16(0, STS_T32A, (uint32_t) (&c->tss),
 					sizeof(taskstate)-1, 0);
-	c->gdt[CPU_GDT_TSS >> 3].sd_s = 0;
 
 #endif	// SOL >= 1
 	// Load the GDT
