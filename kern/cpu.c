@@ -69,7 +69,7 @@ void cpu_init()
 	// Initialize the non-constant part of the cpu's GDT:
 	// the TSS descriptor is different for each cpu.
 	c->gdt[CPU_GDT_TSS >> 3] = SEGDESC16(STS_T32A, (uint32_t) (&c->tss),
-					sizeof(taskstate), 0);
+					sizeof(taskstate)-1, 0);
 	c->gdt[CPU_GDT_TSS >> 3].sd_s = 0;
 
 #endif	// SOL >= 1
