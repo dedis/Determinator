@@ -2,3 +2,8 @@ Post-2010 TODOs:
 
 - Fix the SEGDESC* macros to take a system/application flag argument
 
+- lab1: do user-mode trap handling after memory initialization,
+	or else don't panic in mem_init so kernel gets to user-mode test.
+
+- Strip as much unnecessary garbage as possible out of printfmt.c
+

@@ -1,6 +1,6 @@
-ifdef LAB3
 OBJDIRS += lib
 
+ifdef LAB3
 LIB_SRCFILES :=		lib/console.c \
 			lib/libmain.c \
 			lib/exit.c \
@@ -10,36 +10,30 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/readline.c \
 			lib/string.c \
 			lib/syscall.c
-
+endif	# LAB3
 ifdef LAB4
-LIB_SRCFILES :=		$(LIB_SRCFILES) \
-			lib/pgfault.c \
+LIB_SRCFILES +=		lib/pgfault.c \
 			lib/pfentry.S \
 			lib/fork.c \
 			lib/ipc.c
-endif
-
+endif	# LAB4
 ifdef LAB5
-LIB_SRCFILES :=		$(LIB_SRCFILES) \
-			lib/fd.c \
+LIB_SRCFILES +=		lib/fd.c \
 			lib/file.c \
 			lib/fprintf.c \
 			lib/fsipc.c \
 			lib/pageref.c \
 			lib/spawn.c
-endif
-
+endif	# LAB5
 ifdef LAB6
-LIB_SRCFILES :=		$(LIB_SRCFILES) \
-			lib/sockets.c \
+LIB_SRCFILES +=		lib/sockets.c \
 			lib/nsipc.c \
 			lib/malloc.c
-endif
+endif	# LAB6
 ifdef LAB7
-LIB_SRCFILES :=		$(LIB_SRCFILES) \
-			lib/pipe.c \
+LIB_SRCFILES +=		lib/pipe.c \
 			lib/wait.c
-endif
+endif	# LAB7
 
 LIB_OBJFILES := $(patsubst lib/%.c, $(OBJDIR)/lib/%.o, $(LIB_SRCFILES))
 LIB_OBJFILES := $(patsubst lib/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
@@ -57,4 +51,4 @@ $(OBJDIR)/lib/%.o: lib/%.S
 $(OBJDIR)/lib/libpios.a: $(LIB_OBJFILES)
 	@echo + ar $@
 	$(V)$(AR) r $@ $(LIB_OBJFILES)
-endif
+

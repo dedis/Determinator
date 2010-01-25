@@ -4,6 +4,7 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 #include <inc/gcc.h>
+#include <inc/syscall.h>
 
 #include <kern/init.h>
 #include <kern/console.h>
@@ -104,6 +105,10 @@ user()
 #if LAB == 1
 	// Check that we're in user mode and can handle traps from there.
 	trap_check(1);
+#endif
+#if LAB == 2
+	// Try doing a system call from user space.
+	sys_cputs("foo bar!");
 #endif
 
 	done();

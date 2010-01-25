@@ -36,9 +36,10 @@ KERN_SRCFILES :=	kern/entry.S \
 			dev/ioapic.c \
 			lib/printfmt.c \
 			lib/readline.c \
-			lib/string.c
+			lib/string.c \
+			lib/syscall.c
 
-# Only build files if they exist.
+# Build files only if they exist.
 KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
 
 ifdef LAB7
@@ -133,7 +134,6 @@ endif	# not LAB7
 
 KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))
 KERN_OBJFILES := $(patsubst %.S, $(OBJDIR)/%.o, $(KERN_OBJFILES))
-KERN_OBJFILES := $(patsubst $(OBJDIR)/lib/%, $(OBJDIR)/kern/%, $(KERN_OBJFILES))
 
 KERN_BINFILES := $(patsubst %, $(OBJDIR)/%, $(KERN_BINFILES))
 
@@ -145,11 +145,6 @@ $(OBJDIR)/kern/%.o: kern/%.c
 
 $(OBJDIR)/kern/%.o: kern/%.S
 	@echo + as $<
-	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
-
-$(OBJDIR)/kern/%.o: lib/%.c
-	@echo + cc $<
 	@mkdir -p $(@D)
 	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
 

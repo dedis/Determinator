@@ -13,7 +13,7 @@
 #include <kern/syscall.h>
 
 
-#if SOL >= 2
+#if SOL >= 3
 static void sys_ret(trapframe *tf) gcc_noreturn;
 
 static void gcc_noreturn
@@ -34,12 +34,21 @@ sys_recover(trapframe *ktf, void *recoverdata)
 	utf->tf_eip -= 2;	// back up before int 0x30 syscall instruction
 	sys_ret(utf);
 }
-#endif	// SOL >= 2
+#endif	// SOL >= 3
 
 static void
-sys_put(trapframe *tf, uint32_t cmd)
+do_cputs(trapframe *tf, uint32_t cmd)
 {
+	// Print the string supplied by the user: pointer in EBX
+	cprintf("%s", (char*)tf->tf_regs.reg_ebx);
+
+	trap_return(tf);	// syscall completed
+}
 #if SOL >= 2
+
+static void
+do_put(trapframe *tf, uint32_t cmd)
+{
 	proc *p = proc_cur();
 	assert(p->state == PROC_RUN && p->runcpu == cpu_cur());
 
@@ -60,17 +69,21 @@ sys_put(trapframe *tf, uint32_t cmd)
 
 	// Put child's general register state
 	if (cmd & SYS_REGS) {
+#if SOL >= 3
 		// Recover from traps caused by dereferencing user pointer
 		cpu *c = cpu_cur();
 		assert(c->recover == NULL);
 		c->recover = sys_recover;
 		c->recoverdata = tf;
 
+#endif	// SOL >= 3
 		// Copy user's trapframe into child process
 		cpustate *cs = (cpustate*) tf->tf_regs.reg_ebx;
 		cp->tf = cs->tf;
+#if SOL >= 3
 
 		c->recover = NULL;	// finished successfully
+#endif	// SOL >= 3
 	}
 
 	// Start the child if requested
@@ -78,15 +91,11 @@ sys_put(trapframe *tf, uint32_t cmd)
 		proc_ready(cp);
 
 	trap_return(tf);	// syscall completed
-#else	// SOL >= 2
-	panic("sys_put not implemented");
-#endif	// SOL >= 2
 }
 
 static void
-sys_get(trapframe *tf, uint32_t cmd)
+do_get(trapframe *tf, uint32_t cmd)
 {
-#if SOL >= 2
 	proc *p = proc_cur();
 	assert(p->state == PROC_RUN && p->runcpu == cpu_cur());
 
@@ -104,29 +113,29 @@ sys_get(trapframe *tf, uint32_t cmd)
 
 	// Get child's general register state
 	if (cmd & SYS_REGS) {
+#if SOL >= 3
 		// Recover from traps caused by dereferencing user pointer
 		cpu *c = cpu_cur();
 		assert(c->recover == NULL);
 		c->recover = sys_recover;
 		c->recoverdata = tf;
 
+#endif	// SOL >= 3
 		// Copy child process's trapframe into user space
 		cpustate *cs = (cpustate*) tf->tf_regs.reg_ebx;
 		cs->tf = cp->tf;
+#if SOL >= 3
 
 		c->recover = NULL;	// finished successfully
+#endif	// SOL >= 3
 	}
 
 	trap_return(tf);	// syscall completed
-#else	// SOL >= 2
-	panic("sys_get not implemented");
-#endif	// SOL >= 2
 }
 
 static void gcc_noreturn
-sys_ret(trapframe *tf)
+do_ret(trapframe *tf, uint32_t cmd)
 {
-#if SOL >= 2
 	proc *cp = proc_cur();		// we're the child
 	assert(cp->state == PROC_RUN && cp->runcpu == cpu_cur());
 	proc *p = cp->parent;		// find our parent
@@ -146,13 +155,11 @@ sys_ret(trapframe *tf)
 	spinlock_release(&p->lock);
 	proc_sched();			// find and run someone else
 
-#else	// SOL >= 2
-	panic("sys_ret not implemented");
-#endif	// SOL >= 2
 }
+#endif	// SOL >= 2
 
 // Common function to handle all system calls -
-// decode the system call type and call the appropriate function.
+// decode the system call type and call an appropriate handler function.
 // Be sure to handle undefined system calls appropriately.
 void
 syscall(trapframe *tf)
@@ -161,9 +168,10 @@ syscall(trapframe *tf)
 	// EAX register holds system call command/flags
 	uint32_t cmd = tf->tf_regs.reg_eax;
 	switch (cmd & SYS_TYPE) {
-	case SYS_PUT:	return sys_put(tf, cmd);
-	case SYS_GET:	return sys_get(tf, cmd);
-	case SYS_RET:	return sys_ret(tf);
+	case SYS_CPUTS:	return do_cputs(tf, cmd);
+	case SYS_PUT:	return do_put(tf, cmd);
+	case SYS_GET:	return do_get(tf, cmd);
+	case SYS_RET:	return do_ret(tf, cmd);
 	default:	return;		// handle as a regular trap
 	}
 #else	// not SOL >= 2

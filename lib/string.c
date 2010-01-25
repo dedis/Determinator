@@ -41,7 +41,8 @@ strcpy(char *dst, const char *src)
 }
 
 char *
-strncpy(char *dst, const char *src, size_t size) {
+strncpy(char *dst, const char *src, size_t size)
+{
 	size_t i;
 	char *ret;
 
