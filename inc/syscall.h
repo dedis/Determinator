@@ -64,8 +64,8 @@ typedef struct cpustate {
 
 // Prototypes for user-level syscalls stubs defined in lib/syscall.c
 void sys_cputs(const char *s);
-void sys_put(uint32_t flags, cpustate *cpu);
-void sys_get(uint32_t flags, cpustate *cpu);
+void sys_put(uint32_t flags, uint8_t child, cpustate *cpu);
+void sys_get(uint32_t flags, uint8_t child, cpustate *cpu);
 void sys_ret(void);
 
 #endif /* !PIOS_INC_SYSCALL_H */

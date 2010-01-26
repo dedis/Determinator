@@ -60,7 +60,8 @@ proc_alloc(proc *p, uint32_t cn)
 	// XXX alloc page directory
 #endif	// SOL >= 3
 
-	p->child[cn] = cp;
+	if (p)
+		p->child[cn] = cp;
 	return cp;
 }
 
@@ -114,14 +115,16 @@ proc_sched(void)
 	// Spin until something appears on the ready list.
 	// Would be better to use the hlt instruction and really go idle,
 	// but then we'd have to deal with inter-processor interrupts (IPIs).
-	while (1) {
-		while (!readyhead)
-			;		// spin until something appears
+	spinlock_acquire(&readylock);
+	while (!readyhead) {
+		spinlock_release(&readylock);
+
+		cprintf("cpu %d waiting for work\n", cpu_cur()->id);
+		while (!readyhead)	// spin until something appears
+			pause();	// let CPU know we're in a spin loop
 
 		spinlock_acquire(&readylock);
-		if (readyhead)
-			break;		// while holding lock
-		spinlock_release(&readylock);
+		// now must recheck readyhead while holding readylock!
 	}
 
 	// Remove the next proc from the ready queue
@@ -151,8 +154,10 @@ proc_run(proc *p)
 	assert(spinlock_holding(&p->lock));
 
 	// Put it in running state
+	cpu *c = cpu_cur();
 	p->state = PROC_RUN;
-	p->runcpu = cpu_cur();
+	p->runcpu = c;
+	c->proc = p;
 
 	spinlock_release(&p->lock);
 

@@ -90,6 +90,8 @@ do_put(trapframe *tf, uint32_t cmd)
 	if (cmd & SYS_START)
 		proc_ready(cp);
 
+	spinlock_release(&p->lock);
+
 	trap_return(tf);	// syscall completed
 }
 
@@ -129,6 +131,8 @@ do_get(trapframe *tf, uint32_t cmd)
 		c->recover = NULL;	// finished successfully
 #endif	// SOL >= 3
 	}
+
+	spinlock_release(&p->lock);
 
 	trap_return(tf);	// syscall completed
 }

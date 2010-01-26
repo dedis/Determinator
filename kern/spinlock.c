@@ -32,7 +32,7 @@ spinlock_acquire(struct spinlock *lk)
 	// It also serializes,
 	// so that reads after acquire are not reordered before it. 
 	while(xchg(&lk->locked, 1) != 0)
-		;
+		pause();	// let CPU know we're in a spin loop
 
 	// Record info about lock acquisition for debugging.
 	lk->cpu = cpu_cur();

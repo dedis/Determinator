@@ -72,7 +72,15 @@ init(void)
 	proc_init();
 #endif
 
-#if SOL >= 1
+#if SOL >= 2
+	// Create our first actual user-mode process
+	// (though it'll still be sharing the kernel's address space).
+	proc *root = proc_alloc(NULL, 0);
+	root->tf.tf_eip = (uint32_t) user;
+	root->tf.tf_esp = (uint32_t) &user_stack[PAGESIZE];
+	proc_ready(root);	// make it ready
+	proc_sched();		// run it
+#elif SOL >= 1
 	// Conjure up a trapframe and "return" to it to enter user mode.
 	static trapframe utf = {
 		tf_ds: CPU_GDT_UDATA | 3,
@@ -92,6 +100,11 @@ init(void)
 #endif
 }
 
+#if LAB == 2
+static void child(int n);
+static void grandchild(int n);
+#endif
+
 // This is the first function that gets run in user mode (ring 3).
 // It acts as PIOS's "root process",
 // of which all other processes are descendants.
@@ -107,13 +120,52 @@ user()
 	trap_check(1);
 #endif
 #if LAB == 2
-	// Try doing a system call from user space.
-	cputs("foo bar blah!");
+	// Spawn to child processes, executing on statically allocated stacks.
+	static struct cpustate state;
+	static char gcc_aligned(16) child_stack[2][PAGESIZE];
+
+	int i;
+	for (i = 0; i < 2; i++) {
+		// Setup register state for child
+		uint32_t *esp = (uint32_t*) &child_stack[i][PAGESIZE];
+		*--esp = i;	// push argument to child() function
+		*--esp = 0;	// fake return address
+		state.tf.tf_eip = (uint32_t) child;
+		state.tf.tf_esp = (uint32_t) esp;
+
+		// Use PUT syscall to create and start it
+		cprintf("spawning child %d\n", i);
+		sys_put(SYS_START | SYS_REGS, i, &state);
+	}
+
+	// now wait for both children
+	for (i = 0; i < 2; i++) {
+		cprintf("waiting for child %d\n", i);
+		sys_get(SYS_REGS, i, &state);
+	}
+
+	cprintf("proc_check() succeeded!\n");
 #endif
 
 	done();
 }
 
+#if LAB == 2
+static void child(int n)
+{
+	int i;
+	for (i = 0; i < 10; i++)
+		cprintf("in child %d count %d\n", n, i);
+	sys_ret();
+
+	done();
+}
+
+static void grandchild(int n)
+{
+}
+
+#endif	// LAB == 2
 void
 done()
 {

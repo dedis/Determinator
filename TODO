@@ -4,6 +4,7 @@ Post-2010 TODOs:
 
 - lab1: do user-mode trap handling after memory initialization,
 	or else don't panic in mem_init so kernel gets to user-mode test.
+	Perhaps move user-mode test to lab2?
 
 - Strip as much unnecessary garbage as possible out of printfmt.c
 

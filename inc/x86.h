@@ -264,6 +264,12 @@ xchg(volatile uint32_t *addr, uint32_t newval)
 	return result;
 }
 
+static inline void
+pause(void)
+{
+	asm volatile("pause" : : : "memory");
+}
+
 static gcc_inline void
 cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp, uint32_t *ecxp, uint32_t *edxp)
 {

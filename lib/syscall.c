@@ -26,22 +26,24 @@ sys_cputs(const char *s)
 }
 
 void
-sys_put(uint32_t flags, cpustate *cpu)
+sys_put(uint32_t flags, uint8_t child, cpustate *cpu)
 {
 	asm volatile("int %0" :
 		: "i" (T_SYSCALL),
 		  "a" (SYS_PUT | flags),
-		  "b" (cpu)
+		  "b" (cpu),
+		  "d" (child)
 		: "cc", "memory");
 }
 
 void
-sys_get(uint32_t flags, cpustate *cpu)
+sys_get(uint32_t flags, uint8_t child, cpustate *cpu)
 {
 	asm volatile("int %0" :
 		: "i" (T_SYSCALL),
 		  "a" (SYS_GET | flags),
-		  "b" (cpu)
+		  "b" (cpu),
+		  "d" (child)
 		: "cc", "memory");
 }
 
