@@ -5,9 +5,11 @@
 #include <inc/x86.h>
 #include <inc/string.h>
 #include <inc/assert.h>
+#include <inc/syscall.h>
 
 #include <kern/cpu.h>
 #include <kern/console.h>
+#include <kern/spinlock.h>
 #include <kern/mem.h>
 #if LAB >= 4
 #include <kern/picirq.h>
@@ -20,6 +22,9 @@
 void cons_intr(int (*proc)(void));
 static void cons_putc(int c);
 
+#if SOL >= 2
+static spinlock cons_lock;	// Spinlock to make console output atomic
+#endif
 
 /***** General device-independent console code *****/
 // Here we manage the console input buffer,
@@ -87,6 +92,9 @@ cons_init(void)
 	if (!cpu_onboot())	// only do once, on the boot CPU
 		return;
 
+#if SOL >= 2
+	spinlock_init(&cons_lock, "cons_lock");
+#endif
 	video_init();
 	kbd_init();
 	serial_init();
@@ -99,9 +107,24 @@ cons_init(void)
 // `High'-level console I/O.  Used by readline and cprintf.
 
 void
-cputchar(int c)
+cputs(const char *str)
 {
-	cons_putc(c);
+	if (read_cs() & 3)
+		return sys_cputs(str);	// use syscall from user mode
+
+#if SOL >= 2
+	// Hold the console spinlock while printing the entire string,
+	// so that the output of different cputs calls won't get mixed.
+	spinlock_acquire(&cons_lock);
+
+#endif
+	char ch;
+	while (*str)
+		cons_putc(*str++);
+#if SOL >= 2
+
+	spinlock_release(&cons_lock);
+#endif
 }
 
 int
@@ -112,41 +135,5 @@ getchar(void)
 	while ((c = cons_getc()) == 0)
 		/* do nothing */;
 	return c;
-}
-
-int
-iscons(int fdnum)
-{
-	// used by readline
-	return 1;
-}
-
-static void
-putch(int ch, int *cnt)
-{
-	cputchar(ch);
-	*cnt++;
-}
-
-int
-vcprintf(const char *fmt, va_list ap)
-{
-	int cnt = 0;
-
-	vprintfmt((void*)putch, &cnt, fmt, ap);
-	return cnt;
-}
-
-int
-cprintf(const char *fmt, ...)
-{
-	va_list ap;
-	int cnt;
-
-	va_start(ap, fmt);
-	cnt = vcprintf(fmt, ap);
-	va_end(ap);
-
-	return cnt;
 }
 

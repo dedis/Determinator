@@ -217,21 +217,21 @@ static gcc_inline uint32_t
 read_eflags(void)
 {
         uint32_t eflags;
-        __asm __volatile("pushfl; popl %0" : "=r" (eflags));
+        __asm __volatile("pushfl; popl %0" : "=rm" (eflags));
         return eflags;
 }
 
 static gcc_inline void
 write_eflags(uint32_t eflags)
 {
-        __asm __volatile("pushl %0; popfl" : : "r" (eflags));
+        __asm __volatile("pushl %0; popfl" : : "rm" (eflags));
 }
 
 static gcc_inline uint32_t
 read_ebp(void)
 {
         uint32_t ebp;
-        __asm __volatile("movl %%ebp,%0" : "=r" (ebp));
+        __asm __volatile("movl %%ebp,%0" : "=rm" (ebp));
         return ebp;
 }
 
@@ -239,8 +239,16 @@ static gcc_inline uint32_t
 read_esp(void)
 {
         uint32_t esp;
-        __asm __volatile("movl %%esp,%0" : "=r" (esp));
+        __asm __volatile("movl %%esp,%0" : "=rm" (esp));
         return esp;
+}
+
+static gcc_inline uint16_t
+read_cs(void)
+{
+        uint16_t cs;
+        __asm __volatile("movw %%cs,%0" : "=rm" (cs));
+        return cs;
 }
 
 static inline uint32_t

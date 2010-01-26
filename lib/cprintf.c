@@ -1,8 +1,7 @@
-#if LAB >= 3
 // Implementation of cprintf console output for user environments,
-// based on printfmt() and the sys_cputs() system call.
+// based on printfmt() and cputs().
 //
-// cprintf is a debugging statement, not a generic output statement.
+// cprintf is a debugging facility, not a generic output facility.
 // It is very important that it always go to the console, especially when 
 // debugging file descriptor code!
 
@@ -29,7 +28,8 @@ putch(int ch, struct printbuf *b)
 {
 	b->buf[b->idx++] = ch;
 	if (b->idx == SYS_CPUTS_MAX-1) {
-		sys_cputs(b->buf, b->idx);
+		b->buf[b->idx] = 0;
+		cputs(b->buf);
 		b->idx = 0;
 	}
 	b->cnt++;
@@ -43,7 +43,9 @@ vcprintf(const char *fmt, va_list ap)
 	b.idx = 0;
 	b.cnt = 0;
 	vprintfmt((void*)putch, &b, fmt, ap);
-	sys_cputs(b.buf, b.idx);
+
+	b.buf[b.idx] = 0;
+	cputs(b.buf);
 
 	return b.cnt;
 }
@@ -61,4 +63,3 @@ cprintf(const char *fmt, ...)
 	return cnt;
 }
 
-#endif // LAB >= 3

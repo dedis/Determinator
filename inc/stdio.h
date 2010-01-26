@@ -8,7 +8,6 @@
 #endif /* !NULL */
 
 // lib/stdio.c
-void	cputchar(int c);
 int	getchar(void);
 int	iscons(int fd);
 
@@ -18,7 +17,10 @@ void	vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list
 int	snprintf(char *str, int size, const char *fmt, ...);
 int	vsnprintf(char *str, int size, const char *fmt, va_list);
 
-// lib/printf.c
+// lib/cputs.c (user space impl) or kern/console.c (kernel impl)
+void	cputs(const char *str);
+
+// lib/cprintf.c
 int	cprintf(const char *fmt, ...);
 int	vcprintf(const char *fmt, va_list);
 

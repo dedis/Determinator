@@ -108,7 +108,7 @@ user()
 #endif
 #if LAB == 2
 	// Try doing a system call from user space.
-	sys_cputs("foo bar!");
+	cputs("foo bar blah!");
 #endif
 
 	done();
