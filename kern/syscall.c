@@ -80,6 +80,14 @@ do_put(trapframe *tf, uint32_t cmd)
 		// Copy user's trapframe into child process
 		cpustate *cs = (cpustate*) tf->tf_regs.reg_ebx;
 		cp->tf = cs->tf;
+
+		// Make sure process uses user-mode segments and eflag settings
+		cp->tf.tf_ds = CPU_GDT_UDATA | 3;
+		cp->tf.tf_es = CPU_GDT_UDATA | 3;
+		cp->tf.tf_cs = CPU_GDT_UCODE | 3;
+		cp->tf.tf_ss = CPU_GDT_UDATA | 3;
+		cp->tf.tf_eflags &=
+			FL_CF|FL_PF|FL_AF|FL_ZF|FL_SF|FL_TF|FL_DF|FL_OF;
 #if SOL >= 3
 
 		c->recover = NULL;	// finished successfully
