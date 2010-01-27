@@ -9,3 +9,7 @@ Post-2010 TODOs:
 - Strip as much unnecessary garbage as possible out of printfmt.c
 
 - get rid of tf_ and reg_ prefixes from trapframe and regs structs
+
+- Rename 'dev' directory to 'hw', move kern/mp.* into it
+	(since it's hardware-related but not really a device driver).
+

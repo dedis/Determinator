@@ -15,12 +15,14 @@
 
 // Mutual exclusion lock.
 typedef struct spinlock {
+#if SOL >= 2
 	uint32_t locked;	// Is the lock held?
 
 	// For debugging:
 	char *name;		// Name of lock.
 	struct cpu *cpu;	// The cpu holding the lock.
 	uint32_t eips[DEBUG_TRACEFRAMES]; // Call stack that locked the lock.
+#endif // SOL >= 2
 } spinlock;
 
 

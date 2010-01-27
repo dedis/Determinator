@@ -189,7 +189,7 @@ clean-labsetup:
 # Include Makefrags for subdirectories
 include boot/Makefrag
 include kern/Makefrag
-#if LAB >= 3
+#if LAB >= 2
 include lib/Makefrag
 #endif
 #if LAB >= 3

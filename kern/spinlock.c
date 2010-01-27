@@ -13,9 +13,11 @@
 void
 spinlock_init(struct spinlock *lk, char *name)
 {
+#if SOL >= 2
 	lk->name = name;
 	lk->locked = 0;
 	lk->cpu = 0;
+#endif // SOL >= 2
 }
 
 // Acquire the lock.
@@ -25,6 +27,7 @@ spinlock_init(struct spinlock *lk, char *name)
 void
 spinlock_acquire(struct spinlock *lk)
 {
+#if SOL >= 2
 	if(spinlock_holding(lk))
 		panic("spinlock_acquire");
 
@@ -37,12 +40,14 @@ spinlock_acquire(struct spinlock *lk)
 	// Record info about lock acquisition for debugging.
 	lk->cpu = cpu_cur();
 	debug_trace(read_ebp(), lk->eips);
+#endif // SOL >= 2
 }
 
 // Release the lock.
 void
 spinlock_release(struct spinlock *lk)
 {
+#if SOL >= 2
 	if(!spinlock_holding(lk))
 		panic("spinlock_release");
 
@@ -59,13 +64,16 @@ spinlock_release(struct spinlock *lk)
 	// The xchg being asm volatile ensures gcc emits it after
 	// the above assignments (and after the critical section).
 	xchg(&lk->locked, 0);
+#endif // SOL >= 2
 }
 
 // Check whether this cpu is holding the lock.
 int
 spinlock_holding(spinlock *lock)
 {
+#if SOL >= 2
 	return lock->locked && lock->cpu == cpu_cur();
+#endif // SOL >= 2
 }
 
 #endif // LAB >= 2

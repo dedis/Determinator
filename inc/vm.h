@@ -1,4 +1,4 @@
-#if LAB >= 2
+#if LAB >= 3
 // User-visible virtual memory layout and related definitions.
 // See COPYRIGHT for copyright information.
 #ifndef PIOS_INC_VM_H
@@ -76,4 +76,4 @@
 
 
 #endif /* !PIOS_INC_VM_H */
-#endif // LAB >= 2
+#endif // LAB >= 3
