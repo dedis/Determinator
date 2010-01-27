@@ -88,6 +88,7 @@ do_put(trapframe *tf, uint32_t cmd)
 		cp->tf.tf_ss = CPU_GDT_UDATA | 3;
 		cp->tf.tf_eflags &=
 			FL_CF|FL_PF|FL_AF|FL_ZF|FL_SF|FL_TF|FL_DF|FL_OF;
+		cp->tf.tf_eflags |= FL_IF;	// enable interrupts
 #if SOL >= 3
 
 		c->recover = NULL;	// finished successfully

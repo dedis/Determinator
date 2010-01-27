@@ -18,6 +18,7 @@
 #endif	// LAB >= 2
 
 #if LAB >= 2
+#include <dev/pic.h>
 #include <dev/lapic.h>
 #endif	// LAB >= 2
 
@@ -53,9 +54,6 @@ init(void)
 	// Initialize and load the bootstrap CPU's GDT, TSS, and IDT.
 	cpu_init();
 	trap_init();
-#if LAB >= 2
-	lapic_init();		// setup this CPU's local APIC
-#endif	// LAB >= 2
 
 	// Physical memory detection/initialization.
 	// Can't call mem_alloc until after we do this!
@@ -64,6 +62,8 @@ init(void)
 #if LAB >= 2
 	// Find and start other processors in a multiprocessor system
 	mp_init();		// Find info about processors in system
+	pic_init();		// setup the legacy PIC (mainly to disable it)
+	lapic_init();		// setup this CPU's local APIC
 	cpu_bootothers();	// Get other processors started
 	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
 		cpu_onboot() ? "BP" : "AP");
@@ -100,11 +100,6 @@ init(void)
 #endif
 }
 
-#if LAB == 2
-static void child(int n);
-static void grandchild(int n);
-#endif
-
 // This is the first function that gets run in user mode (ring 3).
 // It acts as PIOS's "root process",
 // of which all other processes are descendants.
@@ -120,52 +115,13 @@ user()
 	trap_check(1);
 #endif
 #if LAB == 2
-	// Spawn to child processes, executing on statically allocated stacks.
-	static struct cpustate state;
-	static char gcc_aligned(16) child_stack[2][PAGESIZE];
-
-	int i;
-	for (i = 0; i < 2; i++) {
-		// Setup register state for child
-		uint32_t *esp = (uint32_t*) &child_stack[i][PAGESIZE];
-		*--esp = i;	// push argument to child() function
-		*--esp = 0;	// fake return address
-		state.tf.tf_eip = (uint32_t) child;
-		state.tf.tf_esp = (uint32_t) esp;
-
-		// Use PUT syscall to create and start it
-		cprintf("spawning child %d\n", i);
-		sys_put(SYS_START | SYS_REGS, i, &state);
-	}
-
-	// now wait for both children
-	for (i = 0; i < 2; i++) {
-		cprintf("waiting for child %d\n", i);
-		sys_get(SYS_REGS, i, &state);
-	}
-
-	cprintf("proc_check() succeeded!\n");
+	// Check the system call and process scheduling code.
+	proc_check();
 #endif
 
 	done();
 }
 
-#if LAB == 2
-static void child(int n)
-{
-	int i;
-	for (i = 0; i < 10; i++)
-		cprintf("in child %d count %d\n", n, i);
-	sys_ret();
-
-	done();
-}
-
-static void grandchild(int n)
-{
-}
-
-#endif	// LAB == 2
 void
 done()
 {

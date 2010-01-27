@@ -11,12 +11,10 @@
 #include <kern/console.h>
 #include <kern/init.h>
 #if LAB >= 2
+#include <kern/proc.h>
 #include <kern/syscall.h>
-#endif
-#if LAB >= 4
-#include <kern/sched.h>
-#include <kern/kclock.h>
-#include <kern/picirq.h>
+
+#include <dev/lapic.h>
 #endif
 
 
@@ -40,17 +38,17 @@ trap_init_idt(void)
 		Xdivide,Xdebug,Xnmi,Xbrkpt,Xoflow,Xbound,
 		Xillop,Xdevice,Xdblflt,Xtss,Xsegnp,Xstack,
 		Xgpflt,Xpgflt,Xfperr,Xalign,Xmchk,Xdefault,Xsyscall;
-#if SOL >= 4
+#if SOL >= 2
 	extern char
 		Xirq0,Xirq1,Xirq2,Xirq3,Xirq4,Xirq5,
 		Xirq6,Xirq7,Xirq8,Xirq9,Xirq10,Xirq11,
 		Xirq12,Xirq13,Xirq14,Xirq15;
-#endif
+#endif	// SOL >= 2
 	int i;
 
 	// check that the SIZEOF_STRUCT_TRAPFRAME symbol is defined correctly
 	static_assert(sizeof(trapframe) == SIZEOF_STRUCT_TRAPFRAME);
-#if SOL >= 4
+#if SOL >= 2
 	// check that T_IRQ0 is a multiple of 8
 	static_assert((T_IRQ0 & 7) == 0);
 #endif
@@ -82,7 +80,6 @@ trap_init_idt(void)
 	// by the user process (with "int $T_SYSCALL").
 	SETGATE(idt[T_SYSCALL], 0, CPU_GDT_KCODE, &Xsyscall, 3);
 
-#if SOL >= 4
 	SETGATE(idt[T_IRQ0 + 0], 0, CPU_GDT_KCODE, &Xirq0, 0);
 	SETGATE(idt[T_IRQ0 + 1], 0, CPU_GDT_KCODE, &Xirq1, 0);
 	SETGATE(idt[T_IRQ0 + 2], 0, CPU_GDT_KCODE, &Xirq2, 0);
@@ -99,7 +96,6 @@ trap_init_idt(void)
 	SETGATE(idt[T_IRQ0 + 13], 0, CPU_GDT_KCODE, &Xirq13, 0);
 	SETGATE(idt[T_IRQ0 + 14], 0, CPU_GDT_KCODE, &Xirq14, 0);
 	SETGATE(idt[T_IRQ0 + 15], 0, CPU_GDT_KCODE, &Xirq15, 0);
-#endif	// SOL >= 4
 #endif	// SOL >= 2
 #else	// not SOL >= 1
 	
@@ -201,8 +197,20 @@ trap(trapframe *tf)
 		c->recover(tf, c->recoverdata);
 
 #if SOL >= 2
-	if (tf->tf_trapno == T_SYSCALL)
+	switch (tf->tf_trapno) {
+	case T_SYSCALL:
 		syscall(tf);
+		break;
+	case T_IRQ0 + IRQ_TIMER:
+		lapic_eoi();
+		proc_yield(tf);
+		break;
+	case T_IRQ0 + IRQ_SPURIOUS:
+		cprintf("cpu%d: spurious interrupt at %x:%x\n",
+			c->id, tf->tf_cs, tf->tf_eip);
+		lapic_eoi();
+		break;
+	}
 
 #endif	// LAB >= 2
 	trap_print(tf);

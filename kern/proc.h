@@ -63,7 +63,9 @@ proc *proc_alloc(proc *p, uint32_t cn);	// Allocate new child
 void proc_ready(proc *p);	// Make process p ready
 void gcc_noreturn proc_wait(proc *p, proc *cp, trapframe *tf);
 void proc_sched(void) gcc_noreturn;	// Find and run some ready process
-void gcc_noreturn proc_run(proc *p);	// Run a specific process
+void proc_run(proc *p) gcc_noreturn;	// Run a specific process
+void proc_yield(trapframe *tf) gcc_noreturn;	// Yield to another process
+void proc_check(void);			// Check process code
 
 
 #endif // !PIOS_KERN_PROC_H

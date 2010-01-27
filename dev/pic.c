@@ -1,7 +1,8 @@
-#if LAB >= 4
+#if LAB >= 2
 // Driver code for the 8259A Programmable Interrupt Controller (PIC).
 // See COPYRIGHT for copyright information.
 
+#include <inc/trap.h>
 #include <inc/assert.h>
 
 #include <dev/pic.h>
@@ -16,6 +17,8 @@ static bool didinit;
 void
 pic_init(void)
 {
+	if (didinit)		// only do once on bootstrap CPU
+		return;
 	didinit = 1;
 
 	// mask all interrupts
@@ -85,7 +88,7 @@ pic_setmask(uint16_t mask)
 	cprintf("\n");
 }
 
-#if LAB >= 6
+#if LAB >= 99
 void
 pic_eoi(void)
 {
@@ -98,5 +101,5 @@ pic_eoi(void)
 	outb(IO_PIC2, 0x20);
 }
 
-#endif /* LAB >= 6 */
-#endif /* LAB >= 3 */
+#endif /* LAB >= 99 */
+#endif /* LAB >= 2 */

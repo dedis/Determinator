@@ -23,9 +23,12 @@ debug_panic(const char *file, int line, const char *fmt,...)
 	va_list ap;
 	int i;
 
-	if (panicstr)
-		goto dead;
-	panicstr = fmt;
+	// Avoid infinite recursion if we're panicking from kernel mode.
+	if ((read_cs() & 3) == 0) {
+		if (panicstr)
+			goto dead;
+		panicstr = fmt;
+	}
 
 	// First print the requested message
 	va_start(ap, fmt);

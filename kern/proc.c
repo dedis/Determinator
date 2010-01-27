@@ -3,6 +3,7 @@
 // See COPYRIGHT for copyright information.
 
 #include <inc/string.h>
+#include <inc/syscall.h>
 
 #include <kern/cpu.h>
 #include <kern/mem.h>
@@ -171,5 +172,102 @@ proc_run(proc *p)
 #endif	// SOL >= 2
 }
 
+// Yield the current CPU to another ready process.
+void gcc_noreturn
+proc_yield(trapframe *tf)
+{
+	proc *p = proc_cur();
+	assert(p->runcpu == cpu_cur());
+	p->runcpu = NULL;	// this process no longer running
+	p->tf = *tf;		// save this process's register state
+
+	proc_ready(p);		// put it on tail of ready queue
+
+	proc_sched();		// schedule a process from head of ready queue
+}
+
+// Helper functions for proc_check()
+static void child(int n);
+static void grandchild(int n);
+
+static volatile uint32_t pingpong = 0;
+
+void
+proc_check(void)
+{
+	// Spawn to child processes, executing on statically allocated stacks.
+	static struct cpustate state;
+	static char gcc_aligned(16) child_stack[4][PAGESIZE];
+
+	int i;
+	for (i = 0; i < 4; i++) {
+		// Setup register state for child
+		uint32_t *esp = (uint32_t*) &child_stack[i][PAGESIZE];
+		*--esp = i;	// push argument to child() function
+		*--esp = 0;	// fake return address
+		state.tf.tf_eip = (uint32_t) child;
+		state.tf.tf_esp = (uint32_t) esp;
+
+		// Use PUT syscall to create each child,
+		// but only start the first 2 children for now.
+		cprintf("spawning child %d\n", i);
+		sys_put(SYS_REGS | (i < 2 ? SYS_START : 0), i, &state);
+	}
+
+	// Wait for both children to complete.
+	// This should complete without preemptive scheduling
+	// when we're running on a 2-processor machine.
+	for (i = 0; i < 2; i++) {
+		cprintf("waiting for child %d\n", i);
+		sys_get(SYS_REGS, i, &state);
+	}
+
+	// (Re)start all four children, and wait for them.
+	// This will require preemptive scheduling to complete
+	// if we have less than 4 CPUs.
+	cprintf("proc_check: spawning 4 children\n");
+	for (i = 0; i < 4; i++) {
+		cprintf("spawning child %d\n", i);
+		sys_put(SYS_START, i, NULL);
+	}
+
+	// Wait for all 4 children to complete.
+	for (i = 0; i < 4; i++)
+		sys_get(0, i, NULL);
+
+	cprintf("proc_check() succeeded!\n");
+}
+
+static void child(int n)
+{
+	// Only first 2 children participate in first pingpong test
+	if (n < 2) {
+		int i;
+		for (i = 0; i < 10; i++) {
+			cprintf("in child %d count %d\n", n, i);
+			while (pingpong != n)
+				pause();
+			xchg(&pingpong, !pingpong);
+		}
+		sys_ret();
+	}
+
+	// Second test, round-robin pingpong between all 4 children
+	int i;
+	for (i = 0; i < 10; i++) {
+		cprintf("in child %d count %d\n", n, i);
+		while (pingpong != n)
+			pause();
+		xchg(&pingpong, (pingpong + 1) % 4);
+	}
+	sys_ret();
+
+	panic("child(): shouldn't have gotten here");
+}
+
+static void grandchild(int n)
+{
+	panic("grandchild(): shouldn't have gotten here");
+}
 
 #endif // LAB >= 2
