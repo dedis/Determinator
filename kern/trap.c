@@ -116,7 +116,7 @@ trap_init(void)
 
 	// Check for the correct IDT and trap handler operation.
 	if (cpu_onboot())
-		trap_check(0);
+		trap_check_kernel();
 }
 
 const char *trap_name(int trapno)
@@ -211,6 +211,8 @@ trap(trapframe *tf)
 		lapic_eoi();
 		break;
 	}
+	if (tf->tf_cs & 3)	// Unhandled trap from user mode
+		proc_ret(tf);	// Reflect to parent process
 
 #endif	// LAB >= 2
 	trap_print(tf);
@@ -227,44 +229,61 @@ trap_check_recover(trapframe *tf, void *recoverdata)
 	trap_return(tf);
 }
 
-// Check the trap handling mechanism for correct operation.
-// Called twice: first in kernel mode after trap_init() and trap_setup(),
-// then later from user() in kern/init.c after we're in user mode.
-// We assume the "current cpu" is always the boot cpu;
-// this true for the call of this function from trap_init(),
-// and is called from user mode only in lab 1,
-// before any other CPUs have been started.
+// Check for correct handling of traps from kernel mode.
+// Called on the boot CPU after trap_init() and trap_setup().
 void
-trap_check(int usermode)
+trap_check_kernel(void)
 {
-	cpu *c = &cpu_boot;
-	volatile int cookie = 0xfeedface;
+	assert((read_cs() & 3) == 0);	// better be in kernel mode!
 
-	// First - are we actually in the correct mode?
-	uint16_t cs;
-	asm volatile("movw %%cs,%0" : "=r" (cs));
-	if (usermode)
-		assert((cs & 3) == 3);
-	else
-		assert((cs & 3) == 0);
-
-	// Recover from the traps we're going to cause.
-	if (c->recover != NULL) {
-		c->recover = NULL;
-		panic("trap_check(): oops, did we get called recursively!?");
-	}
+	cpu *c = cpu_cur();
 	c->recover = trap_check_recover;
 
-	// Compute where the trap frame will get pushed when we cause a trap.
-	trapframe *tf = usermode
-		? (trapframe*)(c->kstackhi - trapframe_usize)
-		: (trapframe*)(read_esp() - trapframe_ksize);
+	trap_check(NULL, &c->recoverdata);
+
+	c->recover = NULL;	// No more mr. nice-guy; traps are real again
+
+	cprintf("trap_check_kernel() succeeded!\n");
+}
+
+// Check for correct handling of traps from user mode.
+// Called from user() in kern/init.c, only in lab 1.
+// We assume the "current cpu" is always the boot cpu;
+// this true only because lab 1 doesn't start any other CPUs.
+void
+trap_check_user(void)
+{
+	assert((read_cs() & 3) == 3);	// better be in user mode!
+
+	cpu *c = &cpu_boot;	// cpu_cur doesn't work from user mode!
+	c->recover = trap_check_recover;
+
+	trap_check((trapframe*)(c->kstackhi - trapframe_usize),
+			&c->recoverdata);
+
+	c->recover = NULL;	// No more mr. nice-guy; traps are real again
+
+	cprintf("trap_check_user() succeeded!\n");
+}
+
+// Multi-purpose trap checking function.
+void
+trap_check(trapframe *tf, void **recover_eip)
+{
+	volatile int cookie = 0xfeedface;
+
+	// If caller didn't specify location of trapframe,
+	// expect it to appear on the current (i.e., kernel) stack.
+	if (!tf) {
+		assert((read_cs() & 3) == 0);	// better be in kernel mode!
+		tf = (trapframe*)(read_esp() - trapframe_ksize);
+	}
 
 	// Try a divide by zero trap.
 	// Be careful when using && to take the address of a label:
 	// some versions of GCC (4.4.2 at least) will incorrectly try to
 	// eliminate code it thinks is _only_ reachable via such a pointer.
-	c->recoverdata = &&after_div0;
+	*recover_eip = &&after_div0;
 	int zero = 0;
 	cookie = 1 / zero;
 after_div0:
@@ -276,39 +295,39 @@ after_div0:
 	assert(cookie == 0xfeedface);
 
 	// Breakpoint trap
-	c->recoverdata = &&after_breakpoint;
+	*recover_eip = &&after_breakpoint;
 	asm volatile("int3");
 after_breakpoint:
 	assert(tf->tf_trapno == T_BRKPT);
 
 	// Overflow trap
-	c->recoverdata = &&after_overflow;
+	*recover_eip = &&after_overflow;
 	asm volatile("addl %0,%0; into" : : "r" (0x70000000));
 after_overflow:
 	assert(tf->tf_trapno == T_OFLOW);
 
 	// Bounds trap
-	c->recoverdata = &&after_bound;
+	*recover_eip = &&after_bound;
 	int bounds[2] = { 1, 3 };
 	asm volatile("boundl %0,%1" : : "r" (0), "m" (bounds[0]));
 after_bound:
 	assert(tf->tf_trapno == T_BOUND);
 
 	// Illegal instruction trap
-	c->recoverdata = &&after_illegal;
+	*recover_eip = &&after_illegal;
 	asm volatile("ud2");	// guaranteed to be undefined
 after_illegal:
 	assert(tf->tf_trapno == T_ILLOP);
 
 	// General protection fault due to invalid segment load
-	c->recoverdata = &&after_gpfault;
+	*recover_eip = &&after_gpfault;
 	asm volatile("movl %0,%%fs" : : "r" (-1));
 after_gpfault:
 	assert(tf->tf_trapno == T_GPFLT);
 
 	// General protection fault due to privilege violation
-	if (usermode) {
-		c->recoverdata = &&after_priv;
+	if (read_cs() & 3) {
+		*recover_eip = &&after_priv;
 		asm volatile("lidt %0" : : "m" (idt_pd));
 	after_priv:
 		assert(tf->tf_trapno == T_GPFLT);
@@ -317,10 +336,7 @@ after_gpfault:
 	// Make sure our stack cookie is still with us
 	assert(cookie == 0xfeedface);
 
-	c->recover = NULL;	// No more mr. nice-guy; traps are real again
-
-	cprintf("trap_check() succeeded from %s mode!\n",
-		usermode ? "user" : "kernel");
+	*recover_eip = NULL;	// cleanup
 }
 
 #endif /* LAB >= 1 */

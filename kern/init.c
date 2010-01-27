@@ -112,7 +112,7 @@ user()
 
 #if LAB == 1
 	// Check that we're in user mode and can handle traps from there.
-	trap_check(1);
+	trap_check_user();
 #endif
 #if LAB == 2
 	// Check the system call and process scheduling code.

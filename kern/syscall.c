@@ -149,25 +149,7 @@ do_get(trapframe *tf, uint32_t cmd)
 static void gcc_noreturn
 do_ret(trapframe *tf, uint32_t cmd)
 {
-	proc *cp = proc_cur();		// we're the child
-	assert(cp->state == PROC_RUN && cp->runcpu == cpu_cur());
-	proc *p = cp->parent;		// find our parent
-
-	spinlock_acquire(&p->lock);	// lock both in proper order
-
-	cp->state = PROC_STOP;		// we're becoming stopped
-	cp->runcpu = NULL;		// no longer running
-	cp->tf = *tf;			// save our register state
-
-	// If parent is waiting to sync with us, wake it up.
-	if (p->state == PROC_WAIT && p->waitchild == cp) {
-		p->waitchild = NULL;
-		proc_run(p);
-	}
-
-	spinlock_release(&p->lock);
-	proc_sched();			// find and run someone else
-
+	proc_ret(tf);
 }
 #endif	// SOL >= 2
 

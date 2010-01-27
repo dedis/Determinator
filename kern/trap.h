@@ -29,8 +29,9 @@ void trap(trapframe *tf) gcc_noreturn;
 void trap_return(trapframe *tf) gcc_noreturn;
 
 // Check for correct operation of trap handling.
-// 'usermode' indicates whether we should be in kernel (0) or user (1) mode.
-void trap_check(int usermode);
+void trap_check_kernel(void);
+void trap_check_user(void);
+void trap_check(trapframe *tf, void **recover_eip);
 
 #endif /* PIOS_KERN_TRAP_H */
 #endif /* LAB >= 1 */

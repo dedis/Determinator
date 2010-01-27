@@ -61,10 +61,11 @@ extern proc proc_null;
 void proc_init(void);	// Initialize process management code
 proc *proc_alloc(proc *p, uint32_t cn);	// Allocate new child
 void proc_ready(proc *p);	// Make process p ready
-void gcc_noreturn proc_wait(proc *p, proc *cp, trapframe *tf);
+void proc_wait(proc *p, proc *cp, trapframe *tf) gcc_noreturn;
 void proc_sched(void) gcc_noreturn;	// Find and run some ready process
 void proc_run(proc *p) gcc_noreturn;	// Run a specific process
 void proc_yield(trapframe *tf) gcc_noreturn;	// Yield to another process
+void proc_ret(trapframe *tf) gcc_noreturn;	// Return to parent process
 void proc_check(void);			// Check process code
 
 

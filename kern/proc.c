@@ -176,6 +176,7 @@ proc_run(proc *p)
 void gcc_noreturn
 proc_yield(trapframe *tf)
 {
+#if SOL >= 2
 	proc *p = proc_cur();
 	assert(p->runcpu == cpu_cur());
 	p->runcpu = NULL;	// this process no longer running
@@ -184,20 +185,56 @@ proc_yield(trapframe *tf)
 	proc_ready(p);		// put it on tail of ready queue
 
 	proc_sched();		// schedule a process from head of ready queue
+#else
+	panic("proc_yield not implemented");
+#endif	// SOL >= 2
+}
+
+// Put the current process to sleep by "returning" to its parent process.
+// Used both when a process calls the SYS_RET system call explicitly,
+// and when a process causes an unhandled trap in user mode.
+void gcc_noreturn
+proc_ret(trapframe *tf)
+{
+#if SOL >= 2
+	proc *cp = proc_cur();		// we're the child
+	assert(cp->state == PROC_RUN && cp->runcpu == cpu_cur());
+	proc *p = cp->parent;		// find our parent
+	assert(p != NULL);		// root process shouldn't return!
+
+	spinlock_acquire(&p->lock);	// lock both in proper order
+
+	cp->state = PROC_STOP;		// we're becoming stopped
+	cp->runcpu = NULL;		// no longer running
+	cp->tf = *tf;			// save our register state
+
+	// If parent is waiting to sync with us, wake it up.
+	if (p->state == PROC_WAIT && p->waitchild == cp) {
+		p->waitchild = NULL;
+		proc_run(p);
+	}
+
+	spinlock_release(&p->lock);
+	proc_sched();			// find and run someone else
+#else
+	panic("proc_ret not implemented");
+#endif	// SOL >= 2
 }
 
 // Helper functions for proc_check()
 static void child(int n);
 static void grandchild(int n);
 
+static struct cpustate child_state;
+static char gcc_aligned(16) child_stack[4][PAGESIZE];
+
 static volatile uint32_t pingpong = 0;
+static void *recoveip;
 
 void
 proc_check(void)
 {
 	// Spawn to child processes, executing on statically allocated stacks.
-	static struct cpustate state;
-	static char gcc_aligned(16) child_stack[4][PAGESIZE];
 
 	int i;
 	for (i = 0; i < 4; i++) {
@@ -205,13 +242,13 @@ proc_check(void)
 		uint32_t *esp = (uint32_t*) &child_stack[i][PAGESIZE];
 		*--esp = i;	// push argument to child() function
 		*--esp = 0;	// fake return address
-		state.tf.tf_eip = (uint32_t) child;
-		state.tf.tf_esp = (uint32_t) esp;
+		child_state.tf.tf_eip = (uint32_t) child;
+		child_state.tf.tf_esp = (uint32_t) esp;
 
 		// Use PUT syscall to create each child,
 		// but only start the first 2 children for now.
 		cprintf("spawning child %d\n", i);
-		sys_put(SYS_REGS | (i < 2 ? SYS_START : 0), i, &state);
+		sys_put(SYS_REGS | (i < 2 ? SYS_START : 0), i, &child_state);
 	}
 
 	// Wait for both children to complete.
@@ -219,7 +256,7 @@ proc_check(void)
 	// when we're running on a 2-processor machine.
 	for (i = 0; i < 2; i++) {
 		cprintf("waiting for child %d\n", i);
-		sys_get(SYS_REGS, i, &state);
+		sys_get(SYS_REGS, i, &child_state);
 	}
 
 	// (Re)start all four children, and wait for them.
@@ -234,6 +271,24 @@ proc_check(void)
 	// Wait for all 4 children to complete.
 	for (i = 0; i < 4; i++)
 		sys_get(0, i, NULL);
+
+	// Now do a trap handling test using all 4 children -
+	// but they'll _think_ they're all child 0!
+	// (We'll lose the register state of the other children.)
+	i = 0;
+	sys_get(SYS_REGS, i, &child_state);	// get child 0's state
+	assert(recoveip == NULL);
+	do {
+		sys_put(SYS_REGS | SYS_START, i, &child_state); // start child
+		sys_get(SYS_REGS, i, &child_state);	// wait and get state
+		if (recoveip) {	// set eip to the recovery point
+			cprintf("recover from trap %d\n",
+				child_state.tf.tf_trapno);
+			child_state.tf.tf_eip = (uint32_t)recoveip;
+		} else
+			assert(child_state.tf.tf_trapno == T_SYSCALL);
+		i = (i+1) % 4;	// rotate to next child proc
+	} while (child_state.tf.tf_trapno != T_SYSCALL);
 
 	cprintf("proc_check() succeeded!\n");
 }
@@ -261,6 +316,14 @@ static void child(int n)
 		xchg(&pingpong, (pingpong + 1) % 4);
 	}
 	sys_ret();
+
+	// Only "child 0" (or the proc that thinks it's child 0), trap check...
+	if (n == 0) {
+		trap_check(&child_state.tf, &recoveip);
+
+		recoveip = NULL;	// return to parent cleanly
+		sys_ret();
+	}
 
 	panic("child(): shouldn't have gotten here");
 }
