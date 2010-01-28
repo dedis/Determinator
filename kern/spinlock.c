@@ -11,10 +11,11 @@
 
 
 void
-spinlock_init(struct spinlock *lk, char *name)
+spinlock_init_(struct spinlock *lk, const char *file, int line)
 {
 #if SOL >= 2
-	lk->name = name;
+	lk->file = file;
+	lk->line = line;
 	lk->locked = 0;
 	lk->cpu = 0;
 #endif // SOL >= 2

@@ -29,7 +29,7 @@ proc_init(void)
 		return;
 
 #if SOL >= 2
-	spinlock_init(&readylock, "readylock");
+	spinlock_init(&readylock);
 	readytail = &readyhead;
 #else
 	// your module initialization code here
@@ -47,7 +47,7 @@ proc_alloc(proc *p, uint32_t cn)
 
 	proc *cp = (proc*)mem_pi2ptr(pi);
 	memset(cp, 0, sizeof(proc));
-	spinlock_init(&cp->lock, "proc lock");
+	spinlock_init(&cp->lock);
 	cp->parent = p;
 	cp->state = PROC_STOP;
 

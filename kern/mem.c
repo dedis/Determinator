@@ -78,7 +78,7 @@ mem_init(void)
 
 	// Chain all the available physical pages onto the free page list.
 #if SOL >= 2
-	spinlock_init(&mem_freelock, "mem_freelist lock");
+	spinlock_init(&mem_freelock);
 #endif
 	pageinfo **freetail = &mem_freelist;
 	int i;

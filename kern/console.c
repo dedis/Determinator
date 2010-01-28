@@ -93,7 +93,7 @@ cons_init(void)
 		return;
 
 #if SOL >= 2
-	spinlock_init(&cons_lock, "cons_lock");
+	spinlock_init(&cons_lock);
 #endif
 	video_init();
 	kbd_init();
