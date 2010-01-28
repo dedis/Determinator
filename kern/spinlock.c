@@ -77,4 +77,54 @@ spinlock_holding(spinlock *lock)
 #endif // SOL >= 2
 }
 
+void spinlock_debug_godeep(int depth, spinlock* lk) {
+	if (depth==0) spinlock_acquire(lk);
+	else spinlock_debug_godeep(depth-1, lk);
+}
+
+void spinlock_check()
+{
+	const int NUMLOCKS=10;
+	const int NUMRUNS=5;
+	int i,j,run;
+	const char* file = "spinlock_check";
+	spinlock locks[NUMLOCKS];
+
+	// Initialize the locks
+	for(i=0;i<NUMLOCKS;i++) spinlock_init_(&locks[i], file, 0);
+	// Make sure that all locks have CPU set to NULL initially
+	for(i=0;i<NUMLOCKS;i++) assert(locks[i].cpu==NULL);
+	// Make sure that all locks have the correct debug info.
+	for(i=0;i<NUMLOCKS;i++) assert(locks[i].file==file);
+
+	for (run=0;run<NUMRUNS;run++) 
+	{
+		// Lock all locks
+		for(i=0;i<NUMLOCKS;i++) spinlock_debug_godeep(i,&locks[i]);
+
+		// Make sure that all locks have the right CPU
+		for(i=0;i<NUMLOCKS;i++) assert(locks[i].cpu == cpu_cur());
+		// Make sure that all locks have holding correctly implemented.
+		for(i=0;i<NUMLOCKS;i++) assert(spinlock_holding(&locks[i]) != 0);
+		// Make sure that top i frames are somewhere in debug_godeep.
+		for(i=0;i<NUMLOCKS;i++) 
+		{
+			for(j=0; j<=i && j < DEBUG_TRACEFRAMES ; j++) 
+			{
+				assert(locks[i].eips[j]>=(uint32_t)spinlock_debug_godeep);
+				assert(locks[i].eips[j]<(uint32_t)spinlock_debug_godeep+100);
+			}
+		}
+
+		// Release all locks
+		for(i=0;i<NUMLOCKS;i++) spinlock_release(&locks[i]);
+		// Make sure that the CPU has been cleared
+		for(i=0;i<NUMLOCKS;i++) assert(locks[i].cpu == NULL);
+		for(i=0;i<NUMLOCKS;i++) assert(locks[i].eips[0]==0);
+		// Make sure that all locks have holding correctly implemented.
+		for(i=0;i<NUMLOCKS;i++) assert(spinlock_holding(&locks[i]) == 0);
+	}
+	cprintf("spinlock_check() succeeded!\n");
+}
+
 #endif // LAB >= 2

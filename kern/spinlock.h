@@ -31,6 +31,7 @@ void spinlock_init_(spinlock *lk, const char *file, int line);
 void spinlock_acquire(spinlock *lk);
 void spinlock_release(spinlock *lk);
 int spinlock_holding(spinlock *lk);
+void spinlock_check();
 
 #endif /* !PIOS_KERN_SPINLOCK_H */
 #endif // LAB >= 2
