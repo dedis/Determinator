@@ -258,6 +258,7 @@ proc_check(void)
 		cprintf("waiting for child %d\n", i);
 		sys_get(SYS_REGS, i, &child_state);
 	}
+	cprintf("proc_check() 2-child test succeeded\n");
 
 	// (Re)start all four children, and wait for them.
 	// This will require preemptive scheduling to complete
@@ -271,6 +272,7 @@ proc_check(void)
 	// Wait for all 4 children to complete.
 	for (i = 0; i < 4; i++)
 		sys_get(0, i, NULL);
+	cprintf("proc_check() 4-child test succeeded\n");
 
 	// Now do a trap handling test using all 4 children -
 	// but they'll _think_ they're all child 0!
@@ -289,6 +291,8 @@ proc_check(void)
 			assert(child_state.tf.tf_trapno == T_SYSCALL);
 		i = (i+1) % 4;	// rotate to next child proc
 	} while (child_state.tf.tf_trapno != T_SYSCALL);
+
+	cprintf("proc_check() trap reflection test succeeded\n");
 
 	cprintf("proc_check() succeeded!\n");
 }

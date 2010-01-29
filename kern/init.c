@@ -13,6 +13,7 @@
 #include <kern/cpu.h>
 #include <kern/trap.h>
 #if LAB >= 2
+#include <kern/spinlock.h>
 #include <kern/mp.h>
 #include <kern/proc.h>
 #endif	// LAB >= 2
@@ -60,6 +61,10 @@ init(void)
 	mem_init();
 
 #if LAB >= 2
+	// Lab 2: check spinlock implementation
+	if (cpu_onboot())
+		spinlock_check();
+
 	// Find and start other processors in a multiprocessor system
 	mp_init();		// Find info about processors in system
 	pic_init();		// setup the legacy PIC (mainly to disable it)

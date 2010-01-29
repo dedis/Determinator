@@ -74,6 +74,8 @@ spinlock_holding(spinlock *lock)
 {
 #if SOL >= 2
 	return lock->locked && lock->cpu == cpu_cur();
+#else
+	panic("spinlock_holding() not implemented");
 #endif // SOL >= 2
 }
 
@@ -103,16 +105,20 @@ void spinlock_check()
 		for(i=0;i<NUMLOCKS;i++) spinlock_debug_godeep(i,&locks[i]);
 
 		// Make sure that all locks have the right CPU
-		for(i=0;i<NUMLOCKS;i++) assert(locks[i].cpu == cpu_cur());
+		for(i=0;i<NUMLOCKS;i++)
+			assert(locks[i].cpu == cpu_cur());
 		// Make sure that all locks have holding correctly implemented.
-		for(i=0;i<NUMLOCKS;i++) assert(spinlock_holding(&locks[i]) != 0);
+		for(i=0;i<NUMLOCKS;i++)
+			assert(spinlock_holding(&locks[i]) != 0);
 		// Make sure that top i frames are somewhere in debug_godeep.
 		for(i=0;i<NUMLOCKS;i++) 
 		{
 			for(j=0; j<=i && j < DEBUG_TRACEFRAMES ; j++) 
 			{
-				assert(locks[i].eips[j]>=(uint32_t)spinlock_debug_godeep);
-				assert(locks[i].eips[j]<(uint32_t)spinlock_debug_godeep+100);
+				assert(locks[i].eips[j] >=
+					(uint32_t)spinlock_debug_godeep);
+				assert(locks[i].eips[j] <
+					(uint32_t)spinlock_debug_godeep+100);
 			}
 		}
 

@@ -209,7 +209,7 @@ trap(trapframe *tf)
 	case T_IRQ0 + IRQ_SPURIOUS:
 		cprintf("cpu%d: spurious interrupt at %x:%x\n",
 			c->id, tf->tf_cs, tf->tf_eip);
-		lapic_eoi();
+		trap_return(tf); // Note: no EOI (see Local APIC manual)
 		break;
 	}
 	if (tf->tf_cs & 3)	// Unhandled trap from user mode
