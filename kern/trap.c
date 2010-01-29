@@ -146,9 +146,9 @@ const char *trap_name(int trapno)
 
 	if (trapno < sizeof(excnames)/sizeof(excnames[0]))
 		return excnames[trapno];
+#if LAB >= 2
 	if (trapno == T_SYSCALL)
 		return "System call";
-#if LAB >= 4
 	if (trapno >= T_IRQ0 && trapno < T_IRQ0 + 16)
 		return "Hardware Interrupt";
 #endif
@@ -199,6 +199,7 @@ trap(trapframe *tf)
 #if SOL >= 2
 	switch (tf->tf_trapno) {
 	case T_SYSCALL:
+		assert(tf->tf_cs & 3);	// syscalls only come from user space
 		syscall(tf);
 		break;
 	case T_IRQ0 + IRQ_TIMER:

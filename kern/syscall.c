@@ -159,19 +159,19 @@ do_ret(trapframe *tf, uint32_t cmd)
 void
 syscall(trapframe *tf)
 {
-#if SOL >= 2
 	// EAX register holds system call command/flags
 	uint32_t cmd = tf->tf_regs.reg_eax;
 	switch (cmd & SYS_TYPE) {
 	case SYS_CPUTS:	return do_cputs(tf, cmd);
+#if SOL >= 2
 	case SYS_PUT:	return do_put(tf, cmd);
 	case SYS_GET:	return do_get(tf, cmd);
 	case SYS_RET:	return do_ret(tf, cmd);
+#else	// not SOL >= 2
+	// Your implementations of SYS_PUT, SYS_GET, SYS_RET here...
+#endif	// not SOL >= 2
 	default:	return;		// handle as a regular trap
 	}
-#else	// not SOL >= 2
-	panic("syscall not implemented");
-#endif	// not SOL >= 2
 }
 
 #endif	// LAB >= 2

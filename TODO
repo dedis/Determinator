@@ -13,3 +13,5 @@ Post-2010 TODOs:
 - Rename 'dev' directory to 'hw', move kern/mp.* into it
 	(since it's hardware-related but not really a device driver).
 
+- Isn't it a bug (both in xv6 and PIOS) to EOI on a spurious interrupt?
+

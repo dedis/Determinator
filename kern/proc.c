@@ -234,7 +234,7 @@ static void *recoveip;
 void
 proc_check(void)
 {
-	// Spawn to child processes, executing on statically allocated stacks.
+	// Spawn 2 child processes, executing on statically allocated stacks.
 
 	int i;
 	for (i = 0; i < 4; i++) {
