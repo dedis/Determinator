@@ -1,6 +1,6 @@
 OBJDIRS += lib
 
-ifdef LAB3
+ifdef LAB4
 LIB_SRCFILES :=		lib/console.c \
 			lib/libmain.c \
 			lib/exit.c \
@@ -11,9 +11,7 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/readline.c \
 			lib/string.c \
 			lib/syscall.c
-endif	# LAB3
-ifdef LAB4
-LIB_SRCFILES +=		lib/pgfault.c \
+			lib/pgfault.c \
 			lib/pfentry.S \
 			lib/fork.c \
 			lib/ipc.c

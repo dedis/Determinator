@@ -10,6 +10,9 @@
 #include <inc/trap.h>
 
 #include <kern/spinlock.h>
+#if LAB >= 3
+#include <kern/pmap.h>
+#endif
 
 
 #define PROC_CHILDREN	256	// Max # of children a process can have
@@ -42,13 +45,11 @@ typedef struct proc {
 	trapframe	tf;		// general registers
 	fxsave		fx;		// FPU/MMX/XMM state
 
-#if SOL >= 3
+#if LAB >= 3
 	// Virtual memory state for this process.
-	uint32_t	pdbr;		// Working page directory
-#if SOL >= 4
-	uint32_t	oldpd;		// Snapshot from last Put, NULL if Got
-#endif	// SOL >= 4
-#endif	// SOL >= 3
+	pde_t		*pdir;		// Working page directory
+	pde_t		*oldpd;		// Snapshot from last Put, NULL if Got
+#endif	// LAB >= 3
 } proc;
 
 #define proc_cur()	(cpu_cur()->proc)

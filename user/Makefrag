@@ -1,4 +1,4 @@
-ifdef LAB3
+ifdef LAB4
 OBJDIRS += user
 
 $(OBJDIR)/user/%.o: user/%.c

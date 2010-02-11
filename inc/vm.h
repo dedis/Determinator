@@ -36,14 +36,12 @@
  *                     |          User code           | RO
  *    VM_UTEXT ------> +------------------------------+ 0x00800000
  *                     |                              |
- *                     | - - - - - - - - - - - - - - -|
- *                     |  User STAB Data (optional)   | RO
- *    VM_USTABS -----> +------------------------------+ 0x00200000
  *                     |     Unmapped Memory (*)      |
- *    0 -------------> +==============================+
+ *                     |                              |
+ *    0 -------------> +==============================+ 0x00000000
  *
- * (*) Note: "Unmapped Memory" is normally unmapped, but user programs may
- *     map pages there if desired.
+ * (*) Note: "Unmapped Memory" is normally left unmapped,
+ *	but user programs may map pages there if desired.
  */
 
 
@@ -51,7 +49,6 @@
 // user processes cannot map anything there and always fault if they touch it.
 // Virtual address space below this mark may be user-accessible if mapped.
 #define VM_USERHI	0x80000000
-#define VM_KERNLO	0x80000000
 
 
 // The user stack grows downward from the top of user-accessible memory.
@@ -70,9 +67,6 @@
 
 // We link user-level programs so as to start at this address.
 #define VM_UTEXT	0x00800000
-
-// The location of the user-level STABS debugging structure, if loaded
-#define VM_USTABS	0x00200000
 
 
 #endif /* !PIOS_INC_VM_H */

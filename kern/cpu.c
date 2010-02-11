@@ -9,6 +9,9 @@
 #include <kern/mem.h>
 #include <kern/cpu.h>
 #include <kern/init.h>
+#if LAB >= 3
+#include <kern/pmap.h>
+#endif
 
 #if LAB >= 2
 #include <dev/lapic.h>
@@ -39,13 +42,23 @@ cpu cpu_boot = {
 					0xffffffff, 0),
 #if SOL >= 1
 
-		// 0x18 - user code segment
-		[CPU_GDT_UCODE >> 3] = SEGDESC32(STA_X | STA_R, 0x0,
-					0xffffffff, 3),
+#if SOL >= 3
+		// 0x18 - user code segment: map lower 2GB VAs to upper 2GB LAs
+		[CPU_GDT_UCODE >> 3] = SEGDESC32(STA_X | STA_R,
+					PMAP_LINUSER, 0x7fffffff, 3),
 
-		// 0x20 - user data segment
-		[CPU_GDT_UDATA >> 3] = SEGDESC32(STA_W, 0x0,
-					0xffffffff, 3),
+		// 0x20 - user data segment: map lower 2GB VAs to upper 2GB LAs
+		[CPU_GDT_UDATA >> 3] = SEGDESC32(STA_W,
+					PMAP_LINUSER, 0x7fffffff, 3),
+#else // SOL < 3
+		// 0x18 - user code segment: identity-map all linear addresses
+		[CPU_GDT_UCODE >> 3] = SEGDESC32(STA_X | STA_R,
+					0x00000000, 0xffffffff, 3),
+
+		// 0x20 - user data segment: identity-map all linear addresses
+		[CPU_GDT_UDATA >> 3] = SEGDESC32(STA_W,
+					0x00000000, 0xffffffff, 3),
+#endif
 
 		// 0x28 - tss, initialized in cpu_init()
 		[CPU_GDT_TSS >> 3] = SEGDESC_NULL,

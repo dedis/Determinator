@@ -7,90 +7,77 @@
 # error "This is a kernel header; user programs should not #include it"
 #endif
 
-#include <inc/memlayout.h>
 #include <inc/assert.h>
-#if LAB >= 3
-struct Env;
-#endif
+
+#include <kern/mem.h>
 
 
-/* This macro takes a kernel virtual address -- an address that points above
- * KERNBASE, where the machine's maximum 256MB of physical memory is mapped --
- * and returns the corresponding physical address.  It panics if you pass it a
- * non-kernel virtual address.
- */
-#define PADDR(kva)						\
-({								\
-	physaddr_t __m_kva = (physaddr_t) (kva);		\
-	if (__m_kva < KERNBASE)					\
-		panic("PADDR called with invalid kva %08lx", __m_kva);\
-	__m_kva - KERNBASE;					\
-})
+//
+// We divide our 4GB linear (post-segmentation) address space
+// into three parts:
+//
+// - The low 1.75GB contains fixed direct mappings of all physical memory,
+//   representing the address space in which the kernel operates.
+//   This way the kernel's address space effectively remains the same
+//   both before and after it initializes the MMU and enables paging.
+//
+// - The next 2GB contains the running process's user-level address space.
+//   Although user space starts at VM_LINUSER (1GB) in linear space,
+//   we set up the user-mode segment registers to use this as their base,
+//   so that user-mode code sees this as virtual address 0.
+//
+// - The top 256MB again contains direct mappings of physical memory,
+//   giving the kernel access to the high I/O region, e.g., the local APIC.
+//
+// Kernel's linear address map: 	              Permissions
+//                                                    kernel/user
+//
+//    4 Gig ---------> +==============================+
+//                     |                              | RW/--
+//                     |    High 32-bit I/O region    | RW/--
+//                     |                              | RW/--
+//    VM_LINHIGH ----> +==============================+ 0xf0000000
+//                     |                              | RW/RW
+//                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+//                     :              .               :
+//                     :              .               :
+//                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+//                     |                              | RW/RW
+//                     |   User address space (2GB)   | RW/RW
+//                     |        (see inc/vm.h)        | RW/RW
+//                     |                              | RW/RW
+//    VM_LINUSER ----> +==============================+ 0x70000000
+//                     |                              | RW/--
+//                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+//                     :              .               :
+//                     :              .               :
+//                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+//                     |                              | RW/--
+//                     |    Physical memory (2GB)     | RW/--
+//                     |    incl. I/O, kernel, ...    | RW/--
+//                     |                              | RW/--
+//    0 -------------> +==============================+
+//
+#define	PMAP_LINHIGH	0xf0000000
+#define	PMAP_LINUSER	0x70000000
 
-/* This macro takes a physical address and returns the corresponding kernel
- * virtual address.  It panics if you pass an invalid physical address. */
-#define KADDR(pa)						\
-({								\
-	physaddr_t __m_pa = (pa);				\
-	uint32_t __m_ppn = PPN(__m_pa);				\
-	if (__m_ppn >= npage)					\
-		panic("KADDR called with invalid pa %08lx", __m_pa);\
-	(void*) (__m_pa + KERNBASE);				\
-})
+
+// Page directory entries and page table entries are 32-bit integers.
+typedef uint32_t pde_t;
+typedef uint32_t pte_t;
 
 
+// Bootstrap page directory that identity-maps the kernel's address space.
+extern pde_t pmap_bootpdir[1024];
 
-extern char bootstacktop[], bootstack[];
 
-extern physaddr_t boot_cr3;
-extern pde_t *boot_pgdir;
+void pmap_init(void);
+pte_t *pmap_walk(pde_t *pdir, uint32_t uva, int create);
+pte_t *pmap_insert(pde_t *pdir, pageinfo *pi, uint32_t uva, int perm);
+pageinfo *pmap_lookup(pde_t *pdir, uint32_t uva, pte_t **pte_store);
+void pmap_remove(pde_t *pdir, uint32_t uva);
+void pmap_invl(pde_t *pdir, uint32_t uva);
 
-extern struct Segdesc gdt[];
-extern struct Pseudodesc gdt_pd;
-
-void	i386_vm_init();
-void	i386_detect_memory();
-
-void	page_init(void);
-int	page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm);
-void	page_remove(pde_t *pgdir, void *va);
-struct Page *page_lookup(pde_t *pgdir, void *va, pte_t **pte_store);
-void	page_decref(struct Page *pp);
-
-void	tlb_invalidate(pde_t *pgdir, void *va);
-
-#if LAB >= 3
-int	user_mem_check(struct Env *env, const void *va, size_t len, int perm);
-void	user_mem_assert(struct Env *env, const void *va, size_t len, int perm);
-
-#endif
-static inline ppn_t
-page2ppn(struct Page *pp)
-{
-	return pp - pages;
-}
-
-static inline physaddr_t
-page2pa(struct Page *pp)
-{
-	return page2ppn(pp) << PGSHIFT;
-}
-
-static inline struct Page*
-pa2page(physaddr_t pa)
-{
-	if (PPN(pa) >= npage)
-		panic("pa2page called with invalid pa");
-	return &pages[PPN(pa)];
-}
-
-static inline void*
-page2kva(struct Page *pp)
-{
-	return KADDR(page2pa(pp));
-}
-
-pte_t *pgdir_walk(pde_t *pgdir, const void *va, int create);
 
 #endif /* !PIOS_KERN_PMAP_H */
 #endif // LAB >= 3

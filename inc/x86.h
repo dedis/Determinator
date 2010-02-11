@@ -265,6 +265,22 @@ xchg(volatile uint32_t *addr, uint32_t newval)
 }
 
 static inline void
+lockinc(volatile int32_t *addr)
+{
+	asm volatile("lock; incl %0" : "+m" (*addr) : : "cc");
+}
+
+static inline uint8_t
+lockdec(volatile int32_t *addr)
+{
+	uint8_t zero;
+	asm volatile("lock; decl %0; setzb %1"
+		: "+m" (*addr), "=rm" (zero)
+		: : "cc");
+	return zero;
+}
+
+static inline void
 pause(void)
 {
 	asm volatile("pause" : : : "memory");

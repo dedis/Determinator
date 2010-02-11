@@ -14,15 +14,15 @@
 
 
 #if SOL >= 3
-static void sys_ret(trapframe *tf) gcc_noreturn;
+static void gcc_noreturn do_ret(trapframe *tf);
 
 static void gcc_noreturn
-sys_recover(trapframe *ktf, void *recoverdata)
+syscall_recover(trapframe *ktf, void *recoverdata)
 {
 	trapframe *utf = (trapframe*)recoverdata;	// user trapframe
 
 	cpu *c = cpu_cur();
-	assert(c->recover == sys_recover);
+	assert(c->recover == syscall_recover);
 	c->recover = NULL;
 
 	proc *p = proc_cur();
@@ -32,7 +32,34 @@ sys_recover(trapframe *ktf, void *recoverdata)
 	utf->tf_trapno = ktf->tf_trapno;	// copy trap info
 	utf->tf_err = ktf->tf_err;
 	utf->tf_eip -= 2;	// back up before int 0x30 syscall instruction
-	sys_ret(utf);
+	do_ret(utf);
+}
+
+// Copy data to/from user space,
+// recovering from any traps this causes.
+static void usercopy(trapframe *utf, bool copyout,
+			void *kva, uint32_t uva, size_t size)
+{
+	// First range-check the user area to be copied.
+	if (uva >= PMAP_LINUSER || size >= PMAP_LINUSER - uva) {
+		// Outside of user address space!  Simulate a GP fault.
+		utf->tf_trapno = T_GPFLT;
+		utf->tf_eip -= 2;	// back up before int 0x30
+		do_ret(utf);
+	}
+
+	// Now do the copy, but recover from page faults.
+	cpu *c = cpu_cur();
+	assert(c->recover == NULL);
+	c->recover = syscall_recover;
+
+	void *ukva = (void*)PMAP_LINUSER + uva;
+	if (copyout)
+		memmove(ukva, kva, size);
+	else
+		memmove(kva, ukva, size);
+
+	c->recover = NULL;
 }
 #endif	// SOL >= 3
 
@@ -40,7 +67,14 @@ static void
 do_cputs(trapframe *tf, uint32_t cmd)
 {
 	// Print the string supplied by the user: pointer in EBX
+#if SOL >= 3
+	char buf[SYS_CPUTS_MAX+1];
+	usercopy(tf, 0, buf, tf->tf_regs.reg_ebx, SYS_CPUTS_MAX);
+	buf[SYS_CPUTS_MAX] = 0;	// make sure it's null-terminated
+	cprintf("%s", buf);
+#else	// SOL < 3
 	cprintf("%s", (char*)tf->tf_regs.reg_ebx);
+#endif	// SOL < 3
 
 	trap_return(tf);	// syscall completed
 }
@@ -67,19 +101,22 @@ do_put(trapframe *tf, uint32_t cmd)
 	if (cp->state != PROC_STOP)
 		proc_wait(p, cp, tf);
 
+	// Since the child is now stopped, it's ours to control;
+	// we no longer need our process lock -
+	// and we don't want to be holding it if usercopy() below aborts.
+	spinlock_release(&p->lock);
+
 	// Put child's general register state
 	if (cmd & SYS_REGS) {
-#if SOL >= 3
-		// Recover from traps caused by dereferencing user pointer
-		cpu *c = cpu_cur();
-		assert(c->recover == NULL);
-		c->recover = sys_recover;
-		c->recoverdata = tf;
 
-#endif	// SOL >= 3
 		// Copy user's trapframe into child process
+#if SOL >= 3
+		usercopy(tf, 0, &cp->tf, tf->tf_regs.reg_ebx,
+				sizeof(trapframe));
+#else
 		cpustate *cs = (cpustate*) tf->tf_regs.reg_ebx;
 		cp->tf = cs->tf;
+#endif
 
 		// Make sure process uses user-mode segments and eflag settings
 		cp->tf.tf_ds = CPU_GDT_UDATA | 3;
@@ -89,17 +126,11 @@ do_put(trapframe *tf, uint32_t cmd)
 		cp->tf.tf_eflags &=
 			FL_CF|FL_PF|FL_AF|FL_ZF|FL_SF|FL_TF|FL_DF|FL_OF;
 		cp->tf.tf_eflags |= FL_IF;	// enable interrupts
-#if SOL >= 3
-
-		c->recover = NULL;	// finished successfully
-#endif	// SOL >= 3
 	}
 
 	// Start the child if requested
 	if (cmd & SYS_START)
 		proc_ready(cp);
-
-	spinlock_release(&p->lock);
 
 	trap_return(tf);	// syscall completed
 }
@@ -124,21 +155,15 @@ do_get(trapframe *tf, uint32_t cmd)
 
 	// Get child's general register state
 	if (cmd & SYS_REGS) {
-#if SOL >= 3
-		// Recover from traps caused by dereferencing user pointer
-		cpu *c = cpu_cur();
-		assert(c->recover == NULL);
-		c->recover = sys_recover;
-		c->recoverdata = tf;
 
-#endif	// SOL >= 3
 		// Copy child process's trapframe into user space
+#if SOL >= 3
+		usercopy(tf, 1, &cp->tf, tf->tf_regs.reg_ebx,
+				sizeof(trapframe));
+#else
 		cpustate *cs = (cpustate*) tf->tf_regs.reg_ebx;
 		cs->tf = cp->tf;
-#if SOL >= 3
-
-		c->recover = NULL;	// finished successfully
-#endif	// SOL >= 3
+#endif
 	}
 
 	spinlock_release(&p->lock);
@@ -147,7 +172,7 @@ do_get(trapframe *tf, uint32_t cmd)
 }
 
 static void gcc_noreturn
-do_ret(trapframe *tf, uint32_t cmd)
+do_ret(trapframe *tf)
 {
 	proc_ret(tf);
 }
@@ -166,7 +191,7 @@ syscall(trapframe *tf)
 #if SOL >= 2
 	case SYS_PUT:	return do_put(tf, cmd);
 	case SYS_GET:	return do_get(tf, cmd);
-	case SYS_RET:	return do_ret(tf, cmd);
+	case SYS_RET:	return do_ret(tf);
 #else	// not SOL >= 2
 	// Your implementations of SYS_PUT, SYS_GET, SYS_RET here...
 #endif	// not SOL >= 2

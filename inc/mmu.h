@@ -62,13 +62,14 @@
 // Page table/directory entry flags.
 #define PTE_P		0x001	// Present
 #define PTE_W		0x002	// Writeable
-#define PTE_U		0x004	// User
+#define PTE_U		0x004	// User-accessible
 #define PTE_PWT		0x008	// Write-Through
 #define PTE_PCD		0x010	// Cache-Disable
 #define PTE_A		0x020	// Accessed
 #define PTE_D		0x040	// Dirty
-#define PTE_PS		0x080	// Page Size
-#define PTE_MBZ		0x180	// Bits must be zero
+#define PTE_PS		0x080	// Page Size (only in PDEs)
+#define PTE_PAT		0x080	// Page Attribute Table (only in PTEs)
+#define PTE_G		0x100	// Global
 
 // The PTE_AVAIL bits aren't used by the kernel or interpreted by the
 // hardware, so user processes are allowed to set them arbitrarily.
@@ -93,13 +94,17 @@
 #define CR0_CD		0x40000000	// Cache Disable
 #define CR0_PG		0x80000000	// Paging
 
-#define CR4_PCE		0x00000100	// Performance counter enable
-#define CR4_MCE		0x00000040	// Machine Check Enable
-#define CR4_PSE		0x00000010	// Page Size Extensions
-#define CR4_DE		0x00000008	// Debugging Extensions
-#define CR4_TSD		0x00000004	// Time Stamp Disable
-#define CR4_PVI		0x00000002	// Protected-Mode Virtual Interrupts
 #define CR4_VME		0x00000001	// V86 Mode Extensions
+#define CR4_PVI		0x00000002	// Protected-Mode Virtual Interrupts
+#define CR4_TSD		0x00000004	// Time Stamp Disable
+#define CR4_DE		0x00000008	// Debugging Extensions
+#define CR4_PSE		0x00000010	// Page Size Extensions
+#define CR4_PAE		0x00000020	// Physical Address Extension
+#define CR4_MCE		0x00000040	// Machine Check Enable
+#define CR4_PGE		0x00000080	// Page Global Enable
+#define CR4_PCE		0x00000100	// Performance counter enable
+#define CR4_OSFXSR	0x00000200	// SSE and FXSAVE/FXRSTOR enable
+#define CR4_OSXMMEXCPT	0x00000400	// Unmasked SSE FP exceptions
 
 // Page fault error codes
 #define FEC_PR		0x1	// Page fault caused by protection violation

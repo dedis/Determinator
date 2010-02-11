@@ -25,7 +25,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/spinlock.c \
 			kern/proc.c \
 			kern/syscall.c \
-			kern/vm.c \
+			kern/pmap.c \
 			dev/video.c \
 			dev/kbd.c \
 			dev/serial.c \
@@ -110,24 +110,9 @@ KERN_BINFILES :=	user/idle \
 			user/primes \
 			user/hello
 else
-ifdef LAB3
-KERN_BINFILES :=	user/hello \
-			user/buggyhello \
-			user/evilhello \
-			user/testbss \
-			user/divzero \
-			user/breakpoint \
-			user/softint \
-			user/badsegment \
-			user/faultread \
-			user/faultreadkernel \
-			user/faultwrite \
-			user/faultwritekernel
-else
 ifdef LAB2
 KERN_BINFILES :=	boot/bootother
 endif	# not LAB2
-endif	# not LAB3
 endif	# not LAB4
 endif	# not LAB5
 endif	# not LAB6

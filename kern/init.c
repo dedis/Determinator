@@ -34,7 +34,7 @@ static char gcc_aligned(16) user_stack[PAGESIZE];
 void
 init(void)
 {
-	extern char edata[], end[];
+	extern char start[], edata[], end[];
 
 	// Before anything else, complete the ELF loading process.
 	// Clear all uninitialized global data (BSS) in our program,
@@ -65,6 +65,11 @@ init(void)
 	if (cpu_onboot())
 		spinlock_check();
 
+#if LAB >= 3
+	// Initialize the paged virtual memory system.
+	pmap_init();
+
+#endif
 	// Find and start other processors in a multiprocessor system
 	mp_init();		// Find info about processors in system
 	pic_init();		// setup the legacy PIC (mainly to disable it)
@@ -73,16 +78,37 @@ init(void)
 	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
 		cpu_onboot() ? "BP" : "AP");
 
-	// Initialize the process management code and the root process.
+	// Initialize the process management code.
 	proc_init();
 #endif
 
 #if SOL >= 2
+	if (!cpu_onboot())
+		proc_sched();	// just jump right into the scheduler
+
 	// Create our first actual user-mode process
-	// (though it'll still be sharing the kernel's address space).
+#if SOL == 2
+	// (though it's still be sharing the kernel's address space for now).
+#endif
 	proc *root = proc_alloc(NULL, 0);
 	root->tf.tf_eip = (uint32_t) user;
 	root->tf.tf_esp = (uint32_t) &user_stack[PAGESIZE];
+
+#if SOL >= 3
+	// Copy the kernel into the first process's address space.
+	uint32_t va;
+	for (va = ROUNDDOWN((uint32_t)start, PAGESIZE);
+			va < ROUNDUP((uint32_t)end, PAGESIZE);
+			va += PAGESIZE) {
+		pageinfo *pi = mem_alloc();
+		assert(pi != NULL);
+		memmove(mem_pi2ptr(pi), (void*)va, PAGESIZE);
+		pte_t *pte = pmap_insert(root->pdir, pi, va,
+				PTE_P | PTE_W | PTE_U);
+		assert(pte != NULL);
+	}
+
+#endif	// SOL >= 3
 	proc_ready(root);	// make it ready
 	proc_sched();		// run it
 #elif SOL >= 1

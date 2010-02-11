@@ -15,3 +15,16 @@ Post-2010 TODOs:
 
 - Isn't it a bug (both in xv6 and PIOS) to EOI on a spurious interrupt?
 
+- If your code panics in user(), then the problem is that printing
+requires syscalls. Either implement enough of the syscall to get
+printing to work, or do the following. Set IOPL flag to 3 and modify
+cputs to NOT call sys_cputs. Basically what that means is the user
+processes will print using the same method as the kernel, without going
+through the interrupt.
+
+- Don't include the 'refcount' member in 'pageinfo' until lab 3?
+
+- Shouldn't proc_init() be called in init.c _before_ cpu_bootothers()?
+
+- Add a field for the page fault linear address in trapframe?
+

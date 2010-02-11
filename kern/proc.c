@@ -58,7 +58,17 @@ proc_alloc(proc *p, uint32_t cn)
 	cp->tf.tf_ss = CPU_GDT_UDATA | 3;
 
 #if SOL >= 3
-	// XXX alloc page directory
+	// Allocate a page directory for this process
+	pageinfo *pdpi = mem_alloc();
+	if (!pdpi) {
+		mem_free(pi);
+		return NULL;
+	}
+	cp->pdir = mem_pi2ptr(pdpi);
+
+	// Initialize it from the bootstrap page directory
+	assert(sizeof(pmap_bootpdir) == PAGESIZE);
+	memmove(cp->pdir, pmap_bootpdir, PAGESIZE);
 #endif	// SOL >= 3
 
 	if (p)
@@ -163,9 +173,10 @@ proc_run(proc *p)
 	spinlock_release(&p->lock);
 
 #if SOL >= 3
-	XXX change PDBR
-#endif
+	// Switch to the new process's address space.
+	lcr3(mem_phys(p->pdir));
 
+#endif
 	trap_return(&p->tf);
 #else	// SOL >= 2
 	panic("proc_run not implemented");

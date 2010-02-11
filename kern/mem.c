@@ -213,15 +213,21 @@ mem_free(pageinfo *pi)
 #endif /* not SOL >= 1 */
 }
 
-//
-// Decrement the reference count on a page,
-// freeing it if there are no more refs.
-//
+// Atomically increment the reference count on a page.
 void
-page_decref(pageinfo* pp)
+mem_incref(pageinfo *pi)
 {
-	if (--pp->refcount == 0)
-		mem_free(pp);
+	lockinc(&pi->refcount);
+}
+
+// Atomically decrement the reference count on a page,
+// freeing the page if there are no more refs.
+void
+mem_decref(pageinfo* pi)
+{
+	if (lockdec(&pi->refcount))
+		mem_free(pi);
+	assert(pi->refcount >= 0);
 }
 
 
