@@ -16,17 +16,16 @@
 // We divide our 4GB linear (post-segmentation) address space
 // into three parts:
 //
-// - The low 1.75GB contains fixed direct mappings of all physical memory,
+// - The low 1GB contains fixed direct mappings of physical memory,
 //   representing the address space in which the kernel operates.
 //   This way the kernel's address space effectively remains the same
 //   both before and after it initializes the MMU and enables paging.
+//   (It also means we can use at most 1GB of physical memory!)
 //
-// - The next 2GB contains the running process's user-level address space.
-//   Although user space starts at VM_LINUSER (1GB) in linear space,
-//   we set up the user-mode segment registers to use this as their base,
-//   so that user-mode code sees this as virtual address 0.
+// - The next 2.75GB contains the running process's user-level address space.
+//   This is the only address range user-mode processes can access or map.
 //
-// - The top 256MB again contains direct mappings of physical memory,
+// - The top 256MB once again contains direct mappings of physical memory,
 //   giving the kernel access to the high I/O region, e.g., the local APIC.
 //
 // Kernel's linear address map: 	              Permissions
@@ -36,30 +35,30 @@
 //                     |                              | RW/--
 //                     |    High 32-bit I/O region    | RW/--
 //                     |                              | RW/--
-//    VM_LINHIGH ----> +==============================+ 0xf0000000
+//    PMAP_USERHI ---> +==============================+ 0xf0000000
 //                     |                              | RW/RW
 //                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 //                     :              .               :
 //                     :              .               :
 //                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 //                     |                              | RW/RW
-//                     |   User address space (2GB)   | RW/RW
+//                     |  User address space (2.75GB) | RW/RW
 //                     |        (see inc/vm.h)        | RW/RW
 //                     |                              | RW/RW
-//    VM_LINUSER ----> +==============================+ 0x70000000
+//    PMAP_USERLO ---> +==============================+ 0x40000000
 //                     |                              | RW/--
 //                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 //                     :              .               :
 //                     :              .               :
 //                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 //                     |                              | RW/--
-//                     |    Physical memory (2GB)     | RW/--
+//                     |    Physical memory (1GB)     | RW/--
 //                     |    incl. I/O, kernel, ...    | RW/--
 //                     |                              | RW/--
 //    0 -------------> +==============================+
 //
-#define	PMAP_LINHIGH	0xf0000000
-#define	PMAP_LINUSER	0x70000000
+#define	PMAP_USERHI	0xf0000000
+#define	PMAP_USERLO	0x40000000
 
 
 // Page directory entries and page table entries are 32-bit integers.

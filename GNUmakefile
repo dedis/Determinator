@@ -108,11 +108,15 @@ CFLAGS += -Wall -Wno-format -Wno-unused -Werror -gstabs -m32
 # Add -fno-stack-protector if the option exists.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
-# Common linker flags
-LDFLAGS := -m elf_i386
+# Kernel versus user compiler flags
+KERN_CFLAGS := $(CFLAGS) -DPIOS_KERNEL
+USER_CFLAGS := $(CFLAGS) -DPIOS_USER
 
-# Linker flags for PIOS user programs
-ULDFLAGS := -T user/user.ld
+# Linker flags
+LDFLAGS := -m elf_i386 -e start -nostdlib
+
+KERN_LDFLAGS := $(LDFLAGS) -Ttext=0x00100000
+USER_LDFLAGS := $(LDFLAGS) -Ttext=0x40000000
 
 GCC_LIB := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
 
@@ -132,9 +136,6 @@ all:
 .PRECIOUS: %.o $(OBJDIR)/boot/%.o $(OBJDIR)/kern/%.o \
 	   $(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/net/%.o \
 	   $(OBJDIR)/user/%.o
-
-KERN_CFLAGS := $(CFLAGS) -DPIOS_KERNEL -gstabs
-USER_CFLAGS := $(CFLAGS) -DPIOS_USER -gstabs
 
 
 

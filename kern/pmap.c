@@ -50,8 +50,8 @@ pmap_init(void)
 #if SOL >= 3
 		int i;
 		for (i = 0; i < NPDENTRIES; i++) {
-			if (i == PDX(PMAP_LINUSER))	// Skip user area
-				i = PDX(PMAP_LINHIGH);
+			if (i == PDX(PMAP_USERLO))	// Skip user area
+				i = PDX(PMAP_USERHI);
 			pmap_bootpdir[i] = (i << PDXSHIFT)
 				| PTE_P | PTE_W | PTE_PS | PTE_G;
 		}
@@ -88,7 +88,6 @@ pmap_init(void)
 // Given 'pdir', a pointer to a page directory, pmap_walk returns
 // a pointer to the page table entry (PTE) for user virtual address 'uva'.
 // This requires walking the two-level page table structure.
-// Note that user virtual address 0 is linear address PMAP_LINUSER.
 //
 // If the relevant page table doesn't exist in the page directory, then:
 //    - If create == 0, pmap_walk returns NULL.
@@ -108,7 +107,7 @@ pte_t *
 pmap_walk(pde_t *pdir, uint32_t uva, int create)
 {
 #if SOL >= 3
-	uint32_t la = uva + PMAP_LINUSER;	// compute linear address
+	uint32_t la = uva;			// linear = virtual address
 	pde_t *pde = &pdir[PDX(la)];		// find PDE
 	pte_t *ptab;
 	if (*pde & PTE_P) {			// ptab already exist?
@@ -256,7 +255,7 @@ pmap_invl(pde_t *pdir, uint32_t uva)
 	// Flush the entry only if we're modifying the current address space.
 	proc *p = proc_cur();
 	if (!p || p->pdir == pdir)
-		invlpg(mem_ptr(PMAP_LINUSER + uva));
+		invlpg(mem_ptr(uva));
 }
 
 #if LAB >= 99

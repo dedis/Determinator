@@ -45,6 +45,8 @@ mem_init(void)
 	// is available in the system (in bytes),
 	// by reading the PC's BIOS-managed nonvolatile RAM (NVRAM).
 	// The NVRAM tells us how many kilobytes there are.
+	// Since the count is 16 bits, this gives us up to 64MB of RAM;
+	// additional RAM beyond that would have to be detected another way.
 	size_t basemem = ROUNDDOWN(nvram_read16(NVRAM_BASELO)*1024, PAGESIZE);
 	size_t extmem = ROUNDDOWN(nvram_read16(NVRAM_EXTLO)*1024, PAGESIZE);
 

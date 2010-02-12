@@ -15,10 +15,20 @@
 
 #if SOL >= 3
 static void gcc_noreturn do_ret(trapframe *tf);
+#endif
 
+// Recover from a trap that occurs during a copyin or copyout,
+// by aborting the system call and reflecting the trap to the parent process,
+// behaving as if the user program's INT instruction had caused the trap.
+//
+// Notes:
+// - Be sure the parent gets the correct tf_trapno, tf_err, and tf_eip values.
+// - Be sure to release any spinlocks you were holding during the copyin/out.
+//
 static void gcc_noreturn
 syscall_recover(trapframe *ktf, void *recoverdata)
 {
+#if SOL >= 3
 	trapframe *utf = (trapframe*)recoverdata;	// user trapframe
 
 	cpu *c = cpu_cur();
@@ -33,6 +43,34 @@ syscall_recover(trapframe *ktf, void *recoverdata)
 	utf->tf_err = ktf->tf_err;
 	utf->tf_eip -= 2;	// back up before int 0x30 syscall instruction
 	do_ret(utf);
+#else
+	panic("syscall_recover() not implemented.");
+#endif
+}
+
+// Check a user virtual address block for validity:
+// i.e., make sure the complete area specified lies in
+// the user address space between PMAP_USERLO and PMAP_USERHI.
+// If not, abort the syscall by sending a T_GPFLT to the parent,
+// again as if the user program's INT instruction was to blame.
+//
+// Note: Be careful that your arithmetic works correctly
+// even if size is very large, e.g., if uva+size wraps around!
+//
+static void syscall_checkva(trapframe *utf, uint32_t uva, size_t size)
+{
+#if SOL >= 3
+	if (uva < PMAP_USERLO || uva >= PMAP_USERHI
+			|| size >= PMAP_USERHI - uva) {
+
+		// Outside of user address space!  Simulate a GP fault.
+		utf->tf_trapno = T_GPFLT;
+		utf->tf_eip -= 2;	// back up before int 0x30
+		do_ret(utf);
+	}
+#else
+	panic("syscall_checkva() not implemented.");
+#endif
 }
 
 // Copy data to/from user space,
@@ -40,28 +78,24 @@ syscall_recover(trapframe *ktf, void *recoverdata)
 static void usercopy(trapframe *utf, bool copyout,
 			void *kva, uint32_t uva, size_t size)
 {
-	// First range-check the user area to be copied.
-	if (uva >= PMAP_LINUSER || size >= PMAP_LINUSER - uva) {
-		// Outside of user address space!  Simulate a GP fault.
-		utf->tf_trapno = T_GPFLT;
-		utf->tf_eip -= 2;	// back up before int 0x30
-		do_ret(utf);
-	}
+#if SOL >= 3
+	syscall_checkva(utf, uva, size);
 
 	// Now do the copy, but recover from page faults.
 	cpu *c = cpu_cur();
 	assert(c->recover == NULL);
 	c->recover = syscall_recover;
 
-	void *ukva = (void*)PMAP_LINUSER + uva;
 	if (copyout)
-		memmove(ukva, kva, size);
+		memmove((void*)kva, kva, size);
 	else
-		memmove(kva, ukva, size);
+		memmove(kva, (void*)kva, size);
 
 	c->recover = NULL;
+#else
+	panic("syscall_usercopy() not implemented.");
+#endif
 }
-#endif	// SOL >= 3
 
 static void
 do_cputs(trapframe *tf, uint32_t cmd)

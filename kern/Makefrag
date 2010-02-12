@@ -7,8 +7,6 @@
 
 OBJDIRS += kern
 
-KERN_LDFLAGS := $(LDFLAGS) -Ttext=0x00100000 -e start -nostdlib
-
 # entry.S must be first, so that it's the first code in the text segment!!!
 #
 # We also snatch the use of a couple handy source files
@@ -110,9 +108,14 @@ KERN_BINFILES :=	user/idle \
 			user/primes \
 			user/hello
 else
+ifdef LAB3
+KERN_BINFILES :=	boot/bootother \
+			user/testvm
+else
 ifdef LAB2
 KERN_BINFILES :=	boot/bootother
 endif	# not LAB2
+endif	# not LAB3
 endif	# not LAB4
 endif	# not LAB5
 endif	# not LAB6
