@@ -13,6 +13,9 @@
 #if LAB >= 2
 #include <kern/proc.h>
 #include <kern/syscall.h>
+#if LAB >= 3
+#include <kern/pmap.h>
+#endif
 
 #include <dev/lapic.h>
 #endif
@@ -191,6 +194,14 @@ trap(trapframe *tf)
 	// and some versions of GCC rely on DF being clear.
 	asm volatile("cld" ::: "cc");
 
+#if SOL >= 3
+	// If this is a page fault, first handle lazy copying automatically.
+	// If that works, this call just calls trap_return() itself -
+	// otherwise, it returns normally to blame the fault on the user.
+	if (tf->tf_trapno == T_PGFLT)
+		pmap_pagefault(tf);
+
+#endif
 	// If this trap was anticipated, just use the designated handler.
 	cpu *c = cpu_cur();
 	if (c->recover)
