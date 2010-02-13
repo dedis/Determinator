@@ -74,7 +74,8 @@ static void syscall_checkva(trapframe *utf, uint32_t uva, size_t size)
 }
 
 // Copy data to/from user space,
-// recovering from any traps this causes.
+// using syscall_checkva() to validate the address range
+// and using syscall_recover() to recover from any traps during the copy.
 static void usercopy(trapframe *utf, bool copyout,
 			void *kva, uint32_t uva, size_t size)
 {
@@ -87,9 +88,9 @@ static void usercopy(trapframe *utf, bool copyout,
 	c->recover = syscall_recover;
 
 	if (copyout)
-		memmove((void*)kva, kva, size);
+		memmove((void*)uva, kva, size);
 	else
-		memmove(kva, (void*)kva, size);
+		memmove(kva, (void*)uva, size);
 
 	c->recover = NULL;
 #else

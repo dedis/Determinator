@@ -107,9 +107,9 @@
 #define CR4_OSXMMEXCPT	0x00000400	// Unmasked SSE FP exceptions
 
 // Page fault error codes
-#define FEC_PR		0x1	// Page fault caused by protection violation
-#define FEC_WR		0x2	// Page fault caused by a write
-#define FEC_U		0x4	// Page fault occured while in user mode
+#define PFE_PR		0x1	// Page fault caused by protection violation
+#define PFE_WR		0x2	// Page fault caused by a write
+#define PFE_U		0x4	// Page fault occured while in user mode
 
 
 /*

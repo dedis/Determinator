@@ -211,7 +211,11 @@ proc_ret(trapframe *tf)
 	proc *cp = proc_cur();		// we're the child
 	assert(cp->state == PROC_RUN && cp->runcpu == cpu_cur());
 	proc *p = cp->parent;		// find our parent
-	assert(p != NULL);		// root process shouldn't return!
+
+	if (p == NULL) {		// "return" from root process!
+		trap_print(tf);
+		panic("root process terminated");
+	}
 
 	spinlock_acquire(&p->lock);	// lock both in proper order
 

@@ -10,7 +10,7 @@ start:
 #if LAB >= 99
 	// See if we were started with arguments on the stack.
 	// If not, our esp will start on a nice big power-of-two boundary.
-	testl $0xffffff, %esp
+	testl $0x0fffffff, %esp
 	jnz args_exist
 
 	// If not, push dummy argc/argv arguments.

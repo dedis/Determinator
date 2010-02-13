@@ -6,7 +6,8 @@
 
 #define ELF_MAGIC 0x464C457FU	/* "\x7FELF" in little endian */
 
-struct Elf {
+// ELF header
+typedef struct elfhdf {
 	uint32_t e_magic;	// must equal ELF_MAGIC
 	uint8_t e_elf[12];
 	uint16_t e_type;
@@ -22,9 +23,10 @@ struct Elf {
 	uint16_t e_shentsize;
 	uint16_t e_shnum;
 	uint16_t e_shstrndx;
-};
+} elfhdr;
 
-struct Proghdr {
+// ELF program header
+typedef struct proghdr {
 	uint32_t p_type;
 	uint32_t p_offset;
 	uint32_t p_va;
@@ -33,9 +35,10 @@ struct Proghdr {
 	uint32_t p_memsz;
 	uint32_t p_flags;
 	uint32_t p_align;
-};
+} proghdr;
 
-struct Secthdr {
+// ELF section header
+typedef struct sechdr {
 	uint32_t sh_name;
 	uint32_t sh_type;
 	uint32_t sh_flags;
@@ -46,23 +49,23 @@ struct Secthdr {
 	uint32_t sh_info;
 	uint32_t sh_addralign;
 	uint32_t sh_entsize;
-};
+} sechdr;
 
-// Values for Proghdr::p_type
+// Values for proghdr::p_type
 #define ELF_PROG_LOAD		1
 
-// Flag bits for Proghdr::p_flags
+// Flag bits for proghdr::p_flags
 #define ELF_PROG_FLAG_EXEC	1
 #define ELF_PROG_FLAG_WRITE	2
 #define ELF_PROG_FLAG_READ	4
 
-// Values for Secthdr::sh_type
+// Values for sechdr::sh_type
 #define ELF_SHT_NULL		0
 #define ELF_SHT_PROGBITS	1
 #define ELF_SHT_SYMTAB		2
 #define ELF_SHT_STRTAB		3
 
-// Values for Secthdr::sh_name
+// Values for sechdr::sh_name
 #define ELF_SHN_UNDEF		0
 
 #endif /* !PIOS_INC_ELF_H */

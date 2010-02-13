@@ -5,6 +5,9 @@
 #include <inc/assert.h>
 #include <inc/gcc.h>
 #include <inc/syscall.h>
+#if LAB >= 3
+#include <inc/elf.h>
+#endif
 
 #include <kern/init.h>
 #include <kern/console.h>
@@ -16,7 +19,7 @@
 #include <kern/spinlock.h>
 #include <kern/mp.h>
 #include <kern/proc.h>
-#endif	// LAB >= 2
+#endif
 
 #if LAB >= 2
 #include <dev/pic.h>
@@ -82,36 +85,7 @@ init(void)
 	proc_init();
 #endif
 
-#if SOL >= 2
-	if (!cpu_onboot())
-		proc_sched();	// just jump right into the scheduler
-
-	// Create our first actual user-mode process
-#if SOL == 2
-	// (though it's still be sharing the kernel's address space for now).
-#endif
-	proc *root = proc_alloc(NULL, 0);
-	root->tf.tf_eip = (uint32_t) user;
-	root->tf.tf_esp = (uint32_t) &user_stack[PAGESIZE];
-
-#if SOL >= 3
-	// Copy the kernel into the first process's address space.
-	uint32_t va;
-	for (va = ROUNDDOWN((uint32_t)start, PAGESIZE);
-			va < ROUNDUP((uint32_t)end, PAGESIZE);
-			va += PAGESIZE) {
-		pageinfo *pi = mem_alloc();
-		assert(pi != NULL);
-		memmove(mem_pi2ptr(pi), (void*)va, PAGESIZE);
-		pte_t *pte = pmap_insert(root->pdir, pi, va,
-				PTE_P | PTE_W | PTE_U);
-		assert(pte != NULL);
-	}
-
-#endif	// SOL >= 3
-	proc_ready(root);	// make it ready
-	proc_sched();		// run it
-#elif SOL >= 1
+#if SOL == 1
 	// Conjure up a trapframe and "return" to it to enter user mode.
 	static trapframe utf = {
 		tf_ds: CPU_GDT_UDATA | 3,
@@ -123,7 +97,67 @@ init(void)
 		tf_ss: CPU_GDT_UDATA | 3,
 	};
 	trap_return(&utf);
-#else
+#elif SOL == 2
+	if (!cpu_onboot())
+		proc_sched();	// just jump right into the scheduler
+
+	// Create our first actual user-mode process
+	// (though it's still be sharing the kernel's address space for now).
+	proc *root = proc_alloc(NULL, 0);
+	root->tf.tf_eip = (uint32_t) user;
+	root->tf.tf_esp = (uint32_t) &user_stack[PAGESIZE];
+
+	proc_ready(root);	// make it ready
+	proc_sched();		// run it
+#elif SOL >= 3
+	if (!cpu_onboot())
+		proc_sched();	// just jump right into the scheduler
+
+	// Create our first actual user-mode process
+	proc *root = proc_alloc(NULL, 0);
+
+	extern char _binary_obj_user_testvm_start[];
+	elfhdr *eh = (elfhdr *)_binary_obj_user_testvm_start;
+	assert(eh->e_magic == ELF_MAGIC);
+
+	// Load each program segment
+	proghdr *ph = (proghdr *) ((void *) eh + eh->e_phoff);
+	proghdr *eph = ph + eh->e_phnum;
+	for (; ph < eph; ph++) {
+		void *fa = (void *) eh + ROUNDDOWN(ph->p_offset, PAGESIZE);
+		uint32_t va = ROUNDDOWN(ph->p_va, PAGESIZE);
+		uint32_t zva = ROUNDUP(ph->p_va + ph->p_filesz, PAGESIZE);
+		uint32_t eva = ROUNDUP(ph->p_va + ph->p_memsz, PAGESIZE);
+
+		uint32_t perm = PTE_P | PTE_U;	// Readable, user-accessible
+		if (ph->p_flags & ELF_PROG_FLAG_WRITE)
+			perm |= PTE_W;		// Writeable
+
+		for(; va < eva; va += PAGESIZE, fa += PAGESIZE) {
+			pageinfo *pi = mem_alloc(); assert(pi != NULL);
+			if (va < zva)
+				memmove(mem_pi2ptr(pi), fa, PAGESIZE);
+			else
+				memset(mem_pi2ptr(pi), 0, PAGESIZE);
+			pte_t *pte = pmap_insert(root->pdir, pi, va, perm);
+			assert(pte != NULL);
+		}
+	}
+
+	// Start the process at the entry indicated in the ELF header
+	root->tf.tf_eip = eh->e_entry;
+
+	// Give the process a 1-page stack in high memory
+	// (the process can then increase its own stack as desired)
+	pageinfo *pi = mem_alloc(); assert(pi != NULL);
+	pte_t *pte = pmap_insert(root->pdir, pi, PMAP_USERHI-PAGESIZE,
+				PTE_P | PTE_U | PTE_W);
+	assert(pte != NULL);
+	root->tf.tf_esp = PMAP_USERHI;
+
+	proc_ready(root);	// make it ready
+	proc_sched();		// run it
+#else // SOL == 0
 	// Lab 1: change this so it enters user() in user mode,
 	// running on the user_stack declared above,
 	// instead of just calling user() directly.

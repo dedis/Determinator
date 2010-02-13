@@ -23,13 +23,17 @@
 #define SYS_FPU		0x00002000	// Get/put FPU state
 #if LAB >= 3                    
 #define SYS_MEM		0x00004000	// Get/put memory mappings
+#if LAB >= 99
 #define SYS_PROC	0x00008000	// Get/put child processes
+#endif
 
+#if LAB >= 99
 #define SYS_ZERO	0x00010000	// Get/put fresh zero-filled memory
 #define SYS_SHARE	0x00020000	// Fresh memory should be shared [ND]
 #define SYS_SNAP	0x00040000	// Put: snapshot child state
 #define SYS_DIFF	0x00040000	// Get: diffs only from last snapshot
 
+#endif
 #define SYS_PERM	0x00000100	// Set memory permissions on get/put
 #define SYS_READ	0x00000200	// Read permission (NB: in PTE_AVAIL)
 #define SYS_WRITE	0x00000400	// Write permission (NB: in PTE_AVAIL)
@@ -47,13 +51,17 @@
 
 // Register conventions on GET/PUT system call entry:
 //	EAX:	System call command/flags (SYS_*)
-//	EBX:	Get/put CPU state pointer for SYS_REGS and/or SYS_FPU)
-//	ECX:	Get/put local memory region limit
 //	EDX:	0-7:	Child process number to get/put
+#if LAB >= 99
 //		8-15:	if SYS_PROC: process number in child to copy
 //		16-23:	if SYS_PROC: process number in parent to copy
-//	ESI:	Get/put parent memory region start
+#endif
+//	EBX:	Get/put CPU state pointer for SYS_REGS and/or SYS_FPU)
+//	ECX:	Get/put reconciled memory region limit
+//	ESI:	Get/put reconciled memory region start
+#if LAB >= 99
 //	EDI:	Get/put child memory region start
+#endif
 //	EBP:	reserved
 
 
