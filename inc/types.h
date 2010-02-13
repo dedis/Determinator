@@ -69,4 +69,7 @@ typedef int32_t off_t;
 // Return the offset of 'member' relative to the beginning of a struct type
 #define offsetof(type, member)  ((size_t) (&((type*)0)->member))
 
+// Make the compiler think a value is getting used, even if it isn't.
+#define USED(x)		(void)(x)
+
 #endif /* !PIOS_INC_TYPES_H */

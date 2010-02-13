@@ -1,14 +1,12 @@
 #if LAB >= 3
 
 #include <inc/lib.h>
+#include <inc/syscall.h>
 
 void
 exit(void)
 {
-#if LAB >= 5
-	close_all();
-#endif
-	sys_env_destroy(0);
+	sys_ret();
 }
 
 #endif	// LAB >= 3

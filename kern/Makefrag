@@ -9,7 +9,7 @@ OBJDIRS += kern
 
 # entry.S must be first, so that it's the first code in the text segment!!!
 #
-# We also snatch the use of a couple handy source files
+# We also snatch the use of a few handy source files
 # from the lib directory, to avoid gratuitous code duplication.
 KERN_SRCFILES :=	kern/entry.S \
 			kern/init.c \

@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 3
 // Main public header file for our user-land support library,
 // whose code lives in the lib directory.
 // This library is roughly our OS's version of a standard C library,
@@ -13,8 +13,6 @@
 #include <inc/stdarg.h>
 #include <inc/string.h>
 #include <inc/assert.h>
-#include <inc/env.h>
-#include <inc/memlayout.h>
 #include <inc/syscall.h>
 #if LAB >= 4
 #include <inc/trap.h>
@@ -29,57 +27,10 @@
 #include <inc/ns.h>
 #endif
 
-#define USED(x)		(void)(x)
-
-// libos.c or entry.S
-extern char *binaryname;
-extern volatile struct Env *env;
-extern volatile struct Env envs[NENV];
-extern volatile struct Page pages[];
 void	exit(void);
 
-#if LAB >= 4
-// pgfault.c
-void	set_pgfault_handler(void (*handler)(struct UTrapframe *utf));
-
-#endif
 // readline.c
 char*	readline(const char *buf);
-
-// syscall.c
-void	sys_cputs(const char *string, size_t len);
-int	sys_cgetc(void);
-envid_t	sys_getenvid(void);
-int	sys_env_destroy(envid_t);
-#if LAB >= 4
-void	sys_yield(void);
-static envid_t sys_exofork(void);
-int	sys_env_set_status(envid_t env, int status);
-int	sys_env_set_trapframe(envid_t env, struct Trapframe *tf);
-int	sys_env_set_pgfault_upcall(envid_t env, void *upcall);
-int	sys_page_alloc(envid_t env, void *pg, int perm);
-int	sys_page_map(envid_t src_env, void *src_pg,
-		     envid_t dst_env, void *dst_pg, int perm);
-int	sys_page_unmap(envid_t env, void *pg);
-int	sys_ipc_try_send(envid_t to_env, uint32_t value, void *pg, int perm);
-int	sys_ipc_recv(void *rcv_pg);
-#if LAB >= 6
-unsigned int sys_time_msec(void);
-#if SOL >= 6
-int	     sys_net_txbuf(void *bufva, unsigned int size);
-int	     sys_net_rxbuf(void *bufva, unsigned int size);
-#endif	// SOL >= 6
-#endif  // LAB >= 6
-
-// ipc.c
-void	ipc_send(envid_t to_env, uint32_t value, void *pg, int perm);
-int32_t ipc_recv(envid_t *from_env_store, void *pg, int *perm_store);
-
-// fork.c
-#define	PTE_SHARE	0x400
-envid_t	fork(void);
-envid_t	sfork(void);	// Challenge!
-#endif	// LAB >= 4
 
 #if LAB >= 5
 // fd.c
@@ -167,4 +118,4 @@ void	wait(envid_t env);
 #define O_MKDIR		0x0800		/* create directory, not regular file */
 
 #endif	// !PIOS_INC_LIB_H
-#endif	// LAB >= 4
+#endif	// LAB >= 3

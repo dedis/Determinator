@@ -1,47 +1,17 @@
 #if LAB >= 3
-#include <inc/mmu.h>
-#include <inc/memlayout.h>
 
-.data
-#if LAB >= 5
-	// define page-aligned fsipcbuf for fsipc.c
-	// ... and fdtab for file.c
-	.p2align PGSHIFT
-	.globl fsipcbuf
-fsipcbuf:
-	.space PAGESIZE
-	.globl fdtab
-fdtab:
-	.space PAGESIZE
-#if LAB >= 6
-	.globl nsipcbuf
-	// page-aligned nsipcbuf for nsipc.c
-nsipcbuf:
-	.space PAGESIZE
-#endif
-#endif
+	.data
 
-
-// Define the global symbols 'envs', 'pages', 'vpt', and 'vpd'
-// so that they can be used in C as if they were ordinary global arrays.
-	.globl envs
-	.set envs, UENVS
-	.globl pages
-	.set pages, UPAGES
-	.globl vpt
-	.set vpt, UVPT
-	.globl vpd
-	.set vpd, (UVPT+(UVPT>>12)*4)
-
-
-// Entrypoint - this is where the kernel (or our parent environment)
-// starts us running when we are initially loaded into a new environment.
-.text
-.globl _start
-_start:
-	// See if we were started with arguments on the stack
-	cmpl $USTACKTOP, %esp
-	jne args_exist
+// Entrypoint - this is where the kernel (or our parent process)
+// starts us running when we are initially loaded into a new process.
+	.text
+	.globl start
+start:
+#if LAB >= 99
+	// See if we were started with arguments on the stack.
+	// If not, our esp will start on a nice big power-of-two boundary.
+	testl $0xffffff, %esp
+	jnz args_exist
 
 	// If not, push dummy argc/argv arguments.
 	// This happens when we are loaded by the kernel,
@@ -50,7 +20,9 @@ _start:
 	pushl $0
 
 args_exist:
-	call libmain
-1:      jmp 1b
+#endif
+	call	piosmain
+	call	sys_ret
+1:	jmp 1b
 
 #endif // LAB >= 3
