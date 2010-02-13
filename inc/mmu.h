@@ -40,20 +40,21 @@
 // page table index
 #define PTX(la)		((((uintptr_t) (la)) >> PTXSHIFT) & 0x3FF)
 
-// offset in page
-#define PGOFF(la)	(((uintptr_t) (la)) & 0xFFF)
+// linear address components
+#define PGADDR(la)	((uintptr_t) (la) & ~0xFFF)	// address of page
+#define PGOFF(la)	((uintptr_t) (la) & 0xFFF)	// offset in page
 
-// construct linear address from indexes and offset
-#define PGADDR(d, t, o)	((void*) ((d) << PDXSHIFT | (t) << PTXSHIFT | (o)))
+#define PTADDR(la)	((uintptr_t) (la) & ~0x3FFFFF)	// address of page table
+#define PTOFF(la)	((uintptr_t) (la) & 0x3FFFFF)	// offset in page table
 
 // Page directory and page table constants.
-#define NPDENTRIES	1024		// page directory entries per page directory
-#define NPTENTRIES	1024		// page table entries per page table
+#define NPDENTRIES	1024		// PDEs per page directory
+#define NPTENTRIES	1024		// PTEs per page table
 
 #define PAGESIZE	4096		// bytes mapped by a page
 #define PAGESHIFT	12		// log2(PAGESIZE)
 
-#define PTSIZE		(PAGESIZE*NPTENTRIES) // bytes mapped by a page directory entry
+#define PTSIZE		(PAGESIZE*NPTENTRIES)	// bytes mapped by a PDE
 #define PTSHIFT		22		// log2(PTSIZE)
 
 #define PTXSHIFT	12		// offset of PTX in a linear address
@@ -77,9 +78,6 @@
 
 // Only flags in PTE_USER may be used in system calls.
 #define PTE_USER	(PTE_AVAIL | PTE_P | PTE_W | PTE_U)
-
-// Address in page table or page directory entry
-#define PTE_ADDR(pte)	((physaddr_t) (pte) & ~0xFFF)
 
 // Control Register flags
 #define CR0_PE		0x00000001	// Protection Enable
@@ -211,7 +209,7 @@ typedef struct taskstate {
 	uintptr_t ts_esp2;
 	uint16_t ts_ss2;
 	uint16_t ts_padding3;
-	physaddr_t ts_cr3;	// Page directory base
+	uintptr_t ts_cr3;	// Page directory base
 	uintptr_t ts_eip;	// Saved state from last task switch
 	uint32_t ts_eflags;
 	uint32_t ts_eax;	// More saved state (registers)

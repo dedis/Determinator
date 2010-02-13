@@ -44,12 +44,17 @@ typedef struct proc {
 	// Save area for user-mode register state when proc is not running.
 	trapframe	tf;		// general registers
 	fxsave		fx;		// FPU/MMX/XMM state
-
 #if LAB >= 3
+
 	// Virtual memory state for this process.
 	pde_t		*pdir;		// Working page directory
 	pde_t		*oldpd;		// Snapshot from last Put, NULL if Got
 #endif	// LAB >= 3
+#if LAB >= 4
+
+	// File system state for this process.
+	file		*files;		// List of files
+#endif	// LAB >= 4
 } proc;
 
 #define proc_cur()	(cpu_cur()->proc)

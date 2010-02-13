@@ -20,14 +20,9 @@ typedef unsigned long long uint64_t;
 
 // Pointers and addresses are 32 bits long.
 // We use pointer types to represent virtual addresses,
-// uintptr_t to represent the numerical values of virtual addresses,
-// and physaddr_t to represent physical addresses.
+// and [u]intptr_t to represent the numerical values of virtual addresses.
 typedef int32_t intptr_t;
 typedef uint32_t uintptr_t;
-typedef uint32_t physaddr_t;
-
-// Page numbers are 32 bits long.
-typedef uint32_t ppn_t;
 
 // size_t is used for memory object sizes.
 typedef uint32_t size_t;

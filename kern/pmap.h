@@ -75,7 +75,7 @@ pte_t *pmap_walk(pde_t *pdir, uint32_t uva, int create);
 pte_t *pmap_insert(pde_t *pdir, pageinfo *pi, uint32_t uva, int perm);
 pageinfo *pmap_lookup(pde_t *pdir, uint32_t uva, pte_t **pte_store);
 void pmap_remove(pde_t *pdir, uint32_t uva);
-void pmap_invl(pde_t *pdir, uint32_t uva);
+void pmap_inval(pde_t *pdir, uint32_t uva, uint32_t size);
 
 
 #endif /* !PIOS_KERN_PMAP_H */
