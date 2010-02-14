@@ -2,7 +2,7 @@ OBJDIRS += lib
 
 LIB_SRCFILES :=		lib/console.c \
 			lib/exit.c \
-			lib/panic.c \
+			lib/debug.c \
 			lib/cputs.c \
 			lib/cprintf.c \
 			lib/printfmt.c \

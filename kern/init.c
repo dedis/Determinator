@@ -30,6 +30,11 @@
 // User-mode stack for user(), below, to run on.
 static char gcc_aligned(16) user_stack[PAGESIZE];
 
+#if LAB == 3
+// Lab 3: ELF executable containing root process, linked into the kernel
+extern char _binary_obj_user_testvm_start[];
+#endif
+
 
 // Called first from entry.S on the bootstrap processor,
 // and later from boot/bootother.S on all other processors.
@@ -116,7 +121,6 @@ init(void)
 	// Create our first actual user-mode process
 	proc *root = proc_alloc(NULL, 0);
 
-	extern char _binary_obj_user_testvm_start[];
 	elfhdr *eh = (elfhdr *)_binary_obj_user_testvm_start;
 	assert(eh->e_magic == ELF_MAGIC);
 

@@ -56,10 +56,13 @@ void
 pmap_init(void)
 {
 	if (cpu_onboot()) {
-		// Initialize the bootstrap page directory
-		// to translate all virtual addresses from 0 to 2GB
-		// directly to the same physical addresses,
-		// representing the kernel's address space.
+		// Initialize pmap_bootpdir, the bootstrap page directory.
+		// Page directory entries (PDEs) corresponding to the 
+		// user-mode address space between PMAP_USERLO and PMAP_USERHI
+		// should all be initialized to PTE_ZERO (see above).
+		// All virtual addresses below and above this user area
+		// should be identity-mapped to the same physical addresses,
+		// but only accessible in kernel mode (not in user mode).
 		// The easiest way to do this is to use 4MB page mappings.
 		// Since these page mappings never change on context switches,
 		// we can also mark them global (PTE_G) so the processor
@@ -152,7 +155,7 @@ pmap_freepdir(pte_t *pdir)
 // and the page table, so it's safe to leave some page permissions
 // more permissive than strictly necessary.
 pte_t *
-pmap_walk(pde_t *pdir, uint32_t va, int writing)
+pmap_walk(pde_t *pdir, uint32_t va, bool writing)
 {
 #if SOL >= 3
 	assert(va >= PMAP_USERLO && va < PMAP_USERHI);
@@ -224,6 +227,7 @@ pmap_walk(pde_t *pdir, uint32_t va, int writing)
 //
 // Corner-case hint: Make sure to consider what happens when the same 
 // pi is re-inserted at the same virtual address in the same pdir.
+// What if this is the only reference to that page?
 //
 // RETURNS: 
 //   a pointer to the inserted PTE on success (same as pmap_walk)
@@ -250,39 +254,6 @@ pmap_insert(pde_t *pdir, pageinfo *pi, uint32_t va, int perm)
 
 	*pte = mem_pi2phys(pi) | perm | PTE_P;
 	return pte;
-#else /* not SOL >= 3 */
-	// Fill in this function
-	return NULL;
-#endif /* not SOL >= 3 */
-}
-
-//
-// Return the pageinfo for the page mapped at user virtual address 'va'.
-// If pte_store is not zero, then also store in it the address
-// of the pte for this page.  This is used by pmap_remove and
-// can be used to verify page permissions for syscall arguments,
-// but should not be used by most callers.
-//
-// Return NULL if there is no page mapped at va.
-//
-// Hint: the TA solution uses pmap_walk and mem_phys2pi.
-//
-pageinfo *
-pmap_lookup(pde_t *pdir, uint32_t va, pte_t **pte_store)
-{
-#if SOL >= 3
-	pte_t *pte = pmap_walk(pdir, va, 0);
-	if (pte == NULL)
-		return NULL;
-
-	uint32_t pgaddr = PGADDR(*pte);
-	if (pgaddr == PTE_ZERO)
-		return NULL;
-
-	assert(pgaddr > 0 && pgaddr < mem_max);
-	if (pte_store)
-		*pte_store = pte;
-	return mem_phys2pi(pgaddr);
 #else /* not SOL >= 3 */
 	// Fill in this function
 	return NULL;

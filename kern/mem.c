@@ -223,13 +223,6 @@ mem_incref(pageinfo *pi)
 	lockadd(&pi->refcount, 1);
 }
 
-void
-mem_addref(pageinfo *pi, int incr)
-{
-	assert(pi > &mem_pageinfo[0] && pi < &mem_pageinfo[mem_npage]);
-	lockadd(&pi->refcount, incr);
-}
-
 // Atomically decrement the reference count on a page,
 // freeing the page if there are no more refs.
 void

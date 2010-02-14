@@ -73,9 +73,8 @@ extern pde_t pmap_bootpdir[1024];
 void pmap_init(void);
 pte_t *pmap_newpdir(void);
 void pmap_freepdir(pte_t *pdir);
-pte_t *pmap_walk(pde_t *pdir, uint32_t uva, int create);
+pte_t *pmap_walk(pde_t *pdir, uint32_t uva, bool writing);
 pte_t *pmap_insert(pde_t *pdir, pageinfo *pi, uint32_t uva, int perm);
-pageinfo *pmap_lookup(pde_t *pdir, uint32_t uva, pte_t **pte_store);
 void pmap_remove(pde_t *pdir, uint32_t uva, size_t size);
 void pmap_inval(pde_t *pdir, uint32_t uva, size_t size);
 int pmap_copy(pde_t *spdir, uint32_t sva, pde_t *dpdir, uint32_t dva,

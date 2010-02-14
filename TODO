@@ -28,3 +28,10 @@ through the interrupt.
 
 - Add a field for the page fault linear address in trapframe?
 
+- Add a singly- and/or doubly-linked list exercise
+  using double-indirect pointers to some appropriate homework.
+
+- Make the boot loader clear BSS as a proper ELF loader should,
+  since it's not that much harder than making the kernel do it?
+  If so, adjust lab 3's program loader text appropriately.
+
