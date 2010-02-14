@@ -251,6 +251,7 @@ read_cs(void)
         return cs;
 }
 
+// Atomically set *addr to newval and return the old value of *addr.
 static inline uint32_t
 xchg(volatile uint32_t *addr, uint32_t newval)
 {
@@ -264,20 +265,37 @@ xchg(volatile uint32_t *addr, uint32_t newval)
 	return result;
 }
 
+// Atomically add incr to *addr.
 static inline void
-lockinc(volatile int32_t *addr)
+lockadd(volatile int32_t *addr, int32_t incr)
 {
-	asm volatile("lock; incl %0" : "+m" (*addr) : : "cc");
+	asm volatile("lock; addl %1,%0" : "+m" (*addr) : "r" (incr) : "cc");
 }
 
+// Atomically add incr to *addr and return true if the result is zero.
 static inline uint8_t
-lockdec(volatile int32_t *addr)
+lockaddz(volatile int32_t *addr, int32_t incr)
 {
 	uint8_t zero;
-	asm volatile("lock; decl %0; setzb %1"
+	asm volatile("lock; addl %2,%0; setzb %1"
 		: "+m" (*addr), "=rm" (zero)
-		: : "cc");
+		: "r" (incr)
+		: "cc");
 	return zero;
+}
+
+// Atomically add incr to *addr and return the old value of *addr.
+static inline int32_t
+xadd(volatile uint32_t *addr, int32_t incr)
+{
+	int32_t result;
+
+	// The + in "+m" denotes a read-modify-write operand.
+	asm volatile("lock; xaddl %0, %1" :
+	       "+m" (*addr), "=a" (result) :
+	       "1" (incr) :
+	       "cc");
+	return result;
 }
 
 static inline void

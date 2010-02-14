@@ -219,7 +219,15 @@ mem_free(pageinfo *pi)
 void
 mem_incref(pageinfo *pi)
 {
-	lockinc(&pi->refcount);
+	assert(pi > &mem_pageinfo[0] && pi < &mem_pageinfo[mem_npage]);
+	lockadd(&pi->refcount, 1);
+}
+
+void
+mem_addref(pageinfo *pi, int incr)
+{
+	assert(pi > &mem_pageinfo[0] && pi < &mem_pageinfo[mem_npage]);
+	lockadd(&pi->refcount, incr);
 }
 
 // Atomically decrement the reference count on a page,
@@ -227,7 +235,8 @@ mem_incref(pageinfo *pi)
 void
 mem_decref(pageinfo* pi)
 {
-	if (lockdec(&pi->refcount))
+	assert(pi > &mem_pageinfo[0] && pi < &mem_pageinfo[mem_npage]);
+	if (lockaddz(&pi->refcount, -1))
 		mem_free(pi);
 	assert(pi->refcount >= 0);
 }

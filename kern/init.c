@@ -129,9 +129,9 @@ init(void)
 		uint32_t zva = ROUNDUP(ph->p_va + ph->p_filesz, PAGESIZE);
 		uint32_t eva = ROUNDUP(ph->p_va + ph->p_memsz, PAGESIZE);
 
-		uint32_t perm = PTE_P | PTE_U;	// Readable, user-accessible
+		uint32_t perm = SYS_READ | PTE_P | PTE_U;
 		if (ph->p_flags & ELF_PROG_FLAG_WRITE)
-			perm |= PTE_W;		// Writeable
+			perm |= SYS_WRITE | PTE_W;
 
 		for(; va < eva; va += PAGESIZE, fa += PAGESIZE) {
 			pageinfo *pi = mem_alloc(); assert(pi != NULL);
@@ -151,7 +151,7 @@ init(void)
 	// (the process can then increase its own stack as desired)
 	pageinfo *pi = mem_alloc(); assert(pi != NULL);
 	pte_t *pte = pmap_insert(root->pdir, pi, PMAP_USERHI-PAGESIZE,
-				PTE_P | PTE_U | PTE_W);
+				SYS_READ | SYS_WRITE | PTE_P | PTE_U | PTE_W);
 	assert(pte != NULL);
 	root->tf.tf_esp = PMAP_USERHI;
 

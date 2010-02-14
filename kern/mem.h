@@ -64,6 +64,7 @@ void mem_free(pageinfo *pi);
 
 void mem_incref(pageinfo *pp);
 void mem_decref(pageinfo* pp);
+void mem_addref(pageinfo *pp, int32_t incr);
 
 
 #endif /* !PIOS_KERN_MEM_H */

@@ -48,7 +48,7 @@ typedef struct proc {
 
 	// Virtual memory state for this process.
 	pde_t		*pdir;		// Working page directory
-	pde_t		*oldpd;		// Snapshot from last Put, NULL if Got
+	pde_t		*rpdir;		// Reference page directory
 #endif	// LAB >= 3
 #if LAB >= 4
 

@@ -17,6 +17,23 @@
 static void gcc_noreturn do_ret(trapframe *tf);
 #endif
 
+
+// During a system call, generate a specific processor trap -
+// as if the user code's INT 0x30 instruction had caused it -
+// and reflect the trap to the parent process as with other traps.
+static void gcc_noreturn
+systrap(trapframe *utf, int trapno, int err)
+{
+#if SOL >= 3
+	utf->tf_trapno = trapno;
+	utf->tf_err = err;
+	utf->tf_eip -= 2;	// back up before int 0x30 syscall instruction
+	proc_ret(utf);
+#else
+	panic("systrap() not implemented.");
+#endif
+}
+
 // Recover from a trap that occurs during a copyin or copyout,
 // by aborting the system call and reflecting the trap to the parent process,
 // behaving as if the user program's INT instruction had caused the trap.
@@ -39,10 +56,7 @@ syscall_recover(trapframe *ktf, void *recoverdata)
 	spinlock_release(&p->lock);	// release lock we were holding
 
 	// Pretend that a trap caused this process to stop.
-	utf->tf_trapno = ktf->tf_trapno;	// copy trap info
-	utf->tf_err = ktf->tf_err;
-	utf->tf_eip -= 2;	// back up before int 0x30 syscall instruction
-	do_ret(utf);
+	systrap(utf, ktf->tf_trapno, ktf->tf_err);
 #else
 	panic("syscall_recover() not implemented.");
 #endif
@@ -57,19 +71,17 @@ syscall_recover(trapframe *ktf, void *recoverdata)
 // Note: Be careful that your arithmetic works correctly
 // even if size is very large, e.g., if uva+size wraps around!
 //
-static void syscall_checkva(trapframe *utf, uint32_t uva, size_t size)
+static void checkva(trapframe *utf, uint32_t uva, size_t size)
 {
 #if SOL >= 3
 	if (uva < PMAP_USERLO || uva >= PMAP_USERHI
 			|| size >= PMAP_USERHI - uva) {
 
 		// Outside of user address space!  Simulate a GP fault.
-		utf->tf_trapno = T_GPFLT;
-		utf->tf_eip -= 2;	// back up before int 0x30
-		do_ret(utf);
+		systrap(utf, T_GPFLT, 0);
 	}
 #else
-	panic("syscall_checkva() not implemented.");
+	panic("checkva() not implemented.");
 #endif
 }
 
@@ -79,10 +91,10 @@ static void syscall_checkva(trapframe *utf, uint32_t uva, size_t size)
 static void usercopy(trapframe *utf, bool copyout,
 			void *kva, uint32_t uva, size_t size)
 {
-#if SOL >= 3
-	syscall_checkva(utf, uva, size);
+	checkva(utf, uva, size);
 
 	// Now do the copy, but recover from page faults.
+#if SOL >= 3
 	cpu *c = cpu_cur();
 	assert(c->recover == NULL);
 	c->recover = syscall_recover;
@@ -163,6 +175,44 @@ do_put(trapframe *tf, uint32_t cmd)
 		cp->tf.tf_eflags |= FL_IF;	// enable interrupts
 	}
 
+#if SOL >= 3
+	uint32_t sva = tf->tf_regs.reg_esi;
+	uint32_t dva = tf->tf_regs.reg_edi;
+	uint32_t size = tf->tf_regs.reg_ecx;
+	switch (cmd & SYS_MEMOP) {
+	case 0:	// no memory operation
+		break;
+	case SYS_COPY:
+		// validate source region
+		if (PTOFF(sva) || PTOFF(size)
+				|| sva < PMAP_USERLO || sva > PMAP_USERHI
+				|| size > PMAP_USERHI-sva)
+			systrap(tf, T_GPFLT, 0);
+		// fall thru...
+	case SYS_ZERO:
+		// validate destination region
+		if (PTOFF(dva) || PTOFF(size)
+				|| dva < PMAP_USERLO || dva > PMAP_USERHI
+				|| size > PMAP_USERHI-dva)
+			systrap(tf, T_GPFLT, 0);
+
+		switch (cmd & SYS_MEMOP) {
+		case SYS_ZERO:	// zero memory and clear permissions
+			pmap_remove(cp->pdir, dva, size);
+			break;
+		case SYS_COPY:	// copy from local src to dest in child
+			pmap_copy(p->pdir, sva, cp->pdir, dva, size);
+			break;
+		}
+	default:
+		systrap(tf, T_GPFLT, 0);
+	}
+
+	if (cmd & SYS_SNAP)	// Snapshot child's state
+		pmap_copy(cp->pdir, PMAP_USERLO, cp->rpdir, PMAP_USERLO,
+				PMAP_USERHI-PMAP_USERLO);
+
+#endif	// SOL >= 3
 	// Start the child if requested
 	if (cmd & SYS_START)
 		proc_ready(cp);
@@ -201,6 +251,48 @@ do_get(trapframe *tf, uint32_t cmd)
 #endif
 	}
 
+#if SOL >= 3
+	uint32_t sva = tf->tf_regs.reg_edi;
+	uint32_t dva = tf->tf_regs.reg_esi;
+	uint32_t size = tf->tf_regs.reg_ecx;
+	switch (cmd & SYS_MEMOP) {
+	case 0:	// no memory operation
+		break;
+	case SYS_COPY:
+	case SYS_MERGE:
+		// validate source region
+		if (PTOFF(sva) || PTOFF(size)
+				|| sva < PMAP_USERLO || sva > PMAP_USERHI
+				|| size > PMAP_USERHI-sva)
+			systrap(tf, T_GPFLT, 0);
+		// fall thru...
+	case SYS_ZERO:
+		// validate destination region
+		if (PTOFF(dva) || PTOFF(size)
+				|| dva < PMAP_USERLO || dva > PMAP_USERHI
+				|| size > PMAP_USERHI-dva)
+			systrap(tf, T_GPFLT, 0);
+
+		switch (cmd & SYS_MEMOP) {
+		case SYS_ZERO:	// zero memory and clear permissions
+			pmap_remove(p->pdir, dva, size);
+			break;
+		case SYS_COPY:	// copy from local src to dest in child
+			pmap_copy(cp->pdir, sva, p->pdir, dva, size);
+			break;
+		case SYS_MERGE:	// merge from local src to dest in child
+			pmap_merge(cp->rpdir, cp->pdir, sva,
+					p->pdir, dva, size);
+			break;
+		}
+	default:
+		systrap(tf, T_GPFLT, 0);
+	}
+
+	if (cmd & SYS_SNAP)
+		systrap(tf, T_GPFLT, 0);	// only valid for PUT
+
+#endif	// SOL >= 3
 	spinlock_release(&p->lock);
 
 	trap_return(tf);	// syscall completed

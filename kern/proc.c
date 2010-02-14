@@ -59,16 +59,12 @@ proc_alloc(proc *p, uint32_t cn)
 
 #if SOL >= 3
 	// Allocate a page directory for this process
-	pageinfo *pdpi = mem_alloc();
-	if (!pdpi) {
-		mem_free(pi);
+	cp->pdir = pmap_newpdir();
+	cp->rpdir = pmap_newpdir();
+	if (!cp->pdir || !cp->rpdir) {
+		if (cp->pdir) pmap_freepdir(cp->pdir);
 		return NULL;
 	}
-	cp->pdir = mem_pi2ptr(pdpi);
-
-	// Initialize it from the bootstrap page directory
-	assert(sizeof(pmap_bootpdir) == PAGESIZE);
-	memmove(cp->pdir, pmap_bootpdir, PAGESIZE);
 #endif	// SOL >= 3
 
 	if (p)
