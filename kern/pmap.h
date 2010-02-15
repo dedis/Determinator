@@ -82,6 +82,7 @@ int pmap_copy(pde_t *spdir, uint32_t sva, pde_t *dpdir, uint32_t dva,
 int pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 		pde_t *dpdir, uint32_t dva, size_t size);
 void pmap_pagefault(trapframe *tf);
+void pmap_check(void);
 
 
 #endif /* !PIOS_KERN_PMAP_H */
