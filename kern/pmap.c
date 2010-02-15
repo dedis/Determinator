@@ -7,6 +7,7 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 #include <inc/syscall.h>
+#include <inc/vm.h>
 
 #include <kern/cpu.h>
 #include <kern/trap.h>
@@ -45,7 +46,7 @@ uint8_t pmap_zero[PAGESIZE] gcc_aligned(PAGESIZE);
 // Then turn on paging.
 // 
 // This function only creates mappings in the kernel part of the address space
-// (addresses outside of the range between PMAP_USERLO and PMAP_USERHI).
+// (addresses outside of the range between VM_USERLO and VM_USERHI).
 // The user part of the address space remains all PTE_ZERO until later.
 //
 void
@@ -54,7 +55,7 @@ pmap_init(void)
 	if (cpu_onboot()) {
 		// Initialize pmap_bootpdir, the bootstrap page directory.
 		// Page directory entries (PDEs) corresponding to the 
-		// user-mode address space between PMAP_USERLO and PMAP_USERHI
+		// user-mode address space between VM_USERLO and VM_USERHI
 		// should all be initialized to PTE_ZERO (see above).
 		// All virtual addresses below and above this user area
 		// should be identity-mapped to the same physical addresses,
@@ -68,7 +69,7 @@ pmap_init(void)
 		for (i = 0; i < NPDENTRIES; i++)
 			pmap_bootpdir[i] = (i << PDXSHIFT)
 				| PTE_P | PTE_W | PTE_PS | PTE_G;
-		for (i = PDX(PMAP_USERLO); i < PDX(PMAP_USERHI); i++)
+		for (i = PDX(VM_USERLO); i < PDX(VM_USERHI); i++)
 			pmap_bootpdir[i] = PTE_ZERO;	// clear user area
 #else
 		panic("pmap_init() not implemented");
@@ -128,7 +129,7 @@ pmap_newpdir(void)
 void
 pmap_freepdir(pte_t *pdir)
 {
-	pmap_remove(pdir, PMAP_USERLO, PMAP_USERHI-PMAP_USERLO);
+	pmap_remove(pdir, VM_USERLO, VM_USERHI-VM_USERLO);
 	mem_free(mem_ptr2pi(pdir));
 }
 
@@ -159,7 +160,7 @@ pte_t *
 pmap_walk(pde_t *pdir, uint32_t va, bool writing)
 {
 #if SOL >= 3
-	assert(va >= PMAP_USERLO && va < PMAP_USERHI);
+	assert(va >= VM_USERLO && va < VM_USERHI);
 
 	uint32_t la = va;			// linear = virtual address
 	pde_t *pde = &pdir[PDX(la)];		// find PDE
@@ -193,6 +194,8 @@ pmap_walk(pde_t *pdir, uint32_t va, bool writing)
 			return NULL;
 		mem_incref(pi);
 		pte_t *nptab = mem_pi2ptr(pi);
+		//cprintf("pdir_walk %x %x: copy ptab %x->%x\n",
+		//	pdir, va, ptab, nptab);
 
 		// Copy all page table entries, incrementing each's refcount
 		int i;
@@ -284,8 +287,8 @@ pmap_remove(pde_t *pdir, uint32_t va, size_t size)
 {
 #if SOL >= 3
 	assert(PGOFF(size) == 0);	// must be page-aligned
-	assert(va >= PMAP_USERLO && va < PMAP_USERHI);
-	assert(size <= PMAP_USERHI - va);
+	assert(va >= VM_USERLO && va < VM_USERHI);
+	assert(size <= VM_USERHI - va);
 
 	pmap_inval(pdir, va, size);	// invalidate region we're removing
 
@@ -355,10 +358,10 @@ pmap_copy(pde_t *spdir, uint32_t sva, pde_t *dpdir, uint32_t dva,
 	assert(PTOFF(sva) == 0);	// must be 4MB-aligned
 	assert(PTOFF(dva) == 0);
 	assert(PTOFF(size) == 0);
-	assert(sva >= PMAP_USERLO && sva < PMAP_USERHI);
-	assert(dva >= PMAP_USERLO && dva < PMAP_USERHI);
-	assert(size <= PMAP_USERHI - sva);
-	assert(size <= PMAP_USERHI - dva);
+	assert(sva >= VM_USERLO && sva < VM_USERHI);
+	assert(dva >= VM_USERLO && dva < VM_USERHI);
+	assert(size <= VM_USERHI - sva);
+	assert(size <= VM_USERHI - dva);
 
 	// Invalidate both regions we may be modifying
 	pmap_inval(spdir, sva, size);
@@ -371,7 +374,7 @@ pmap_copy(pde_t *spdir, uint32_t sva, pde_t *dpdir, uint32_t dva,
 
 		if (*dpde & PTE_P)	// remove old ptable first
 			pmap_remove(dpdir, dva, PTSIZE);
-		assert(*dpde == 0);
+		assert(*dpde == PTE_ZERO);
 
 		if (*spde & PTE_W)	// remove write permission
 			*spde &= ~PTE_W;
@@ -403,8 +406,8 @@ pmap_pagefault(trapframe *tf)
 	uint32_t fva = rcr2();
 
 #if SOL >= 3
-	// It can't be our problem unless it's a plain write fault!
-	if ((tf->tf_err & (PFE_WR | PFE_PR)) != PFE_WR)
+	// It can't be our problem unless it's a write fault in user space!
+	if (fva < VM_USERLO || fva >= VM_USERHI || !(tf->tf_err & PFE_WR))
 		return;
 
 	proc *p = proc_cur();
@@ -428,9 +431,14 @@ pmap_pagefault(trapframe *tf)
 		memmove((void*)npg, (void*)pg, PAGESIZE); // copy the page
 		if (pg != PTE_ZERO)
 			mem_decref(mem_phys2pi(pg));	// release the old ref
+		//cprintf("pmap_pflt %x %x: copy page %x->%x\n",
+		//	p->pdir, fva, pg, npg);
 		pg = npg;
 	}
 	*pte = pg | SYS_RW | PTE_A | PTE_D | PTE_W | PTE_U | PTE_P;
+
+	// Make sure the old mapping doesn't get used anymore
+	pmap_inval(p->pdir, PGADDR(fva), PAGESIZE);
 
 	trap_return(tf);
 #else /* not SOL >= 3 */
@@ -484,10 +492,10 @@ pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 	assert(PTOFF(sva) == 0);	// must be 4MB-aligned
 	assert(PTOFF(dva) == 0);
 	assert(PTOFF(size) == 0);
-	assert(sva >= PMAP_USERLO && sva < PMAP_USERHI);
-	assert(dva >= PMAP_USERLO && dva < PMAP_USERHI);
-	assert(size <= PMAP_USERHI - sva);
-	assert(size <= PMAP_USERHI - dva);
+	assert(sva >= VM_USERLO && sva < VM_USERHI);
+	assert(dva >= VM_USERLO && dva < VM_USERHI);
+	assert(size <= VM_USERHI - sva);
+	assert(size <= VM_USERHI - dva);
 
 	// Invalidate the destination region we'll be modifying
 	pmap_inval(dpdir, dva, size);
@@ -542,7 +550,7 @@ pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 // Adding permission to a nonexistent page maps zero-filled memory.
 // It's OK to add SYS_READ and/or SYS_WRITE permission to a PTE_ZERO mapping;
 // this causes the pmap_zero page to be mapped read-only (PTE_P but not PTE_W).
-// If the user gives SYS_WRITE permission to a  PTE_ZERO mapping,
+// If the user gives SYS_WRITE permission to a PTE_ZERO mapping,
 // the page fault handler copies the zero page when the first write occurs.
 //
 int
@@ -551,8 +559,8 @@ pmap_setperm(pde_t *pdir, uint32_t va, uint32_t size, int perm)
 #if SOL >= 3
 	assert(PGOFF(va) == 0);
 	assert(PGOFF(size) == 0);
-	assert(va >= PMAP_USERLO && va < PMAP_USERHI);
-	assert(size <= PMAP_USERHI - va);
+	assert(va >= VM_USERLO && va < VM_USERHI);
+	assert(size <= VM_USERHI - va);
 
 	pmap_inval(pdir, va, size);	// invalidate region we're modifying
 
@@ -562,9 +570,9 @@ pmap_setperm(pde_t *pdir, uint32_t va, uint32_t size, int perm)
 		pteand = ~(SYS_RW | PTE_W | PTE_P), pteor = 0;
 	else if (!(perm & SYS_WRITE))	// read-only permission
 		pteand = ~(SYS_WRITE | PTE_W),
-		pteor = (SYS_READ | PTE_P | PTE_A);
+		pteor = (SYS_READ | PTE_U | PTE_P | PTE_A);
 	else	// nominal read/write (but don't add PTE_W to shared mappings!)
-		pteand = 0, pteor = (SYS_RW | PTE_P | PTE_A);
+		pteand = ~0, pteor = (SYS_RW | PTE_U | PTE_P | PTE_A | PTE_D);
 
 	uint32_t vahi = va + size;
 	while (va < vahi) {
@@ -640,29 +648,29 @@ pmap_check(void)
 	assert(mem_alloc() == NULL);
 
 	// there is no free memory, so we can't allocate a page table 
-	assert(pmap_insert(pmap_bootpdir, pi1, PMAP_USERLO, 0) == NULL);
+	assert(pmap_insert(pmap_bootpdir, pi1, VM_USERLO, 0) == NULL);
 
 	// free pi0 and try again: pi0 should be used for page table
 	mem_free(pi0);
-	assert(pmap_insert(pmap_bootpdir, pi1, PMAP_USERLO, 0) != NULL);
-	assert(PGADDR(pmap_bootpdir[PDX(PMAP_USERLO)]) == mem_pi2phys(pi0));
-	assert(va2pa(pmap_bootpdir, PMAP_USERLO) == mem_pi2phys(pi1));
+	assert(pmap_insert(pmap_bootpdir, pi1, VM_USERLO, 0) != NULL);
+	assert(PGADDR(pmap_bootpdir[PDX(VM_USERLO)]) == mem_pi2phys(pi0));
+	assert(va2pa(pmap_bootpdir, VM_USERLO) == mem_pi2phys(pi1));
 	assert(pi1->refcount == 1);
 	assert(pi0->refcount == 1);
 
-	// should be able to map pi2 at PMAP_USERLO+PAGESIZE
+	// should be able to map pi2 at VM_USERLO+PAGESIZE
 	// because pi0 is already allocated for page table
-	assert(pmap_insert(pmap_bootpdir, pi2, PMAP_USERLO+PAGESIZE, 0));
-	assert(va2pa(pmap_bootpdir, PMAP_USERLO+PAGESIZE) == mem_pi2phys(pi2));
+	assert(pmap_insert(pmap_bootpdir, pi2, VM_USERLO+PAGESIZE, 0));
+	assert(va2pa(pmap_bootpdir, VM_USERLO+PAGESIZE) == mem_pi2phys(pi2));
 	assert(pi2->refcount == 1);
 
 	// should be no free memory
 	assert(mem_alloc() == NULL);
 
-	// should be able to map pi2 at PMAP_USERLO+PAGESIZE
+	// should be able to map pi2 at VM_USERLO+PAGESIZE
 	// because it's already there
-	assert(pmap_insert(pmap_bootpdir, pi2, PMAP_USERLO+PAGESIZE, 0));
-	assert(va2pa(pmap_bootpdir, PMAP_USERLO+PAGESIZE) == mem_pi2phys(pi2));
+	assert(pmap_insert(pmap_bootpdir, pi2, VM_USERLO+PAGESIZE, 0));
+	assert(va2pa(pmap_bootpdir, VM_USERLO+PAGESIZE) == mem_pi2phys(pi2));
 	assert(pi2->refcount == 1);
 
 	// pi2 should NOT be on the free list
@@ -670,28 +678,28 @@ pmap_check(void)
 	assert(mem_alloc() == NULL);
 
 	// check that pmap_walk returns a pointer to the pte
-	ptep = mem_ptr(PGADDR(pmap_bootpdir[PDX(PMAP_USERLO+PAGESIZE)]));
-	assert(pmap_walk(pmap_bootpdir, PMAP_USERLO+PAGESIZE, 0)
-		== ptep+PTX(PMAP_USERLO+PAGESIZE));
+	ptep = mem_ptr(PGADDR(pmap_bootpdir[PDX(VM_USERLO+PAGESIZE)]));
+	assert(pmap_walk(pmap_bootpdir, VM_USERLO+PAGESIZE, 0)
+		== ptep+PTX(VM_USERLO+PAGESIZE));
 
 	// should be able to change permissions too.
-	assert(pmap_insert(pmap_bootpdir, pi2, PMAP_USERLO+PAGESIZE, PTE_U));
-	assert(va2pa(pmap_bootpdir, PMAP_USERLO+PAGESIZE) == mem_pi2phys(pi2));
+	assert(pmap_insert(pmap_bootpdir, pi2, VM_USERLO+PAGESIZE, PTE_U));
+	assert(va2pa(pmap_bootpdir, VM_USERLO+PAGESIZE) == mem_pi2phys(pi2));
 	assert(pi2->refcount == 1);
-	assert(*pmap_walk(pmap_bootpdir, PMAP_USERLO+PAGESIZE, 0) & PTE_U);
-	assert(pmap_bootpdir[PDX(PMAP_USERLO)] & PTE_U);
+	assert(*pmap_walk(pmap_bootpdir, VM_USERLO+PAGESIZE, 0) & PTE_U);
+	assert(pmap_bootpdir[PDX(VM_USERLO)] & PTE_U);
 	
-	// should not be able to map at PMAP_USERLO+PTSIZE
+	// should not be able to map at VM_USERLO+PTSIZE
 	// because we need a free page for a page table
-	assert(pmap_insert(pmap_bootpdir, pi0, PMAP_USERLO+PTSIZE, 0) == NULL);
+	assert(pmap_insert(pmap_bootpdir, pi0, VM_USERLO+PTSIZE, 0) == NULL);
 
-	// insert pi1 at PMAP_USERLO+PAGESIZE (replacing pi2)
-	assert(pmap_insert(pmap_bootpdir, pi1, PMAP_USERLO+PAGESIZE, 0));
-	assert(!(*pmap_walk(pmap_bootpdir, PMAP_USERLO+PAGESIZE, 0) & PTE_U));
+	// insert pi1 at VM_USERLO+PAGESIZE (replacing pi2)
+	assert(pmap_insert(pmap_bootpdir, pi1, VM_USERLO+PAGESIZE, 0));
+	assert(!(*pmap_walk(pmap_bootpdir, VM_USERLO+PAGESIZE, 0) & PTE_U));
 
 	// should have pi1 at both +0 and +PAGESIZE, pi2 nowhere, ...
-	assert(va2pa(pmap_bootpdir, PMAP_USERLO+0) == mem_pi2phys(pi1));
-	assert(va2pa(pmap_bootpdir, PMAP_USERLO+PAGESIZE) == mem_pi2phys(pi1));
+	assert(va2pa(pmap_bootpdir, VM_USERLO+0) == mem_pi2phys(pi1));
+	assert(va2pa(pmap_bootpdir, VM_USERLO+PAGESIZE) == mem_pi2phys(pi1));
 	// ... and ref counts should reflect this
 	assert(pi1->refcount == 2);
 	assert(pi2->refcount == 0);
@@ -699,18 +707,18 @@ pmap_check(void)
 	// pi2 should be returned by mem_alloc
 	assert(mem_alloc() == pi2);
 
-	// unmapping pi1 at PMAP_USERLO+0 should keep pi1 at +PAGESIZE
-	pmap_remove(pmap_bootpdir, PMAP_USERLO+0, PAGESIZE);
-	assert(va2pa(pmap_bootpdir, PMAP_USERLO+0) == ~0);
-	assert(va2pa(pmap_bootpdir, PMAP_USERLO+PAGESIZE) == mem_pi2phys(pi1));
+	// unmapping pi1 at VM_USERLO+0 should keep pi1 at +PAGESIZE
+	pmap_remove(pmap_bootpdir, VM_USERLO+0, PAGESIZE);
+	assert(va2pa(pmap_bootpdir, VM_USERLO+0) == ~0);
+	assert(va2pa(pmap_bootpdir, VM_USERLO+PAGESIZE) == mem_pi2phys(pi1));
 	assert(pi1->refcount == 1);
 	assert(pi2->refcount == 0);
 	assert(mem_alloc() == NULL);	// still should have no pages free
 
-	// unmapping pi1 at PMAP_USERLO+PAGESIZE should free it
-	pmap_remove(pmap_bootpdir, PMAP_USERLO+PAGESIZE, PAGESIZE);
-	assert(va2pa(pmap_bootpdir, PMAP_USERLO+0) == ~0);
-	assert(va2pa(pmap_bootpdir, PMAP_USERLO+PAGESIZE) == ~0);
+	// unmapping pi1 at VM_USERLO+PAGESIZE should free it
+	pmap_remove(pmap_bootpdir, VM_USERLO+PAGESIZE, PAGESIZE);
+	assert(va2pa(pmap_bootpdir, VM_USERLO+0) == ~0);
+	assert(va2pa(pmap_bootpdir, VM_USERLO+PAGESIZE) == ~0);
 	assert(pi1->refcount == 0);
 	assert(pi2->refcount == 0);
 
@@ -724,43 +732,43 @@ pmap_check(void)
 	// and see the new data immediately.
 	memset(mem_pi2ptr(pi1), 1, PAGESIZE);
 	memset(mem_pi2ptr(pi2), 2, PAGESIZE);
-	pmap_insert(pmap_bootpdir, pi1, PMAP_USERLO, 0);
+	pmap_insert(pmap_bootpdir, pi1, VM_USERLO, 0);
 	assert(pi1->refcount == 1);
-	assert(*(int*)PMAP_USERLO == 0x01010101);
-	pmap_insert(pmap_bootpdir, pi2, PMAP_USERLO, 0);
-	assert(*(int*)PMAP_USERLO == 0x02020202);
+	assert(*(int*)VM_USERLO == 0x01010101);
+	pmap_insert(pmap_bootpdir, pi2, VM_USERLO, 0);
+	assert(*(int*)VM_USERLO == 0x02020202);
 	assert(pi2->refcount == 1);
 	assert(pi1->refcount == 0);
 	assert(mem_alloc() == pi1);
-	pmap_remove(pmap_bootpdir, PMAP_USERLO, PAGESIZE);
+	pmap_remove(pmap_bootpdir, VM_USERLO, PAGESIZE);
 	assert(pi2->refcount == 0);
 	assert(mem_alloc() == pi2);
 
 	// now use a pmap_remove on a large region to take pi0 back
-	pmap_remove(pmap_bootpdir, PMAP_USERLO, PMAP_USERHI-PMAP_USERLO);
-	assert(pmap_bootpdir[PDX(PMAP_USERLO)] == PTE_ZERO);
+	pmap_remove(pmap_bootpdir, VM_USERLO, VM_USERHI-VM_USERLO);
+	assert(pmap_bootpdir[PDX(VM_USERLO)] == PTE_ZERO);
 	assert(pi0->refcount == 0);
 	assert(mem_alloc() == pi0);
 
 	// test pmap_remove with large, non-ptable-aligned regions
 	mem_free(pi1);
-	uintptr_t va = PMAP_USERLO;
+	uintptr_t va = VM_USERLO;
 	assert(pmap_insert(pmap_bootpdir, pi0, va, 0));
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PAGESIZE, 0));
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE-PAGESIZE, 0));
-	assert(PGADDR(pmap_bootpdir[PDX(PMAP_USERLO)]) == mem_pi2phys(pi1));
+	assert(PGADDR(pmap_bootpdir[PDX(VM_USERLO)]) == mem_pi2phys(pi1));
 	mem_free(pi2);
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE, 0));
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE+PAGESIZE, 0));
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE*2-PAGESIZE, 0));
-	assert(PGADDR(pmap_bootpdir[PDX(PMAP_USERLO+PTSIZE)])
+	assert(PGADDR(pmap_bootpdir[PDX(VM_USERLO+PTSIZE)])
 		== mem_pi2phys(pi2));
 	mem_free(pi3);
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE*2, 0));
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE*2+PAGESIZE, 0));
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE*3-PAGESIZE*2, 0));
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE*3-PAGESIZE, 0));
-	assert(PGADDR(pmap_bootpdir[PDX(PMAP_USERLO+PTSIZE*2)])
+	assert(PGADDR(pmap_bootpdir[PDX(VM_USERLO+PTSIZE*2)])
 		== mem_pi2phys(pi3));
 	assert(pi0->refcount == 10);
 	assert(pi1->refcount == 1);
@@ -779,7 +787,7 @@ pmap_check(void)
 
 	// check pointer arithmetic in pmap_walk
 	mem_free(pi0);
-	va = PMAP_USERLO + PAGESIZE*NPTENTRIES + PAGESIZE;
+	va = VM_USERLO + PAGESIZE*NPTENTRIES + PAGESIZE;
 	ptep = pmap_walk(pmap_bootpdir, va, 1);
 	ptep1 = mem_ptr(PGADDR(pmap_bootpdir[PDX(va)]));
 	assert(ptep == ptep1 + PTX(va));
@@ -789,11 +797,11 @@ pmap_check(void)
 	// check that new page tables get cleared
 	memset(mem_pi2ptr(pi0), 0xFF, PAGESIZE);
 	mem_free(pi0);
-	pmap_walk(pmap_bootpdir, PMAP_USERHI-PAGESIZE, 1);
+	pmap_walk(pmap_bootpdir, VM_USERHI-PAGESIZE, 1);
 	ptep = mem_pi2ptr(pi0);
 	for(i=0; i<NPTENTRIES; i++)
 		assert(ptep[i] == PTE_ZERO);
-	pmap_bootpdir[PDX(PMAP_USERHI-PAGESIZE)] = PTE_ZERO;
+	pmap_bootpdir[PDX(VM_USERHI-PAGESIZE)] = PTE_ZERO;
 	pi0->refcount = 0;
 
 	// give free list back

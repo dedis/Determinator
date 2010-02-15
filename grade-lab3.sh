@@ -11,6 +11,7 @@ run
 score=0
 
 pts=15; greptest "Page tables:" "pmap_check() succeeded!"
+pts=10; greptest "Run testvm: " "testvm: in piosmain()"
 
 
 echo "Score: $score/100"

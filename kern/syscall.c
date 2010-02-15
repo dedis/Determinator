@@ -25,6 +25,7 @@ static void gcc_noreturn
 systrap(trapframe *utf, int trapno, int err)
 {
 #if SOL >= 3
+	//cprintf("systrap: reflect trap %d to parent process\n", trapno);
 	utf->tf_trapno = trapno;
 	utf->tf_err = err;
 	utf->tf_eip -= 2;	// back up before int 0x30 syscall instruction
@@ -54,9 +55,6 @@ sysrecover(trapframe *ktf, void *recoverdata)
 	assert(c->recover == sysrecover);
 	c->recover = NULL;
 
-	proc *p = proc_cur();
-	spinlock_release(&p->lock);	// release lock we were holding
-
 	// Pretend that a trap caused this process to stop.
 	systrap(utf, ktf->tf_trapno, ktf->tf_err);
 #else
@@ -66,7 +64,7 @@ sysrecover(trapframe *ktf, void *recoverdata)
 
 // Check a user virtual address block for validity:
 // i.e., make sure the complete area specified lies in
-// the user address space between PMAP_USERLO and PMAP_USERHI.
+// the user address space between VM_USERLO and VM_USERHI.
 // If not, abort the syscall by sending a T_GPFLT to the parent,
 // again as if the user program's INT instruction was to blame.
 //
@@ -76,11 +74,11 @@ sysrecover(trapframe *ktf, void *recoverdata)
 static void checkva(trapframe *utf, uint32_t uva, size_t size)
 {
 #if SOL >= 3
-	if (uva < PMAP_USERLO || uva >= PMAP_USERHI
-			|| size >= PMAP_USERHI - uva) {
+	if (uva < VM_USERLO || uva >= VM_USERHI
+			|| size >= VM_USERHI - uva) {
 
-		// Outside of user address space!  Simulate a GP fault.
-		systrap(utf, T_GPFLT, 0);
+		// Outside of user address space!  Simulate a page fault.
+		systrap(utf, T_PGFLT, 0);
 	}
 #else
 	panic("checkva() not implemented.");
@@ -90,7 +88,7 @@ static void checkva(trapframe *utf, uint32_t uva, size_t size)
 // Copy data to/from user space,
 // using checkva() above to validate the address range
 // and using sysrecover() to recover from any traps during the copy.
-static void usercopy(trapframe *utf, bool copyout,
+void usercopy(trapframe *utf, bool copyout,
 			void *kva, uint32_t uva, size_t size)
 {
 	checkva(utf, uva, size);
@@ -101,11 +99,14 @@ static void usercopy(trapframe *utf, bool copyout,
 	assert(c->recover == NULL);
 	c->recover = sysrecover;
 
+	//pmap_inval(proc_cur()->pdir, VM_USERLO, VM_USERHI-VM_USERLO);
+
 	if (copyout)
 		memmove((void*)uva, kva, size);
 	else
 		memmove(kva, (void*)uva, size);
 
+	assert(c->recover == sysrecover);
 	c->recover = NULL;
 #else
 	panic("syscall_usercopy() not implemented.");
@@ -187,15 +188,15 @@ do_put(trapframe *tf, uint32_t cmd)
 	case SYS_COPY:
 		// validate source region
 		if (PTOFF(sva) || PTOFF(size)
-				|| sva < PMAP_USERLO || sva > PMAP_USERHI
-				|| size > PMAP_USERHI-sva)
+				|| sva < VM_USERLO || sva > VM_USERHI
+				|| size > VM_USERHI-sva)
 			systrap(tf, T_GPFLT, 0);
 		// fall thru...
 	case SYS_ZERO:
 		// validate destination region
 		if (PTOFF(dva) || PTOFF(size)
-				|| dva < PMAP_USERLO || dva > PMAP_USERHI
-				|| size > PMAP_USERHI-dva)
+				|| dva < VM_USERLO || dva > VM_USERHI
+				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
 
 		switch (cmd & SYS_MEMOP) {
@@ -206,13 +207,18 @@ do_put(trapframe *tf, uint32_t cmd)
 			pmap_copy(p->pdir, sva, cp->pdir, dva, size);
 			break;
 		}
+		break;
 	default:
 		systrap(tf, T_GPFLT, 0);
 	}
 
+	if (cmd & SYS_PERM)
+		if (!pmap_setperm(cp->pdir, dva, size, cmd & SYS_RW))
+			panic("pmap_put: no memory to set permissions");
+
 	if (cmd & SYS_SNAP)	// Snapshot child's state
-		pmap_copy(cp->pdir, PMAP_USERLO, cp->rpdir, PMAP_USERLO,
-				PMAP_USERHI-PMAP_USERLO);
+		pmap_copy(cp->pdir, VM_USERLO, cp->rpdir, VM_USERLO,
+				VM_USERHI-VM_USERLO);
 
 #endif	// SOL >= 3
 	// Start the child if requested
@@ -240,6 +246,11 @@ do_get(trapframe *tf, uint32_t cmd)
 	if (cp->state != PROC_STOP)
 		proc_wait(p, cp, tf);
 
+	// Since the child is now stopped, it's ours to control;
+	// we no longer need our process lock -
+	// and we don't want to be holding it if usercopy() below aborts.
+	spinlock_release(&p->lock);
+
 	// Get child's general register state
 	if (cmd & SYS_REGS) {
 
@@ -254,8 +265,8 @@ do_get(trapframe *tf, uint32_t cmd)
 	}
 
 #if SOL >= 3
-	uint32_t sva = tf->tf_regs.reg_edi;
-	uint32_t dva = tf->tf_regs.reg_esi;
+	uint32_t sva = tf->tf_regs.reg_esi;
+	uint32_t dva = tf->tf_regs.reg_edi;
 	uint32_t size = tf->tf_regs.reg_ecx;
 	switch (cmd & SYS_MEMOP) {
 	case 0:	// no memory operation
@@ -264,15 +275,15 @@ do_get(trapframe *tf, uint32_t cmd)
 	case SYS_MERGE:
 		// validate source region
 		if (PTOFF(sva) || PTOFF(size)
-				|| sva < PMAP_USERLO || sva > PMAP_USERHI
-				|| size > PMAP_USERHI-sva)
+				|| sva < VM_USERLO || sva > VM_USERHI
+				|| size > VM_USERHI-sva)
 			systrap(tf, T_GPFLT, 0);
 		// fall thru...
 	case SYS_ZERO:
 		// validate destination region
 		if (PTOFF(dva) || PTOFF(size)
-				|| dva < PMAP_USERLO || dva > PMAP_USERHI
-				|| size > PMAP_USERHI-dva)
+				|| dva < VM_USERLO || dva > VM_USERHI
+				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
 
 		switch (cmd & SYS_MEMOP) {
@@ -287,16 +298,19 @@ do_get(trapframe *tf, uint32_t cmd)
 					p->pdir, dva, size);
 			break;
 		}
+		break;
 	default:
 		systrap(tf, T_GPFLT, 0);
 	}
+
+	if (cmd & SYS_PERM)
+		if (!pmap_setperm(p->pdir, dva, size, cmd & SYS_RW))
+			panic("pmap_get: no memory to set permissions");
 
 	if (cmd & SYS_SNAP)
 		systrap(tf, T_GPFLT, 0);	// only valid for PUT
 
 #endif	// SOL >= 3
-	spinlock_release(&p->lock);
-
 	trap_return(tf);	// syscall completed
 }
 

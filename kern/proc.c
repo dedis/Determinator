@@ -9,6 +9,7 @@
 #include <kern/mem.h>
 #include <kern/trap.h>
 #include <kern/proc.h>
+#include <kern/init.h>
 
 
 proc proc_null;		// null process - just leave it initialized to 0
@@ -209,8 +210,13 @@ proc_ret(trapframe *tf)
 	proc *p = cp->parent;		// find our parent
 
 	if (p == NULL) {		// "return" from root process!
+		if (tf->tf_trapno == T_SYSCALL) {
+			cprintf("root process returned\n");
+			done();
+		}
 		trap_print(tf);
-		panic("root process terminated");
+		panic("trap in root process");
+		
 	}
 
 	spinlock_acquire(&p->lock);	// lock both in proper order
@@ -259,7 +265,8 @@ proc_check(void)
 		// Use PUT syscall to create each child,
 		// but only start the first 2 children for now.
 		cprintf("spawning child %d\n", i);
-		sys_put(SYS_REGS | (i < 2 ? SYS_START : 0), i, &child_state);
+		sys_put(SYS_REGS | (i < 2 ? SYS_START : 0), i, &child_state,
+			NULL, NULL, 0);
 	}
 
 	// Wait for both children to complete.
@@ -267,7 +274,7 @@ proc_check(void)
 	// when we're running on a 2-processor machine.
 	for (i = 0; i < 2; i++) {
 		cprintf("waiting for child %d\n", i);
-		sys_get(SYS_REGS, i, &child_state);
+		sys_get(SYS_REGS, i, &child_state, NULL, NULL, 0);
 	}
 	cprintf("proc_check() 2-child test succeeded\n");
 
@@ -277,23 +284,24 @@ proc_check(void)
 	cprintf("proc_check: spawning 4 children\n");
 	for (i = 0; i < 4; i++) {
 		cprintf("spawning child %d\n", i);
-		sys_put(SYS_START, i, NULL);
+		sys_put(SYS_START, i, NULL, NULL, NULL, 0);
 	}
 
 	// Wait for all 4 children to complete.
 	for (i = 0; i < 4; i++)
-		sys_get(0, i, NULL);
+		sys_get(0, i, NULL, NULL, NULL, 0);
 	cprintf("proc_check() 4-child test succeeded\n");
 
 	// Now do a trap handling test using all 4 children -
 	// but they'll _think_ they're all child 0!
 	// (We'll lose the register state of the other children.)
 	i = 0;
-	sys_get(SYS_REGS, i, &child_state);	// get child 0's state
+	sys_get(SYS_REGS, i, &child_state, NULL, NULL, 0);
+		// get child 0's state
 	assert(recoveip == NULL);
 	do {
-		sys_put(SYS_REGS | SYS_START, i, &child_state); // start child
-		sys_get(SYS_REGS, i, &child_state);	// wait and get state
+		sys_put(SYS_REGS | SYS_START, i, &child_state, NULL, NULL, 0);
+		sys_get(SYS_REGS, i, &child_state, NULL, NULL, 0);
 		if (recoveip) {	// set eip to the recovery point
 			cprintf("recover from trap %d\n",
 				child_state.tf.tf_trapno);

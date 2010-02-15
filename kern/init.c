@@ -7,6 +7,7 @@
 #include <inc/syscall.h>
 #if LAB >= 3
 #include <inc/elf.h>
+#include <inc/vm.h>
 #endif
 
 #include <kern/init.h>
@@ -154,10 +155,10 @@ init(void)
 	// Give the process a 1-page stack in high memory
 	// (the process can then increase its own stack as desired)
 	pageinfo *pi = mem_alloc(); assert(pi != NULL);
-	pte_t *pte = pmap_insert(root->pdir, pi, PMAP_USERHI-PAGESIZE,
+	pte_t *pte = pmap_insert(root->pdir, pi, VM_USERHI-PAGESIZE,
 				SYS_READ | SYS_WRITE | PTE_P | PTE_U | PTE_W);
 	assert(pte != NULL);
-	root->tf.tf_esp = PMAP_USERHI;
+	root->tf.tf_esp = VM_USERHI;
 
 	proc_ready(root);	// make it ready
 	proc_sched();		// run it
