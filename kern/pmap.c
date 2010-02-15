@@ -376,8 +376,7 @@ pmap_copy(pde_t *spdir, uint32_t sva, pde_t *dpdir, uint32_t dva,
 			pmap_remove(dpdir, dva, PTSIZE);
 		assert(*dpde == PTE_ZERO);
 
-		if (*spde & PTE_W)	// remove write permission
-			*spde &= ~PTE_W;
+		*spde &= ~PTE_W;	// remove write permission
 
 		*dpde = *spde;		// copy ptable mapping
 		mem_incref(mem_phys2pi(PGADDR(*spde)));
@@ -451,8 +450,9 @@ pmap_pagefault(trapframe *tf)
 // that has been modified in both the source and destination.
 // If conflicting writes to a single byte are detected on the page,
 // print a warning to the console and remove the page from the destination.
+// If the destination page is read-shared, be sure to copy it before modifying!
 //
-static void
+void
 pmap_mergepage(pte_t *rpte, pte_t *spte, pte_t *dpte, uint32_t dva)
 {
 #if SOL >= 3
@@ -461,6 +461,20 @@ pmap_mergepage(pte_t *rpte, pte_t *spte, pte_t *dpte, uint32_t dva)
 	uint8_t *dpg = (uint8_t*)PGADDR(*dpte);
 	if (dpg == pmap_zero) return;	// Conflict - just leave dest unmapped
 
+	// Make sure the destination page isn't shared
+	if (dpg == (uint8_t*)PTE_ZERO || mem_ptr2pi(dpg)->refcount > 1) {
+		pageinfo *npi = mem_alloc(); assert(npi);
+		mem_incref(npi);
+		uint8_t *npg = mem_pi2ptr(npi);
+		memmove(npg, dpg, PAGESIZE); // copy the page
+		if (dpg != (uint8_t*)PTE_ZERO)
+			mem_decref(mem_ptr2pi(dpg));	// release the old ref
+		dpg = npg;
+		*dpte = (uint32_t)npg |
+			SYS_RW | PTE_A | PTE_D | PTE_W | PTE_U | PTE_P;
+	}
+
+	// Do a byte-by-byte diff-and-merge into the destination
 	int i;
 	for (i = 0; i < PAGESIZE; i++) {
 		if (spg[i] == rpg[i])
@@ -517,7 +531,7 @@ pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 
 		// Find each of the page tables from the corresponding PDEs
 		pte_t *rpte = mem_ptr(PGADDR(*rpde));	// OK if PTE_ZERO
-		pte_t *spte = mem_ptr(PGADDR(*rpde));	// OK if PTE_ZERO
+		pte_t *spte = mem_ptr(PGADDR(*spde));	// OK if PTE_ZERO
 		pte_t *dpte = pmap_walk(dpdir, dva, 1);	// must exist, unshared
 		if (dpte == NULL)
 			return 0;
@@ -530,12 +544,16 @@ pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 			if (*spte == *rpte)	// unchanged in source
 				continue;		// nothing to do
 			if (*dpte == *rpte) {	// unchanged in dest
-				if (!pmap_copy(spdir, sva, dpdir, dva,
-						PAGESIZE))
-					return 0;
+				// just copy source page using COW
+				if (PGADDR(*dpte) != PTE_ZERO)
+					mem_decref(mem_phys2pi(PGADDR(*dpte)));
+				*spte &= ~PTE_W;
+				*dpte = *spte;		// copy ptable mapping
+				mem_incref(mem_phys2pi(PGADDR(*spte)));
 				continue;
 			}
 
+			// changed in both spaces - must merge word-by-word
 			pmap_mergepage(rpte, spte, dpte, dva);
 		}
 	}

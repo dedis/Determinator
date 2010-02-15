@@ -131,7 +131,7 @@ init(void)
 	for (; ph < eph; ph++) {
 		void *fa = (void *) eh + ROUNDDOWN(ph->p_offset, PAGESIZE);
 		uint32_t va = ROUNDDOWN(ph->p_va, PAGESIZE);
-		uint32_t zva = ROUNDUP(ph->p_va + ph->p_filesz, PAGESIZE);
+		uint32_t zva = ph->p_va + ph->p_filesz;
 		uint32_t eva = ROUNDUP(ph->p_va + ph->p_memsz, PAGESIZE);
 
 		uint32_t perm = SYS_READ | PTE_P | PTE_U;
@@ -140,9 +140,12 @@ init(void)
 
 		for(; va < eva; va += PAGESIZE, fa += PAGESIZE) {
 			pageinfo *pi = mem_alloc(); assert(pi != NULL);
-			if (va < zva)
+			if (va < ROUNDDOWN(zva, PAGESIZE)) // complete page
 				memmove(mem_pi2ptr(pi), fa, PAGESIZE);
-			else
+			else if (va < zva && ph->p_filesz) {	// partial
+				memset(mem_pi2ptr(pi), 0, PAGESIZE);
+				memmove(mem_pi2ptr(pi), fa, zva-va);
+			} else			// all-zero page
 				memset(mem_pi2ptr(pi), 0, PAGESIZE);
 			pte_t *pte = pmap_insert(root->pdir, pi, va, perm);
 			assert(pte != NULL);
