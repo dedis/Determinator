@@ -40,10 +40,8 @@
 #define SYS_READ	0x00000200	// Read permission (NB: in PTE_AVAIL)
 #define SYS_WRITE	0x00000400	// Write permission (NB: in PTE_AVAIL)
 #define SYS_RW		0x00000600	// Both read and write permission
-#if LAB >= 99                  
 #define SYS_EXEC	0x00000800	// Execute permission (NB: in PTE_AVAIL)
 #define SYS_RWX		0x00000e00	// Read, write, and execute permission
-#endif
 #endif	// LAB >= 3
 
 

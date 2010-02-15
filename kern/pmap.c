@@ -389,6 +389,55 @@ pmap_copy(pde_t *spdir, uint32_t sva, pde_t *dpdir, uint32_t dva,
 }
 
 //
+// Transparently handle a page fault entirely in the kernel, if possible.
+// If the page fault was caused by a write to a copy-on-write page,
+// then performs the actual page copy on demand and calls trap_return().
+// If the fault wasn't due to the kernel's copy on write optimization,
+// however, this function just returns so the trap gets blamed on the user.
+//
+void
+pmap_pagefault(trapframe *tf)
+{
+	// Read processor's CR2 register to find the faulting linear address.
+	uint32_t fva = rcr2();
+
+#if SOL >= 3
+	// It can't be our problem unless it's a plain write fault!
+	if ((tf->tf_err & (PFE_WR | PFE_PR)) != PFE_WR)
+		return;
+
+	proc *p = proc_cur();
+	pde_t *pde = &p->pdir[PDX(fva)];
+	if (!(*pde & PTE_P))
+		return;		// ptab doesn't exist at all - blame user
+
+	// Find the page table entry, copying the page table if it's shared.
+	pte_t *pte = pmap_walk(p->pdir, fva, 1);
+	if ((*pte & (SYS_READ | SYS_WRITE | PTE_P)) !=
+			(SYS_READ | SYS_WRITE | PTE_P))
+		return;		// page doesn't exist at all - blame user
+	assert(!(*pte & PTE_W));
+
+	// Find the "shared" page.  If refcount is 1, we have the only ref!
+	uint32_t pg = PGADDR(*pte);
+	if (pg == PTE_ZERO || mem_phys2pi(pg)->refcount > 1) {
+		pageinfo *npi = mem_alloc(); assert(npi);
+		mem_incref(npi);
+		uint32_t npg = mem_pi2phys(npi);
+		memmove((void*)npg, (void*)pg, PAGESIZE); // copy the page
+		if (pg != PTE_ZERO)
+			mem_decref(mem_phys2pi(pg));	// release the old ref
+		pg = npg;
+	}
+	*pte = pg | SYS_RW | PTE_A | PTE_D | PTE_W | PTE_U | PTE_P;
+
+	trap_return(tf);
+#else /* not SOL >= 3 */
+	// Fill in the rest of this code.
+#endif /* not SOL >= 3 */
+}
+
+//
 // Helper function for pmap_merge: merge a single memory page
 // that has been modified in both the source and destination.
 // If conflicting writes to a single byte are detected on the page,
@@ -539,55 +588,6 @@ pmap_setperm(pde_t *pdir, uint32_t va, uint32_t size, int perm)
 	return 1;
 #else /* not SOL >= 3 */
 	panic("pmap_merge() not implemented");
-#endif /* not SOL >= 3 */
-}
-
-//
-// Transparently handle a page fault entirely in the kernel, if possible.
-// If the page fault was caused by a write to a copy-on-write page,
-// then performs the actual page copy on demand and calls trap_return().
-// If the fault wasn't due to the kernel's copy on write optimization,
-// however, this function just returns so the trap gets blamed on the user.
-//
-void
-pmap_pagefault(trapframe *tf)
-{
-	// Read processor's CR2 register to find the faulting linear address.
-	uint32_t fva = rcr2();
-
-#if SOL >= 3
-	// It can't be our problem unless it's a plain write fault!
-	if ((tf->tf_err & (PFE_WR | PFE_PR)) != PFE_WR)
-		return;
-
-	proc *p = proc_cur();
-	pde_t *pde = &p->pdir[PDX(fva)];
-	if (!(*pde & PTE_P))
-		return;		// ptab doesn't exist at all - blame user
-
-	// Find the page table entry, copying the page table if it's shared.
-	pte_t *pte = pmap_walk(p->pdir, fva, 1);
-	if ((*pte & (SYS_READ | SYS_WRITE | PTE_P)) !=
-			(SYS_READ | SYS_WRITE | PTE_P))
-		return;		// page doesn't exist at all - blame user
-	assert(!(*pte & PTE_W));
-
-	// Find the "shared" page.  If refcount is 1, we have the only ref!
-	uint32_t pg = PGADDR(*pte);
-	if (pg == PTE_ZERO || mem_phys2pi(pg)->refcount > 1) {
-		pageinfo *npi = mem_alloc(); assert(npi);
-		mem_incref(npi);
-		uint32_t npg = mem_pi2phys(npi);
-		memmove((void*)npg, (void*)pg, PAGESIZE); // copy the page
-		if (pg != PTE_ZERO)
-			mem_decref(mem_phys2pi(pg));	// release the old ref
-		pg = npg;
-	}
-	*pte = pg | SYS_RW | PTE_A | PTE_D | PTE_W | PTE_U | PTE_P;
-
-	trap_return(tf);
-#else /* not SOL >= 3 */
-	// Fill in the rest of this code.
 #endif /* not SOL >= 3 */
 }
 

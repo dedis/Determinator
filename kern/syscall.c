@@ -37,19 +37,21 @@ systrap(trapframe *utf, int trapno, int err)
 // Recover from a trap that occurs during a copyin or copyout,
 // by aborting the system call and reflecting the trap to the parent process,
 // behaving as if the user program's INT instruction had caused the trap.
+// This uses the 'recover' pointer in the current cpu struct,
+// and invokes systrap() above to blame the trap on the user process.
 //
 // Notes:
 // - Be sure the parent gets the correct tf_trapno, tf_err, and tf_eip values.
 // - Be sure to release any spinlocks you were holding during the copyin/out.
 //
 static void gcc_noreturn
-syscall_recover(trapframe *ktf, void *recoverdata)
+sysrecover(trapframe *ktf, void *recoverdata)
 {
 #if SOL >= 3
 	trapframe *utf = (trapframe*)recoverdata;	// user trapframe
 
 	cpu *c = cpu_cur();
-	assert(c->recover == syscall_recover);
+	assert(c->recover == sysrecover);
 	c->recover = NULL;
 
 	proc *p = proc_cur();
@@ -58,7 +60,7 @@ syscall_recover(trapframe *ktf, void *recoverdata)
 	// Pretend that a trap caused this process to stop.
 	systrap(utf, ktf->tf_trapno, ktf->tf_err);
 #else
-	panic("syscall_recover() not implemented.");
+	panic("sysrecover() not implemented.");
 #endif
 }
 
@@ -86,8 +88,8 @@ static void checkva(trapframe *utf, uint32_t uva, size_t size)
 }
 
 // Copy data to/from user space,
-// using syscall_checkva() to validate the address range
-// and using syscall_recover() to recover from any traps during the copy.
+// using checkva() above to validate the address range
+// and using sysrecover() to recover from any traps during the copy.
 static void usercopy(trapframe *utf, bool copyout,
 			void *kva, uint32_t uva, size_t size)
 {
@@ -97,7 +99,7 @@ static void usercopy(trapframe *utf, bool copyout,
 #if SOL >= 3
 	cpu *c = cpu_cur();
 	assert(c->recover == NULL);
-	c->recover = syscall_recover;
+	c->recover = sysrecover;
 
 	if (copyout)
 		memmove((void*)uva, kva, size);
