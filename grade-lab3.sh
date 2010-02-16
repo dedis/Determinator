@@ -11,7 +11,11 @@ run
 score=0
 
 pts=15; greptest "Page tables:" "pmap_check() succeeded!"
-pts=10; greptest "Run testvm: " "testvm: in piosmain()"
+pts=15; greptest "Load testvm:" "testvm: loadcheck passed"
+pts=20; greptest "Basic fork: " "testvm: forkcheck passed"
+pts=15; greptest "Protection: " "testvm: protcheck passed"
+pts=20; greptest "Memory ops: " "testvm: memopcheck passed"
+pts=15; greptest "Merge:      " "testvm: mergecheck passed"
 
 
 echo "Score: $score/100"

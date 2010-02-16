@@ -1,4 +1,4 @@
-#if LAB >= 3
+#if LAB >= 99
 // Main public header file for our user-land support library,
 // whose code lives in the lib directory.
 // This library is roughly our OS's version of a standard C library,

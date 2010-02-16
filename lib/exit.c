@@ -1,4 +1,4 @@
-#if LAB >= 3
+#if LAB >= 99
 
 #include <inc/lib.h>
 #include <inc/syscall.h>

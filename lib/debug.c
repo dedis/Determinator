@@ -2,7 +2,6 @@
 
 #include <inc/stdio.h>
 #include <inc/assert.h>
-#include <inc/lib.h>
 
 char *argv0;
 
