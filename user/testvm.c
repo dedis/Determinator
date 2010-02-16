@@ -19,23 +19,40 @@ extern uint8_t start[], etext[], edata[], end[];
 static uint8_t stack[2][STACKSIZE];
 
 
-static void fork(int cmd, uint8_t child, void (*func)(int arg), int arg,
-		uint8_t stack[STACKSIZE])
+// Fork a child process, returning 0 in the child and 1 in the parent.
+static int fork(int cmd, uint8_t child)
 {
-
-	// Push the function argument and fake return address on the stack
-	uint32_t *esp = (uint32_t*)&stack[STACKSIZE];
-	*--esp = arg;
-	*--esp = (uint32_t) sys_ret;
-
 	// Set up the register state for the child
 	struct cpustate cs;
 	memset(&cs, 0, sizeof(cs));
-	cs.tf.tf_eip = (uint32_t) func;
-	cs.tf.tf_esp = (uint32_t) esp;
+
+	// Use some assembly magic to propagate registers to child
+	// and generate an appropriate starting eip
+	int isparent;
+	asm volatile(
+		"	movl	%%esi,%0;"
+		"	movl	%%edi,%1;"
+		"	movl	%%ebp,%2;"
+		"	movl	%%esp,%3;"
+		"	movl	$1f,%4;"
+		"	movl	$1,%5;"
+		"1:	"
+		: "=m" (cs.tf.tf_regs.reg_esi),
+		  "=m" (cs.tf.tf_regs.reg_edi),
+		  "=m" (cs.tf.tf_regs.reg_ebp),
+		  "=m" (cs.tf.tf_esp),
+		  "=m" (cs.tf.tf_eip),
+		  "=a" (isparent)
+		:
+		: "ebx", "ecx", "edx");
+	if (!isparent)
+		return 0;	// in the child
 
 	// Fork the child, copying our entire user address space into it.
+	cs.tf.tf_regs.reg_eax = 0;	// isparent == 0 in the child
 	sys_put(cmd | SYS_REGS | SYS_COPY, child, &cs, ALLVA, ALLVA, ALLSIZE);
+
+	return 1;
 }
 
 static void join(int cmd, uint8_t child, int trapexpect)
@@ -55,10 +72,10 @@ static void join(int cmd, uint8_t child, int trapexpect)
 	}
 }
 
-static void trapchild(int arg)
+static void gentrap(int trap)
 {
 	int bounds[2] = { 1, 3 };
-	switch (arg) {
+	switch (trap) {
 	case T_DIVIDE:
 		asm volatile("divl %0,%0" : : "r" (0));
 	case T_BRKPT:
@@ -70,49 +87,48 @@ static void trapchild(int arg)
 	case T_ILLOP:
 		asm volatile("ud2");	// guaranteed to be undefined
 	case T_GPFLT:
-		asm volatile("lidt %0" : : "m" (arg));
+		asm volatile("lidt %0" : : "m" (trap));
+	case T_SYSCALL:
+		sys_ret();
+	default:
+		panic("unknown trap %d", trap);
 	}
 }
 
 static void trapcheck(int trapno)
 {
-	fork(SYS_START, 0, trapchild, trapno, stack[0]);
+	if (!fork(SYS_START, 0)) { gentrap(trapno); }
 	join(0, 0, trapno);
 }
 
-static void readchild(int arg) {
-	(void)(*(volatile int*)arg);
-}
 #define readfaulttest(va) \
-	fork(SYS_START, 0, readchild, (int)va, stack[0]); \
+	if (!fork(SYS_START, 0)) \
+		{ (void)(*(volatile int*)(va)); sys_ret(); } \
 	join(0, 0, T_PGFLT);
 
-static void writefaultchild(int arg) {
-	*(volatile int*)arg = 0xdeadbeef;
-}
 #define writefaulttest(va) \
-	fork(SYS_START, 0, writefaultchild, (int)va, stack[0]); \
+	if (!fork(SYS_START, 0)) \
+		{ *(volatile int*)(va) = 0xdeadbeef; sys_ret(); } \
 	join(0, 0, T_PGFLT);
 
 static void cputsfaultchild(int arg) {
 	sys_cputs((char*)arg);
 }
 #define cputsfaulttest(va) \
-	fork(SYS_START, 0, cputsfaultchild, (int)va, stack[0]); \
+	if (!fork(SYS_START, 0)) \
+		{ sys_cputs((char*)(va)); sys_ret(); } \
 	join(0, 0, T_PGFLT);
 
-static void putfaultchild(int arg) {
-	sys_put(SYS_REGS, 0, (cpustate*)arg, NULL, NULL, 0);
-}
 #define putfaulttest(va) \
-	fork(SYS_START, 0, putfaultchild, (int)va, stack[0]); \
+	if (!fork(SYS_START, 0)) { \
+		sys_put(SYS_REGS, 0, (cpustate*)(va), NULL, NULL, 0); \
+		sys_ret(); } \
 	join(0, 0, T_PGFLT);
 
-static void getfaultchild(int arg) {
-	sys_get(SYS_REGS, 0, (cpustate*)arg, NULL, NULL, 0);
-}
 #define getfaulttest(va) \
-	fork(SYS_START, 0, getfaultchild, (int)va, stack[0]); \
+	if (!fork(SYS_START, 0)) { \
+		sys_get(SYS_REGS, 0, (cpustate*)(va), NULL, NULL, 0); \
+		sys_ret(); } \
 	join(0, 0, T_PGFLT);
 
 static void loadcheck()
@@ -131,7 +147,7 @@ static void loadcheck()
 static void forkcheck()
 {
 	// Our first copy-on-write test: fork and execute a simple child.
-	fork(SYS_START, 0, trapchild, T_SYSCALL, stack[0]);
+	if (!fork(SYS_START, 0)) gentrap(T_SYSCALL);
 	join(0, 0, T_SYSCALL);
 
 	// Re-check trap handling and reflection from child processes
@@ -144,13 +160,13 @@ static void forkcheck()
 
 	// Make sure we can run several children using the same stack area
 	// (since each child should get a separate logical copy)
-	fork(SYS_START, 0, trapchild, T_SYSCALL, stack[0]);
-	fork(SYS_START, 1, trapchild, T_DIVIDE, stack[0]);
-	fork(SYS_START, 2, trapchild, T_BRKPT, stack[0]);
-	fork(SYS_START, 3, trapchild, T_OFLOW, stack[0]);
-	fork(SYS_START, 4, trapchild, T_BOUND, stack[0]);
-	fork(SYS_START, 5, trapchild, T_ILLOP, stack[0]);
-	fork(SYS_START, 6, trapchild, T_GPFLT, stack[0]);
+	if (!fork(SYS_START, 0)) gentrap(T_SYSCALL);
+	if (!fork(SYS_START, 1)) gentrap(T_DIVIDE);
+	if (!fork(SYS_START, 2)) gentrap(T_BRKPT);
+	if (!fork(SYS_START, 3)) gentrap(T_OFLOW);
+	if (!fork(SYS_START, 4)) gentrap(T_BOUND);
+	if (!fork(SYS_START, 5)) gentrap(T_ILLOP);
+	if (!fork(SYS_START, 6)) gentrap(T_GPFLT);
 	join(0, 0, T_SYSCALL);
 	join(0, 1, T_DIVIDE);
 	join(0, 2, T_BRKPT);
@@ -286,22 +302,6 @@ static void memopcheck(void)
 
 int x, y;
 
-void mergechild(int arg)
-{
-	if (arg)
-		x = 0xdeadbeef;
-	else
-		y = 0xabadcafe;
-}
-
-void swapchild(int arg)
-{
-	if (arg)
-		x = y;
-	else
-		y = x;
-}
-
 int randints[256] = {	// some random ints
 	 20,726,926,682,210,585,829,491,612,744,753,405,346,189,669,416,
 	 41,832,959,511,260,879,844,323,710,570,289,299,624,319,997,907,
@@ -356,24 +356,32 @@ static void pqsort(int *lo, int *hi)
 	}
 	swapints(*lo, l[-1]);
 
-	// Now recursively sort the two halves
-	pqsort(lo, l-2);
-	pqsort(h+1, hi);
+	// Now recursively sort the two halves in parallel subprocesses
+	if (!fork(SYS_START | SYS_SNAP, 0)) {
+		pqsort(lo, l-2);
+		sys_ret();
+	}
+	if (!fork(SYS_START | SYS_SNAP, 1)) {
+		pqsort(h+1, hi);
+		sys_ret();
+	}
+	join(SYS_MERGE, 0, T_SYSCALL);
+	join(SYS_MERGE, 1, T_SYSCALL);
 }
 
 static void mergecheck()
 {
 	// Simple merge test: two children write two adjacent variables
-	fork(SYS_START | SYS_SNAP, 0, mergechild, 0, stack[0]); \
-	fork(SYS_START | SYS_SNAP, 1, mergechild, 1, stack[1]); \
+	if (!fork(SYS_START | SYS_SNAP, 0)) { x = 0xdeadbeef; sys_ret(); }
+	if (!fork(SYS_START | SYS_SNAP, 1)) { y = 0xabadcafe; sys_ret(); }
 	assert(x == 0); assert(y == 0);
 	join(SYS_MERGE, 0, T_SYSCALL);
 	join(SYS_MERGE, 1, T_SYSCALL);
 	assert(x == 0xdeadbeef); assert(y == 0xabadcafe);
 
 	// A Rube Goldberg approach to swapping two variables
-	fork(SYS_START | SYS_SNAP, 0, swapchild, 0, stack[0]); \
-	fork(SYS_START | SYS_SNAP, 1, swapchild, 1, stack[1]); \
+	if (!fork(SYS_START | SYS_SNAP, 0)) { x = y; sys_ret(); }
+	if (!fork(SYS_START | SYS_SNAP, 1)) { y = x; sys_ret(); }
 	assert(x == 0xdeadbeef); assert(y == 0xabadcafe);
 	join(SYS_MERGE, 0, T_SYSCALL);
 	join(SYS_MERGE, 1, T_SYSCALL);
