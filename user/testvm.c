@@ -369,6 +369,60 @@ static void pqsort(int *lo, int *hi)
 	join(SYS_MERGE, 1, T_SYSCALL);
 }
 
+int ma[8][8] = {	// First matrix to multiply
+	{146, 3, 189, 106, 239, 208, 8, 122},
+	{200, 225, 94, 74, 143, 3, 127, 59},
+	{32, 127, 52, 205, 0, 86, 143, 213},
+	{159, 135, 45, 198, 152, 70, 116, 234},
+	{238, 68, 215, 168, 79, 235, 15, 189},
+	{82, 160, 97, 132, 186, 1, 220, 48},
+	{178, 39, 153, 15, 16, 227, 251, 198},
+	{148, 1, 239, 153, 39, 137, 42, 161}};
+int mb[8][8] = {	// Second matrix to multiply
+	{75, 95, 165, 229, 14, 90, 222, 236},
+	{171, 131, 12, 84, 120, 147, 76, 69},
+	{235, 51, 255, 250, 222, 64, 9, 1},
+	{206, 7, 13, 120, 23, 137, 178, 81},
+	{57, 184, 224, 142, 22, 184, 3, 132},
+	{49, 30, 70, 28, 239, 52, 217, 13},
+	{217, 50, 44, 35, 216, 134, 49, 123},
+	{119, 13, 157, 196, 37, 87, 38, 126}};
+int mr[8][8];		// Result matrix
+int mc[8][8] = {	// Matrix of correct answers
+	{117783, 76846, 161301, 157610, 108012, 106677, 104090, 94046},
+	{133687, 87306, 107725, 133479, 85848, 115848, 85063, 110783},
+	{139159, 36263, 68482, 104757, 91270, 95127, 87477, 78517},
+	{151485, 75381, 122694, 156229, 86758, 131671, 111429, 127648},
+	{156375, 68452, 161574, 189491, 131222, 113401, 148992, 113825},
+	{147600, 80499, 100851, 115856, 98545, 123124, 68112, 98854},
+	{149128, 54805, 130652, 140309, 157630, 99208, 115657, 106951},
+	{136163, 42930, 132817, 154486, 107399, 83659, 100339, 80010}};
+
+static void matmult(int a[8][8], int b[8][8], int r[8][8])
+{
+	int i,j,k;
+
+	// Fork off a thread to compute each cell in the result matrix
+	for (i = 0; i < 8; i++)
+		for (j = 0; j < 8; j++) {
+			int child = i*8 + j;
+			if (!fork(SYS_START | SYS_SNAP, child)) {
+				int sum = 0;	// in child: compute cell i,j
+				for (k = 0; k < 8; k++)
+					sum += a[i][k] * b[k][j];
+				r[i][j] = sum;
+				sys_ret();
+			}
+		}
+
+	// Now go back and merge in the results of all our children
+	for (i = 0; i < 8; i++)
+		for (j = 0; j < 8; j++) {
+			int child = i*8 + j;
+			join(SYS_MERGE, child, T_SYSCALL);
+		}
+}
+
 static void mergecheck()
 {
 	// Simple merge test: two children write two adjacent variables
@@ -391,6 +445,12 @@ static void mergecheck()
 	// (though probably not very efficient on arrays this small)
 	pqsort(&randints[0], &randints[256-1]);
 	assert(memcmp(randints, sortints, 256*sizeof(int)) == 0);
+
+	// Parallel matrix multiply, one child process per result matrix cell
+	matmult(ma, mb, mr);
+	assert(sizeof(mr) == sizeof(int)*8*8);
+	assert(sizeof(mc) == sizeof(int)*8*8);
+	assert(memcmp(mr, mc, sizeof(mr)) == 0);
 
 	cprintf("testvm: mergecheck passed\n");
 }
