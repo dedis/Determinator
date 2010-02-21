@@ -33,6 +33,12 @@ typedef int32_t ssize_t;
 // off_t is used for file offsets and lengths.
 typedef int32_t off_t;
 
+// Random Unix API compatibility types
+typedef int dev_t;
+typedef int ino_t;
+typedef int mode_t;
+typedef int nlink_t;
+
 // Efficient min and max operations
 #define MIN(_a, _b)						\
 ({								\

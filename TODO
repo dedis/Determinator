@@ -35,3 +35,4 @@ through the interrupt.
   since it's not that much harder than making the kernel do it?
   If so, adjust lab 3's program loader text appropriately.
 
+- Split root program loading code out of init() into startroot() function

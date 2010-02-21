@@ -5,7 +5,7 @@
 #define PIOS_INC_VM_H
 
 //
-// We divide our 4GB linear (post-segmentation) address space
+// The PIOS kernel divides the 4GB linear (post-segmentation) address space
 // into three parts:
 //
 // - The low 1GB contains fixed direct mappings of physical memory,

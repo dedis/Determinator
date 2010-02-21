@@ -1,7 +1,7 @@
-#if LAB >= 5
-#include <inc/fs.h>
+#if LAB >= 4
+#include <inc/fcntl.h>
 #include <inc/string.h>
-#include <inc/lib.h>
+#include <inc/stdarg.h>
 
 #define debug 0
 
@@ -29,9 +29,13 @@ static int funmap(struct Fd *fd, off_t oldsize, off_t newsize, bool dirty);
 // Open a file (or directory),
 // returning the file descriptor index on success, < 0 on failure.
 int
-open(const char *path, int mode)
+open(const char *path, int flags, ...)
 {
-#if SOL >= 5
+#if SOL >= 4
+	int fd = unix_fdalloc();
+	if (fd < 0)
+		return -1;
+
 	int r;
 	struct Fd *fd;
 
@@ -59,12 +63,17 @@ open(const char *path, int mode)
 #endif
 }
 
+int creat(const char *name, int mode)
+{
+	return open(path, O_CREAT | O_TRUNC | O_WRONLY, mode);
+}
+
 // Clean up a file-server file descriptor.
 // This function is called by fd_close.
 static int
 file_close(struct Fd *fd)
 {
-#if SOL >= 5
+#if SOL >= 4
 	int r, ret;
 	ret = funmap(fd, fd->fd_file.file.f_size, 0, 1);
 	if ((r = fsipc_close(fd->fd_file.id)) < 0 && ret == 0)
@@ -263,4 +272,4 @@ sync(void)
 	return fsipc_sync();
 }
 
-#endif /* LAB >= 5 */
+#endif /* LAB >= 4 */

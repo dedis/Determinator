@@ -7,6 +7,8 @@
 #define NULL	((void *) 0)
 #endif /* !NULL */
 
+typedef struct filedesc FILE;
+
 // lib/stdio.c
 int	getchar(void);
 int	iscons(int fd);
@@ -28,6 +30,14 @@ int	vcprintf(const char *fmt, va_list);
 int	printf(const char *fmt, ...);
 int	fprintf(int fd, const char *fmt, ...);
 int	vfprintf(int fd, const char *fmt, va_list);
+
+// lib/fd.c
+int	fclose(FILE *fh);
+size_t	fread(void *ptr, size_t size, size_t count, FILE *fh);
+size_t	fwrite(void *ptr, size_t size, size_t count, FILE *fh);
+int	fseek(FILE *fh, off_t offset, int whence);
+long	ftell(FILE *fh);
+
 
 // lib/readline.c
 char*	readline(const char *prompt);
