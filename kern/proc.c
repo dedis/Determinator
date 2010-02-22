@@ -10,6 +10,9 @@
 #include <kern/trap.h>
 #include <kern/proc.h>
 #include <kern/init.h>
+#if LAB >= 4
+#include <kern/io.h>
+#endif
 
 
 proc proc_null;		// null process - just leave it initialized to 0
@@ -210,13 +213,17 @@ proc_ret(trapframe *tf)
 	proc *p = cp->parent;		// find our parent
 
 	if (p == NULL) {		// "return" from root process!
-		if (tf->tf_trapno == T_SYSCALL) {
-			cprintf("root process returned\n");
-			done();
+		if (tf->tf_trapno != T_SYSCALL) {
+			trap_print(tf);
+			panic("trap in root process");
 		}
-		trap_print(tf);
-		panic("trap in root process");
-		
+#if LAB >= 4
+		// Put the root process to sleep waiting for I/O.
+		io_sleep(tf);
+#else	// LAB < 4
+		cprintf("root process terminated\n");
+		done();
+#endif	// LAB < 4
 	}
 
 	spinlock_acquire(&p->lock);	// lock both in proper order

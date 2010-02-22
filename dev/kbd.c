@@ -7,6 +7,7 @@
 #include <kern/console.h>
 
 #include <dev/kbd.h>
+#include <dev/pic.h>
 
 
 #define NO		0

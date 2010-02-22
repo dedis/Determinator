@@ -36,3 +36,10 @@ through the interrupt.
   If so, adjust lab 3's program loader text appropriately.
 
 - Split root program loading code out of init() into startroot() function
+
+- Simplify/rationalize kern/console.c a bit -
+  e.g., make cons_intr() just dump stuff into an iocons struct directly.
+  Get rid of cons.rpos and cons_getc() entirely, probably,
+  and make cputs() build atop cons_startio().
+  Maybe just give the students the console spinlock code?
+

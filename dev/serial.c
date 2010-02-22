@@ -6,6 +6,7 @@
 #include <kern/console.h>
 
 #include <dev/serial.h>
+#include <dev/pic.h>
 
 
 bool serial_exists;

@@ -21,6 +21,9 @@
 #include <kern/mp.h>
 #include <kern/proc.h>
 #endif
+#if LAB >= 4
+#include <kern/io.h>
+#endif
 
 #if LAB >= 2
 #include <dev/pic.h>
@@ -81,6 +84,10 @@ init(void)
 	// Initialize the paged virtual memory system.
 	pmap_init();
 
+#if LAB >= 4
+	// Initialize the I/O system.
+	io_init();
+#endif
 #endif
 	// Find and start other processors in a multiprocessor system
 	mp_init();		// Find info about processors in system
@@ -165,12 +172,12 @@ init(void)
 	// Give the process a 1-page stack in high memory
 	// (the process can then increase its own stack as desired)
 	pageinfo *pi = mem_alloc(); assert(pi != NULL);
-	pte_t *pte = pmap_insert(root->pdir, pi, VM_USERHI-PAGESIZE,
+	pte_t *pte = pmap_insert(root->pdir, pi, VM_STACKHI-PAGESIZE,
 				SYS_READ | SYS_WRITE | PTE_P | PTE_U | PTE_W);
 	assert(pte != NULL);
-	root->tf.tf_esp = VM_USERHI;
+	root->tf.tf_esp = VM_STACKHI;
 
-	proc_ready(root);	// make it ready
+	proc_ready(root);	// make the root process ready
 	proc_sched();		// run it
 #else // SOL == 0
 	// Lab 1: change this so it enters user() in user mode,

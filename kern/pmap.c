@@ -23,18 +23,6 @@ pde_t pmap_bootpdir[1024] gcc_aligned(PAGESIZE);
 uint8_t pmap_zero[PAGESIZE] gcc_aligned(PAGESIZE);
 
 
-// Memory mappings representing cleared (zero) memory
-// always have a pointer to pmap_zero in the PGADDR part of their PTE.
-// Such zero mappings do NOT increment the refcount on the pmap_zero page.
-//
-// A zero mapping containing PTE_ZERO in its PGADDR part
-// but have SYS_READ and potentially SYS_WRITE nominal permissions.
-// A zero mapping with SYS_READ also has PTE_P (present) set,
-// but a zero mapping with SYS_WRITE never has PTE_W (writeable) set -
-// instead the page fault handler creates copies of the zero page on demand.
-#define PTE_ZERO	((uint32_t)pmap_zero)
-
-
 // --------------------------------------------------------------
 // Set up initial memory mappings and turn on MMU.
 // --------------------------------------------------------------
@@ -56,7 +44,7 @@ pmap_init(void)
 		// Initialize pmap_bootpdir, the bootstrap page directory.
 		// Page directory entries (PDEs) corresponding to the 
 		// user-mode address space between VM_USERLO and VM_USERHI
-		// should all be initialized to PTE_ZERO (see above).
+		// should all be initialized to PTE_ZERO (see kern/pmap.h).
 		// All virtual addresses below and above this user area
 		// should be identity-mapped to the same physical addresses,
 		// but only accessible in kernel mode (not in user mode).

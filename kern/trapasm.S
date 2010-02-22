@@ -6,9 +6,6 @@
 #include <inc/trap.h>
 
 #include <kern/cpu.h>
-#if LAB >= 4
-#include <kern/picirq.h>
-#endif
 
 
 

@@ -24,6 +24,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/proc.c \
 			kern/syscall.c \
 			kern/pmap.c \
+			kern/io.c \
 			dev/video.c \
 			dev/kbd.c \
 			dev/serial.c \
