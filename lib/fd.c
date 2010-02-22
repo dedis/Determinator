@@ -1,11 +1,16 @@
 #if LAB >= 4
 
-#include <inc/debug.h>
+#include <inc/assert.h>
+#include <inc/unistd.h>
+#include <inc/string.h>
+#include <inc/fcntl.h>
+#include <inc/errno.h>
 #include <inc/unix.h>
+#include <inc/stat.h>
 
 
 // Table of all Unix "devices" the API supports
-unixdev unixdevs[UNIXDEV_MAX] = {
+unixdev *unixdevs[UNIXDEV_MAX] = {
 	&unix_consdev,
 	&unix_filedev,
 #if LAB >= 99
@@ -83,7 +88,7 @@ dup2(int oldfd, int newfd)
 	// Validate and lookup the new file descriptor
 	unixfd *newufd = &unixstate->fd[newfd];
 	if (newfd < 0 || newfd >= OPEN_MAX) {
-		warn("bad fd %d\n", fd);
+		warn("bad newfd %d\n", newfd);
 		errno = EBADF;
 		return -1;
 	}
@@ -112,7 +117,7 @@ read(int fd, void *buf, size_t nbytes)
 }
 
 ssize_t
-write(int fd, const void *buf, size_t n)
+write(int fd, const void *buf, size_t nbytes)
 {
 	LOOKUP(fd, ufd)
 
@@ -155,13 +160,13 @@ fstat(int fd, struct stat *st)
 }
 
 int
-stat(const char *path, struct Stat *stat)
+stat(const char *path, struct stat *st)
 {
 	int fd, r;
 
 	if ((fd = open(path, O_RDONLY)) < 0)
 		return fd;
-	r = fstat(fd, stat);
+	r = fstat(fd, st);
 	close(fd);
 	return r;
 }

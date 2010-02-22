@@ -1,13 +1,14 @@
 #ifndef PIOS_INC_STDIO_H
 #define PIOS_INC_STDIO_H
 
+#include <inc/types.h>
 #include <inc/stdarg.h>
 
 #ifndef NULL
 #define NULL	((void *) 0)
 #endif /* !NULL */
 
-typedef struct filedesc FILE;
+typedef struct unixfd FILE;
 
 // lib/stdio.c
 int	getchar(void);

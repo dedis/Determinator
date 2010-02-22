@@ -12,6 +12,9 @@
 #include <inc/types.h>
 
 
+#define OPEN_MAX	256	// Max number of open files per process
+#define NAME_MAX	59	// Max length of a filename (not inluding null)
+
 #define UNIX_INODES	256		// Max number of Unix files or "inodes"
 
 #define UNIXSTATEVA	0x80000000	// Virtual address of Unix state area
@@ -40,10 +43,10 @@ typedef struct unixdev {	// Unix "device" - really an fd class
 
 typedef struct unixinode {		// Unix file info - like an "inode"
 	size_t	size;			// File's current size
-	int	refcount;		// Number of outstanding references
+	nlink_t	nlink;			// Number of links/refs to this file
 	int	ver;			// Version number in this process
 	int	parentver;		// Parent's version number, -1 if none
-} unixfileinfo;
+} unixinode;
 
 typedef struct unixstate {
 	int		err;		// This process/thread's errno variable
@@ -83,7 +86,7 @@ extern unixdev *unixdevs[UNIXDEV_MAX];	// Table listing all "devices"
 
 
 int unixfd_alloc(void);		// Allocate a file descriptor
-unixfd *unixfd_lookup(int fd)	// Lookup a file descriptor
+unixfd *unixfd_lookup(int fd);	// Lookup a file descriptor
 
 #endif	// !PIOS_INC_UNIX_H
 #endif	// LAB >= 4
