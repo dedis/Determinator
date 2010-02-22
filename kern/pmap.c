@@ -805,10 +805,10 @@ pmap_check(void)
 	assert(pi1->refcount == 0); assert(mem_alloc() == pi1);
 	assert(mem_freelist == NULL);
 	pmap_remove(pmap_bootpdir, va+PTSIZE*3-PAGESIZE, PAGESIZE);
-	assert(pi0->refcount == 0); assert(mem_alloc() == pi0);
-	assert(mem_freelist == NULL);
+	assert(pi0->refcount == 0);	// pi3 might or might not also be freed
 	pmap_remove(pmap_bootpdir, va+PAGESIZE, PTSIZE*3);
-	assert(pi3->refcount == 0); assert(mem_alloc() == pi3);
+	assert(pi3->refcount == 0);
+	mem_alloc(); mem_alloc();	// collect pi0 and pi3
 	assert(mem_freelist == NULL);
 
 	// check pointer arithmetic in pmap_walk
