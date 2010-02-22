@@ -767,6 +767,7 @@ pmap_check(void)
 	assert(pmap_bootpdir[PDX(VM_USERLO)] == PTE_ZERO);
 	assert(pi0->refcount == 0);
 	assert(mem_alloc() == pi0);
+	assert(mem_freelist == NULL);
 
 	// test pmap_remove with large, non-ptable-aligned regions
 	mem_free(pi1);
@@ -775,12 +776,14 @@ pmap_check(void)
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PAGESIZE, 0));
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE-PAGESIZE, 0));
 	assert(PGADDR(pmap_bootpdir[PDX(VM_USERLO)]) == mem_pi2phys(pi1));
+	assert(mem_freelist == NULL);
 	mem_free(pi2);
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE, 0));
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE+PAGESIZE, 0));
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE*2-PAGESIZE, 0));
 	assert(PGADDR(pmap_bootpdir[PDX(VM_USERLO+PTSIZE)])
 		== mem_pi2phys(pi2));
+	assert(mem_freelist == NULL);
 	mem_free(pi3);
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE*2, 0));
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE*2+PAGESIZE, 0));
@@ -788,6 +791,7 @@ pmap_check(void)
 	assert(pmap_insert(pmap_bootpdir, pi0, va+PTSIZE*3-PAGESIZE, 0));
 	assert(PGADDR(pmap_bootpdir[PDX(VM_USERLO+PTSIZE*2)])
 		== mem_pi2phys(pi3));
+	assert(mem_freelist == NULL);
 	assert(pi0->refcount == 10);
 	assert(pi1->refcount == 1);
 	assert(pi2->refcount == 1);
@@ -795,13 +799,17 @@ pmap_check(void)
 	pmap_remove(pmap_bootpdir, va+PAGESIZE, PTSIZE*3-PAGESIZE*2);
 	assert(pi0->refcount == 2);
 	assert(pi2->refcount == 0); assert(mem_alloc() == pi2);
+	assert(mem_freelist == NULL);
 	pmap_remove(pmap_bootpdir, va, PTSIZE*3-PAGESIZE);
 	assert(pi0->refcount == 1);
 	assert(pi1->refcount == 0); assert(mem_alloc() == pi1);
+	assert(mem_freelist == NULL);
 	pmap_remove(pmap_bootpdir, va+PTSIZE*3-PAGESIZE, PAGESIZE);
 	assert(pi0->refcount == 0); assert(mem_alloc() == pi0);
+	assert(mem_freelist == NULL);
 	pmap_remove(pmap_bootpdir, va+PAGESIZE, PTSIZE*3);
 	assert(pi3->refcount == 0); assert(mem_alloc() == pi3);
+	assert(mem_freelist == NULL);
 
 	// check pointer arithmetic in pmap_walk
 	mem_free(pi0);
