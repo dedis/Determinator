@@ -50,11 +50,6 @@ typedef struct proc {
 	pde_t		*pdir;		// Working page directory
 	pde_t		*rpdir;		// Reference page directory
 #endif	// LAB >= 3
-#if LAB >= 4
-
-	// File system state for this process.
-	file		*files;		// List of files
-#endif	// LAB >= 4
 } proc;
 
 #define proc_cur()	(cpu_cur()->proc)

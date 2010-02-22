@@ -10,7 +10,8 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/string.c \
 			lib/syscall.c \
 			lib/fd.c \
-			lib/stdio.c
+			lib/stdio.c \
+			lib/fprintf.c
 
 # Build files only if they exist.
 LIB_SRCFILES := $(wildcard $(LIB_SRCFILES))

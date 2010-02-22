@@ -79,10 +79,10 @@ extern unixdev unix_sockdev;		// Network interface device
 extern unixdev *unixdevs[UNIXDEV_MAX];	// Table listing all "devices"
 
 
-#define unixfd_valid(ufd) \
-	((ufd) >= &unixstate->fd && (ufd) < &unixstate->fd[OPEN_MAX])
-#define unixfd_open(ufd) \
-	(unixfd_valid(ufd) && (ufd)->dev != NULL)
+#define unixfd_isvalid(ufd) \
+	((ufd) >= &unixstate->fd[0] && (ufd) < &unixstate->fd[OPEN_MAX])
+#define unixfd_isopen(ufd) \
+	(unixfd_isvalid(ufd) && (ufd)->dev != NULL)
 
 
 int unixfd_alloc(void);		// Allocate a file descriptor

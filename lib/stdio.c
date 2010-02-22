@@ -9,12 +9,18 @@
 
 #include <inc/unix.h>
 #include <inc/stdio.h>
+#include <inc/unistd.h>
+#include <inc/assert.h>
 
+
+FILE *const stdin = &unixstate->fd[STDIN_FILENO];
+FILE *const stdout = &unixstate->fd[STDOUT_FILENO];
+FILE *const stderr = &unixstate->fd[STDERR_FILENO];
 
 int
 fclose(FILE *ufd)
 {
-	assert(unixfd_open(ufd));
+	assert(unixfd_isopen(ufd));
 	ufd->dev->ref(ufd, -1);		// drop the fd's reference
 	ufd->dev = NULL;		// mark the fd free
 	return 0;
@@ -23,7 +29,7 @@ fclose(FILE *ufd)
 size_t
 fread(void *buf, size_t size, size_t count, FILE *ufd)
 {
-	assert(unixfd_open(ufd));
+	assert(unixfd_isopen(ufd));
 	ssize_t actual = ufd->dev->read(ufd, buf, size * count, ufd->ofs);
 	if (actual < 0)
 		return 0;
@@ -34,7 +40,7 @@ fread(void *buf, size_t size, size_t count, FILE *ufd)
 size_t
 fwrite(const void *buf, size_t size, size_t count, FILE *ufd)
 {
-	assert(unixfd_open(ufd));
+	assert(unixfd_isopen(ufd));
 	ssize_t actual = ufd->dev->write(ufd, buf, size * count, ufd->ofs);
 	if (actual < 0)
 		return 0;
@@ -45,15 +51,15 @@ fwrite(const void *buf, size_t size, size_t count, FILE *ufd)
 int
 fseek(FILE *ufd, off_t offset, int whence)
 {
-	assert(unixfd_open(ufd));
+	assert(unixfd_isopen(ufd));
 	assert(whence == SEEK_SET || whence == SEEK_CUR || whence == SEEK_END);
 	return ufd->dev->seek(ufd, offset, whence);
 }
 
 long
-ftell(FILE *fh)
+ftell(FILE *ufd)
 {
-	assert(unixfd_open(ufd));
+	assert(unixfd_isopen(ufd));
 	return ufd->ofs;
 }
 

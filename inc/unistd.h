@@ -5,6 +5,18 @@
 
 #include <inc/types.h>
 
+
+#define STDIN_FILENO	0
+#define STDOUT_FILENO	1
+#define STDERR_FILENO	2
+
+#ifndef SEEK_SET
+#define SEEK_SET	0	/* seek relative to beginning of file */
+#define SEEK_CUR	1	/* seek relative to current file position */
+#define SEEK_END	2	/* seek relative to end of file */
+#endif
+
+
 void	exit(int status);
 
 int	close(int fd);

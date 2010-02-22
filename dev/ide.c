@@ -1,4 +1,4 @@
-#if LAB >= 5
+#if LAB >= 4
 /*
  * Minimal PIO-based (non-interrupt-driven) IDE driver code.
  * For information about what all this IDE/ATA magic means,
@@ -137,4 +137,4 @@ ide_write(uint32_t secno, const void *src, size_t nsecs)
 	return 0;
 }
 
-#endif
+#endif	/* LAB >= 4 */

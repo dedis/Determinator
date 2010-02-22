@@ -8,7 +8,18 @@
 #define NULL	((void *) 0)
 #endif /* !NULL */
 
+#ifndef SEEK_SET
+#define SEEK_SET	0	/* seek relative to beginning of file */
+#define SEEK_CUR	1	/* seek relative to current file position */
+#define SEEK_END	2	/* seek relative to end of file */
+#endif
+
 typedef struct unixfd FILE;
+
+extern FILE *const stdin;
+extern FILE *const stdout;
+extern FILE *const stderr;
+
 
 // lib/stdio.c
 int	getchar(void);
@@ -29,13 +40,13 @@ int	vcprintf(const char *fmt, va_list);
 
 // lib/fprintf.c
 int	printf(const char *fmt, ...);
-int	fprintf(int fd, const char *fmt, ...);
-int	vfprintf(int fd, const char *fmt, va_list);
+int	fprintf(FILE *f, const char *fmt, ...);
+int	vfprintf(FILE *f, const char *fmt, va_list);
 
 // lib/fd.c
 int	fclose(FILE *fh);
 size_t	fread(void *ptr, size_t size, size_t count, FILE *fh);
-size_t	fwrite(void *ptr, size_t size, size_t count, FILE *fh);
+size_t	fwrite(const void *ptr, size_t size, size_t count, FILE *fh);
 int	fseek(FILE *fh, off_t offset, int whence);
 long	ftell(FILE *fh);
 
