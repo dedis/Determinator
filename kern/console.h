@@ -23,7 +23,7 @@ void cons_init(void);
 void cons_intr(int (*proc)(void));
 
 // General console I/O functions - see kern/io.c
-void cons_startio(struct iocons *io);
-bool cons_checkio(struct iocons *io);
+void cons_output(struct iocons *io);
+bool cons_input(struct iocons *io);
 
 #endif /* PIOS_KERN_CONSOLE_H_ */

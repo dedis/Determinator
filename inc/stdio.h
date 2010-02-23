@@ -14,6 +14,8 @@
 #define SEEK_END	2	/* seek relative to end of file */
 #endif
 
+#define EOF		(-1)	/* return value indicating end-of-file */
+
 typedef struct unixfd FILE;
 
 extern FILE *const stdin;
@@ -22,8 +24,14 @@ extern FILE *const stderr;
 
 
 // lib/stdio.c
-int	getchar(void);
+int	fputc(int c, FILE *fh);
+int	fgetc(FILE *fh);
 int	iscons(int fd);
+
+#define putchar(c)	fputc(c, stdout)
+#define putc(c,fh)	fputc(c, fh)
+#define getchar()	fgetc(stdin)
+#define getc(fh)	fgetc(fh)
 
 // lib/printfmt.c
 void	printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...);

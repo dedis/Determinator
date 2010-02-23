@@ -12,8 +12,9 @@
 struct iodisk;
 
 void ide_init(void);
-void ide_startio(const struct iodisk *io);
-bool ide_checkio(struct iodisk *io);
+void ide_intr(void);
+void ide_output(const struct iodisk *io);
+bool ide_input(struct iodisk *io);
 
 #endif // !PIOS_DEV_IDE_H
 #endif // LAB >= 4

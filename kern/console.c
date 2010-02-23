@@ -112,7 +112,7 @@ cons_init(void)
 
 // Process a console output event a user process
 void
-cons_startio(iocons *io)
+cons_output(iocons *io)
 {
 	io->data[IOCONS_BUFSIZE] = 0;
 	cputs(io->data);
@@ -120,16 +120,19 @@ cons_startio(iocons *io)
 
 // Collect any available console input for a waiting user process
 bool
-cons_checkio(iocons *io)
+cons_input(iocons *io)
 {
 #if SOL >= 2
 	spinlock_acquire(&cons_lock);
 #endif
 	int amount = cons.wpos - cons.rpos;
 	assert(amount >= 0 && amount <= IOCONS_BUFSIZE);
-	memmove(io->data, &cons.buf[cons.rpos], amount);
-	io->data[amount] = 0;
-	cons.rpos = cons.wpos = 0;
+	if (amount > 0) {
+		io->type = IO_CONS;
+		memmove(io->data, &cons.buf[cons.rpos], amount);
+		io->data[amount] = 0;
+		cons.rpos = cons.wpos = 0;
+	}
 #if SOL >= 2
 	spinlock_release(&cons_lock);
 #endif
@@ -158,15 +161,5 @@ cputs(const char *str)
 
 	spinlock_release(&cons_lock);
 #endif
-}
-
-int
-getchar(void)
-{
-	int c;
-
-	while ((c = cons_getc()) == 0)
-		/* do nothing */;
-	return c;
 }
 

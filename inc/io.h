@@ -21,12 +21,12 @@ typedef struct iocons {
 	char	data[IOCONS_BUFSIZE+1];	// Null-terminated character string
 } iocons;
 
-#define IODISK_BLKSIZE	512		// Disk block size
+#define IODISK_SECSIZE	512		// Disk block size
 typedef struct iodisk {
 	iotype	type;			// I/O event type == IO_DISK
 	bool	write;			// 0 = read, 1 = write
-	int	blkno;			// Disk block number to read or write
-	char	data[IODISK_BLKSIZE];	// Disk block content
+	int	secno;			// Disk sector number to read or write
+	char	data[IODISK_SECSIZE];	// Disk sector contents
 } iodisk;
                                         
 #if LAB >= 5                            

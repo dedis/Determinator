@@ -40,7 +40,8 @@ io_sleep(trapframe *tf)
 
 	// Find the root process's I/O page.
 	pte_t *iopte = pmap_walk(cp->pdir, VM_IOLO, 1); assert(iopte);
-	assert(PGADDR(*iopte) != PTE_ZERO);
+	if(PGADDR(*iopte) == PTE_ZERO)
+		panic("root process hasn't initialized its I/O area");
 	ioevent *ioev = mem_ptr(PGADDR(*iopte));
 
 	// If output was requested, do it without putting the process to sleep
@@ -48,16 +49,16 @@ io_sleep(trapframe *tf)
 	case IO_NONE:
 		break;			// no output - wait for input
 	case IO_CONS:
-		cons_startio(&ioev->cons);
+		cons_output(&ioev->cons);
 		trap_return(tf);
 	case IO_DISK:
-		ide_startio(&ioev->disk);
+		ide_output(&ioev->disk);
 		trap_return(tf);
 	default:
 		panic("root process requested unknown I/O %d", ioev->type);
 	}
 
-	// Now go to sleep waiting for input.
+	// Now go to sleep waiting for I/O operation to complete.
 	spinlock_acquire(&io_lock);
 	assert(io_sleeper == NULL);	// should only be one root process!
 	cp->state = PROC_STOP;		// we're becoming stopped
@@ -81,7 +82,7 @@ io_check(void)
 		goto done;
 	assert(io_event != NULL);
 
-	if (!cons_checkio(&io_event->cons) && !ide_checkio(&io_event->disk))
+	if (!cons_input(&io_event->cons) && !ide_input(&io_event->disk))
 		goto done;	// no drivers have anything to report
 
 	// io_event filled in - start the root process again.

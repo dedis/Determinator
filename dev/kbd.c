@@ -3,11 +3,15 @@
 #include <inc/types.h>
 #include <inc/stdio.h>
 #include <inc/x86.h>
+#include <inc/trap.h>
 
 #include <kern/console.h>
 
 #include <dev/kbd.h>
+#if LAB >= 4
 #include <dev/pic.h>
+#include <dev/ioapic.h>
+#endif
 
 
 #define NO		0
@@ -181,7 +185,8 @@ kbd_init(void)
 #if LAB >= 4
 	// Drain the kbd buffer so that Bochs generates interrupts.
 	kbd_intr();
-	pic_setmask(irq_mask_8259A & ~(1<<1));
+	pic_enable(IRQ_KBD);
+	ioapic_enable(IRQ_KBD, 0);
 #endif
 }
 

@@ -2,11 +2,15 @@
 // See COPYRIGHT for copyright information.
 
 #include <inc/x86.h>
+#include <inc/trap.h>
 
 #include <kern/console.h>
 
 #include <dev/serial.h>
+#if LAB >= 4
 #include <dev/pic.h>
+#include <dev/ioapic.h>
+#endif
 
 
 bool serial_exists;
@@ -77,8 +81,10 @@ serial_init(void)
 
 #if LAB >= 4
 	// Enable serial interrupts
-	if (serial_exists)
-		pic_setmask(irq_mask_8259A & ~(1<<4));
+	if (serial_exists) {
+		pic_enable(IRQ_SERIAL);
+		ioapic_enable(IRQ_SERIAL, 0);
+	}
 #endif
 }
 

@@ -18,6 +18,9 @@
 #endif
 
 #include <dev/lapic.h>
+#if LAB >= 4
+#include <dev/ide.h>
+#endif
 #endif
 
 
@@ -216,6 +219,10 @@ trap(trapframe *tf)
 	case T_IRQ0 + IRQ_TIMER:
 		lapic_eoi();
 		proc_yield(tf);
+		break;
+	case T_IRQ0 + IRQ_IDE:
+		ide_intr();
+		lapic_eoi();
 		break;
 	case T_IRQ0 + IRQ_SPURIOUS:
 		cprintf("cpu%d: spurious interrupt at %x:%x\n",

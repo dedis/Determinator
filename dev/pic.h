@@ -26,6 +26,7 @@ extern uint16_t irq_mask_8259A;
 
 void pic_init(void);
 void pic_setmask(uint16_t mask);
+void pic_enable(int irq);
 #if LAB >= 99
 void pic_eoi(void);
 #endif

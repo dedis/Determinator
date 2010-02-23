@@ -33,9 +33,9 @@ KERN_SRCFILES :=	kern/entry.S \
 			dev/timer.c \
 			dev/lapic.c \
 			dev/ioapic.c \
+			dev/ide.c \
 			lib/printfmt.c \
 			lib/cprintf.c \
-			lib/readline.c \
 			lib/string.c \
 			lib/syscall.c
 
@@ -89,25 +89,8 @@ KERN_BINFILES :=	user/idle \
 else
 ifdef LAB4
 # Binary program images to embed within the kernel.
-KERN_BINFILES :=	user/idle \
-			user/yield \
-			user/dumbfork \
-			user/faultread \
-			user/faultwrite \
-			user/faultdie \
-			user/faultregs \
-			user/faultalloc \
-			user/faultallocbad \
-			user/faultnostack \
-			user/faultbadhandler \
-			user/faultevilhandler \
-			user/forktree \
-			user/spin \
-			user/fairness \
-			user/pingpong \
-			user/pingpongs \
-			user/primes \
-			user/hello
+KERN_BINFILES :=	boot/bootother \
+			user/fs
 else
 ifdef LAB3
 KERN_BINFILES :=	boot/bootother \
