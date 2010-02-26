@@ -16,11 +16,11 @@
 
 extern uint8_t start[], etext[], edata[], end[];
 
-static uint8_t stack[2][STACKSIZE];
+uint8_t stack[2][STACKSIZE];
 
 
 // Fork a child process, returning 0 in the child and 1 in the parent.
-static int fork(int cmd, uint8_t child)
+int fork(int cmd, uint8_t child)
 {
 	// Set up the register state for the child
 	struct cpustate cs;
@@ -55,7 +55,7 @@ static int fork(int cmd, uint8_t child)
 	return 1;
 }
 
-static void join(int cmd, uint8_t child, int trapexpect)
+void join(int cmd, uint8_t child, int trapexpect)
 {
 	// Wait for the child and retrieve its CPU state.
 	// If merging, leave the highest 4MB containing the stack unmerged,
@@ -72,7 +72,7 @@ static void join(int cmd, uint8_t child, int trapexpect)
 	}
 }
 
-static void gentrap(int trap)
+void gentrap(int trap)
 {
 	int bounds[2] = { 1, 3 };
 	switch (trap) {
@@ -131,7 +131,7 @@ static void cputsfaultchild(int arg) {
 		sys_ret(); } \
 	join(0, 0, T_PGFLT);
 
-static void loadcheck()
+void loadcheck()
 {
 	// Simple ELF loading test: make sure bss is mapped but cleared
 	uint8_t *p;
@@ -144,7 +144,7 @@ static void loadcheck()
 }
 
 // Check forking of simple child processes and trap redirection (once more)
-static void forkcheck()
+void forkcheck()
 {
 	// Our first copy-on-write test: fork and execute a simple child.
 	if (!fork(SYS_START, 0)) gentrap(T_SYSCALL);
@@ -185,7 +185,7 @@ static void forkcheck()
 }
 
 // Check for proper virtual memory protection
-static void protcheck()
+void protcheck()
 {
 	// Copyin/copyout protection:
 	// make sure we can't use cputs/put/get data in kernel space
@@ -226,7 +226,7 @@ static void protcheck()
 }
 
 // Test explicit memory management operations
-static void memopcheck(void)
+void memopcheck(void)
 {
 	// Test page permission changes
 	void *va = (void*)VM_USERLO+PTSIZE+PAGESIZE;
@@ -339,7 +339,7 @@ const int sortints[256] = {	// sorted array of the same ints
 
 #define swapints(a,b) ({ int t = (a); (a) = (b); (b) = t; })
 
-static void pqsort(int *lo, int *hi)
+void pqsort(int *lo, int *hi)
 {
 	if (lo >= hi)
 		return;
@@ -398,7 +398,7 @@ const int mc[8][8] = {	// Matrix of correct answers
 	{149128, 54805, 130652, 140309, 157630, 99208, 115657, 106951},
 	{136163, 42930, 132817, 154486, 107399, 83659, 100339, 80010}};
 
-static void matmult(int a[8][8], int b[8][8], int r[8][8])
+void matmult(int a[8][8], int b[8][8], int r[8][8])
 {
 	int i,j,k;
 
@@ -423,7 +423,7 @@ static void matmult(int a[8][8], int b[8][8], int r[8][8])
 		}
 }
 
-static void mergecheck()
+void mergecheck()
 {
 	// Simple merge test: two children write two adjacent variables
 	if (!fork(SYS_START | SYS_SNAP, 0)) { x = 0xdeadbeef; sys_ret(); }
