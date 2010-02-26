@@ -263,7 +263,7 @@ static void memopcheck(void)
 	void *sva = (void*)VM_USERLO;
 	void *dva = (void*)VM_USERLO+PTSIZE;
 	sys_get(SYS_COPY, 0, NULL, sva, dva, PTSIZE);
-	assert(memcmp(sva, dva, end - start) == 0);
+	assert(memcmp(sva, dva, etext - start) == 0);
 	writefaulttest(dva);
 	readfaulttest(dva + PTSIZE-4);
 
@@ -280,7 +280,7 @@ static void memopcheck(void)
 	// Test SYS_COPY with SYS_PUT
 	sys_put(SYS_COPY, 0, NULL, sva, dva, PTSIZE);
 	sys_get(SYS_COPY, 0, NULL, dva, dva2, PTSIZE);
-	assert(memcmp(sva, dva2, end - start) == 0);
+	assert(memcmp(sva, dva2, etext - start) == 0);
 	writefaulttest(dva2);
 	readfaulttest(dva2 + PTSIZE-4);
 
