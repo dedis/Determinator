@@ -88,9 +88,12 @@ KERN_BINFILES :=	user/idle \
 			fs/fs
 else
 ifdef LAB4
+# Files in 'user' directory to comprise the kernel's initial file system.
+KERN_INITFILES :=	fs \
+
 # Binary program images to embed within the kernel.
 KERN_BINFILES :=	boot/bootother \
-			user/fs
+			$(patsubst %,user/%,$(KERN_INITFILES))
 else
 ifdef LAB3
 KERN_BINFILES :=	boot/bootother \
@@ -140,6 +143,12 @@ $(OBJDIR)/kern/kernel.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/bootblock
 	$(V)dd if=$(OBJDIR)/boot/bootblock of=$(OBJDIR)/kern/kernel.img~ conv=notrunc 2>/dev/null
 	$(V)dd if=$(OBJDIR)/kern/kernel of=$(OBJDIR)/kern/kernel.img~ seek=1 conv=notrunc 2>/dev/null
 	$(V)mv $(OBJDIR)/kern/kernel.img~ $(OBJDIR)/kern/kernel.img
+
+$(OBJDIR)/kern/initfiles.h: $(KERN_BINFILES)
+	echo >$@ $(subst /,_,$(patsubst %,INITFILE(%s),$(KERN_INITFILES)))
+ifdef LAB4
+$(OBJDIR)/kern/kernel: $(OBJDIR)/kern/initfiles.h
+endif
 
 all: $(OBJDIR)/kern/kernel.img
 

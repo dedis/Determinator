@@ -5,12 +5,12 @@
 #ifndef PIOS_INC_ERRNO_H
 #define PIOS_INC_ERRNO_H
 
-#include <inc/unix.h>
+#include <inc/file.h>
 
 
 // A process/thread's errno variable is in the unixstate structure,
 // so that it won't get merged and will behave as thread-private data.
-#define	errno		(unixstate->err)
+#define	errno		(files->err)
 
 
 // Error numbers

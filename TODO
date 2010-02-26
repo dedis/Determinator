@@ -43,3 +43,7 @@ through the interrupt.
   and make cputs() build atop cons_startio().
   Maybe just give the students the console spinlock code?
 
+- Instead of putting an ELF loader in the kernel,
+  just have a user-mode utility that creates an "initial system snapshot"
+  containing a loaded root process and an initial file system?
+

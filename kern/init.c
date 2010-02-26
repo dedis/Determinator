@@ -22,7 +22,7 @@
 #include <kern/proc.h>
 #endif
 #if LAB >= 4
-#include <kern/io.h>
+#include <kern/file.h>
 #endif
 
 #if LAB >= 2
@@ -176,6 +176,9 @@ init(void)
 				SYS_READ | SYS_WRITE | PTE_P | PTE_U | PTE_W);
 	assert(pte != NULL);
 	root->tf.tf_esp = VM_STACKHI;
+
+	// Give the root process an initial file system.
+	file_init(root);
 
 	proc_ready(root);	// make the root process ready
 	proc_sched();		// run it

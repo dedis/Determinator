@@ -16,7 +16,7 @@
 
 #define EOF		(-1)	/* return value indicating end-of-file */
 
-typedef struct unixfd FILE;
+typedef struct filedesc FILE;
 
 extern FILE *const stdin;
 extern FILE *const stdout;
@@ -51,12 +51,21 @@ int	printf(const char *fmt, ...);
 int	fprintf(FILE *f, const char *fmt, ...);
 int	vfprintf(FILE *f, const char *fmt, va_list);
 
-// lib/fd.c
+// lib/stdio.c
+FILE *	fopen(const char *filename, const char *mode);
+FILE *	freopen(const char *filename, const char *mode, FILE *fh);
+FILE *	fdup2(FILE *oldfh, FILE *newfh);	// non-POSIX
 int	fclose(FILE *fh);
 size_t	fread(void *ptr, size_t size, size_t count, FILE *fh);
 size_t	fwrite(const void *ptr, size_t size, size_t count, FILE *fh);
 int	fseek(FILE *fh, off_t offset, int whence);
 long	ftell(FILE *fh);
+int	feof(FILE *fd);
+int	ferror(FILE *fd);
+void	clearerr(FILE *fd);
+#if LAB >= 99
+int	fileno(FILE *fd);
+#endif
 
 
 // lib/readline.c

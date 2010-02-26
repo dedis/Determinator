@@ -56,6 +56,10 @@ struct stat {
 #define	S_IFSOCK 0070000		/* socket */
 #endif
 
+#define S_ISPART 0100000		/* partial file: wait on read at end */
+#define S_ISRAND 0200000		/* file has been randomly written to */
+#define S_ISCONF 0400000		/* write/write conflict(s) detected */
+
 #define	S_ISREG(m)	(((m) & S_IFMT) == S_IFREG)	/* regular file */
 #define	S_ISDIR(m)	(((m) & S_IFMT) == S_IFDIR)	/* directory */
 #define	S_ISLNK(m)	(((m) & S_IFMT) == S_IFLNK)	/* symbolic link */

@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 99
 #include <inc/fcntl.h>
 #include <inc/string.h>
 #include <inc/stdarg.h>

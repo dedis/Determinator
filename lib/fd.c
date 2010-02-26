@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 99
 
 #include <inc/assert.h>
 #include <inc/unistd.h>
@@ -7,16 +7,6 @@
 #include <inc/errno.h>
 #include <inc/unix.h>
 #include <inc/stat.h>
-
-
-// Table of all Unix "devices" the API supports
-unixdev *unixdevs[UNIXDEV_MAX] = {
-	&unix_consdev,
-	&unix_filedev,
-#if LAB >= 99
-	&unix_sockdev,
-#endif
-};
 
 
 // Finds the smallest fd from 0 to OPEN_MAX-1 that isn't in use.

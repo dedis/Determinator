@@ -58,7 +58,7 @@ again:
 				exit();
 			}
 			if (fd != 0) {
-				dup(fd, 0);
+				dup2(fd, 0);
 				close(fd);
 			}
 #else
@@ -87,7 +87,7 @@ again:
 				exit();
 			}
 			if (fd != 1) {
-				dup(fd, 1);
+				dup2(fd, 1);
 				close(fd);
 			}
 			ftruncate(fd, 0);
@@ -346,7 +346,7 @@ umain(int argc, char **argv)
 	}
 	if (interactive == '?')
 		interactive = iscons(0);
-	
+
 	while (1) {
 		char *buf;
 
@@ -376,4 +376,4 @@ umain(int argc, char **argv)
 	}
 }
 
-#endif
+#endif	// LAB >= 4

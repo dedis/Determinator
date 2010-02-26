@@ -6,7 +6,7 @@
 #include <inc/limits.h>
 
 struct dirent {				// Directory entry - should be 64 bytes
-	int	d_ino;			// File inode number
+	int	d_ino;			// File inode number, 0 if free dirent
 	char	d_name[NAME_MAX+1];	// Entry name
 };
 
