@@ -20,7 +20,7 @@ FILE *const stdout = &files->fd[1];
 FILE *const stderr = &files->fd[2];
 
 int
-filewrite(int ino, off_t ofs, void *buf, int len)
+filewrite(int ino, off_t ofs, const void *buf, int len)
 {
 	assert(fileino_exists(ino));
 	assert(ofs >= 0);

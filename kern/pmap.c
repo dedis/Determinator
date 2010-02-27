@@ -253,8 +253,10 @@ pmap_insert(pde_t *pdir, pageinfo *pi, uint32_t va, int perm)
 }
 
 //
-// Unmap the physical page at user virtual address 'va'.
-// If there is no mapping at that address, silently does nothing.
+// Unmap the physical pages starting at user virtual address 'va'
+// and covering a virtual address region of 'size' bytes.
+// The caller must ensure that both 'va' and 'size' are page-aligned.
+// If there is no mapping at that address, pmap_remove silently does nothing.
 // Clears nominal permissions (SYS_RW flags) as well as mappings themselves.
 //
 // Details:
