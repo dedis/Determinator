@@ -8,6 +8,7 @@
 #endif
 
 #include <inc/assert.h>
+#include <inc/mmu.h>
 #include <inc/vm.h>
 
 #include <kern/mem.h>

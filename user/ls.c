@@ -1,71 +1,81 @@
 #if LAB >= 4
-#include <inc/lib.h>
+#include <inc/stat.h>
+#include <inc/errno.h>
+#include <inc/stdio.h>
+#include <inc/stdlib.h>
+#include <inc/string.h>
+#include <inc/dirent.h>
+#include <inc/assert.h>
+#include <inc/args.h>
 
 int flag[256];
 
-void lsdir(const char*, const char*);
-void ls1(const char*, bool, off_t, const char*);
+void lsdir(const char *path, const char *realpath);
+void lsfile(const char *path, const char *realpath);
 
 void
-ls(const char *path, const char *prefix)
+ls(const char *path)
 {
 	int r;
-	struct Stat st;
+	struct stat st;
 
-	if ((r = stat(path, &st)) < 0)
-		panic("stat %s: %e", path, r);
-	if (st.st_isdir && !flag['d'])
-		lsdir(path, prefix);
+	const char *realpath = path[0] ? path : ".";
+	if ((r = stat(realpath, &st)) < 0)
+		panic("stat %s: %e", realpath, r);
+	if (S_ISDIR(st.st_mode) && !flag['d'])
+		lsdir(path, realpath);
 	else
-		ls1(0, st.st_isdir, st.st_size, path);
+		lsfile(path, realpath);
 }
 
 void
-lsdir(const char *path, const char *prefix)
+lsdir(const char *path, const char *realpath)
 {
-	int fd, n;
-	struct File f;
+	DIR *d;
+	struct dirent *de;
 
-	if ((fd = open(path, O_RDONLY)) < 0)
-		panic("open %s: %e", path, fd);
-	while ((n = readn(fd, &f, sizeof f)) == sizeof f)
-		if (f.f_name[0])
-			ls1(prefix, f.f_type==FTYPE_DIR, f.f_size, f.f_name);
-	if (n > 0)
-		panic("short read in directory %s", path);
-	if (n < 0)
-		panic("error reading directory %s: %e", path, n);
+	if ((d = opendir(realpath)) == NULL)
+		panic("opendir %s: %s", realpath, strerror(errno));
+	while ((de = readdir(d)) != NULL) {
+		char depath[PATH_MAX];
+		snprintf(depath, PATH_MAX, "%s%s%s", path,
+			(path[0] && path[strlen(path)-1] != '/') ? "/" : "",
+			de->d_name);
+		lsfile(depath, depath);
+	}
+	closedir(d);
 }
 
 void
-ls1(const char *prefix, bool isdir, off_t size, const char *name)
+lsfile(const char *path, const char *realpath)
 {
 	char *sep;
 
-	if(flag['l'])
-		fprintf(1, "%11d %c ", size, isdir ? 'd' : '-');
-	if(prefix) {
-		if (prefix[0] && prefix[strlen(prefix)-1] != '/')
-			sep = "/";
-		else
-			sep = "";
-		fprintf(1, "%s%s", prefix, sep);
+	// Get information about the file
+	struct stat st;
+	if (stat(realpath, &st) < 0) {
+		warn("error reading %s: %s", realpath, strerror(errno));
+		return;
 	}
-	fprintf(1, "%s", name);
+	bool isdir = S_ISDIR(st.st_mode);
+
+	if(flag['l'])
+		printf("%11d %c ", st.st_size, isdir ? 'd' : '-');
+	printf("%s", path);
 	if(flag['F'] && isdir)
-		fprintf(1, "/");
-	fprintf(1, "\n");
+		printf("/");
+	printf("\n");
 }
 
 void
 usage(void)
 {
-	fprintf(1, "usage: ls [-dFl] [file...]\n");
-	exit();
+	fprintf(stderr, "usage: ls [-dFl] [file...]\n");
+	exit(EXIT_FAILURE);
 }
 
 void
-umain(int argc, char **argv)
+piosmain(int argc, char **argv)
 {
 	int i;
 
@@ -75,15 +85,15 @@ umain(int argc, char **argv)
 	case 'd':
 	case 'F':
 	case 'l':
-		flag[(uint8_t)ARGC()]++;
+		flag[(uint8_t)ARGC()] = 1;
 		break;
 	}ARGEND
 
-	if (argc == 0)
-		ls("/", "");
-	else {
+	if (argc == 0) {
+		ls("");
+	} else {
 		for (i=0; i<argc; i++)
-			ls(argv[i], argv[i]);
+			ls(argv[i]);
 	}
 }
 

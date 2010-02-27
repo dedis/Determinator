@@ -2,6 +2,9 @@
 // Basic string routines.  Not hardware optimized, but not shabby.
 
 #include <inc/string.h>
+#if LAB >= 4
+#include <inc/stdio.h>
+#endif
 
 // Using assembly for memset/memmove
 // makes some difference on real hardware,
@@ -280,5 +283,33 @@ strtol(const char *s, char **endptr, int base)
 		*endptr = (char *) s;
 	return (neg ? -val : val);
 }
+
+#if LAB >= 4
+char *
+strerror(int err)
+{
+	static char *errtab[] = {
+		"(no error)",
+		"Invalid argument",
+		"No such file or directory",
+		"Bad file descriptor",
+		"File exists",
+		"File too large",
+		"Too many open files",
+		"Is a directory",
+		"Not a directory",
+		"Directory not empty",
+		"File name too long",
+		"No space left on device",
+	};
+	static char errbuf[64];
+
+	if (err >= 0 && err < sizeof(errtab)/sizeof(errtab[0]))
+		return errtab[err];
+
+	sprintf(errbuf, "Unknown error code %d", err);
+	return errbuf;
+}
+#endif
 
 #endif

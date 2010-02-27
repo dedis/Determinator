@@ -11,11 +11,13 @@
 #include <kern/proc.h>
 #include <kern/init.h>
 #if LAB >= 4
-#include <kern/io.h>
+#include <kern/file.h>
 #endif
 
 
 proc proc_null;		// null process - just leave it initialized to 0
+
+proc *proc_root;	// root process, once it's created in init()
 
 #if SOL >= 2
 static spinlock readylock;	// Spinlock protecting ready queue
@@ -218,8 +220,9 @@ proc_ret(trapframe *tf)
 			panic("trap in root process");
 		}
 #if LAB >= 4
-		// Put the root process to sleep waiting for I/O.
-		io_sleep(tf);
+		// Allow the root process to do I/O via its special files.
+		// May put the root process to sleep waiting for input.
+		file_io(tf);
 #else	// LAB < 4
 		cprintf("root process terminated\n");
 		done();

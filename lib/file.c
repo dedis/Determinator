@@ -1,275 +1,217 @@
-#if LAB >= 99
-#include <inc/fcntl.h>
+#if LAB >= 4
+// Basic user-space file and I/O support functions,
+// used by the standard I/O functions in stdio.c.
+
+#include <inc/file.h>
+#include <inc/stat.h>
+#include <inc/stdio.h>
+#include <inc/dirent.h>
 #include <inc/string.h>
-#include <inc/stdarg.h>
+#include <inc/assert.h>
+#include <inc/syscall.h>
+#include <inc/errno.h>
+#include <inc/mmu.h>
 
-#define debug 0
 
-static int file_close(struct Fd *fd);
-static ssize_t file_read(struct Fd *fd, void *buf, size_t n, off_t offset);
-static ssize_t file_write(struct Fd *fd, const void *buf, size_t n, off_t offset);
-static int file_stat(struct Fd *fd, struct Stat *stat);
-static int file_trunc(struct Fd *fd, off_t newsize);
+////////// File inode functions //////////
 
-struct Dev devfile =
+ssize_t
+fileino_write(int ino, off_t ofs, const void *buf, int len)
 {
-	.dev_id =	'f',
-	.dev_name =	"file",
-	.dev_read =	file_read,
-	.dev_write =	file_write,
-	.dev_close =	file_close,
-	.dev_stat =	file_stat,
-	.dev_trunc =	file_trunc
-};
+	assert(fileino_exists(ino));
+	assert(ofs >= 0);
+	assert(len >= 0);
 
-// Helper functions for file access
-static int fmap(struct Fd *fd, off_t oldsize, off_t newsize);
-static int funmap(struct Fd *fd, off_t oldsize, off_t newsize, bool dirty);
+	fileinode *fi = &files->fi[ino];
+	assert(fi->size <= FILE_MAXSIZE);
 
-// Open a file (or directory),
-// returning the file descriptor index on success, < 0 on failure.
-int
-open(const char *path, int flags, ...)
-{
-#if SOL >= 4
-	int fd = unix_fdalloc();
-	if (fd < 0)
+	// Return an error if we'd be growing the file too big.
+	size_t lim = ofs + len;
+	if (lim < ofs || lim > FILE_MAXSIZE) {
+		errno = EFBIG;
 		return -1;
-
-	int r;
-	struct Fd *fd;
-
-	if ((r = fd_alloc(&fd)) < 0
-	    || (r = fsipc_open(path, mode, fd)) < 0
-	    || (r = fmap(fd, 0, fd->fd_file.file.f_size)) < 0) {
-		(void) fd_close(fd, 0);
-		return r;
 	}
 
-	return fd2num(fd);
-#else
-	// Find an unused file descriptor page using fd_alloc.
-	// Then send a message to the file server to open a file
-	// using a function in fsipc.c.
-	// (fd_alloc does not allocate a page, it just returns an
-	// unused fd address.  Do you need to allocate a page?  Look
-	// at fsipc.c if you aren't sure.)
-	// Then map the file data (you may find fmap() helpful).
-	// Return the file descriptor index.
-	// If any step fails, use fd_close to free the file descriptor.
+	// Grow the file as necessary.
+	if (lim > fi->size) {
+		size_t oldpagelim = ROUNDUP(fi->size, PAGESIZE);
+		size_t newpagelim = ROUNDUP(lim, PAGESIZE);
+		if (newpagelim > oldpagelim)
+			sys_get(SYS_PERM | SYS_READ | SYS_WRITE, 0, NULL, NULL,
+				FILEDATA(ino) + oldpagelim,
+				newpagelim - oldpagelim);
+		fi->size = lim;
+	}
 
-	// LAB 5: Your code here.
-	panic("open() unimplemented!");
-#endif
+	// Write the data.
+	memmove(FILEDATA(ino) + ofs, buf, len);
+	return len;
 }
 
-int creat(const char *name, int mode)
-{
-	return open(path, O_CREAT | O_TRUNC | O_WRONLY, mode);
-}
-
-// Clean up a file-server file descriptor.
-// This function is called by fd_close.
-static int
-file_close(struct Fd *fd)
-{
-#if SOL >= 4
-	int r, ret;
-	ret = funmap(fd, fd->fd_file.file.f_size, 0, 1);
-	if ((r = fsipc_close(fd->fd_file.id)) < 0 && ret == 0)
-		ret = r;
-	return ret;
-#else
-	// Unmap any data mapped for the file,
-	// then tell the file server that we have closed the file
-	// (to free up its resources).
-
-	// LAB 5: Your code here.
-	panic("close() unimplemented!");
-#endif
-}
-
-// Read 'n' bytes from 'fd' at the current seek position into 'buf'.
-// Since files are memory-mapped, this amounts to a memmove()
-// surrounded by a little red tape to handle the file size and seek pointer.
-static ssize_t
-file_read(struct Fd *fd, void *buf, size_t n, off_t offset)
-{
-	size_t size;
-
-	// avoid reading past the end of file
-	size = fd->fd_file.file.f_size;
-	if (offset > size)
-		return 0;
-	if (offset + n > size)
-		n = size - offset;
-
-	// read the data by copying from the file mapping
-	memmove(buf, fd2data(fd) + offset, n);
-	return n;
-}
-
-// Find the page that maps the file block starting at 'offset',
-// and store its address in '*blk'.
 int
-read_map(int fdnum, off_t offset, void **blk)
+fileino_stat(int ino, struct stat *st)
 {
-	int r;
-	char *va;
-	struct Fd *fd;
+	assert(fileino_exists(ino));
 
-	if ((r = fd_lookup(fdnum, &fd)) < 0)
-		return r;
-	if (fd->fd_dev_id != devfile.dev_id)
-		return -E_INVAL;
-	va = fd2data(fd) + offset;
-	if (offset >= MAXFILESIZE)
-		return -E_NO_DISK;
-	if (!(vpd[PDX(va)] & PTE_P) || !(vpt[VPN(va)] & PTE_P))
-		return -E_NO_DISK;
-	*blk = (void*) va;
+	fileinode *fi = &files->fi[ino];
+	st->st_ino = ino;
+	st->st_mode = fi->mode;
+	st->st_size = fi->size;
+	st->st_nlink = fi->nlink;
+
 	return 0;
 }
 
-// Write 'n' bytes from 'buf' to 'fd' at the current seek position.
-static ssize_t
-file_write(struct Fd *fd, const void *buf, size_t n, off_t offset)
+
+////////// File descriptor functions //////////
+
+// Search the file descriptor table for the first free file descriptor,
+// and return a pointer to that file descriptor.
+// If no file descriptors are available,
+// returns NULL and set errno appropriately.
+filedesc *filedesc_alloc(void)
 {
-	int r;
-	size_t tot;
+	int i;
+	for (i = 0; i < OPEN_MAX; i++)
+		if (files->fd[i].ino == FILEINO_NULL)
+			return &files->fd[i];
+	errno = EMFILE;
+	return NULL;
+}
 
-	// don't write past the maximum file size
-	tot = offset + n;
-	if (tot > MAXFILESIZE)
-		return -E_NO_DISK;
+// Find or create and open a file, optionally using a given file descriptor.
+// The argument 'fd' must point to a currently unused file descriptor,
+// or may be NULL, in which case this function finds an unused file descriptor.
+// The 'openflags' determines whether the file is created, truncated, etc.
+// Returns the opened file descriptor on success,
+// or returns NULL and sets errno on failure.
+filedesc *
+filedesc_open(filedesc *fd, const char *path, int openflags)
+{
+	if (!fd && !(fd = filedesc_alloc()))
+		return NULL;
+	assert(fd->ino == FILEINO_NULL);
 
-	// increase the file's size if necessary
-	if (tot > fd->fd_file.file.f_size) {
-		if ((r = file_trunc(fd, tot)) < 0)
-			return r;
+	// Walk the directory tree to find the desired directory entry,
+	// creating an entry if it doesn't exist and O_CREAT is set.
+	struct dirent *de = dir_walk(path, (openflags & O_CREAT) != 0);
+	if (de == NULL)
+		return NULL;
+
+	// Create the file if necessary
+	int ino = de->d_ino;
+	if (ino == FILEINO_NULL) {
+		assert(openflags & O_CREAT);
+		for (ino = 1; ino < FILE_INODES; ino++)
+			if (files->fi[ino].nlink == 0)
+				break;
+		if (ino == FILE_INODES) {
+			warn("freopen: no free inodes\n");
+			errno = ENOSPC;
+			return NULL;
+		}
+		files->fi[ino].nlink = 1;	// dirent's reference
+		files->fi[ino].size = 0;
+		files->fi[ino].psize = -1;
+		files->fi[ino].mode = S_IFREG;
+		de->d_ino = ino;
 	}
 
-	// write the data
-	memmove(fd2data(fd) + offset, buf, n);
-	return n;
+	// Initialize the file descriptor
+	fd->ino = ino;
+	fd->flags = openflags;
+	fd->ofs = (openflags & O_APPEND) ? files->fi[ino].size : 0;
+	fd->err = 0;
+	files->fi[ino].nlink++;		// file descriptor's reference
+
+	return fd;
 }
 
-static int
-file_stat(struct Fd *fd, struct Stat *st)
+ssize_t
+filedesc_read(filedesc *fd, void *buf, size_t eltsize, size_t count)
 {
-	strcpy(st->st_name, fd->fd_file.file.f_name);
-	st->st_size = fd->fd_file.file.f_size;
-	st->st_isdir = (fd->fd_file.file.f_type == FTYPE_DIR);
-	return 0;
-}
+	assert(filedesc_isreadable(fd));
+	fileinode *fi = &files->fi[fd->ino];
 
-// Truncate or extend an open file to 'size' bytes
-static int
-file_trunc(struct Fd *fd, off_t newsize)
-{
-	int r;
-	off_t oldsize;
-	uint32_t fileid;
-
-	if (newsize > MAXFILESIZE)
-		return -E_NO_DISK;
-
-	fileid = fd->fd_file.id;
-	oldsize = fd->fd_file.file.f_size;
-	if ((r = fsipc_set_size(fileid, newsize)) < 0)
-		return r;
-	assert(fd->fd_file.file.f_size == newsize);
-
-	if ((r = fmap(fd, oldsize, newsize)) < 0)
-		return r;
-	funmap(fd, oldsize, newsize, 0);
-
-	return 0;
-}
-
-// Call the file system server to obtain and map file pages
-// when the size of the file as mapped in our memory increases.
-// Harmlessly does nothing if oldsize >= newsize.
-// Returns 0 on success, < 0 on error.
-// If there is an error, unmaps any newly allocated pages.
-//
-// Hint: Use fd2data to get the start of the file mapping area for fd.
-// Hint: You can use ROUNDUP to page-align offsets.
-static int
-fmap(struct Fd* fd, off_t oldsize, off_t newsize)
-{
-#if SOL >= 5
-	size_t i;
-	char *va;
-	int r;
-
-	va = fd2data(fd);
-	for (i = ROUNDUP(oldsize, PAGESIZE); i < newsize; i += PAGESIZE) {
-		if ((r = fsipc_map(fd->fd_file.id, i, va + i)) < 0) {
-			// unmap anything we may have mapped so far
-			funmap(fd, i, oldsize, 0);
-			return r;
+	ssize_t actual = 0;
+	while (count > 0) {
+		// Read as many elements as we can from the file.
+		// Note: fd->ofs could well point beyond the end of file,
+		// which means that avail will be negative - but that's OK.
+		ssize_t avail = MIN(count, (fi->size - fd->ofs) / eltsize);
+		if (avail > 0) {
+			memmove(buf, FILEDATA(fd->ino) + fd->ofs,
+				avail * eltsize);
+			fd->ofs += avail * eltsize;
+			buf += avail * eltsize;
+			actual += avail;
+			count -= avail;
+		}
+		if (count > 0 && (fi->mode & S_IFPART)) {
+			// Wait for our parent to extend (or close) the file.
+			cprintf("fread: waiting for input on file %d\n",
+				fd - files->fd);
+			sys_ret();
 		}
 	}
-	return 0;
-#else
-	// LAB 5: Your code here.
-	panic("fmap not implemented");
-	return -E_UNSPECIFIED;
-#endif
+	return actual;
 }
 
-// Unmap any file pages that no longer represent valid file pages
-// when the size of the file as mapped in our address space decreases.
-// Harmlessly does nothing if newsize >= oldsize.
-//
-// Hint: Remember to call fsipc_dirty if dirty is true and PTE_D bit
-// is set in the pagetable entry.
-// Hint: Use fd2data to get the start of the file mapping area for fd.
-// Hint: You can use ROUNDUP to page-align offsets.
-static int
-funmap(struct Fd* fd, off_t oldsize, off_t newsize, bool dirty)
+ssize_t
+filedesc_write(filedesc *fd, const void *buf, size_t eltsize, size_t count)
 {
-#if SOL >= 5
-	size_t i;
-	char *va;
-	int r, ret;
+	ssize_t actual = filedesc_write(fd, buf, eltsize, count);
+	assert(filedesc_iswritable(fd));
+	fileinode *fi = &files->fi[fd->ino];
 
-	va = fd2data(fd);
+	// If we're appending to the file, seek to the end first.
+	if (fd->flags & O_APPEND)
+		fd->ofs = fi->size;
 
-	// Check vpd to see if anything is mapped.
-	if (!(vpd[VPD(va)] & PTE_P))
-		return 0;
+	// Write the data, growing the file as necessary.
+	if (fileino_write(fd->ino, fd->ofs, buf, eltsize * count) < 0) {
+		fd->err = errno;	// save error indication for ferror()
+		return -1;
+	}
 
-	ret = 0;
-	for (i = ROUNDUP(newsize, PAGESIZE); i < oldsize; i += PAGESIZE)
-		if (vpt[VPN(va + i)] & PTE_P) {
-			if (dirty
-			    && (vpt[VPN(va + i)] & PTE_D)
-			    && (r = fsipc_dirty(fd->fd_file.id, i)) < 0)
-				ret = r;
-			sys_page_unmap(0, va + i);
-		}
-  	return ret;
-#else
-	// LAB 5: Your code here.
-	panic("funmap not implemented");
-	return -E_UNSPECIFIED;
-#endif
+	// Advance the file position
+	fd->ofs += eltsize * count;
+	assert(fi->size >= fd->ofs);
+
+	return count;
 }
 
-// Delete a file
-int
-remove(const char *path)
+// Seek the given file descriptor to a specificied position,
+// which may be relative to the file start, end, or corrent position,
+// depending on 'whence'.
+// Returns the resulting absolute file position,
+// or returns -1 and sets errno appropriately on error.
+off_t filedesc_seek(filedesc *fd, off_t offset, int whence)
 {
-	return fsipc_remove(path);
+	assert(filedesc_isopen(fd));
+	fileinode *fi = &files->fi[fd->ino];
+	assert(whence == SEEK_SET || whence == SEEK_CUR || whence == SEEK_END);
+
+	off_t newofs = offset;
+	if (whence == SEEK_CUR)
+		newofs += fd->ofs;
+	else if (whence == SEEK_END)
+		newofs += fi->size;
+	assert(newofs >= 0);
+
+	fd->ofs = newofs;
+	return newofs;
 }
 
-// Synchronize disk with buffer cache
-int
-sync(void)
+void
+filedesc_close(filedesc *fd)
 {
-	return fsipc_sync();
+	assert(filedesc_isopen(fd));
+	assert(fileino_isvalid(fd->ino));
+	assert(files->fi[fd->ino].nlink > 0);
+
+	files->fi[fd->ino].nlink--;
+	fd->ino = FILEINO_NULL;		// mark the fd free
 }
 
 #endif /* LAB >= 4 */

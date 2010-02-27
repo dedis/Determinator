@@ -1,4 +1,4 @@
-#if LAB >= 5
+#if LAB >= 4
 /* See COPYRIGHT for copyright information. */
 
 #ifndef PIOS_INC_ARGS_H
@@ -104,4 +104,4 @@ extern char	*argv0;
 #define	ARGC()		_argc
 
 #endif /* !PIOS_INC_ARGS_H */
-#endif /* LAB >= 5 */
+#endif /* LAB >= 4 */

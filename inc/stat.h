@@ -6,12 +6,12 @@
 #include <inc/types.h>
 
 struct stat {
-	dev_t	st_dev;			/* "Device number" containing file */
 	ino_t	st_ino;			/* File inode number */
 	mode_t	st_mode;		/* File access mode */
 	nlink_t	st_nlink;		/* Number of hardlinks to file */
 	off_t	st_size;		/* File size */
 #if LAB >= 99
+	dev_t	st_dev;			/* "Device number" containing file */
 	uid_t	  st_uid;		/* user ID of the file's owner */
 	gid_t	  st_gid;		/* group ID of the file's group */
 	dev_t	  st_rdev;		/* device type */
@@ -56,9 +56,9 @@ struct stat {
 #define	S_IFSOCK 0070000		/* socket */
 #endif
 
-#define S_ISPART 0100000		/* partial file: wait on read at end */
-#define S_ISRAND 0200000		/* file has been randomly written to */
-#define S_ISCONF 0400000		/* write/write conflict(s) detected */
+#define S_IFPART 0100000		/* partial file: wait on read at end */
+#define S_IFRAND 0200000		/* file has been randomly written to */
+#define S_IFCONF 0400000		/* write/write conflict(s) detected */
 
 #define	S_ISREG(m)	(((m) & S_IFMT) == S_IFREG)	/* regular file */
 #define	S_ISDIR(m)	(((m) & S_IFMT) == S_IFDIR)	/* directory */

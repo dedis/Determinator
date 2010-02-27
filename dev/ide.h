@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 99
 // IDE disk device driver definitions.
 // See COPYRIGHT for copyright information.
 #ifndef PIOS_DEV_IDE_H

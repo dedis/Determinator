@@ -7,6 +7,8 @@
 # error "This is a kernel header; user programs should not #include it"
 #endif
 
+#include <inc/gcc.h>
+
 
 // Called on each processor to initialize the kernel.
 void init(void);
@@ -16,7 +18,7 @@ void user(void);
 
 // Called when there is no more work left to do in the system.
 // The grading scripts trap calls to this to know when to stop.
-void done(void);
+void done(void) gcc_noreturn;
 
 
 #endif /* !PIOS_KERN_INIT_H */

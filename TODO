@@ -47,3 +47,7 @@ through the interrupt.
   just have a user-mode utility that creates an "initial system snapshot"
   containing a loaded root process and an initial file system?
 
+- Lab2 or Lab3 challenge problem: add SYS_GET/SYS_PUT option
+  to rearrange the process hierarchy and free processes.
+
+- Naming consistency: rename console.{c,h} to cons.{c,h}

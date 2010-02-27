@@ -1,17 +1,19 @@
 OBJDIRS += lib
 
 LIB_SRCFILES :=		lib/console.c \
-			lib/exit.c \
 			lib/debug.c \
 			lib/cputs.c \
 			lib/cprintf.c \
 			lib/printfmt.c \
-			lib/readline.c \
 			lib/string.c \
 			lib/syscall.c \
-			lib/fd.c \
+			lib/file.c \
+			lib/dir.c \
 			lib/stdio.c \
-			lib/fprintf.c
+			lib/stdlib.c \
+			lib/unistd.c \
+			lib/fprintf.c \
+			lib/readline.c
 
 # Build files only if they exist.
 LIB_SRCFILES := $(wildcard $(LIB_SRCFILES))

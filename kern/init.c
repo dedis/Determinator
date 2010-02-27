@@ -39,7 +39,7 @@ static char gcc_aligned(16) user_stack[PAGESIZE];
 extern char _binary_obj_user_testvm_start[];
 #elif LAB >= 4
 // Lab 3: ELF executable containing root process, linked into the kernel
-extern char _binary_obj_user_fs_start[];
+extern char _binary_obj_user_ls_start[];
 #endif
 
 
@@ -85,8 +85,8 @@ init(void)
 	pmap_init();
 
 #if LAB >= 4
-	// Initialize the I/O system.
-	io_init();
+	// Initialize the file I/O system.
+	file_init();
 #endif
 #endif
 	// Find and start other processors in a multiprocessor system
@@ -130,12 +130,12 @@ init(void)
 		proc_sched();	// just jump right into the scheduler
 
 	// Create our first actual user-mode process
-	proc *root = proc_alloc(NULL, 0);
+	proc *root = proc_root = proc_alloc(NULL, 0);
 
 #if SOL == 3
 	elfhdr *eh = (elfhdr *)_binary_obj_user_testvm_start;
 #elif SOL >= 4
-	elfhdr *eh = (elfhdr *)_binary_obj_user_fs_start;
+	elfhdr *eh = (elfhdr *)_binary_obj_user_ls_start;
 #endif
 	assert(eh->e_magic == ELF_MAGIC);
 
@@ -178,7 +178,7 @@ init(void)
 	root->tf.tf_esp = VM_STACKHI;
 
 	// Give the root process an initial file system.
-	file_init(root);
+	file_initroot(root);
 
 	proc_ready(root);	// make the root process ready
 	proc_sched();		// run it
@@ -212,7 +212,7 @@ user()
 	done();
 }
 
-void
+void gcc_noreturn
 done()
 {
 	while (1)

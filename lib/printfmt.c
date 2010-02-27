@@ -7,6 +7,7 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/stdarg.h>
+#include <inc/assert.h>
 
 /*
  * Space or zero padding and a field width are supported for the numeric
@@ -248,12 +249,38 @@ sprintputch(int ch, struct sprintbuf *b)
 }
 
 int
+vsprintf(char *buf, const char *fmt, va_list ap)
+{
+	assert(buf != NULL);
+	struct sprintbuf b = {buf, (char*)(intptr_t)~0, 0};
+
+	// print the string to the buffer
+	vprintfmt((void*)sprintputch, &b, fmt, ap);
+
+	// null terminate the buffer
+	*b.buf = '\0';
+
+	return b.cnt;
+}
+
+int
+sprintf(char *buf, const char *fmt, ...)
+{
+	va_list ap;
+	int rc;
+
+	va_start(ap, fmt);
+	rc = vsprintf(buf, fmt, ap);
+	va_end(ap);
+
+	return rc;
+}
+
+int
 vsnprintf(char *buf, int n, const char *fmt, va_list ap)
 {
+	assert(buf != NULL && n > 0);
 	struct sprintbuf b = {buf, buf+n-1, 0};
-
-	if (buf == NULL || n < 1)
-		return -1;
 
 	// print the string to the buffer
 	vprintfmt((void*)sprintputch, &b, fmt, ap);
@@ -276,6 +303,5 @@ snprintf(char *buf, int n, const char *fmt, ...)
 
 	return rc;
 }
-
 
 #endif // LAB >= 1

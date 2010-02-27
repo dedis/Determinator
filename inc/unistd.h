@@ -1,4 +1,4 @@
-#if LAB >= 99
+#if LAB >= 4
 // Unix compatibility API - standard Unix functions
 #ifndef PIOS_INC_UNISTD_H
 #define PIOS_INC_UNISTD_H 1
@@ -30,4 +30,4 @@ int	ftruncate(int fd, off_t size);
 int	remove(const char *path);
 
 #endif	// !PIOS_INC_UNISTD_H
-#endif	// LAB >= 99
+#endif	// LAB >= 4

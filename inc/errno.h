@@ -23,6 +23,8 @@
 #define EISDIR		7	/* Is a directory */
 #define ENOTDIR		8	/* Not a directory */
 #define ENOTEMPTY	9	/* Directory not empty */
+#define ENAMETOOLONG	10	/* File name too long */
+#define ENOSPC		11	/* No space left on device */
 
 #if LAB >= 99
 #define EDOM		X	/* Argument out of domain */
@@ -38,14 +40,12 @@
 #define EINTR		X	/* Interrupted system call */
 #define EIO		X	/* Input/output error */
 #define EMLINK		X	/* Too many links */
-#define ENAMETOOLONG	X	/* File name too long */
 #define ENFILE		X	/* Max files open in system */
 #define ENODEV		X	/* Op not supported by device */
 #define ENOEXEC		X	/* Exec format error */
 #define ENOLCK		X	/* No locks available */
 #define ENOMEM		X	/* Cannot allocate memory */
 #define ENOSYS		X	/* Function not implemented */
-#define ENOSPC		X	/* No space left on device */
 #define ENOTTY		X	/* Inappropriate ioctl */
 #define ENXIO		X	/* Device not configured */
 #define EPERM		X	/* Op not permitted */

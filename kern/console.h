@@ -22,8 +22,10 @@ void cons_init(void);
 // and returns that character or 0 if no more available from device.
 void cons_intr(int (*proc)(void));
 
-// General console I/O functions - see kern/io.c
-void cons_output(struct iocons *io);
-bool cons_input(struct iocons *io);
+// Called from file_io() in the context of the root process,
+// to synchronize the root process's console special I/O files
+// with the kernel's console I/O buffers.
+// Returns true if I/O was done, false if no new I/O was ready.
+bool cons_io(void);
 
 #endif /* PIOS_KERN_CONSOLE_H_ */

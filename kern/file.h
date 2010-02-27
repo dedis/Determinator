@@ -9,8 +9,12 @@
 #include <inc/file.h>
 
 struct proc;
+struct trapframe;
 
-void file_init(struct proc *root);
+void file_init(void);
+void file_initroot(struct proc *root);
+void file_io(struct trapframe *tf) gcc_noreturn;
+void file_wakeroot(void);
 
 #endif /* !PIOS_KERN_FILE_H */
 #endif // LAB >= 4

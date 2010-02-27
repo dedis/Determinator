@@ -22,7 +22,8 @@
 
 // These definitions should really be in limits.h according to POSIX
 #define OPEN_MAX	256	// Max number of open files per process
-#define NAME_MAX	59	// Max length of a filename (not inluding null)
+#define NAME_MAX	59	// Max length of a filename, not inluding null
+#define PATH_MAX	1024	// Max length of a full pathname, incl. null
 
 // File open flags - these belong in fcntl.h according to POSIX
 #define	O_RDONLY	0x0001		// open for reading only
@@ -47,11 +48,17 @@
 
 struct stat;
 
+struct dirent {				// Directory entry - should be 64 bytes
+	int	d_ino;			// File inode number, 0 if free dirent
+	char	d_name[NAME_MAX+1];	// Entry name
+};
+
 typedef struct filedesc {		// Per-open file descriptor state
 	ino_t	ino;			// Opened file's inode number
 	int	flags;			// File open flags - O_*, above
 	off_t	ofs;			// Current seek pointer in file
 	int	err;			// Last error on this file descriptor
+	struct dirent de;		// Used by readdir()
 } filedesc;
 
 typedef struct fileinode {		// Per-file state - like an "inode"
@@ -78,32 +85,42 @@ typedef struct filestate {
 #define FILEINO_CONSOUT	2		// Inode 1 holds console output
 #define FILEINO_ROOTDIR	3		// Inode 1 is the root dir
 
+#if LAB >= 99
 // File inode flags
-//#define FILEIF_PARTIAL	0x01	// Wait when we read to the end
-//#define FILEIF_RANDWR	0x02		// Has been randomly written to
-//#define FILEIF_CONFLICT	0x04	// Write/write conflict detected
+#define FILEIF_PARTIAL	0x01	// Wait when we read to the end
+#define FILEIF_RANDWR	0x02		// Has been randomly written to
+#define FILEIF_CONFLICT	0x04	// Write/write conflict detected
+#endif
 
 
-#define filedesc_isvalid(fd) \
-	((fd) >= &files->fd[0] && (fd) < &files->fd[OPEN_MAX])
-#define filedesc_isopen(fd) \
-	(filedesc_isvalid(fd) && (fd)->ino != FILEINO_NULL)
-#define filedesc_isreadable(fd) \
-	(filedesc_isopen(fd) && (fd)->flags & FILEDESC_READ)
-#define filedesc_iswriteable(fd) \
-	(filedesc_isopen(fd) && (fd)->flags & FILEDESC_WRITE)
+#define filedesc_isvalid(f) \
+	((f) >= &files->fd[0] && (f) < &files->fd[OPEN_MAX])
+#define filedesc_isopen(f) \
+	(filedesc_isvalid(f) && (f)->ino != FILEINO_NULL)
+#define filedesc_isreadable(f) \
+	(filedesc_isopen(f) && (f)->flags & O_RDONLY)
+#define filedesc_iswritable(f) \
+	(filedesc_isopen(f) && (f)->flags & O_WRONLY)
 
 #define fileino_isvalid(ino) \
 	((ino) > 0 && (ino) < FILE_INODES)
 #define fileino_exists(ino) \
-	(fileino_isvalid(ino) && files->fd[ino].nlink > 0)
+	(fileino_isvalid(ino) && files->fi[ino].nlink > 0)
 #define fileino_isreg(ino)	\
-	(fileino_exists(ino) && S_ISREG(files->fd[ino].mode))
+	(fileino_exists(ino) && S_ISREG(files->fi[ino].mode))
 #define fileino_isdir(ino)	\
-	(fileino_exists(ino) && S_ISDIR(files->fd[ino].mode))
+	(fileino_exists(ino) && S_ISDIR(files->fi[ino].mode))
 
 
-int filedesc_alloc(void);		// Allocate a file descriptor
+ssize_t fileino_write(int ino, off_t ofs, const void *buf, int len);
+int fileino_stat(int ino, struct stat *statbuf);
+
+filedesc *filedesc_alloc(void);
+filedesc *filedesc_open(filedesc *fd, const char *path, int openflags);
+int filedesc_read(filedesc *fd, void *buf, size_t eltsize, size_t count);
+int filedesc_write(filedesc *fd, const void *buf, size_t eltsize, size_t count);
+off_t filedesc_seek(filedesc *fd, off_t ofs, int whence);
+void filedesc_close(filedesc *fd);
 
 #endif	// !PIOS_INC_FILE_H
 #endif	// LAB >= 4

@@ -24,7 +24,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/proc.c \
 			kern/syscall.c \
 			kern/pmap.c \
-			kern/io.c \
+			kern/file.c \
 			dev/video.c \
 			dev/kbd.c \
 			dev/serial.c \
@@ -89,7 +89,7 @@ KERN_BINFILES :=	user/idle \
 else
 ifdef LAB4
 # Files in 'user' directory to comprise the kernel's initial file system.
-KERN_INITFILES :=	fs \
+KERN_INITFILES :=	ls \
 
 # Binary program images to embed within the kernel.
 KERN_BINFILES :=	boot/bootother \
@@ -144,10 +144,10 @@ $(OBJDIR)/kern/kernel.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/bootblock
 	$(V)dd if=$(OBJDIR)/kern/kernel of=$(OBJDIR)/kern/kernel.img~ seek=1 conv=notrunc 2>/dev/null
 	$(V)mv $(OBJDIR)/kern/kernel.img~ $(OBJDIR)/kern/kernel.img
 
-$(OBJDIR)/kern/initfiles.h: $(KERN_BINFILES)
-	echo >$@ $(subst /,_,$(patsubst %,INITFILE(%s),$(KERN_INITFILES)))
 ifdef LAB4
-$(OBJDIR)/kern/kernel: $(OBJDIR)/kern/initfiles.h
+$(OBJDIR)/kern/initfiles.h: kern/Makefrag
+	echo >$@ "$(subst /,_,$(patsubst %,INITFILE(%),$(KERN_INITFILES)))"
+$(OBJDIR)/kern/file.o: $(OBJDIR)/kern/initfiles.h
 endif
 
 all: $(OBJDIR)/kern/kernel.img

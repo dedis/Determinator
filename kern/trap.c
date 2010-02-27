@@ -19,7 +19,8 @@
 
 #include <dev/lapic.h>
 #if LAB >= 4
-#include <dev/ide.h>
+#include <dev/kbd.h>
+#include <dev/serial.h>
 #endif
 #endif
 
@@ -219,11 +220,20 @@ trap(trapframe *tf)
 	case T_IRQ0 + IRQ_TIMER:
 		lapic_eoi();
 		proc_yield(tf);
-		break;
-	case T_IRQ0 + IRQ_IDE:
-		ide_intr();
+	case T_IRQ0 + IRQ_KBD:
 		lapic_eoi();
+		kbd_intr();
+		trap_return(tf);
+	case T_IRQ0 + IRQ_SERIAL:
+		lapic_eoi();
+		serial_intr();
+		trap_return(tf);
+#if LAB >= 99
+	case T_IRQ0 + IRQ_IDE:
+		lapic_eoi();
+		ide_intr();
 		break;
+#endif
 	case T_IRQ0 + IRQ_SPURIOUS:
 		cprintf("cpu%d: spurious interrupt at %x:%x\n",
 			c->id, tf->tf_cs, tf->tf_eip);

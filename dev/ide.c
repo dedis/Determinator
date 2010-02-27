@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 99
 /*
  * Minimal PIO-based (non-interrupt-driven) IDE driver code.
  * For information about what all this IDE/ATA magic means,

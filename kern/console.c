@@ -12,7 +12,7 @@
 #include <kern/spinlock.h>
 #include <kern/mem.h>
 #if LAB >= 4
-#include <kern/io.h>
+#include <kern/file.h>
 #endif
 
 #include <dev/video.h>
@@ -34,11 +34,15 @@ static spinlock cons_lock;	// Spinlock to make console output atomic
 // where we stash characters received from the keyboard or serial port
 // whenever the corresponding interrupt occurs.
 
+#define CONSBUFSIZE 512
+
 static struct {
-	uint8_t buf[IOCONS_BUFSIZE];
+	uint8_t buf[CONSBUFSIZE];
 	uint32_t rpos;
 	uint32_t wpos;
 } cons;
+
+static int cons_outsize;	// Console output already written by root proc
 
 // called by device interrupt routines to feed input characters
 // into the circular console input buffer.
@@ -54,7 +58,7 @@ cons_intr(int (*proc)(void))
 		if (c == 0)
 			continue;
 		cons.buf[cons.wpos++] = c;
-		if (cons.wpos == IOCONS_BUFSIZE)
+		if (cons.wpos == CONSBUFSIZE)
 			cons.wpos = 0;
 	}
 #if SOL >= 2
@@ -77,7 +81,7 @@ cons_getc(void)
 	// grab the next character from the input buffer.
 	if (cons.rpos != cons.wpos) {
 		c = cons.buf[cons.rpos++];
-		if (cons.rpos == IOCONS_BUFSIZE)
+		if (cons.rpos == CONSBUFSIZE)
 			cons.rpos = 0;
 		return c;
 	}
@@ -110,38 +114,7 @@ cons_init(void)
 		cprintf("Serial port does not exist!\n");
 }
 
-// Process a console output event a user process
-void
-cons_output(iocons *io)
-{
-	io->data[IOCONS_BUFSIZE] = 0;
-	cputs(io->data);
-}
-
-// Collect any available console input for a waiting user process
-bool
-cons_input(iocons *io)
-{
-#if SOL >= 2
-	spinlock_acquire(&cons_lock);
-#endif
-	int amount = cons.wpos - cons.rpos;
-	assert(amount >= 0 && amount <= IOCONS_BUFSIZE);
-	if (amount > 0) {
-		io->type = IO_CONS;
-		memmove(io->data, &cons.buf[cons.rpos], amount);
-		io->data[amount] = 0;
-		cons.rpos = cons.wpos = 0;
-	}
-#if SOL >= 2
-	spinlock_release(&cons_lock);
-#endif
-	return amount > 0;
-}
-
-
 // `High'-level console I/O.  Used by readline and cprintf.
-
 void
 cputs(const char *str)
 {
@@ -161,5 +134,41 @@ cputs(const char *str)
 
 	spinlock_release(&cons_lock);
 #endif
+}
+
+// Synchronize the root process's console special files
+// with the actual console I/O device.
+bool
+cons_io(void)
+{
+	spinlock_acquire(&cons_lock);
+	bool didio = 0;
+
+	// Console output from the root process's console output file
+	fileinode *outfi = &files->fi[FILEINO_CONSOUT];
+	const char *outbuf = FILEDATA(FILEINO_CONSOUT);
+	assert(cons_outsize <= outfi->size);
+	while (cons_outsize < outfi->size) {
+		cons_putc(outbuf[cons_outsize++]);
+		didio = 1;
+	}
+		
+
+	// Console input to the root process's console input file
+	fileinode *infi = &files->fi[FILEINO_CONSIN];
+	char *inbuf = FILEDATA(FILEINO_CONSIN);
+	int amount = cons.wpos - cons.rpos;
+	if (infi->size + amount > FILE_MAXSIZE)
+		panic("cons_io: root process's console input file full!");
+	assert(amount >= 0 && amount <= CONSBUFSIZE);
+	if (amount > 0) {
+		memmove(&inbuf[infi->size], &cons.buf[cons.rpos], amount);
+		infi->size += amount;
+		cons.rpos = cons.wpos = 0;
+		didio = 1;
+	}
+
+	spinlock_release(&cons_lock);
+	return didio;
 }
 

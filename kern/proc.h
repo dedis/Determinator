@@ -58,6 +58,9 @@ typedef struct proc {
 // Special "null process" - always just contains zero in all fields.
 extern proc proc_null;
 
+// Special root process - the only one that can do direct external I/O.
+extern proc *proc_root;
+
 
 void proc_init(void);	// Initialize process management code
 proc *proc_alloc(proc *p, uint32_t cn);	// Allocate new child
