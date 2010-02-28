@@ -55,3 +55,4 @@ through the interrupt.
 - Make the kernel's program loader push at least minimal args on the stack,
   instead of having to kludge lib/entry.S.
 
+- Rename 'filestate' to 'procstate' and 'files' macro to 'procst' or something?

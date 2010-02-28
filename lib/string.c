@@ -298,6 +298,7 @@ strerror(int err)
 		"File name too long",
 		"No space left on device",
 		"Inappropriate I/O control operation",
+		"Resource temporarily unavailable",
 	};
 	static char errbuf[64];
 

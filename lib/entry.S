@@ -1,10 +1,12 @@
 #if LAB >= 3
 
-	.data
+#include <inc/syscall.h>
+#include <inc/vm.h>
 
-// Entrypoint - this is where the kernel (or our parent process)
-// starts us running when we are initially loaded into a new process.
 	.text
+
+// Start entrypoint - this is where the kernel (or our parent process)
+// starts us running when we are initially loaded into a new process.
 	.globl start
 start:
 #if LAB >= 4
@@ -26,5 +28,36 @@ args_exist:
 	pushl	%eax	// use with main's return value as exit status
 	call	exit
 1:	jmp 1b
+
+
+// Start entrypoint for exec.  When our exec code replaces an existing process
+// with a new one, it loads the new program image into child process 0,
+// then calls this "function" with the new program's initial stack pointer
+// as the only argument.
+// Here we overwrite our entire user space memory state with that of child 0,
+// clear child 0's address space, and start the new program.
+// Since the old program's executable gets overwritten by the new one
+// during the first system call below, this code will continue to work
+// after that point ONLY if this particular code sequence is identical
+// and at the same location in EVERY user program.
+// We guarantee this by putting it in lib/entry.S, which is always the same
+// and linked at the beginning of every user program.
+	.globl exec_start
+exec_start:
+	movl	4(%esp),%esp	// Load new executable's initial stack pointer
+	xorl	%ebp,%ebp	// New stack will be at its first stack frame
+
+	movl	$SYS_GET|SYS_COPY,%eax	// Copy child 0's memory onto our own.
+	xorl	%edx,%edx		// edx[0-7] = child 0
+	movl	$VM_USERLO,%esi
+	movl	$VM_USERLO,%edi
+	movl	$VM_USERHI-VM_USERLO,%ecx
+	int	$T_SYSCALL
+
+	movl	$SYS_PUT|SYS_ZERO,%eax	// Zero out child 0's state
+	int	$T_SYSCALL
+
+	jmp	start
+
 
 #endif // LAB >= 3

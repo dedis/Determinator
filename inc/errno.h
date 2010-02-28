@@ -26,6 +26,7 @@
 #define ENAMETOOLONG	10	/* File name too long */
 #define ENOSPC		11	/* No space left on device */
 #define ENOTTY		12	/* Inappropriate I/O control operation */
+#define EAGAIN		13	/* Resource temporarily unavailable */
 
 #if LAB >= 99
 #define EDOM		X	/* Argument out of domain */
@@ -33,7 +34,6 @@
 
 #define E2BIG		X	/* Argument list too long */
 #define EACCES		X	/* Permission denied */
-#define EAGAIN		X	/* Resource temporarily unavail */
 #define EBUSY		X	/* Device busy */
 #define ECHILD		X	/* No child processes */
 #define EDEADLK		X	/* Resource deadlock avoided */

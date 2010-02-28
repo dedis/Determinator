@@ -143,6 +143,9 @@ init(void)
 	proghdr *ph = (proghdr *) ((void *) eh + eh->e_phoff);
 	proghdr *eph = ph + eh->e_phnum;
 	for (; ph < eph; ph++) {
+		if (ph->p_type != ELF_PROG_LOAD)
+			continue;
+	
 		void *fa = (void *) eh + ROUNDDOWN(ph->p_offset, PAGESIZE);
 		uint32_t va = ROUNDDOWN(ph->p_va, PAGESIZE);
 		uint32_t zva = ph->p_va + ph->p_filesz;

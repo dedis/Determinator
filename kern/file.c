@@ -107,9 +107,15 @@ file_initroot(proc *root)
 	files->cwd = FILEINO_ROOTDIR;
 	files->fi[FILEINO_ROOTDIR].nlink++;
 
-	// XXX increase the root process's stack size to 64KB
+	// Child process state - reserve PID 0 as a "scratch" child process.
+	files->child[0] = PROC_RESERVED;
+#if LAB >= 99
+
+	// Increase the root process's stack size to 64KB.
+	// XXX should just do this while loading the program.
 	pmap_setperm(root->pdir, VM_STACKHI - 65536, 65536,
 			SYS_READ | SYS_WRITE);
+#endif
 }
 
 // Called from proc_ret() when the root process "returns" -

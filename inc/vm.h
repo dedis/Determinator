@@ -61,19 +61,13 @@
 // for communication between parent and child processes.
 //
 
-// 4MB I/O areas for input events to children and output events from children
-#define VM_IOHI		(VM_USERHI)
-#define VM_IOLO		(VM_USERHI-PTSIZE)
-#if LAB >= 99
-#define VM_INHI		(VM_USERHI)
-#define VM_INLO		(VM_USERHI-PTSIZE)
-#define VM_OUTHI	(VM_USERHI-PTSIZE)
-#define VM_OUTLO	(VM_USERHI-PTSIZE*2)
-#endif
-
 // Standard area for the user-space stack (thread-private)
 #define VM_STACKHI	0xe0000000
-#define VM_STACKLO	0xc0000000
+#define VM_STACKLO	0xd0000000
+
+// Scratch address space region for general use (e.g., by exec)
+#define VM_SCRATCHHI	0xd0000000
+#define VM_SCRATCHLO	0xc0000000
 
 // Address space area for Unix API compatibility state and files.
 #define VM_UNIXHI	0xc0000000

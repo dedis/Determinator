@@ -5,7 +5,7 @@
 // in the virtual address range 2GB-3GB (0x80000000-0xc0000000).
 // Each file's contents occupies a 4MB area of this address region
 // (regardless of the file's actual size), for up to 256 files total.
-// The first 4MB region, for "file 0", is reserved for a file metadata area.
+// The first 4MB region, for "file 0", is reserved for a process state area.
 //
 // Output streams such as the display are represented by append-mode files,
 // for which data appended by child processes gets merged together
@@ -45,6 +45,10 @@
 #define FILESVA	0x80000000		// Virtual address of file state area
 #define FILEDATA(ino)	((void*)FILESVA + ((ino) << 22)) // File data area
 
+// Values for filestate.childstate array below
+#define PROC_FREE	0		// Unused child, available for fork()
+#define PROC_RESERVED	(-1)		// Child reserved for special purpose
+#define PROC_FORKED	1		// This child forked and running
 
 struct stat;
 
@@ -68,6 +72,15 @@ typedef struct fileinode {		// Per-file state - like an "inode"
 	ssize_t	psize;			// Parent's original size, -1 if new
 } fileinode;
 
+#if LAB >= 99
+// Information record we keep for child processes forked via Unix fork(),
+// for the use of wait() and waitpid().
+typedef struct procinfo {
+	int
+} procinfo;
+#endif
+
+// User-space Unix process state.
 typedef struct filestate {
 	int		err;		// This process/thread's errno variable
 	int		cwd;		// Ref to inode for current directory
@@ -75,6 +88,7 @@ typedef struct filestate {
 	int		status;		// Exit status - set on exit
 	filedesc	fd[OPEN_MAX];	// File descriptor table
 	fileinode	fi[FILE_INODES]; // "Inodes" describing actual files
+	int8_t		child[256]; 	// Unix state of all child processes
 } filestate;
 
 #define files		((filestate *) FILESVA)

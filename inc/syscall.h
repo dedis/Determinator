@@ -65,6 +65,8 @@
 //	EBP:	reserved
 
 
+#ifndef __ASSEMBLER__
+
 // CPU state save area format for GET/PUT with SYS_REGS flags
 typedef struct cpustate {
 	trapframe	tf;		// general registers
@@ -79,6 +81,8 @@ void sys_put(uint32_t flags, uint8_t child, cpustate *cpu,
 void sys_get(uint32_t flags, uint8_t child, cpustate *cpu,
 		void *childsrc, void *localdest, size_t size);
 void sys_ret(void);
+
+#endif /* !__ASSEMBLER__ */
 
 #endif /* !PIOS_INC_SYSCALL_H */
 #endif /* LAB >= 2 */
