@@ -1,20 +1,26 @@
 #if LAB >= 4
 
+#include <inc/gcc.h>
+#include <inc/mmu.h>
 #include <inc/assert.h>
 #include <inc/stdarg.h>
+#include <inc/string.h>
 #include <inc/syscall.h>
 #include <inc/dirent.h>
+#include <inc/unistd.h>
+#include <inc/elf.h>
+#include <inc/vm.h>
 
 extern void start(void);
-extern void exec_start(intptr_t esp);
+extern void exec_start(intptr_t esp) gcc_noreturn;
 
-void exec_readelf(const char *path);
-void exec_copyargs(char *const argv[]);
+int exec_readelf(const char *path);
+intptr_t exec_copyargs(char *const argv[]);
 
 int
 execl(const char *path, const char *arg0, ...)
 {
-	return execv(path, &arg0);
+	return execv(path, (char *const *) &arg0);
 }
 
 int
@@ -29,10 +35,16 @@ execv(const char *path, char *const argv[])
 	if (exec_readelf(path) < 0)
 		return -1;
 
-	// Setup the child's stack with the argument array.
+	// Setup child 0's stack with the argument array.
 	intptr_t esp = exec_copyargs(argv);
 
-	XXX ...
+	// Copy our Unix file system and process state into the child.
+	sys_put(SYS_COPY, 0, NULL, (void*)VM_UNIXLO, (void*)VM_UNIXLO,
+		VM_UNIXHI-VM_UNIXLO);
+
+	// Copy child 0's entire memory state onto ours
+	// and start the new program.  See lib/entry.S for details.
+	exec_start(esp);
 }
 
 int
@@ -85,7 +97,8 @@ exec_readelf(const char *path)
 		if (filelo < 0 || filelo > imgsize
 				|| filehi < filelo || filehi > imgsize)
 			goto badelf;
-		memcpy((void*)valo + scratchofs, filelo, filehi - filelo);
+		memcpy((void*)valo + scratchofs, (void*)filelo,
+			filehi - filelo);
 
 		// Finally, remove write permissions on read-only segments.
 		if (!(ph->p_flags & ELF_PROG_FLAG_WRITE))
@@ -120,13 +133,13 @@ exec_copyargs(char *const argv[])
 
 	// How many arguments?
 	int argc;
-	for (int argc = 0; argv[argc] != NULL; argc++)
+	for (argc = 0; argv[argc] != NULL; argc++)
 		;
 
 	// Make room for the argv array
 	intptr_t esp = VM_STACKHI;
 	intptr_t scratchofs = VM_SCRATCHLO - (VM_STACKHI-PTSIZE);
-	esp -= (argc+1) * sizeof(intptr_t);
+	esp -= (argc+1) * sizeof(intptr_t);	// room for arguments plus NULL
 	intptr_t dargv = esp;
 
 	// Copy the argument strings
@@ -137,7 +150,7 @@ exec_copyargs(char *const argv[])
 		strcpy((void*)esp + scratchofs, argv[i]);
 		((intptr_t*)(dargv + scratchofs))[i] = esp;
 	}
-	esp &= 3;	// keep esp word-aligned
+	esp &= 3;	// get esp word-aligned again
 
 	// Push the arguments to main()
 	esp -= 4;	*(intptr_t*)(esp + scratchofs) = dargv;

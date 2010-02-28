@@ -7,12 +7,13 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/printfmt.c \
 			lib/string.c \
 			lib/syscall.c \
-			lib/fork.c \
 			lib/file.c \
 			lib/dir.c \
 			lib/stdio.c \
 			lib/stdlib.c \
 			lib/unistd.c \
+			lib/fork.c \
+			lib/exec.c \
 			lib/fprintf.c \
 			lib/readline.c
 

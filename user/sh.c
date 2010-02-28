@@ -302,8 +302,8 @@ usage(void)
 	exit(EXIT_FAILURE);
 }
 
-void
-umain(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
 	int r, interactive, echocmds;
 

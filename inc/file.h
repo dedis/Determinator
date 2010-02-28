@@ -45,11 +45,6 @@
 #define FILESVA	0x80000000		// Virtual address of file state area
 #define FILEDATA(ino)	((void*)FILESVA + ((ino) << 22)) // File data area
 
-// Values for filestate.childstate array below
-#define PROC_FREE	0		// Unused child, available for fork()
-#define PROC_RESERVED	(-1)		// Child reserved for special purpose
-#define PROC_FORKED	1		// This child forked and running
-
 struct stat;
 
 struct dirent {				// Directory entry - should be 64 bytes
@@ -66,19 +61,24 @@ typedef struct filedesc {		// Per-open file descriptor state
 } filedesc;
 
 typedef struct fileinode {		// Per-file state - like an "inode"
-	nlink_t	nlink;			// # links/refs to this file, 0 if free
-	mode_t	mode;			// Inode flags - S_* in inc/stat.h
+	mode_t	mode;			// File mode (stat.h), 0 if free inode
+	int	gen;			// Generation - bumped on every change
 	size_t	size;			// File's current size
-	ssize_t	psize;			// Parent's original size, -1 if new
 } fileinode;
 
-#if LAB >= 99
+
 // Information record we keep for child processes forked via Unix fork(),
 // for the use of wait() and waitpid().
 typedef struct procinfo {
-	int
+	int	state;			// Current state of this child process
+	int	igen[FILE_INODES];	// Generation of each inode on fork
 } procinfo;
-#endif
+
+// Values for procinfo.state above
+#define PROC_FREE	0		// Unused child, available for fork()
+#define PROC_RESERVED	(-1)		// Child reserved for special purpose
+#define PROC_FORKED	1		// This child forked and running
+
 
 // User-space Unix process state.
 typedef struct filestate {
@@ -88,7 +88,7 @@ typedef struct filestate {
 	int		status;		// Exit status - set on exit
 	filedesc	fd[OPEN_MAX];	// File descriptor table
 	fileinode	fi[FILE_INODES]; // "Inodes" describing actual files
-	int8_t		child[256]; 	// Unix state of all child processes
+	procinfo	child[256]; 	// Unix state of all child processes
 } filestate;
 
 #define files		((filestate *) FILESVA)
