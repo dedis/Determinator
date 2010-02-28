@@ -7,6 +7,7 @@
 #include <inc/fcntl.h>
 #include <inc/string.h>
 #include <inc/syscall.h>
+#include <inc/dirent.h>
 
 #include <kern/cpu.h>
 #include <kern/trap.h>
@@ -24,8 +25,9 @@
 #undef INITFILE
 
 #define INITFILE(name)	\
-	{ _binary_obj_user_##name##_start, _binary_obj_user_##name##_end },
-char *initfiles[][2] = {
+	{ #name, _binary_obj_user_##name##_start, \
+		_binary_obj_user_##name##_end },
+char *initfiles[][3] = {
 	#include <obj/kern/initfiles.h>
 };
 #undef INITFILE
@@ -54,9 +56,8 @@ file_initroot(proc *root)
 	lcr3(mem_phys(root->pdir));
 
 	// Enable read/write access on the file metadata area
-	assert(pmap_setperm(root->pdir, FILESVA,
-				ROUNDUP(sizeof(filestate), PAGESIZE),
-				SYS_READ | SYS_WRITE));
+	pmap_setperm(root->pdir, FILESVA, ROUNDUP(sizeof(filestate), PAGESIZE),
+				SYS_READ | SYS_WRITE);
 	memset(files, 0, sizeof(*files));
 
 	// Set up the standard I/O descriptors for console I/O
@@ -73,7 +74,42 @@ file_initroot(proc *root)
 	files->fi[FILEINO_CONSOUT].nlink = 2;	// fd[1] and fd[2]
 
 	// Set up the root directory.
+	int ninitfiles = sizeof(initfiles)/sizeof(initfiles[0]);
+	int rootdirsize = sizeof(struct dirent) * (2 + ninitfiles);
+	files->fi[FILEINO_ROOTDIR].mode = S_IFDIR;
 	files->fi[FILEINO_ROOTDIR].nlink = 1;
+	files->fi[FILEINO_ROOTDIR].size = rootdirsize;
+	struct dirent *de = FILEDATA(FILEINO_ROOTDIR);
+	pmap_setperm(root->pdir, (uintptr_t)de,
+				ROUNDUP(rootdirsize, PAGESIZE),
+				SYS_READ | SYS_WRITE);
+	strcpy(de[0].d_name, ".");	de[0].d_ino = FILEINO_ROOTDIR;
+	strcpy(de[1].d_name, "..");	de[1].d_ino = FILEINO_ROOTDIR;
+
+	// Set up the initial files in the root process's file system
+	int i;
+	for (i = 0; i < ninitfiles; i++) {
+		int ino = FILEINO_GENERAL+i;
+		strcpy(de[2+i].d_name, initfiles[i][0]);
+		de[2+i].d_ino = ino;
+
+		int filesize = initfiles[i][2] - initfiles[i][1];
+		files->fi[ino].mode = S_IFREG;
+		files->fi[ino].nlink = 1;
+		files->fi[ino].size = filesize;
+		pmap_setperm(root->pdir, (uintptr_t)FILEDATA(ino),
+					ROUNDUP(filesize, PAGESIZE),
+					SYS_READ | SYS_WRITE);
+		memcpy(FILEDATA(ino), initfiles[i][1], filesize);
+	}
+
+	// Current working directory
+	files->cwd = FILEINO_ROOTDIR;
+	files->fi[FILEINO_ROOTDIR].nlink++;
+
+	// XXX increase the root process's stack size to 64KB
+	pmap_setperm(root->pdir, VM_STACKHI - 65536, 65536,
+			SYS_READ | SYS_WRITE);
 }
 
 // Called from proc_ret() when the root process "returns" -
@@ -93,18 +129,18 @@ file_io(trapframe *tf)
 	// This is very different from handling system calls
 	// on behalf of arbitrary processes that might be buggy or evil.
 
-	// Has the root process exited?
-	if (files->exited) {
-		cprintf("root process exited with status %d\n", files->status);
-		done();
-	}
-
 	// Perform I/O with whatever devices we have access to.
 	bool iodone = 0;
 	iodone |= cons_io();
 #if LAB >= 99
 	iodone |= net_io();
 #endif
+
+	// Has the root process exited?
+	if (files->exited) {
+		cprintf("root process exited with status %d\n", files->status);
+		done();
+	}
 
 	// We successfully did some I/O, let the root process run again.
 	if (iodone)

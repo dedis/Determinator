@@ -181,8 +181,6 @@ memset(void *v, int c, size_t n)
 	return v;
 }
 
-/* no memcpy - use memmove instead */
-
 void *
 memmove(void *dst, const void *src, size_t n)
 {
@@ -204,10 +202,8 @@ memmove(void *dst, const void *src, size_t n)
 }
 #endif
 
-/* sigh - gcc emits references to this for structure assignments! */
-/* it is *not* prototyped in inc/string.h - do not use directly. */
 void *
-memcpy(void *dst, void *src, size_t n)
+memcpy(void *dst, const void *src, size_t n)
 {
 	return memmove(dst, src, n);
 }

@@ -63,9 +63,9 @@ typedef struct filedesc {		// Per-open file descriptor state
 
 typedef struct fileinode {		// Per-file state - like an "inode"
 	nlink_t	nlink;			// # links/refs to this file, 0 if free
+	mode_t	mode;			// Inode flags - S_* in inc/stat.h
 	size_t	size;			// File's current size
 	ssize_t	psize;			// Parent's original size, -1 if new
-	mode_t	mode;			// Inode flags - S_* in inc/stat.h
 } fileinode;
 
 typedef struct filestate {
@@ -82,8 +82,9 @@ typedef struct filestate {
 // Special file inode numbers
 #define FILEINO_NULL	0		// Inode 0 is never used
 #define FILEINO_CONSIN	1		// Inode 1 holds console input
-#define FILEINO_CONSOUT	2		// Inode 1 holds console output
-#define FILEINO_ROOTDIR	3		// Inode 1 is the root dir
+#define FILEINO_CONSOUT	2		// Inode 2 holds console output
+#define FILEINO_ROOTDIR	3		// Inode 3 is the root dir
+#define FILEINO_GENERAL	4		// First general-purpose inode
 
 #if LAB >= 99
 // File inode flags
@@ -112,6 +113,7 @@ typedef struct filestate {
 	(fileino_exists(ino) && S_ISDIR(files->fi[ino].mode))
 
 
+int fileino_alloc(void);
 ssize_t fileino_write(int ino, off_t ofs, const void *buf, int len);
 int fileino_stat(int ino, struct stat *statbuf);
 

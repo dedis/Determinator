@@ -147,12 +147,15 @@ filedesc_read(filedesc *fd, void *buf, size_t eltsize, size_t count)
 			actual += avail;
 			count -= avail;
 		}
-		if (count > 0 && (fi->mode & S_IFPART)) {
-			// Wait for our parent to extend (or close) the file.
-			cprintf("fread: waiting for input on file %d\n",
-				fd - files->fd);
-			sys_ret();
-		}
+
+		// If there's no more we can read, stop now.
+		if (count == 0 || !(fi->mode & S_IFPART))
+			break;
+
+		// Wait for our parent to extend (or close) the file.
+		cprintf("fread: waiting for input on file %d\n",
+			fd - files->fd);
+		sys_ret();
 	}
 	return actual;
 }
@@ -160,7 +163,6 @@ filedesc_read(filedesc *fd, void *buf, size_t eltsize, size_t count)
 ssize_t
 filedesc_write(filedesc *fd, const void *buf, size_t eltsize, size_t count)
 {
-	ssize_t actual = filedesc_write(fd, buf, eltsize, count);
 	assert(filedesc_iswritable(fd));
 	fileinode *fi = &files->fi[fd->ino];
 
