@@ -51,3 +51,7 @@ through the interrupt.
   to rearrange the process hierarchy and free processes.
 
 - Naming consistency: rename console.{c,h} to cons.{c,h}
+
+- Make the kernel's program loader push at least minimal args on the stack,
+  instead of having to kludge lib/entry.S.
+

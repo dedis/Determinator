@@ -455,7 +455,7 @@ void mergecheck()
 	cprintf("testvm: mergecheck passed\n");
 }
 
-void piosmain()
+int main()
 {
 	cprintf("testvm: in piosmain()\n");
 
@@ -466,6 +466,7 @@ void piosmain()
 	mergecheck();
 
 	cprintf("testvm: all tests completed successfully!\n");
+	return 0;
 }
 
 #endif

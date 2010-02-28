@@ -7,7 +7,7 @@
 	.text
 	.globl start
 start:
-#if LAB >= 99
+#if LAB >= 4
 	// See if we were started with arguments on the stack.
 	// If not, our esp will start on a nice big power-of-two boundary.
 	testl $0x0fffffff, %esp
@@ -21,8 +21,10 @@ start:
 
 args_exist:
 #endif
-	call	piosmain
-	call	sys_ret
+	call	main	// run the program
+
+	pushl	%eax	// use with main's return value as exit status
+	call	exit
 1:	jmp 1b
 
 #endif // LAB >= 3

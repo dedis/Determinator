@@ -74,8 +74,8 @@ usage(void)
 	exit(EXIT_FAILURE);
 }
 
-void
-piosmain(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
 	int i;
 
@@ -89,12 +89,13 @@ piosmain(int argc, char **argv)
 		break;
 	}ARGEND
 
-	if (argc == 0) {
-		ls("");
-	} else {
+	if (argc > 0) {
 		for (i=0; i<argc; i++)
 			ls(argv[i]);
-	}
+	} else
+		ls("");
+
+	return 0;
 }
 
 #endif /* LAB >= 4 */

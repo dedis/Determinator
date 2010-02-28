@@ -1,10 +1,12 @@
 #if LAB >= 4
 
+#include <inc/gcc.h>
 #include <inc/file.h>
+#include <inc/stdlib.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>
 
-void
+void gcc_noreturn
 exit(int status)
 {
 	// To exit a PIOS user process, by convention,
@@ -14,6 +16,12 @@ exit(int status)
 	files->exited = 1;
 	sys_ret();
 	panic("exit: sys_ret shouldn't have returned");
+}
+
+void gcc_noreturn
+abort(void)
+{
+	exit(EXIT_FAILURE);
 }
 
 #endif	// LAB >= 4

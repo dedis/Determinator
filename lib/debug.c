@@ -1,6 +1,7 @@
 #if LAB >= 3
 
 #include <inc/stdio.h>
+#include <inc/stdlib.h>
 #include <inc/assert.h>
 
 char *argv0;
@@ -22,9 +23,7 @@ debug_panic(const char *file, int line, const char *fmt,...)
 	vcprintf(fmt, ap);
 	cprintf("\n");
 
-	// Cause a breakpoint exception
-	while (1)
-		asm volatile("int3");
+	abort();
 }
 
 /* like panic, but don't */

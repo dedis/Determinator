@@ -50,6 +50,7 @@ file_initroot(proc *root)
 	assert(root == proc_root);
 
 	// Make sure the root process's page directory is active
+	cpu_cur()->proc = root;
 	lcr3(mem_phys(root->pdir));
 
 	// Enable read/write access on the file metadata area
