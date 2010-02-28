@@ -1,5 +1,6 @@
 #if LAB >= 4
 #include <inc/stdio.h>
+#include <inc/unistd.h>
 
 #define BUFLEN 1024
 static char buf[BUFLEN];
@@ -13,7 +14,7 @@ readline(const char *prompt)
 		fprintf(stdout, "%s", prompt);
 
 	i = 0;
-	echoing = iscons(0);
+	echoing = isatty(0);
 	while (1) {
 		c = getchar();
 		if (c < 0) {

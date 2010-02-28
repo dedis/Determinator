@@ -26,8 +26,6 @@ extern FILE *const stderr;
 // lib/stdio.c
 int	fputc(int c, FILE *fh);
 int	fgetc(FILE *fh);
-int	iscons(int fd);
-
 #define putchar(c)	fputc(c, stdout)
 #define putc(c,fh)	fputc(c, fh)
 #define getchar()	fgetc(stdin)
@@ -56,7 +54,6 @@ int	vfprintf(FILE *f, const char *fmt, va_list);
 // lib/stdio.c
 FILE *	fopen(const char *filename, const char *mode);
 FILE *	freopen(const char *filename, const char *mode, FILE *fh);
-FILE *	fdup2(FILE *oldfh, FILE *newfh);	// non-POSIX
 int	fclose(FILE *fh);
 size_t	fread(void *ptr, size_t size, size_t count, FILE *fh);
 size_t	fwrite(const void *ptr, size_t size, size_t count, FILE *fh);

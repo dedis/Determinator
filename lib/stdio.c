@@ -52,26 +52,9 @@ freopen(const char *path, const char *mode, FILE *fd)
 	if (*mode == '+')
 		flags |= O_RDWR;
 
-	if (filedesc_open(fd, path, flags) != fd)
+	if (filedesc_open(fd, path, flags, 0666) != fd)
 		return NULL;
 	return fd;
-}
-
-FILE *
-fdup2(FILE *oldfd, FILE *newfd)
-{
-	assert(filedesc_isopen(oldfd));
-	assert(filedesc_isvalid(newfd));
-
-	if (filedesc_isopen(newfd))
-		fclose(newfd);
-
-	*newfd = *oldfd;
-	assert(fileino_isvalid(oldfd->ino));
-	assert(files->fi[oldfd->ino].nlink > 0);
-	files->fi[oldfd->ino].nlink++;
-
-	return newfd;
 }
 
 int
@@ -79,6 +62,24 @@ fclose(FILE *fd)
 {
 	filedesc_close(fd);
 	return 0;
+}
+
+int
+fgetc(FILE *fd)
+{
+	unsigned char ch;
+	if (filedesc_read(fd, &ch, 1, 1) < 1)
+		return EOF;
+	return ch;
+}
+
+int
+fputc(int c, FILE *fd)
+{
+	unsigned char ch = c;
+	if (filedesc_write(fd, &ch, 1, 1) < 1)
+		return EOF;
+	return ch;
 }
 
 size_t

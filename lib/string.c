@@ -297,6 +297,7 @@ strerror(int err)
 		"Directory not empty",
 		"File name too long",
 		"No space left on device",
+		"Inappropriate I/O control operation",
 	};
 	static char errbuf[64];
 

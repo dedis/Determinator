@@ -114,11 +114,14 @@ typedef struct filestate {
 
 
 int fileino_alloc(void);
+void fileino_take(int ino);	// take a reference (nlinks)
+void fileino_drop(int ino);	// drop a reference (nlinks)
 ssize_t fileino_write(int ino, off_t ofs, const void *buf, int len);
 int fileino_stat(int ino, struct stat *statbuf);
+int fileino_truncate(int ino, off_t newsize);
 
 filedesc *filedesc_alloc(void);
-filedesc *filedesc_open(filedesc *fd, const char *path, int openflags);
+filedesc *filedesc_open(filedesc *fd, const char *path, int flags, mode_t mode);
 int filedesc_read(filedesc *fd, void *buf, size_t eltsize, size_t count);
 int filedesc_write(filedesc *fd, const void *buf, size_t eltsize, size_t count);
 off_t filedesc_seek(filedesc *fd, off_t ofs, int whence);

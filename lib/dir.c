@@ -79,7 +79,7 @@ dir_walk(const char *path, bool create)
 
 DIR *opendir(const char *path)
 {
-	filedesc *fd = filedesc_open(NULL, path, O_RDONLY);
+	filedesc *fd = filedesc_open(NULL, path, O_RDONLY, 0);
 	if (fd == NULL)
 		return NULL;
 

@@ -13,7 +13,7 @@
 #define	errno		(files->err)
 
 
-// Error numbers
+// Error numbers - keep consistent with strerror() in lib/string.c!
 #define EINVAL		1	/* Invalid argument */
 #define ENOENT		2	/* No such file or directory */
 #define EBADF		3	/* Bad file descriptor */
@@ -25,6 +25,7 @@
 #define ENOTEMPTY	9	/* Directory not empty */
 #define ENAMETOOLONG	10	/* File name too long */
 #define ENOSPC		11	/* No space left on device */
+#define ENOTTY		12	/* Inappropriate I/O control operation */
 
 #if LAB >= 99
 #define EDOM		X	/* Argument out of domain */
@@ -46,7 +47,6 @@
 #define ENOLCK		X	/* No locks available */
 #define ENOMEM		X	/* Cannot allocate memory */
 #define ENOSYS		X	/* Function not implemented */
-#define ENOTTY		X	/* Inappropriate ioctl */
 #define ENXIO		X	/* Device not configured */
 #define EPERM		X	/* Op not permitted */
 #define EPIPE		X	/* Broken pipe */

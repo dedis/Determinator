@@ -1,10 +1,18 @@
-#if LAB >= 7
+#if LAB >= 4
 #if SOL >= 1
 // NOTE: The "#if LAB >= 1" sections below used to be "#if SOL >= 7"
 // sections.  Now we gave them the entire shell in the last lab so
 // they would have more time to focus on the final project.
 #endif
-#include <inc/lib.h>
+#include <inc/gcc.h>
+#include <inc/fcntl.h>
+#include <inc/stdio.h>
+#include <inc/stdlib.h>
+#include <inc/unistd.h>
+#include <inc/string.h>
+#include <inc/assert.h>
+#include <inc/errno.h>
+#include <inc/args.h>
 
 #define BUFSIZ 1024		/* Find the buffer overrun bug! */
 int debug = 0;
@@ -24,7 +32,7 @@ int gettoken(char *s, char **token);
 // runcmd() is called in a forked child,
 // so it's OK to manipulate file descriptor state.
 #define MAXARGS 16
-void
+void gcc_noreturn
 runcmd(char* s)
 {
 	char *argv[MAXARGS], *t, argv0buf[BUFSIZ];
@@ -41,7 +49,7 @@ again:
 		case 'w':	// Add an argument
 			if (argc == MAXARGS) {
 				cprintf("too many arguments\n");
-				exit();
+				exit(EXIT_FAILURE);
 			}
 			argv[argc++] = t;
 			break;
@@ -50,12 +58,12 @@ again:
 			// Grab the filename from the argument list
 			if (gettoken(0, &t) != 'w') {
 				cprintf("syntax error: < not followed by word\n");
-				exit();
+				exit(EXIT_FAILURE);
 			}
 #if LAB >= 1
 			if ((fd = open(t, O_RDONLY)) < 0) {
 				cprintf("open %s for read: %e", t, fd);
-				exit();
+				exit(EXIT_FAILURE);
 			}
 			if (fd != 0) {
 				dup2(fd, 0);
@@ -79,12 +87,12 @@ again:
 			// Grab the filename from the argument list
 			if (gettoken(0, &t) != 'w') {
 				cprintf("syntax error: > not followed by word\n");
-				exit();
+				exit(EXIT_FAILURE);
 			}
 #if LAB >= 1
 			if ((fd = open(t, O_WRONLY)) < 0) {
 				cprintf("open %s for write: %e", t, fd);
-				exit();
+				exit(EXIT_FAILURE);
 			}
 			if (fd != 1) {
 				dup2(fd, 1);
@@ -106,21 +114,22 @@ again:
 #endif
 			break;
 			
+#if LAB >= 99
 		case '|':	// Pipe
 #if LAB >= 1
 			if ((r = pipe(p)) < 0) {
 				cprintf("pipe: %e", r);
-				exit();
+				exit(EXIT_FAILURE);
 			}
 			if (debug)
 				cprintf("PIPE: %d %d\n", p[0], p[1]);
 			if ((r = fork()) < 0) {
 				cprintf("fork: %e", r);
-				exit();
+				exit(EXIT_FAILURE);
 			}
 			if (r == 0) {
 				if (p[0] != 0) {
-					dup(p[0], 0);
+					dup2(p[0], 0);
 					close(p[0]);
 				}
 				close(p[1]);
@@ -128,7 +137,7 @@ again:
 			} else {
 				pipe_child = r;
 				if (p[1] != 1) {
-					dup(p[1], 1);
+					dup2(p[1], 1);
 					close(p[1]);
 				}
 				close(p[0]);
@@ -163,6 +172,7 @@ again:
 			panic("| not implemented");
 			break;
 
+#endif	// LAB >= 99
 		case 0:		// String is complete
 			// Run the current command!
 			goto runit;
@@ -179,7 +189,7 @@ runit:
 	if(argc == 0) {
 		if (debug)
 			cprintf("EMPTY COMMAND\n");
-		return;
+		exit(EXIT_SUCCESS);
 	}
 
 	// Clean up command line.
@@ -192,42 +202,19 @@ runit:
 		argv[0] = argv0buf;
 	}
 	argv[argc] = 0;
-	
+
 	// Print the command.
 	if (debug) {
-		cprintf("[%08x] SPAWN:", env->env_id);
+		cprintf("execv:");
 		for (i = 0; argv[i]; i++)
 			cprintf(" %s", argv[i]);
 		cprintf("\n");
 	}
 
-	// Spawn the command!
-	if ((r = spawn(argv[0], (const char**) argv)) < 0)
-		cprintf("spawn %s: %e\n", argv[0], r);
-
-	// In the parent, close all file descriptors and wait for the
-	// spawned command to exit.
-	close_all();
-	if (r >= 0) {
-		if (debug)
-			cprintf("[%08x] WAIT %s %08x\n", env->env_id, argv[0], r);
-		wait(r);
-		if (debug)
-			cprintf("[%08x] wait finished\n", env->env_id);
-	}
-
-	// If we were the left-hand part of a pipe,
-	// wait for the right-hand part to finish.
-	if (pipe_child) {
-		if (debug)
-			cprintf("[%08x] WAIT pipe_child %08x\n", env->env_id, pipe_child);
-		wait(pipe_child);
-		if (debug)
-			cprintf("[%08x] wait finished\n", env->env_id);
-	}
-
-	// Done!
-	exit();
+	// Run the command!
+	if (execv(argv[0], argv) < 0)
+		cprintf("exec %s: %s\n", argv[0], strerror(errno));
+	exit(EXIT_FAILURE);
 }
 
 
@@ -312,7 +299,7 @@ void
 usage(void)
 {
 	cprintf("usage: sh [-dix] [command-file]\n");
-	exit();
+	exit(EXIT_FAILURE);
 }
 
 void
@@ -341,11 +328,11 @@ umain(int argc, char **argv)
 	if (argc == 1) {
 		close(0);
 		if ((r = open(argv[0], O_RDONLY)) < 0)
-			panic("open %s: %e", argv[0], r);
+			panic("open %s: %s", argv[0], strerror(errno));
 		assert(r == 0);
 	}
 	if (interactive == '?')
-		interactive = iscons(0);
+		interactive = isatty(0);
 
 	while (1) {
 		char *buf;
@@ -354,14 +341,14 @@ umain(int argc, char **argv)
 		if (buf == NULL) {
 			if (debug)
 				cprintf("EXITING\n");
-			exit();	// end of file
+			exit(EXIT_SUCCESS);	// end of file
 		}
 		if (debug)
 			cprintf("LINE: %s\n", buf);
 		if (buf[0] == '#')
 			continue;
 		if (echocmds)
-			fprintf(1, "# %s\n", buf);
+			fprintf(stdout, "# %s\n", buf);
 		if (debug)
 			cprintf("BEFORE FORK\n");
 		if ((r = fork()) < 0)
@@ -370,9 +357,9 @@ umain(int argc, char **argv)
 			cprintf("FORK: %d\n", r);
 		if (r == 0) {
 			runcmd(buf);
-			exit();
+			exit(EXIT_SUCCESS);
 		} else
-			wait(r);
+			waitpid(r, NULL, 0);
 	}
 }
 

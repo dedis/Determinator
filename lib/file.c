@@ -15,6 +15,36 @@
 
 ////////// File inode functions //////////
 
+int
+fileino_alloc(void)
+{
+	int i;
+	for (i = FILEINO_GENERAL; i < FILE_INODES; i++)
+		if (files->fi[i].nlink == 0)
+			return i;
+
+	warn("freopen: no free inodes\n");
+	errno = ENOSPC;
+	return -1;
+}
+
+void fileino_take(int ino)
+{
+	assert(fileino_isvalid(ino));
+
+	files->fi[ino].nlink++;
+	assert(files->fi[ino].nlink > 0);
+}
+
+void fileino_drop(int ino)
+{
+	assert(fileino_isvalid(ino));
+
+	assert(files->fi[ino].nlink > 0);
+	if (--files->fi[ino].nlink == 0)
+		fileino_truncate(ino, 0);	// delete the unreferenced file
+}
+
 ssize_t
 fileino_write(int ino, off_t ofs, const void *buf, int len)
 {
@@ -62,6 +92,38 @@ fileino_stat(int ino, struct stat *st)
 	return 0;
 }
 
+// Grow or shrink a file to exactly a specified size.
+// If growing a file, then fills the new space with zeros.
+// Returns 0 if successful, or returns -1 and sets errno on error.
+int
+fileino_truncate(int ino, off_t newsize)
+{
+	assert(fileino_isvalid(ino));
+	assert(newsize >= 0 && newsize <= FILE_MAXSIZE);
+
+	size_t oldsize = files->fi[ino].size;
+	size_t oldpagelim = ROUNDUP(files->fi[ino].size, PAGESIZE);
+	size_t newpagelim = ROUNDUP(newsize, PAGESIZE);
+	if (newsize > oldsize) {
+		// Grow the file and fill the new space with zeros.
+		sys_get(SYS_PERM | SYS_READ | SYS_WRITE, 0, NULL, NULL,
+			FILEDATA(ino) + oldpagelim,
+			newpagelim - oldpagelim);
+		memset(FILEDATA(ino) + oldsize, 0, newsize - oldsize);
+	} else if (newsize > 0) {
+		// Shrink the file, but not all the way to empty.
+		// Would prefer to use SYS_ZERO to free the file content,
+		// but SYS_ZERO isn't guaranteed to work at page granularity.
+		sys_get(SYS_PERM, 0, NULL, NULL,
+			FILEDATA(ino) + newpagelim, FILE_MAXSIZE - newpagelim);
+	} else {
+		// Shrink the file to empty.  Use SYS_ZERO to free completely.
+		sys_get(SYS_ZERO, 0, NULL, NULL, FILEDATA(ino), FILE_MAXSIZE);
+	}
+	files->fi[ino].size = newsize;
+	return 0;
+}
+
 
 ////////// File descriptor functions //////////
 
@@ -86,7 +148,7 @@ filedesc *filedesc_alloc(void)
 // Returns the opened file descriptor on success,
 // or returns NULL and sets errno on failure.
 filedesc *
-filedesc_open(filedesc *fd, const char *path, int openflags)
+filedesc_open(filedesc *fd, const char *path, int openflags, mode_t mode)
 {
 	if (!fd && !(fd = filedesc_alloc()))
 		return NULL;
@@ -102,18 +164,12 @@ filedesc_open(filedesc *fd, const char *path, int openflags)
 	int ino = de->d_ino;
 	if (ino == FILEINO_NULL) {
 		assert(openflags & O_CREAT);
-		for (ino = 1; ino < FILE_INODES; ino++)
-			if (files->fi[ino].nlink == 0)
-				break;
-		if (ino == FILE_INODES) {
-			warn("freopen: no free inodes\n");
-			errno = ENOSPC;
+		if ((ino = fileino_alloc()) < 0)
 			return NULL;
-		}
 		files->fi[ino].nlink = 1;	// dirent's reference
 		files->fi[ino].size = 0;
 		files->fi[ino].psize = -1;
-		files->fi[ino].mode = S_IFREG;
+		files->fi[ino].mode = S_IFREG | (mode & 0777);
 		de->d_ino = ino;
 	}
 
@@ -122,11 +178,22 @@ filedesc_open(filedesc *fd, const char *path, int openflags)
 	fd->flags = openflags;
 	fd->ofs = (openflags & O_APPEND) ? files->fi[ino].size : 0;
 	fd->err = 0;
-	files->fi[ino].nlink++;		// file descriptor's reference
+	fileino_take(ino);		// file descriptor's reference
 
 	return fd;
 }
 
+// Read up to 'count' objects each of size 'eltsize'
+// from the open file described by 'fd' into memory buffer 'buf',
+// whose size must be at least 'count * eltsize' bytes.
+// May read fewer than the requested number of objects
+// if the end of file is reached, but always an integral number of objects.
+// On success, returns the number of objects read (NOT the number of bytes).
+// If an error (other than end-of-file) occurs, returns -1 and sets errno.
+//
+// If the file is a special device input file such as the console,
+// this function pretends the file has no end and instead
+// uses sys_ret() to wait for the file to extend the special file.
 ssize_t
 filedesc_read(filedesc *fd, void *buf, size_t eltsize, size_t count)
 {
@@ -160,6 +227,11 @@ filedesc_read(filedesc *fd, void *buf, size_t eltsize, size_t count)
 	return actual;
 }
 
+// Write up to 'count' objects each of size 'eltsize'
+// from memory buffer 'buf' to the open file described by 'fd'.
+// The size of 'buf' must be at least 'count * eltsize' bytes.
+// On success, returns the number of objects written (NOT the number of bytes).
+// If an error occurs, returns -1 and sets errno appropriately.
 ssize_t
 filedesc_write(filedesc *fd, const void *buf, size_t eltsize, size_t count)
 {
@@ -212,7 +284,7 @@ filedesc_close(filedesc *fd)
 	assert(fileino_isvalid(fd->ino));
 	assert(files->fi[fd->ino].nlink > 0);
 
-	files->fi[fd->ino].nlink--;
+	fileino_drop(fd->ino);		// release fd's reference to inode
 	fd->ino = FILEINO_NULL;		// mark the fd free
 }
 

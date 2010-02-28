@@ -34,6 +34,7 @@ typedef int32_t ssize_t;
 typedef int32_t off_t;
 
 // Random Unix API compatibility types
+typedef int pid_t;
 typedef int dev_t;
 typedef int ino_t;
 typedef int mode_t;

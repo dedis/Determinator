@@ -17,16 +17,24 @@
 #endif
 
 
+pid_t	fork(void);
+pid_t	wait(int *status);
+pid_t	waitpid(pid_t pid, int *status, int options);
+int	execl(const char *path, const char *arg0, ...);
+int	execv(const char *path, char *const argv[]);
 void	exit(int status);
 
-int	close(int fd);
-ssize_t	read(int fd, void *buf, size_t nbytes);
-ssize_t	write(int fd, const void *buf, size_t nbytes);
-off_t	lseek(int fd, off_t offset, int whence);
-int	dup(int oldfd);
-int	dup2(int oldfd, int newfd);
-int	ftruncate(int fd, off_t size);
-
+int	open(const char *path, int flags, ...);
+int	creat(const char *path, mode_t mode);
+int	close(int fn);
+ssize_t	read(int fn, void *buf, size_t nbytes);
+ssize_t	write(int fn, const void *buf, size_t nbytes);
+off_t	lseek(int fn, off_t offset, int whence);
+int	dup(int oldfn);
+int	dup2(int oldfn, int newfn);
+int	ftruncate(int fn, off_t newlength);
+int	truncate(const char *path, off_t newlength);
+int	isatty(int fn);
 int	remove(const char *path);
 
 #endif	// !PIOS_INC_UNISTD_H
