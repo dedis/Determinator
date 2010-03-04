@@ -56,3 +56,11 @@ through the interrupt.
   instead of having to kludge lib/entry.S.
 
 - Rename 'filestate' to 'procstate' and 'files' macro to 'procst' or something?
+
+- Add a lot of incremental checking code to lab3, for each stage;
+  try to detect some of the most common errors early, such as:
+	- failing to load cr3 when switching processes
+	- failing to check that a process is waiting/stopped before readying it
+	- failing to set SYS_READ/SYS_WRITE correctly when loading or copying
+	- giving copied page mappings GREATER permissions than the source
+

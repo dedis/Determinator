@@ -22,7 +22,7 @@
 
 // These definitions should really be in limits.h according to POSIX
 #define OPEN_MAX	256	// Max number of open files per process
-#define NAME_MAX	59	// Max length of a filename, not inluding null
+#define NAME_MAX	63	// Max length of a filename, not inluding null
 #define PATH_MAX	1024	// Max length of a full pathname, incl. null
 
 // File open flags - these belong in fcntl.h according to POSIX
@@ -48,22 +48,28 @@
 struct stat;
 
 struct dirent {				// Directory entry - should be 64 bytes
+#if LAB >= 99
 	int	d_ino;			// File inode number, 0 if free dirent
+#endif
 	char	d_name[NAME_MAX+1];	// Entry name
 };
 
 typedef struct filedesc {		// Per-open file descriptor state
 	ino_t	ino;			// Opened file's inode number
 	int	flags;			// File open flags - O_*, above
-	off_t	ofs;			// Current seek pointer in file
+	off_t	ofs;			// Current seek pointer in file or dir
 	int	err;			// Last error on this file descriptor
-	struct dirent de;		// Used by readdir()
 } filedesc;
 
 typedef struct fileinode {		// Per-file state - like an "inode"
-	mode_t	mode;			// File mode (stat.h), 0 if free inode
-	int	gen;			// Generation - bumped on every change
-	size_t	size;			// File's current size
+#if LAB >= 99
+	int	dino;			// Directory this file lives in
+	int	refs;			// Reference count (FDs, children)
+#endif
+	struct dirent de;		// Entry name, "" if free entry
+	int	ver;			// Version - bumped on every change
+	mode_t	mode;			// File mode (stat.h), 0 if deleted
+	size_t	size;			// Current size if regular file
 } fileinode;
 
 
@@ -71,10 +77,12 @@ typedef struct fileinode {		// Per-file state - like an "inode"
 // for the use of wait() and waitpid().
 typedef struct procinfo {
 	int	state;			// Current state of this child process
-	int	igen[FILE_INODES];	// Generation of each inode on fork
+	int	rver[FILE_INODES];	// Last reconcile ver, by parent inode
+	int	ip2c[FILE_INODES];	// Parent to child inode map
+	int	ic2p[FILE_INODES];	// Child to parent inode map
 } procinfo;
 
-// Values for procinfo.state above
+// Values for procinfo.state
 #define PROC_FREE	0		// Unused child, available for fork()
 #define PROC_RESERVED	(-1)		// Child reserved for special purpose
 #define PROC_FORKED	1		// This child forked and running
