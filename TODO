@@ -64,3 +64,5 @@ through the interrupt.
 	- failing to set SYS_READ/SYS_WRITE correctly when loading or copying
 	- giving copied page mappings GREATER permissions than the source
 
+- In trap() or proc_ret(), check cr3 against proc->pdir.
+

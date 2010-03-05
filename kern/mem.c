@@ -12,8 +12,18 @@
 #if LAB >= 2
 #include <kern/spinlock.h>
 #endif
+#if LAB >= 3
+#include <kern/pmap.h>
+#endif
 
 #include <dev/nvram.h>
+
+
+// These special symbols mark the start and end of
+// the program's entire linker-arranged memory region,
+// including the program's code, data, and bss sections.
+// Use these to avoid treating kernel code/data pages as free memory!
+extern char start[], end[];
 
 
 size_t mem_max;			// Maximum physical address
@@ -34,12 +44,6 @@ mem_init(void)
 {
 	if (!cpu_onboot())	// only do once, on the boot CPU
 		return;
-
-	// These special symbols mark the start and end of
-	// the program's entire linker-arranged memory region,
-	// including the program's code, data, and bss sections.
-	// Use these to avoid treating kernel code/data pages as free memory!
-	extern char start[], end[];
 
 	// Determine how much base (<640K) and extended (>1MB) memory
 	// is available in the system (in bytes),
@@ -126,6 +130,7 @@ mem_init(void)
 	//  4) Then extended memory [MEM_EXT, ...).
 	//     Some of it is in use, some is free.
 	//     Which pages hold the kernel and the pageinfo array?
+	//     (See the comment on the start[] and end[] symbols above.)
 	// Change the code to reflect this.
 	pageinfo **freetail = &mem_freelist;
 	int i;
@@ -220,6 +225,8 @@ void
 mem_incref(pageinfo *pi)
 {
 	assert(pi > &mem_pageinfo[0] && pi < &mem_pageinfo[mem_npage]);
+	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
+
 	lockadd(&pi->refcount, 1);
 }
 
@@ -229,6 +236,8 @@ void
 mem_decref(pageinfo* pi)
 {
 	assert(pi > &mem_pageinfo[0] && pi < &mem_pageinfo[mem_npage]);
+	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
+
 	if (lockaddz(&pi->refcount, -1))
 		mem_free(pi);
 	assert(pi->refcount >= 0);
