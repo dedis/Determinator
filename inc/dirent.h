@@ -8,7 +8,9 @@
 
 typedef struct filedesc DIR;	// A DIR in PIOS is just a file descriptor
 
-struct dirent *dir_walk(const char *path, bool create);
+// Find or optionally create an inode for a given path.
+// Returns the inode number if successful, or -1 and sets errno on error.
+int dir_walk(const char *path, bool create);
 
 DIR *opendir(const char *name);
 int closedir(DIR *dir);

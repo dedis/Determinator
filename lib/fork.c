@@ -3,10 +3,12 @@
 
 #include <inc/file.h>
 #include <inc/unistd.h>
+#include <inc/sys/wait.h>
 #include <inc/string.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>
 #include <inc/errno.h>
+#include <inc/mmu.h>
 #include <inc/vm.h>
 
 
@@ -25,7 +27,7 @@ pid_t fork(void)
 	// have to be shell-builtin commands under PIOS.
 	pid_t pid;
 	for (pid = 1; pid < 256; pid++)
-		if (files->child[pid] == PROC_FREE)
+		if (files->child[pid].state == PROC_FREE)
 			break;
 	if (pid == 256) {
 		warn("fork: no child process available");
@@ -74,9 +76,9 @@ pid_t fork(void)
 	files->child[pid].state = PROC_FORKED;
 	int i;
 	for (i = 1; i < FILE_INODES; i++)
-		files->child[pid].igen[i] = files->fi[i].gen;
+		files->child[pid].rver[i] = files->fi[i].ver;
 
-	return child;
+	return pid;
 }
 
 pid_t
@@ -156,7 +158,12 @@ reconcile(pid_t pid, filestate *cfiles)
 	bool didio = 0;
 	int i;
 
+	procinfo *pi = &files->child[pid];
 	for (i = 1; i < FILE_INODES; i++) {
+		// Merge from child into parent, then from parent into child.
+		didio |= recinode(pid, cfiles, i, files, pi->ic2p);
+		didio |= recinode(pid, files, i, cfiles, pi->ip2c);
+#if LAB >= 99
 
 		// Make temporary copies of both inodes,
 		// and then reconcile each into the other.
@@ -187,27 +194,83 @@ reconcile(pid_t pid, filestate *cfiles)
 		// Reset our reference point generation number
 		// for the next time we need to reconcile.
 		files->child[pid].igen[i] = files->fi[i].gen;
+#endif
 	}
 
 	return didio;
 }
 
 static bool
-reconcile_inode(pid_t pid, int ino, const fileinode *src, fileinode *dst,
-		bool intochild)
+recinode(pid_t pid, filestate *src, int srci, filestate *dst, int *imap)
 {
-	int refgen = files->child[pid].igen[ino];
-	if (src->gen > refgen) { // Exclusive modification happened in source.
-		if (dst->gen > refgen) { // Conflict!
-			conflict:
-			dst->mode |= S_IFCONF;
-			dst->gen = MAX(src->gen, dst->gen);
-			return true;
-		}
+	if (src->fi[srci].de.d_name[0] == 0)
+		return 0;	// Not allocated to a name yet
 
-		// Propagate any content change to the destination.
-		...
+	int dsti = dstip[srci];	// Map src inode to dst inode number
+	if (dsti == 0) {	// No mapping yet?  Create one.
+		int srcdi = src->fi[srci].dino;
+		assert(srcdi > 0 && srcdi < FILE_INODES);
+		int dstdi = imap[srcdi];
+		assert(dstdi > 0 && dstdi < FILE_INODES); // should be mapped!
+
+		for (dsti = FILEINO_GENERAL; dsti < FILE_INODES; dsti++)
+			if (dst->fi[dsti].dino == dstdi &&
+					strcmp(src->fi[srci].de.d_name,
+						dst->fi[dsti].de.d_name) == 0)
+				break;
+		if (dsti == FILE_INODES) {	// Doesn't yet exist in dst
+			for (dsti = FILEINO_GENERAL; dsti < FILE_INODES; dsti++)
+				if (dst->fi[dsti].de.d_name[0] == 0)
+					break;
+			if (dsti == FILE_INODES) {
+				warn("recinode: out of inodes");
+				// Mark conflict in src?
+				return 0;
+			}
+
+			strcpy(dst->fi[dsti].de.d_name,
+				src->fi[srci].de.d_name);
+			dst->fi[dsti].dino = dstdi;
+			dst->fi[dsti].ver = 0;	// always start at ver 0
+		}
 	}
+	assert(imap[src->fi[srci].dino] == dst->fi[dsti].dino);
+	assert(strcmp(src->fi[srci].de.d_name, dst->fi[dsti].de.d_name) == 0);
+
+	// Now figure out the reference version number for reconciliation
+	assert(src == files || dst == files);
+	int parentino = (src == files) ? srci : dsti;
+	int *rverp = &files->child[pid].rver[parentino];
+	int rver = *rverp;
+	assert(src->fi[srci].ver >= rver);
+	assert(dst->fi[dsti].ver >= rver);
+
+	if (src->fi[srci].ver <= dst->fi[dsti].ver)
+		return 0;	// dst is newer: don't propagate!
+
+	if (dst->fi[dsti].ver != rver) {
+		// Destination changed since reference version: conflict!
+		dst->fi[dsti].ver = src->fi[srci].ver;
+		dst->fi[dsti].mode |= S_IFCONF;
+		return 1;	// I/O of sorts did occur
+	}
+
+	// XXX validity-check src inode before propagating!
+
+	// No conflict - bring dst inode up-to-date with respect to src
+	assert(dst->fi[dsti].ver == rver);
+	dst->fi[dsti].ver = src->fi[srci].ver;
+	dst->fi[dsti].mode = src->fi[srci].mode;
+	dst->fi[dsti].size = src->fi[srci].size;
+
+	// ...and copy the entire file data area
+	if (src == files)	// updating from parent to child
+		sys_put(SYS_COPY, pid, NULL, FILEDATA(srci), FILEDATA(dsti),
+			PTSIZE);
+	else			// updating from child to parent
+		sys_get(SYS_COPY, pid, NULL, FILEDATA(srci), FILEDATA(dsti),
+			PTSIZE);
+	return 1;	// update occurred
 }
 
 #endif	// LAB >= 4

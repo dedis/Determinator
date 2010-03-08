@@ -20,29 +20,12 @@ fileino_alloc(void)
 {
 	int i;
 	for (i = FILEINO_GENERAL; i < FILE_INODES; i++)
-		if (files->fi[i].nlink == 0)
+		if (files->fi[i].de.d_name[0] == 0)
 			return i;
 
 	warn("freopen: no free inodes\n");
 	errno = ENOSPC;
 	return -1;
-}
-
-void fileino_take(int ino)
-{
-	assert(fileino_isvalid(ino));
-
-	files->fi[ino].nlink++;
-	assert(files->fi[ino].nlink > 0);
-}
-
-void fileino_drop(int ino)
-{
-	assert(fileino_isvalid(ino));
-
-	assert(files->fi[ino].nlink > 0);
-	if (--files->fi[ino].nlink == 0)
-		fileino_truncate(ino, 0);	// delete the unreferenced file
 }
 
 ssize_t
@@ -87,7 +70,6 @@ fileino_stat(int ino, struct stat *st)
 	st->st_ino = ino;
 	st->st_mode = fi->mode;
 	st->st_size = fi->size;
-	st->st_nlink = fi->nlink;
 
 	return 0;
 }
@@ -154,31 +136,21 @@ filedesc_open(filedesc *fd, const char *path, int openflags, mode_t mode)
 		return NULL;
 	assert(fd->ino == FILEINO_NULL);
 
+	// Determine the complete file mode if it is to be created.
+	mode_t createmode = (openflags & O_CREAT) ? S_IFREG | (mode & 0777) : 0;
+
 	// Walk the directory tree to find the desired directory entry,
 	// creating an entry if it doesn't exist and O_CREAT is set.
-	struct dirent *de = dir_walk(path, (openflags & O_CREAT) != 0);
-	if (de == NULL)
+	int ino = dir_walk(path, createmode);
+	if (ino < 0)
 		return NULL;
-
-	// Create the file if necessary
-	int ino = de->d_ino;
-	if (ino == FILEINO_NULL) {
-		assert(openflags & O_CREAT);
-		if ((ino = fileino_alloc()) < 0)
-			return NULL;
-		files->fi[ino].nlink = 1;	// dirent's reference
-		files->fi[ino].size = 0;
-		files->fi[ino].psize = -1;
-		files->fi[ino].mode = S_IFREG | (mode & 0777);
-		de->d_ino = ino;
-	}
+	assert(fileino_exists(ino));
 
 	// Initialize the file descriptor
 	fd->ino = ino;
 	fd->flags = openflags;
 	fd->ofs = (openflags & O_APPEND) ? files->fi[ino].size : 0;
 	fd->err = 0;
-	fileino_take(ino);		// file descriptor's reference
 
 	return fd;
 }
@@ -282,9 +254,7 @@ filedesc_close(filedesc *fd)
 {
 	assert(filedesc_isopen(fd));
 	assert(fileino_isvalid(fd->ino));
-	assert(files->fi[fd->ino].nlink > 0);
 
-	fileino_drop(fd->ino);		// release fd's reference to inode
 	fd->ino = FILEINO_NULL;		// mark the fd free
 }
 

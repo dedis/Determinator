@@ -8,9 +8,9 @@
 struct stat {
 	ino_t	st_ino;			/* File inode number */
 	mode_t	st_mode;		/* File access mode */
-	nlink_t	st_nlink;		/* Number of hardlinks to file */
 	off_t	st_size;		/* File size */
 #if LAB >= 99
+	nlink_t	st_nlink;		/* Number of hardlinks to file */
 	dev_t	st_dev;			/* "Device number" containing file */
 	uid_t	  st_uid;		/* user ID of the file's owner */
 	gid_t	  st_gid;		/* group ID of the file's group */

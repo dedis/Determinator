@@ -80,7 +80,6 @@ dup2(int oldfn, int newfn)
 		close(newfn);
 
 	*newfd = *oldfd;
-	fileino_take(oldfd->ino);	// newfd holds additional reference
 
 	return newfn;
 }
@@ -88,10 +87,10 @@ dup2(int oldfn, int newfn)
 int
 truncate(const char *path, off_t newlength)
 {
-	struct dirent *de = dir_walk(path, 0);
-	if (de == NULL)
+	int ino = dir_walk(path, 0);
+	if (ino < 0)
 		return -1;
-	return fileino_truncate(de->d_ino, newlength);
+	return fileino_truncate(ino, newlength);
 }
 
 int
@@ -111,10 +110,10 @@ isatty(int fn)
 int
 stat(const char *path, struct stat *statbuf)
 {
-	struct dirent *de = dir_walk(path, 0);
-	if (de == NULL)
+	int ino = dir_walk(path, 0);
+	if (ino < 0)
 		return -1;
-	return fileino_stat(de->d_ino, statbuf);
+	return fileino_stat(ino, statbuf);
 }
 
 int

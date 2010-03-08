@@ -299,6 +299,7 @@ strerror(int err)
 		"No space left on device",
 		"Inappropriate I/O control operation",
 		"Resource temporarily unavailable",
+		"No child processes",
 	};
 	static char errbuf[64];
 

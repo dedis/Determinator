@@ -68,34 +68,25 @@ file_initroot(proc *root)
 	files->fd[2].ino = FILEINO_CONSOUT;
 	files->fd[2].flags = O_WRONLY | O_APPEND;
 
+	// Setup the inodes for the console I/O files and root directory
+	strcpy(files->fi[FILEINO_CONSIN].de.d_name, "consin");
+	strcpy(files->fi[FILEINO_CONSOUT].de.d_name, "consout");
+	strcpy(files->fi[FILEINO_ROOTDIR].de.d_name, "/");
+	files->fi[FILEINO_CONSIN].dino = FILEINO_ROOTDIR;
+	files->fi[FILEINO_CONSOUT].dino = FILEINO_ROOTDIR;
+	files->fi[FILEINO_ROOTDIR].dino = FILEINO_ROOTDIR;
 	files->fi[FILEINO_CONSIN].mode = S_IFREG | S_IFPART;
-	files->fi[FILEINO_CONSIN].nlink = 1;	// fd[0]
 	files->fi[FILEINO_CONSOUT].mode = S_IFREG;
-	files->fi[FILEINO_CONSOUT].nlink = 2;	// fd[1] and fd[2]
-
-	// Set up the root directory.
-	int ninitfiles = sizeof(initfiles)/sizeof(initfiles[0]);
-	int rootdirsize = sizeof(struct dirent) * (2 + ninitfiles);
 	files->fi[FILEINO_ROOTDIR].mode = S_IFDIR;
-	files->fi[FILEINO_ROOTDIR].nlink = 1;
-	files->fi[FILEINO_ROOTDIR].size = rootdirsize;
-	struct dirent *de = FILEDATA(FILEINO_ROOTDIR);
-	pmap_setperm(root->pdir, (uintptr_t)de,
-				ROUNDUP(rootdirsize, PAGESIZE),
-				SYS_READ | SYS_WRITE);
-	strcpy(de[0].d_name, ".");	de[0].d_ino = FILEINO_ROOTDIR;
-	strcpy(de[1].d_name, "..");	de[1].d_ino = FILEINO_ROOTDIR;
 
 	// Set up the initial files in the root process's file system
+	int ninitfiles = sizeof(initfiles)/sizeof(initfiles[0]);
 	int i;
 	for (i = 0; i < ninitfiles; i++) {
 		int ino = FILEINO_GENERAL+i;
-		strcpy(de[2+i].d_name, initfiles[i][0]);
-		de[2+i].d_ino = ino;
-
 		int filesize = initfiles[i][2] - initfiles[i][1];
+		strcpy(files->fi[ino].de.d_name, initfiles[i][0]);
 		files->fi[ino].mode = S_IFREG;
-		files->fi[ino].nlink = 1;
 		files->fi[ino].size = filesize;
 		pmap_setperm(root->pdir, (uintptr_t)FILEDATA(ino),
 					ROUNDUP(filesize, PAGESIZE),
@@ -103,12 +94,11 @@ file_initroot(proc *root)
 		memcpy(FILEDATA(ino), initfiles[i][1], filesize);
 	}
 
-	// Current working directory
+	// Set root process's current working directory
 	files->cwd = FILEINO_ROOTDIR;
-	files->fi[FILEINO_ROOTDIR].nlink++;
 
 	// Child process state - reserve PID 0 as a "scratch" child process.
-	files->child[0] = PROC_RESERVED;
+	files->child[0].state = PROC_RESERVED;
 #if LAB >= 99
 
 	// Increase the root process's stack size to 64KB.

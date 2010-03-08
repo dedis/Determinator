@@ -8,73 +8,69 @@
 #include <inc/dirent.h>
 
 
-struct dirent *
-dir_walk(const char *path, bool create)
+int
+dir_walk(const char *path, mode_t createmode)
 {
 	assert(path != 0 && *path != 0);
 
 	// Start at the current or root directory as appropriate
-	int ino = (*path == '/') ? FILEINO_ROOTDIR : files->cwd;
+	int dino = (*path == '/') ? FILEINO_ROOTDIR : files->cwd;
 	while (*path == '/')
 		path++;		// skip leading slashes
 
 	// Search for the appropriate entry in this directory
 	searchdir:
-	assert(fileino_isdir(ino));
-	struct dirent *de = FILEDATA(ino);
-	struct dirent *delim = de + files->fi[ino].size / sizeof(*de);
-	struct dirent *defree = NULL;
-	for (; de < delim; de++) {
-		if (de->d_ino == FILEINO_NULL) {
-			if (defree == NULL)
-				defree = de;
-			continue;
-		}
-		int len = strlen(de->d_name);
-		if (memcmp(path, de->d_name, len) != 0)
+	assert(fileino_isdir(dino));
+	int ino;
+	for (ino = 1; ino < FILE_INODES; ino++) {
+		if (!fileino_alloced(ino) || files->fi[ino].dino != dino)
+			continue;	// not an entry in directory 'dino'
+		int len = strlen(files->fi[ino].de.d_name);
+		if (memcmp(path, files->fi[ino].de.d_name, len) != 0)
 			continue;	// no match
 		if (path[len] == 0)
-			return de;	// exact match at end of path
-		if (path[len] == '/')
+			return ino;	// exact match at end of path
+		if (path[len] != '/')
 			continue;	// no match
 
 		// Make sure this dirent refers to a directory
-		assert(fileino_exists(de->d_ino));
-		if (!fileino_isdir(de->d_ino)) {
+		if (!fileino_isdir(ino)) {
 			errno = ENOTDIR;
-			return NULL;
+			return -1;
 		}
 
 		// Skip slashes to find next component
 		do { len++; } while (path[len] == '/');
 		if (path[len] == 0)
-			return de;	// matched directory at end of path
+			return ino;	// matched directory at end of path
 
 		// Walk the next directory in the path
-		ino = de->d_ino;
+		dino = ino;
 		path += len;
 		goto searchdir;
 	}
 
 	// Path component not found - see if we should create it
-	if (!create || strchr(path, '/') != NULL) {
+	if (!createmode || strchr(path, '/') != NULL) {
 		errno = ENOENT;
-		return NULL;
+		return -1;
 	}
 	if (strlen(path) > NAME_MAX) {
 		errno = ENAMETOOLONG;
-		return NULL;
+		return -1;
 	}
 
-	struct dirent denew;
-	denew.d_ino = FILEINO_NULL;	// caller will fill in
-	strcpy(denew.d_name, path);
-	if (!defree)
-		defree = delim;
-	if (fileino_write(ino, (void*)defree - FILEDATA(ino), defree,
-				sizeof(*de)) < 0)
-		return NULL;
-	return defree;
+	// Allocate a new inode for this entry
+	// (but leave it in "deleted" state to be filled by the caller).
+	ino = fileino_alloc();
+	if (ino < 0)
+		return -1;
+	assert(fileino_isvalid(ino) && !fileino_alloced(ino));
+	strcpy(files->fi[ino].de.d_name, path);
+	files->fi[ino].dino = dino;
+	files->fi[ino].mode = createmode;
+	files->fi[ino].size = 0;
+	return ino;
 }
 
 DIR *opendir(const char *path)
@@ -103,21 +99,24 @@ int closedir(DIR *dir)
 
 struct dirent *readdir(DIR *dir)
 {
-	// Read a directory entry into the file descriptor's dirent struct.
-	ssize_t actual = filedesc_read(dir, &dir->de, sizeof(dir->de), 1);
-	if (actual < 1)
-		return NULL;
-	return &dir->de;
+	assert(filedesc_isopen(dir));
+	int ino;
+	while ((ino = dir->ofs++) < FILE_INODES) {
+		if (!fileino_exists(ino) || files->fi[ino].dino != dir->ino)
+			continue;
+		return &files->fi[ino].de;	// Return inode's dirent
+	}
+	return NULL;	// End of directory
 }
 
 void rewinddir(DIR *dir)
 {
-	filedesc_seek(dir, 0, SEEK_SET);
+	dir->ofs = 0;
 }
 
 void seekdir(DIR *dir, long ofs)
 {
-	filedesc_seek(dir, ofs, SEEK_SET);
+	dir->ofs = ofs;
 }
 
 long telldir(DIR *dir)

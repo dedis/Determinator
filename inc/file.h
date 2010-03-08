@@ -62,8 +62,8 @@ typedef struct filedesc {		// Per-open file descriptor state
 } filedesc;
 
 typedef struct fileinode {		// Per-file state - like an "inode"
+	int	dino;			// Directory this entry lives in
 #if LAB >= 99
-	int	dino;			// Directory this file lives in
 	int	refs;			// Reference count (FDs, children)
 #endif
 	struct dirent de;		// Entry name, "" if free entry
@@ -127,17 +127,17 @@ typedef struct filestate {
 
 #define fileino_isvalid(ino) \
 	((ino) > 0 && (ino) < FILE_INODES)
+#define fileino_alloced(ino) \
+	(fileino_isvalid(ino) && files->fi[ino].de.d_name[0] != 0)
 #define fileino_exists(ino) \
-	(fileino_isvalid(ino) && files->fi[ino].nlink > 0)
+	(fileino_alloced(ino) && files->fi[ino].mode != 0)
 #define fileino_isreg(ino)	\
-	(fileino_exists(ino) && S_ISREG(files->fi[ino].mode))
+	(fileino_alloced(ino) && S_ISREG(files->fi[ino].mode))
 #define fileino_isdir(ino)	\
-	(fileino_exists(ino) && S_ISDIR(files->fi[ino].mode))
+	(fileino_alloced(ino) && S_ISDIR(files->fi[ino].mode))
 
 
 int fileino_alloc(void);
-void fileino_take(int ino);	// take a reference (nlinks)
-void fileino_drop(int ino);	// drop a reference (nlinks)
 ssize_t fileino_write(int ino, off_t ofs, const void *buf, int len);
 int fileino_stat(int ino, struct stat *statbuf);
 int fileino_truncate(int ino, off_t newsize);
