@@ -249,8 +249,14 @@ mem_check()
         // if there's a page that shouldn't be on
         // the free list, try to make sure it
         // eventually causes trouble.
-	for (pp = mem_freelist; pp != 0; pp = pp->free_next)
+	int freepages = 0;
+	for (pp = mem_freelist; pp != 0; pp = pp->free_next) {
 		memset(mem_pi2ptr(pp), 0x97, 128);
+		freepages++;
+	}
+	cprintf("mem_check: %d free pages\n", freepages);
+	assert(freepages < mem_npage);	// can't have more free than total!
+	assert(freepages > 16000);	// make sure it's in the right ballpark
 
 	// should be able to allocate three pages
 	pp0 = pp1 = pp2 = 0;
