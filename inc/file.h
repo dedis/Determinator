@@ -78,6 +78,7 @@ typedef struct fileinode {		// Per-file state - like an "inode"
 typedef struct procinfo {
 	int	state;			// Current state of this child process
 	int	rver[FILE_INODES];	// Last reconcile ver, by parent inode
+	int	rlen[FILE_INODES];	// Last reconcile len, by parent inode
 	int	ip2c[FILE_INODES];	// Parent to child inode map
 	int	ic2p[FILE_INODES];	// Child to parent inode map
 } procinfo;

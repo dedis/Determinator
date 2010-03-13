@@ -2,6 +2,7 @@
 // More-or-less Unix-compatible fork and wait functions
 
 #include <inc/file.h>
+#include <inc/stat.h>
 #include <inc/unistd.h>
 #include <inc/sys/wait.h>
 #include <inc/string.h>
@@ -16,6 +17,10 @@
 #define ALLSIZE		(VM_USERHI - VM_USERLO)
 
 static bool reconcile(pid_t pid, filestate *cfiles);
+static bool recinode(pid_t pid, filestate *src, int srci, filestate *dst,
+			int *imap);
+static bool recappends(pid_t pid, filestate *src, int srci,
+			filestate *dst, int dsti, int *rlenp);
 
 pid_t fork(void)
 {
@@ -75,8 +80,10 @@ pid_t fork(void)
 	// so that we can reconcile them later when we synchronize with it.
 	files->child[pid].state = PROC_FORKED;
 	int i;
-	for (i = 1; i < FILE_INODES; i++)
+	for (i = 1; i < FILE_INODES; i++) {
 		files->child[pid].rver[i] = files->fi[i].ver;
+		files->child[pid].rlen[i] = files->fi[i].size;
+	}
 
 	return pid;
 }
@@ -206,7 +213,7 @@ recinode(pid_t pid, filestate *src, int srci, filestate *dst, int *imap)
 	if (src->fi[srci].de.d_name[0] == 0)
 		return 0;	// Not allocated to a name yet
 
-	int dsti = dstip[srci];	// Map src inode to dst inode number
+	int dsti = imap[srci];	// Map src inode to dst inode number
 	if (dsti == 0) {	// No mapping yet?  Create one.
 		int srcdi = src->fi[srci].dino;
 		assert(srcdi > 0 && srcdi < FILE_INODES);
@@ -233,6 +240,8 @@ recinode(pid_t pid, filestate *src, int srci, filestate *dst, int *imap)
 			dst->fi[dsti].dino = dstdi;
 			dst->fi[dsti].ver = 0;	// always start at ver 0
 		}
+		assert(dsti > 0 && dsti < FILE_INODES);
+		imap[srci] = dsti;
 	}
 	assert(imap[src->fi[srci].dino] == dst->fi[dsti].dino);
 	assert(strcmp(src->fi[srci].de.d_name, dst->fi[dsti].de.d_name) == 0);
@@ -241,15 +250,25 @@ recinode(pid_t pid, filestate *src, int srci, filestate *dst, int *imap)
 	assert(src == files || dst == files);
 	int parentino = (src == files) ? srci : dsti;
 	int *rverp = &files->child[pid].rver[parentino];
+	int *rlenp = &files->child[pid].rlen[parentino];
 	int rver = *rverp;
-	assert(src->fi[srci].ver >= rver);
-	assert(dst->fi[dsti].ver >= rver);
+	int rlen = *rlenp;
 
-	if (src->fi[srci].ver <= dst->fi[dsti].ver)
-		return 0;	// dst is newer: don't propagate!
+	assert(src->fi[srci].ver >= rver);	// version # only increases
+	if (dst->fi[dsti].ver == rver)	// within a version, length only grows
+		assert(dst->fi[dsti].size >= rlen);
 
-	if (dst->fi[dsti].ver != rver) {
-		// Destination changed since reference version: conflict!
+	// If no exclusive changes made in either parent or child,
+	// then just merge any non-exclusive, append-only updates.
+	if (src->fi[srci].ver == rver && dst->fi[dsti].ver == rver)
+		return recappends(pid, src, srci, dst, dsti, rlenp);
+
+	// Nothing to propagate from src to dst?  If so, done for now.
+	if (src->fi[srci].ver == rver)
+		return 0;
+
+	// Destination also changed since reference version or size?  Conflict!
+	if (dst->fi[dsti].ver != rver || dst->fi[dsti].size > rlen) {
 		dst->fi[dsti].ver = src->fi[srci].ver;
 		dst->fi[dsti].mode |= S_IFCONF;
 		return 1;	// I/O of sorts did occur
@@ -262,8 +281,10 @@ recinode(pid_t pid, filestate *src, int srci, filestate *dst, int *imap)
 	dst->fi[dsti].ver = src->fi[srci].ver;
 	dst->fi[dsti].mode = src->fi[srci].mode;
 	dst->fi[dsti].size = src->fi[srci].size;
+	*rverp = src->fi[srci].ver;
+	*rlenp = src->fi[srci].size;
 
-	// ...and copy the entire file data area
+	// ...and copy the entire file data area back into child
 	if (src == files)	// updating from parent to child
 		sys_put(SYS_COPY, pid, NULL, FILEDATA(srci), FILEDATA(dsti),
 			PTSIZE);
@@ -271,6 +292,78 @@ recinode(pid_t pid, filestate *src, int srci, filestate *dst, int *imap)
 		sys_get(SYS_COPY, pid, NULL, FILEDATA(srci), FILEDATA(dsti),
 			PTSIZE);
 	return 1;	// update occurred
+}
+
+static bool
+recappends(pid_t pid, filestate *src, int srci, filestate *dst, int dsti,
+		int *rlenp)
+{
+	assert(src == files || dst == files);
+	assert(src->fi[srci].ver == dst->fi[dsti].ver);
+
+	// How much did the file grow in the src & dst since last reconcile?
+	int rlen = *rlenp;
+	int srclen = src->fi[srci].size;
+	int dstlen = src->fi[dsti].size;
+	int srcgrow = srclen - rlen;
+	int dstgrow = dstlen - rlen;
+	assert(srcgrow >= 0 && srcgrow <= FILE_MAXSIZE);
+	assert(dstgrow >= 0 && dstgrow <= FILE_MAXSIZE);
+
+	// Map if necessary and find src & dst file data areas.
+	// The child's inode table is sitting at VM_SCRATCHLO,
+	// so map the file data temporarily at VM_SCRATCHLO+PTSIZE.
+	void *srcp, *dstp;
+	if (src == files) {	// updating from parent to child
+		sys_get(SYS_COPY, pid, NULL,
+			FILEDATA(dsti), (void*)VM_SCRATCHLO, PTSIZE);
+		srcp = FILEDATA(srci);
+		dstp = (void*)VM_SCRATCHLO+PTSIZE;
+	} else {		// updating from child to parent
+		sys_get(SYS_COPY, pid, NULL,
+			FILEDATA(srci), (void*)VM_SCRATCHLO, PTSIZE);
+		srcp = (void*)FILEDATA(srci);
+		srcp = (void*)VM_SCRATCHLO+PTSIZE;
+	}
+
+	// Would the new file size be too big after reconcile?  Conflict!
+	int newlen = rlen + srcgrow + dstgrow;
+	assert(newlen == srclen + dstgrow);
+	assert(newlen == dstlen + srcgrow);
+	if (newlen > FILE_MAXSIZE) {
+		dst->fi[dsti].mode |= S_IFCONF;
+		return 1;	// I/O of sorts did occur
+	}
+
+	// Make sure the perms are adequate on both src and dst
+	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL,
+		srcp, ROUNDUP(newlen, PAGESIZE));
+	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL,
+		dstp, ROUNDUP(newlen, PAGESIZE));
+
+	// Copy the newly-added parts of the file in both directions.
+	// Note that if both parent and child appended simultaneously,
+	// the appended chunks will be left in opposite order in the two!
+	// This is unavoidable if we want to allow simultaneous appends
+	// and don't want to change already-written portions:
+	// it's a price we pay for this relaxed consistency model.
+	memcpy(dstp + dstlen, srcp + rlen, srcgrow);
+	memcpy(srcp + srclen, dstp + rlen, dstgrow);
+	src->fi[srci].size = newlen; assert(newlen == srclen + dstgrow);
+	dst->fi[dsti].size = newlen; assert(newlen == dstlen + srcgrow);
+	*rlenp = newlen; assert(newlen == rlen + srcgrow + dstgrow);
+
+	// Copy updated file data back into the child
+	if (src == files) {	// updating from parent to child
+		assert(dstp == (void*)VM_SCRATCHLO+PTSIZE);
+		sys_put(SYS_COPY, pid, NULL, dstp, FILEDATA(dsti), PTSIZE);
+	} else {		// updating from child to parent
+		assert(srcp == (void*)VM_SCRATCHLO+PTSIZE);
+		sys_put(SYS_COPY, pid, NULL, srcp, FILEDATA(srci), PTSIZE);
+	}
+
+	// File merged!
+	return 1;
 }
 
 #endif	// LAB >= 4
