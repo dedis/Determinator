@@ -329,4 +329,18 @@ read_tsc(void)
         return tsc;
 }
 
+// Enable external device interrupts.
+static gcc_inline void
+sti(void)
+{
+	asm volatile("sti");
+}
+
+// Disable external device interrupts.
+static gcc_inline void
+cli(void)
+{
+	asm volatile("cli");
+}
+
 #endif /* !PIOS_INC_X86_H */

@@ -14,20 +14,28 @@ dir_walk(const char *path, mode_t createmode)
 	assert(path != 0 && *path != 0);
 
 	// Start at the current or root directory as appropriate
-	int dino = (*path == '/') ? FILEINO_ROOTDIR : files->cwd;
-	while (*path == '/')
-		path++;		// skip leading slashes
+	int dino = files->cwd;
+	if (*path == '/') {
+		dino = FILEINO_ROOTDIR;
+		do { path++; } while (*path == '/');	// skip leading slashes
+		if (*path == 0)
+			return dino;	// Just looking up root directory
+	}
 
 	// Search for the appropriate entry in this directory
 	searchdir:
 	assert(fileino_isdir(dino));
-	int ino;
+	assert(fileino_isdir(files->fi[dino].dino));
+
+	// Not a special directory - look for a regular entry.
+	int ino, len;
 	for (ino = 1; ino < FILE_INODES; ino++) {
 		if (!fileino_alloced(ino) || files->fi[ino].dino != dino)
 			continue;	// not an entry in directory 'dino'
-		int len = strlen(files->fi[ino].de.d_name);
+		len = strlen(files->fi[ino].de.d_name);
 		if (memcmp(path, files->fi[ino].de.d_name, len) != 0)
 			continue;	// no match
+		found:
 		if (path[len] == 0)
 			return ino;	// exact match at end of path
 		if (path[len] != '/')
@@ -48,6 +56,19 @@ dir_walk(const char *path, mode_t createmode)
 		dino = ino;
 		path += len;
 		goto searchdir;
+	}
+
+	// Looking for one of the special entries '.' or '..'?
+	if (path[0] == '.' && (path[1] == 0 || path[1] == '/')) {
+		len = 1;
+		ino = dino;	// just leads to this same directory
+		goto found;
+	}
+	if (path[0] == '.' && path[1] == '.'
+			&& (path[2] == 0 || path[2] == '/')) {
+		len = 2;
+		ino = files->fi[dino].dino;	// leads to root directory
+		goto found;
 	}
 
 	// Path component not found - see if we should create it

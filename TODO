@@ -66,3 +66,6 @@ through the interrupt.
 
 - In trap() or proc_ret(), check cr3 against proc->pdir.
 
+- rename kern/mp.* to dev/mp.* (or hw/mp.*)?
+
+- take the #if SOL >= 1 out of debug_panic()

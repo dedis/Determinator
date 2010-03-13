@@ -218,16 +218,23 @@ trap(trapframe *tf)
 		syscall(tf);
 		break;
 	case T_IRQ0 + IRQ_TIMER:
+		//cprintf("TIMER on %d\n", c->id);
 		lapic_eoi();
-		proc_yield(tf);
+		if (tf->tf_cs & 3)	// If in user mode, context switch
+			proc_yield(tf);
+		trap_return(tf);	// Otherwise, stay in idle loop
+#if SOL >= 4
 	case T_IRQ0 + IRQ_KBD:
+		//cprintf("KBD\n");
 		lapic_eoi();
 		kbd_intr();
 		trap_return(tf);
 	case T_IRQ0 + IRQ_SERIAL:
+		//cprintf("SER\n");
 		lapic_eoi();
 		serial_intr();
 		trap_return(tf);
+#endif // SOL >= 4
 #if LAB >= 99
 	case T_IRQ0 + IRQ_IDE:
 		lapic_eoi();
@@ -243,7 +250,7 @@ trap(trapframe *tf)
 	if (tf->tf_cs & 3)	// Unhandled trap from user mode
 		proc_ret(tf);	// Reflect to parent process
 
-#endif	// LAB >= 2
+#endif	// SOL >= 2
 	trap_print(tf);
 	panic("unhandled trap");
 }

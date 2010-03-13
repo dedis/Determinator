@@ -369,7 +369,8 @@ pmap_copy(pde_t *spdir, uint32_t sva, pde_t *dpdir, uint32_t dva,
 		*spde &= ~PTE_W;	// remove write permission
 
 		*dpde = *spde;		// copy ptable mapping
-		mem_incref(mem_phys2pi(PGADDR(*spde)));
+		if (*spde != PTE_ZERO)
+			mem_incref(mem_phys2pi(PGADDR(*spde)));
 
 		spde++, dpde++;
 		sva += PTSIZE;

@@ -36,6 +36,7 @@ extern bool serial_exists;
 
 void serial_init(void);
 void serial_putc(int c);
+void serial_intenable(void);
 void serial_intr(void); // irq 4
 
 #endif /* PIOS_KERN_SERIAL_H_ */

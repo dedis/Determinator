@@ -41,6 +41,9 @@ static size_t file_consout;	// Bytes written to console so far
 void
 file_init(void)
 {
+	if (!cpu_onboot())
+		return;
+
 	spinlock_init(&file_lock);
 }
 
@@ -79,6 +82,11 @@ file_initroot(proc *root)
 	files->fi[FILEINO_CONSOUT].mode = S_IFREG;
 	files->fi[FILEINO_ROOTDIR].mode = S_IFDIR;
 
+	// Set the whole console input area to be read/write,
+	// so we won't have to worry about perms in cons_io().
+	pmap_setperm(root->pdir, (uintptr_t)FILEDATA(FILEINO_CONSIN),
+				PTSIZE, SYS_READ | SYS_WRITE);
+
 	// Set up the initial files in the root process's file system
 	int ninitfiles = sizeof(initfiles)/sizeof(initfiles[0]);
 	int i;
@@ -86,6 +94,7 @@ file_initroot(proc *root)
 		int ino = FILEINO_GENERAL+i;
 		int filesize = initfiles[i][2] - initfiles[i][1];
 		strcpy(files->fi[ino].de.d_name, initfiles[i][0]);
+		files->fi[ino].dino = FILEINO_ROOTDIR;
 		files->fi[ino].mode = S_IFREG;
 		files->fi[ino].size = filesize;
 		pmap_setperm(root->pdir, (uintptr_t)FILEDATA(ino),
@@ -150,6 +159,14 @@ file_io(trapframe *tf)
 	spinlock_release(&file_lock);
 
 	proc_sched();			// go do something else
+#if LAB >= 99
+	// Just return without putting the root process to sleep,
+	// even if we haven't done any I/O.
+	// This way the root process essentially becomes an "idle loop",
+	// which is desirable because the root process runs in user mode,
+	// and the PIOS kernel only takes device interrupts from user mode.
+	trap_return(tf);
+#endif
 }
 
 // Check to see if any input is available for the root process

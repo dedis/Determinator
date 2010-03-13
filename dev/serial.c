@@ -78,13 +78,17 @@ serial_init(void)
 	serial_exists = (inb(COM1+COM_LSR) != 0xFF);
 	(void) inb(COM1+COM_IIR);
 	(void) inb(COM1+COM_RX);
+}
 
 #if LAB >= 4
+void
+serial_intenable(void)
+{
 	// Enable serial interrupts
 	if (serial_exists) {
 		pic_enable(IRQ_SERIAL);
 		ioapic_enable(IRQ_SERIAL, 0);
 	}
-#endif
 }
+#endif
 

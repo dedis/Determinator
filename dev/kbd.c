@@ -19,11 +19,9 @@
 #define SHIFT		(1<<0)
 #define CTL		(1<<1)
 #define ALT		(1<<2)
-
 #define CAPSLOCK	(1<<3)
 #define NUMLOCK		(1<<4)
 #define SCROLLLOCK	(1<<5)
-
 #define E0ESC		(1<<6)
 
 
@@ -182,11 +180,18 @@ kbd_intr(void)
 void
 kbd_init(void)
 {
+}
+
 #if LAB >= 4
-	// Drain the kbd buffer so that Bochs generates interrupts.
-	kbd_intr();
+void
+kbd_intenable(void)
+{
+	// Enable interrupt delivery via the PIC/APIC
 	pic_enable(IRQ_KBD);
 	ioapic_enable(IRQ_KBD, 0);
-#endif
+
+	// Drain the kbd buffer so that the hardware generates interrupts.
+	kbd_intr();
 }
+#endif
 

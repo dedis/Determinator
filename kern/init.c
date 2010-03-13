@@ -28,6 +28,7 @@
 #if LAB >= 2
 #include <dev/pic.h>
 #include <dev/lapic.h>
+#include <dev/ioapic.h>
 #endif	// LAB >= 2
 
 
@@ -39,7 +40,7 @@ static char gcc_aligned(16) user_stack[PAGESIZE];
 extern char _binary_obj_user_testvm_start[];
 #elif LAB >= 4
 // Lab 3: ELF executable containing root process, linked into the kernel
-extern char _binary_obj_user_ls_start[];
+extern char _binary_obj_user_sh_start[];
 #endif
 
 
@@ -84,19 +85,22 @@ init(void)
 	// Initialize the paged virtual memory system.
 	pmap_init();
 
-#if LAB >= 4
-	// Initialize the file I/O system.
-	file_init();
-#endif
 #endif
 	// Find and start other processors in a multiprocessor system
 	mp_init();		// Find info about processors in system
 	pic_init();		// setup the legacy PIC (mainly to disable it)
+	ioapic_init();		// prepare to handle external device interrupts
 	lapic_init();		// setup this CPU's local APIC
 	cpu_bootothers();	// Get other processors started
 	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
 		cpu_onboot() ? "BP" : "AP");
 
+#if LAB >= 4
+	// Initialize the I/O system.
+	file_init();		// Create root directory and console I/O files
+	cons_intenable();	// Let the console start producing interrupts
+
+#endif
 	// Initialize the process management code.
 	proc_init();
 #endif
@@ -135,7 +139,7 @@ init(void)
 #if SOL == 3
 	elfhdr *eh = (elfhdr *)_binary_obj_user_testvm_start;
 #elif SOL >= 4
-	elfhdr *eh = (elfhdr *)_binary_obj_user_ls_start;
+	elfhdr *eh = (elfhdr *)_binary_obj_user_sh_start;
 #endif
 	assert(eh->e_magic == ELF_MAGIC);
 
@@ -171,6 +175,7 @@ init(void)
 
 	// Start the process at the entry indicated in the ELF header
 	root->tf.tf_eip = eh->e_entry;
+	root->tf.tf_eflags |= FL_IF;	// enable interrupts
 
 	// Give the process a 1-page stack in high memory
 	// (the process can then increase its own stack as desired)

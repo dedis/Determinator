@@ -67,6 +67,7 @@ fileino_stat(int ino, struct stat *st)
 	assert(fileino_exists(ino));
 
 	fileinode *fi = &files->fi[ino];
+	assert(fileino_isdir(fi->dino));	// Should be in a directory!
 	st->st_ino = ino;
 	st->st_mode = fi->mode;
 	st->st_size = fi->size;
@@ -192,8 +193,10 @@ filedesc_read(filedesc *fd, void *buf, size_t eltsize, size_t count)
 			break;
 
 		// Wait for our parent to extend (or close) the file.
+#if LAB >= 99
 		cprintf("fread: waiting for input on file %d\n",
 			fd - files->fd);
+#endif
 		sys_ret();
 	}
 	return actual;

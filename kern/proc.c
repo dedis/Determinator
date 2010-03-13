@@ -132,9 +132,12 @@ proc_sched(void)
 	while (!readyhead) {
 		spinlock_release(&readylock);
 
-		cprintf("cpu %d waiting for work\n", cpu_cur()->id);
-		while (!readyhead)	// spin until something appears
+		//cprintf("cpu %d waiting for work\n", cpu_cur()->id);
+		while (!readyhead) {	// spin until something appears
+			sti();		// enable device interrupts briefly
 			pause();	// let CPU know we're in a spin loop
+			cli();		// disable interrupts again
+		}
 
 		spinlock_acquire(&readylock);
 		// now must recheck readyhead while holding readylock!

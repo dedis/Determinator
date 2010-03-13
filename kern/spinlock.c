@@ -30,7 +30,7 @@ spinlock_acquire(struct spinlock *lk)
 {
 #if SOL >= 2
 	if(spinlock_holding(lk))
-		panic("spinlock_acquire");
+		panic("recursive spinlock_acquire");
 
 	// The xchg is atomic.
 	// It also serializes,

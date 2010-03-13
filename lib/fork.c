@@ -78,7 +78,14 @@ pid_t fork(void)
 
 	// Record the inode generation numbers of all inodes at fork time,
 	// so that we can reconcile them later when we synchronize with it.
+	memset(&files->child[pid], 0, sizeof(files->child[pid]));
 	files->child[pid].state = PROC_FORKED;
+	files->child[pid].ip2c[FILEINO_CONSIN] = FILEINO_CONSIN;
+	files->child[pid].ic2p[FILEINO_CONSIN] = FILEINO_CONSIN;
+	files->child[pid].ip2c[FILEINO_CONSOUT] = FILEINO_CONSOUT;
+	files->child[pid].ic2p[FILEINO_CONSOUT] = FILEINO_CONSOUT;
+	files->child[pid].ip2c[FILEINO_ROOTDIR] = FILEINO_ROOTDIR;
+	files->child[pid].ic2p[FILEINO_ROOTDIR] = FILEINO_ROOTDIR;
 	int i;
 	for (i = 1; i < FILE_INODES; i++) {
 		files->child[pid].rver[i] = files->fi[i].ver;
@@ -126,7 +133,8 @@ waitpid(pid_t pid, int *status, int options)
 		if (cs.tf.tf_trapno != T_SYSCALL) {
 			// Yes - terminate the child WITHOUT reconciling,
 			// since the child's results are probably invalid.
-			*status = WSIGNALED | cs.tf.tf_trapno;
+			if (status != NULL)
+				*status = WSIGNALED | cs.tf.tf_trapno;
 
 			done:
 			// Clear out the child's address space.
@@ -140,7 +148,8 @@ waitpid(pid_t pid, int *status, int options)
 
 		// Has the child exited gracefully?
 		if (cfiles->exited) {
-			*status = WEXITED | (cfiles->status & 0xff);
+			if (status != NULL)
+				*status = WEXITED | (cfiles->status & 0xff);
 			goto done;
 		}
 
@@ -243,6 +252,7 @@ recinode(pid_t pid, filestate *src, int srci, filestate *dst, int *imap)
 		assert(dsti > 0 && dsti < FILE_INODES);
 		imap[srci] = dsti;
 	}
+	assert(src->fi[srci].dino); assert(dst->fi[dsti].dino);
 	assert(imap[src->fi[srci].dino] == dst->fi[dsti].dino);
 	assert(strcmp(src->fi[srci].de.d_name, dst->fi[dsti].de.d_name) == 0);
 
@@ -284,7 +294,7 @@ recinode(pid_t pid, filestate *src, int srci, filestate *dst, int *imap)
 	*rverp = src->fi[srci].ver;
 	*rlenp = src->fi[srci].size;
 
-	// ...and copy the entire file data area back into child
+	// ...and copy the entire file data area into the destination
 	if (src == files)	// updating from parent to child
 		sys_put(SYS_COPY, pid, NULL, FILEDATA(srci), FILEDATA(dsti),
 			PTSIZE);
@@ -316,12 +326,12 @@ recappends(pid_t pid, filestate *src, int srci, filestate *dst, int dsti,
 	void *srcp, *dstp;
 	if (src == files) {	// updating from parent to child
 		sys_get(SYS_COPY, pid, NULL,
-			FILEDATA(dsti), (void*)VM_SCRATCHLO, PTSIZE);
+			FILEDATA(dsti), (void*)VM_SCRATCHLO+PTSIZE, PTSIZE);
 		srcp = FILEDATA(srci);
 		dstp = (void*)VM_SCRATCHLO+PTSIZE;
 	} else {		// updating from child to parent
 		sys_get(SYS_COPY, pid, NULL,
-			FILEDATA(srci), (void*)VM_SCRATCHLO, PTSIZE);
+			FILEDATA(srci), (void*)VM_SCRATCHLO+PTSIZE, PTSIZE);
 		srcp = (void*)FILEDATA(srci);
 		srcp = (void*)VM_SCRATCHLO+PTSIZE;
 	}

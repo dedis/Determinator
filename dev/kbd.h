@@ -88,6 +88,7 @@
 
 
 void kbd_init(void);
+void kbd_intenable(void);
 void kbd_intr(void);
 
 #endif /* PIOS_KERN_KBD_H_ */

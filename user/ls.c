@@ -20,8 +20,8 @@ ls(const char *path)
 	struct stat st;
 
 	const char *realpath = path[0] ? path : ".";
-	if ((r = stat(realpath, &st)) < 0)
-		panic("stat %s: %e", realpath, r);
+	if (stat(realpath, &st) < 0)
+		panic("stat %s: %s", realpath, strerror(errno));
 	if (S_ISDIR(st.st_mode) && !flag['d'])
 		lsdir(path, realpath);
 	else

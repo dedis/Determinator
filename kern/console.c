@@ -18,15 +18,12 @@
 #include <dev/video.h>
 #include <dev/kbd.h>
 #include <dev/serial.h>
-#if LAB >= 4
-#include <dev/pic.h>
-#endif
 
 void cons_intr(int (*proc)(void));
 static void cons_putc(int c);
 
 #if SOL >= 2
-static spinlock cons_lock;	// Spinlock to make console output atomic
+spinlock cons_lock;	// Spinlock to make console output atomic
 #endif
 
 /***** General device-independent console code *****/
@@ -63,6 +60,11 @@ cons_intr(int (*proc)(void))
 	}
 #if SOL >= 2
 	spinlock_release(&cons_lock);
+
+#if SOL >= 4	// XXX just give this code to the students!
+	// Wake the root process
+	file_wakeroot();
+#endif
 #endif
 }
 
@@ -114,6 +116,19 @@ cons_init(void)
 		cprintf("Serial port does not exist!\n");
 }
 
+#if LAB >= 4
+// Enable console interrupts.
+void
+cons_intenable(void)
+{
+	if (!cpu_onboot())	// only do once, on the boot CPU
+		return;
+
+	kbd_intenable();
+	serial_intenable();
+}
+#endif // LAB >= 4
+
 // `High'-level console I/O.  Used by readline and cprintf.
 void
 cputs(const char *str)
@@ -152,7 +167,6 @@ cons_io(void)
 		cons_putc(outbuf[cons_outsize++]);
 		didio = 1;
 	}
-		
 
 	// Console input to the root process's console input file
 	fileinode *infi = &files->fi[FILEINO_CONSIN];
