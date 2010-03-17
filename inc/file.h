@@ -39,11 +39,24 @@
 #define O_MKDIR		0x0100		// create directory, not regular file
 #endif
 
+// Each process contains its own copy of all file system state,
+// which resides between virtual addresses 0x80000000 and 0xc0000000
+// (see the VM_FILELO and VM_FILEHI symbols in inc/vm.h).
+// This 1GB virtual address space region is divided into 256 4MB areas.
+// The first 4MB area, from FILESVA to FILESVA+PTSIZE,
+// contains the file system and process metadata,
+// whose format is defined by the 'filestate' structure below
+// and the various sub-structures it incorporates and builds upon.
+// The remaining 255 4MB areas each hold the content of one file,
+// indexed by an "inode number" from 1 through 255.
+// Thus, this file system can have at most 255 files in existence at once,
+// each having a maximum size of PTSIZE bytes (4MB).
+
 #define FILE_INODES	256		// Max number of files or "inodes"
 #define	FILE_MAXSIZE	(1<<22)		// Max size of a single file - 4MB
 
 #define FILESVA	0x80000000		// Virtual address of file state area
-#define FILEDATA(ino)	((void*)FILESVA + ((ino) << 22)) // File data area
+#define FILEDATA(ino)	((void*)FILESVA + ((ino) << 22)) // File data per inode
 
 struct stat;
 
@@ -54,6 +67,19 @@ struct dirent {				// Directory entry - should be 64 bytes
 	char	d_name[NAME_MAX+1];	// Entry name
 };
 
+// Per-open file descriptor structure.
+// Both the "low-level" numeric file descriptors used in calls such as
+// open/close/read/write (see inc/unistd.h and lib/unistd.c),
+// and the "high-level" FILE* pointers used in calls such as
+// fopen/fclose/fread/fwrite (see inc/stdio.h and lib/stdio.c),
+// all index into or refer to these SAME 'filedesc' structs.
+//
+// PIOS can get away with this simplification in part because
+// the system call overhead of the Unix read/write/etc system calls
+// goes away when the file system resides in the process itself,
+// so there is no performance need for a buffering layer atop the file system:
+// the user-space file system itself provides the only "buffering" we need.
+//
 typedef struct filedesc {		// Per-open file descriptor state
 	ino_t	ino;			// Opened file's inode number
 	int	flags;			// File open flags - O_*, above
@@ -61,6 +87,12 @@ typedef struct filedesc {		// Per-open file descriptor state
 	int	err;			// Last error on this file descriptor
 } filedesc;
 
+// Per-file "inode" metadata structure.
+// These inode structs live in the large 'filestate' struct below;
+// there are 256 of them (FILE_INODES) in a given process's file system,
+// the first of which is always unused (see FILEINO_NULL below),
+// and the next few of which have reserved uses (FILE_INO_*).
+//
 typedef struct fileinode {		// Per-file state - like an "inode"
 	int	dino;			// Directory this entry lives in
 #if LAB >= 99
@@ -75,6 +107,8 @@ typedef struct fileinode {		// Per-file state - like an "inode"
 
 // Information record we keep for child processes forked via Unix fork(),
 // for the use of wait() and waitpid().
+// We use this information to emulate Unix's fork()/wait() API
+// on top of PIOS's minimalistic GET/PUT/RET process management API.
 typedef struct procinfo {
 	int	state;			// Current state of this child process
 	int	rver[FILE_INODES];	// Last reconcile ver, by parent inode
@@ -100,7 +134,8 @@ typedef struct filestate {
 	procinfo	child[256]; 	// Unix state of all child processes
 } filestate;
 
-#define files		((filestate *) FILESVA)
+#define FILES		((filestate *) FILESVA)
+extern filestate *const files;		// always = FILES
 
 // Special file inode numbers
 #define FILEINO_NULL	0		// Inode 0 is never used
@@ -117,6 +152,7 @@ typedef struct filestate {
 #endif
 
 
+// Validity and status checking for file descriptor pointers ('f')
 #define filedesc_isvalid(f) \
 	((f) >= &files->fd[0] && (f) < &files->fd[OPEN_MAX])
 #define filedesc_isopen(f) \
@@ -126,6 +162,7 @@ typedef struct filestate {
 #define filedesc_iswritable(f) \
 	(filedesc_isopen(f) && (f)->flags & O_WRONLY)
 
+// Validity and status checking for file inode numbers ('ino')
 #define fileino_isvalid(ino) \
 	((ino) > 0 && (ino) < FILE_INODES)
 #define fileino_alloced(ino) \
@@ -139,7 +176,10 @@ typedef struct filestate {
 
 
 int fileino_alloc(void);
-ssize_t fileino_write(int ino, off_t ofs, const void *buf, int len);
+ssize_t fileino_read(int ino, off_t ofs, void *buf,
+			size_t eltsize, size_t count);
+ssize_t fileino_write(int ino, off_t ofs, const void *buf,
+			size_t eltsize, size_t count);
 int fileino_stat(int ino, struct stat *statbuf);
 int fileino_truncate(int ino, off_t newsize);
 

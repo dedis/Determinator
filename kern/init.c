@@ -35,13 +35,15 @@
 // User-mode stack for user(), below, to run on.
 static char gcc_aligned(16) user_stack[PAGESIZE];
 
+// Lab 3: ELF executable containing root process, linked into the kernel
+#ifndef ROOTEXE_START
 #if LAB == 3
-// Lab 3: ELF executable containing root process, linked into the kernel
-extern char _binary_obj_user_testvm_start[];
+#define ROOTEXE_START _binary_obj_user_testvm_start
 #elif LAB >= 4
-// Lab 3: ELF executable containing root process, linked into the kernel
-extern char _binary_obj_user_sh_start[];
+#define ROOTEXE_START _binary_obj_user_testfs_start
+#endif // LAB >= 4
 #endif
+extern char ROOTEXE_START[];
 
 
 // Called first from entry.S on the bootstrap processor,
@@ -136,11 +138,7 @@ init(void)
 	// Create our first actual user-mode process
 	proc *root = proc_root = proc_alloc(NULL, 0);
 
-#if SOL == 3
-	elfhdr *eh = (elfhdr *)_binary_obj_user_testvm_start;
-#elif SOL >= 4
-	elfhdr *eh = (elfhdr *)_binary_obj_user_sh_start;
-#endif
+	elfhdr *eh = (elfhdr *)ROOTEXE_START;
 	assert(eh->e_magic == ELF_MAGIC);
 
 	// Load each program segment

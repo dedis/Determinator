@@ -27,11 +27,13 @@ dir_walk(const char *path, mode_t createmode)
 	assert(fileino_isdir(dino));
 	assert(fileino_isdir(files->fi[dino].dino));
 
-	// Not a special directory - look for a regular entry.
+	// Look for a regular directory entry with a matching name.
 	int ino, len;
 	for (ino = 1; ino < FILE_INODES; ino++) {
 		if (!fileino_alloced(ino) || files->fi[ino].dino != dino)
 			continue;	// not an entry in directory 'dino'
+
+		// Does this inode's name match our next path component?
 		len = strlen(files->fi[ino].de.d_name);
 		if (memcmp(path, files->fi[ino].de.d_name, len) != 0)
 			continue;	// no match

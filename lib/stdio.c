@@ -17,9 +17,9 @@
 #include <inc/syscall.h>
 
 
-FILE *const stdin = &files->fd[0];
-FILE *const stdout = &files->fd[1];
-FILE *const stderr = &files->fd[2];
+FILE *const stdin = &FILES->fd[0];
+FILE *const stdout = &FILES->fd[1];
+FILE *const stderr = &FILES->fd[2];
 
 FILE *
 fopen(const char *path, const char *mode)

@@ -56,22 +56,46 @@
 //
 // Within the user-space region, user processes are technically free
 // to organize their address space however they see fit.
-// However, the following definitions reflect conventions
+// However, the following layout reflects conventions
 // that PIOS's user-space library infrastructure use
-// for communication between parent and child processes.
+// for communication between parent and child processes
+// (and ultimately between the PIOS kernel and the root process).
 //
+//                     |                              |
+//    VM_USERHI, ----> +==============================+ 0xf0000000
+//    VM_STACKHI       |                              |
+//                     |     Per-thread user stack    |
+//                     |                              |
+//    VM_STACKLO,      +------------------------------+ 0x80000000
+//    VM_SCRATCHHI     |                              |
+//                     |    Scratch address space     |
+//                     | for file reconciliation etc. |
+//                     |                              |
+//    VM_SCRATCHLO, -> +------------------------------+ 0x80000000
+//    VM_FILEHI        |                              |
+//                     |      File system and         |
+//                     |   process management state   |
+//                     |                              |
+//    VM_FILELO, ----> +------------------------------+ 0x80000000
+//    VM_SHAREHI       |                              |
+//                     |  General-purpose use space   |
+//                     | shared between user threads: |
+//                     |   program text, data, heap   |
+//                     |                              |
+//    VM_SHARELO, ---> +==============================+ 0x40000000
+//    VM_USERLO        |                              |
 
 // Standard area for the user-space stack (thread-private)
-#define VM_STACKHI	0xe0000000
+#define VM_STACKHI	0xf0000000
 #define VM_STACKLO	0xd0000000
 
 // Scratch address space region for general use (e.g., by exec)
 #define VM_SCRATCHHI	0xd0000000
 #define VM_SCRATCHLO	0xc0000000
 
-// Address space area for Unix API compatibility state and files.
-#define VM_UNIXHI	0xc0000000
-#define VM_UNIXLO	0x80000000
+// Address space area for file system and Unix process state
+#define VM_FILEHI	0xc0000000
+#define VM_FILELO	0x80000000
 
 // General-purpose address space shared between "threads"
 // created via SYS_SNAP/SYS_MERGE.

@@ -94,6 +94,7 @@ KERN_INITFILES :=	sh \
 
 # Binary program images to embed within the kernel.
 KERN_BINFILES :=	boot/bootother \
+			user/testfs \
 			$(patsubst %,user/%,$(KERN_INITFILES))
 else
 ifdef LAB3

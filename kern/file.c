@@ -33,6 +33,12 @@ char *initfiles[][3] = {
 #undef INITFILE
 
 
+// Although 'files' itself could be a preprocessor symbol like FILES,
+// that makes this symbol invisible to and unusable under GDB,
+// which is a bit of a pain for debugging purposes.
+// This way 'files' is a real pointer variable that GDB knows about.
+filestate *const files = FILES;
+
 static spinlock file_lock;	// Lock to protect file I/O state
 static size_t file_consout;	// Bytes written to console so far
 
@@ -54,7 +60,8 @@ file_initroot(proc *root)
 	// all other processes do I/O indirectly via the process hierarchy.
 	assert(root == proc_root);
 
-	// Make sure the root process's page directory is active
+	// Make sure the root process's page directory is loaded,
+	// so that we can write into the root process's file area directly.
 	cpu_cur()->proc = root;
 	lcr3(mem_phys(root->pdir));
 
@@ -87,8 +94,16 @@ file_initroot(proc *root)
 	pmap_setperm(root->pdir, (uintptr_t)FILEDATA(FILEINO_CONSIN),
 				PTSIZE, SYS_READ | SYS_WRITE);
 
-	// Set up the initial files in the root process's file system
+	// Set up the initial files in the root process's file system.
+	// Some script magic in kern/Makefrag creates obj/kern/initfiles.h,
+	// which gets included above (twice) to create the 'initfiles' array.
+	// For each initial file numbered 0 <= i < ninitfiles,
+	// initfiles[i][0] is a pointer to the filename string for that file,
+	// initfiles[i][1] is a pointer to the start of the file's content, and
+	// initfiles[i][2] is a pointer to the end of the file's content
+	// (i.e., a pointer to the first byte after the file's last byte).
 	int ninitfiles = sizeof(initfiles)/sizeof(initfiles[0]);
+#if SOL >= 4
 	int i;
 	for (i = 0; i < ninitfiles; i++) {
 		int ino = FILEINO_GENERAL+i;
@@ -102,6 +117,10 @@ file_initroot(proc *root)
 					SYS_READ | SYS_WRITE);
 		memcpy(FILEDATA(ino), initfiles[i][1], filesize);
 	}
+#else
+	// Lab 4: your file system initialization code here.
+	warn("file_initroot: file system initialization not done\n");
+#endif
 
 	// Set root process's current working directory
 	files->cwd = FILEINO_ROOTDIR;

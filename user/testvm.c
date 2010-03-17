@@ -20,7 +20,8 @@ uint8_t stack[2][STACKSIZE];
 
 
 // Fork a child process, returning 0 in the child and 1 in the parent.
-int fork(int cmd, uint8_t child)
+int
+fork(int cmd, uint8_t child)
 {
 	// Set up the register state for the child
 	struct cpustate cs;
@@ -55,7 +56,8 @@ int fork(int cmd, uint8_t child)
 	return 1;
 }
 
-void join(int cmd, uint8_t child, int trapexpect)
+void
+join(int cmd, uint8_t child, int trapexpect)
 {
 	// Wait for the child and retrieve its CPU state.
 	// If merging, leave the highest 4MB containing the stack unmerged,
@@ -72,7 +74,8 @@ void join(int cmd, uint8_t child, int trapexpect)
 	}
 }
 
-void gentrap(int trap)
+void
+gentrap(int trap)
 {
 	int bounds[2] = { 1, 3 };
 	switch (trap) {
@@ -95,7 +98,8 @@ void gentrap(int trap)
 	}
 }
 
-static void trapcheck(int trapno)
+static void
+trapcheck(int trapno)
 {
 	if (!fork(SYS_START, 0)) { gentrap(trapno); }
 	join(0, 0, trapno);
@@ -131,7 +135,8 @@ static void cputsfaultchild(int arg) {
 		sys_ret(); } \
 	join(0, 0, T_PGFLT);
 
-void loadcheck()
+void
+loadcheck()
 {
 	// Simple ELF loading test: make sure bss is mapped but cleared
 	uint8_t *p;
@@ -144,7 +149,8 @@ void loadcheck()
 }
 
 // Check forking of simple child processes and trap redirection (once more)
-void forkcheck()
+void
+forkcheck()
 {
 	// Our first copy-on-write test: fork and execute a simple child.
 	if (!fork(SYS_START, 0)) gentrap(T_SYSCALL);
@@ -185,7 +191,8 @@ void forkcheck()
 }
 
 // Check for proper virtual memory protection
-void protcheck()
+void
+protcheck()
 {
 	// Copyin/copyout protection:
 	// make sure we can't use cputs/put/get data in kernel space
@@ -226,7 +233,8 @@ void protcheck()
 }
 
 // Test explicit memory management operations
-void memopcheck(void)
+void
+memopcheck(void)
 {
 	// Test page permission changes
 	void *va = (void*)VM_USERLO+PTSIZE+PAGESIZE;
@@ -339,7 +347,8 @@ const int sortints[256] = {	// sorted array of the same ints
 
 #define swapints(a,b) ({ int t = (a); (a) = (b); (b) = t; })
 
-void pqsort(int *lo, int *hi)
+void
+pqsort(int *lo, int *hi)
 {
 	if (lo >= hi)
 		return;
@@ -398,7 +407,8 @@ const int mc[8][8] = {	// Matrix of correct answers
 	{149128, 54805, 130652, 140309, 157630, 99208, 115657, 106951},
 	{136163, 42930, 132817, 154486, 107399, 83659, 100339, 80010}};
 
-void matmult(int a[8][8], int b[8][8], int r[8][8])
+void
+matmult(int a[8][8], int b[8][8], int r[8][8])
 {
 	int i,j,k;
 
@@ -423,7 +433,8 @@ void matmult(int a[8][8], int b[8][8], int r[8][8])
 		}
 }
 
-void mergecheck()
+void
+mergecheck()
 {
 	// Simple merge test: two children write two adjacent variables
 	if (!fork(SYS_START | SYS_SNAP, 0)) { x = 0xdeadbeef; sys_ret(); }
@@ -455,9 +466,10 @@ void mergecheck()
 	cprintf("testvm: mergecheck passed\n");
 }
 
-int main()
+int
+main()
 {
-	cprintf("testvm: in piosmain()\n");
+	cprintf("testvm: in main()\n");
 
 	loadcheck();
 	forkcheck();
@@ -469,4 +481,4 @@ int main()
 	return 0;
 }
 
-#endif
+#endif // LAB >= 3

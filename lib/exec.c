@@ -39,8 +39,8 @@ execv(const char *path, char *const argv[])
 	intptr_t esp = exec_copyargs(argv);
 
 	// Copy our Unix file system and process state into the child.
-	sys_put(SYS_COPY, 0, NULL, (void*)VM_UNIXLO, (void*)VM_UNIXLO,
-		VM_UNIXHI-VM_UNIXLO);
+	sys_put(SYS_COPY, 0, NULL, (void*)VM_FILELO, (void*)VM_FILELO,
+		VM_FILEHI-VM_FILELO);
 
 	// Copy child 0's entire memory state onto ours
 	// and start the new program.  See lib/entry.S for details.

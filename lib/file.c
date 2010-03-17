@@ -13,6 +13,13 @@
 #include <inc/mmu.h>
 
 
+// Although 'files' itself could be a preprocessor symbol like FILES,
+// that makes this symbol invisible to and unusable under GDB,
+// which is a bit of a pain for debugging purposes.
+// This way 'files' is a real pointer variable that GDB knows about.
+filestate *const files = FILES;
+
+
 ////////// File inode functions //////////
 
 int
@@ -29,16 +36,54 @@ fileino_alloc(void)
 }
 
 ssize_t
-fileino_write(int ino, off_t ofs, const void *buf, int len)
+fileino_read(int ino, off_t ofs, void *buf, size_t eltsize, size_t count)
 {
-	assert(fileino_exists(ino));
+	assert(fileino_isreg(ino));
 	assert(ofs >= 0);
-	assert(len >= 0);
+	assert(eltsize > 0);
+
+	fileinode *fi = &files->fi[ino];
+	assert(fi->size <= FILE_MAXSIZE);
+
+	ssize_t actual = 0;
+	while (count > 0) {
+		// Read as many elements as we can from the file.
+		// Note: fd->ofs could well point beyond the end of file,
+		// which means that avail will be negative - but that's OK.
+		ssize_t avail = MIN(count, (fi->size - ofs) / eltsize);
+		if (avail > 0) {
+			memmove(buf, FILEDATA(ino) + ofs, avail * eltsize);
+			buf += avail * eltsize;
+			actual += avail;
+			count -= avail;
+		}
+
+		// If there's no more we can read, stop now.
+		if (count == 0 || !(fi->mode & S_IFPART))
+			break;
+
+		// Wait for our parent to extend (or close) the file.
+#if LAB >= 99
+		cprintf("fileino_read: waiting for input on file %d\n",
+			fd - files->fd);
+#endif
+		sys_ret();
+	}
+	return actual;
+}
+
+ssize_t
+fileino_write(int ino, off_t ofs, const void *buf, size_t eltsize, size_t count)
+{
+	assert(fileino_isreg(ino));
+	assert(ofs >= 0);
+	assert(eltsize > 0);
 
 	fileinode *fi = &files->fi[ino];
 	assert(fi->size <= FILE_MAXSIZE);
 
 	// Return an error if we'd be growing the file too big.
+	size_t len = eltsize * count;
 	size_t lim = ofs + len;
 	if (lim < ofs || lim > FILE_MAXSIZE) {
 		errno = EFBIG;
@@ -173,32 +218,16 @@ filedesc_read(filedesc *fd, void *buf, size_t eltsize, size_t count)
 	assert(filedesc_isreadable(fd));
 	fileinode *fi = &files->fi[fd->ino];
 
-	ssize_t actual = 0;
-	while (count > 0) {
-		// Read as many elements as we can from the file.
-		// Note: fd->ofs could well point beyond the end of file,
-		// which means that avail will be negative - but that's OK.
-		ssize_t avail = MIN(count, (fi->size - fd->ofs) / eltsize);
-		if (avail > 0) {
-			memmove(buf, FILEDATA(fd->ino) + fd->ofs,
-				avail * eltsize);
-			fd->ofs += avail * eltsize;
-			buf += avail * eltsize;
-			actual += avail;
-			count -= avail;
-		}
-
-		// If there's no more we can read, stop now.
-		if (count == 0 || !(fi->mode & S_IFPART))
-			break;
-
-		// Wait for our parent to extend (or close) the file.
-#if LAB >= 99
-		cprintf("fread: waiting for input on file %d\n",
-			fd - files->fd);
-#endif
-		sys_ret();
+	ssize_t actual = fileino_read(fd->ino, fd->ofs, buf, eltsize, count);
+	if (actual < 0) {
+		fd->err = errno;	// save error indication for ferror()
+		return -1;
 	}
+
+	// Advance the file position
+	fd->ofs += eltsize * actual;
+	assert(actual == 0 || fi->size >= fd->ofs);
+
 	return actual;
 }
 
@@ -218,7 +247,7 @@ filedesc_write(filedesc *fd, const void *buf, size_t eltsize, size_t count)
 		fd->ofs = fi->size;
 
 	// Write the data, growing the file as necessary.
-	if (fileino_write(fd->ino, fd->ofs, buf, eltsize * count) < 0) {
+	if (fileino_write(fd->ino, fd->ofs, buf, eltsize, count) < 0) {
 		fd->err = errno;	// save error indication for ferror()
 		return -1;
 	}
