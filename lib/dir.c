@@ -96,6 +96,10 @@ dir_walk(const char *path, mode_t createmode)
 	return ino;
 }
 
+// Open a directory for scanning.
+// For simplicity, DIR is simply a filedesc like other file descriptors,
+// except we interpret fd->ofs as an inode number for scanning,
+// instead of as a byte offset as in a regular file.
 DIR *opendir(const char *path)
 {
 	filedesc *fd = filedesc_open(NULL, path, O_RDONLY, 0);
@@ -120,8 +124,12 @@ int closedir(DIR *dir)
 	return 0;
 }
 
+// Scan an open directory filedesc and return the next entry.
+// Returns a pointer to the next matching file inode's 'dirent' struct,
+// or NULL if the directory being scanned contains no more entries.
 struct dirent *readdir(DIR *dir)
 {
+#if SOL >= 4
 	assert(filedesc_isopen(dir));
 	int ino;
 	while ((ino = dir->ofs++) < FILE_INODES) {
@@ -130,6 +138,14 @@ struct dirent *readdir(DIR *dir)
 		return &files->fi[ino].de;	// Return inode's dirent
 	}
 	return NULL;	// End of directory
+#else	// ! SOL >= 4
+	// Lab 4: insert your file reading code here.
+	// Hint: a fileinode's 'dino' field indicates
+	// what directory the file is in;
+	// this function shouldn't return entries from other directories!
+	warn("readdir() not implemented");
+	return NULL;
+#endif	// ! SOL >= 4
 }
 
 void rewinddir(DIR *dir)

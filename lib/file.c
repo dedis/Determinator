@@ -22,6 +22,8 @@ filestate *const files = FILES;
 
 ////////// File inode functions //////////
 
+// Find and return the index of a currently unused file inode in this process.
+// If no inodes are available, returns -1 and sets errno accordingly.
 int
 fileino_alloc(void)
 {
@@ -35,6 +37,13 @@ fileino_alloc(void)
 	return -1;
 }
 
+// Read up to 'count' data elements each of size 'eltsize',
+// starting at absolute byte offset 'ofs' within the file in inode 'ino'.
+// Returns the number of elements (NOT the number of bytes!) actually read,
+// or if an error occurs, returns -1 and sets errno appropriately.
+// The number of elements returned is normally equal to the 'count' parameter,
+// but may be less (without resulting in an error)
+// if the file is not large enough to read that many elements.
 ssize_t
 fileino_read(int ino, off_t ofs, void *buf, size_t eltsize, size_t count)
 {
@@ -45,12 +54,15 @@ fileino_read(int ino, off_t ofs, void *buf, size_t eltsize, size_t count)
 	fileinode *fi = &files->fi[ino];
 	assert(fi->size <= FILE_MAXSIZE);
 
+#if SOL >= 4
 	ssize_t actual = 0;
 	while (count > 0) {
 		// Read as many elements as we can from the file.
 		// Note: fd->ofs could well point beyond the end of file,
 		// which means that avail will be negative - but that's OK.
 		ssize_t avail = MIN(count, (fi->size - ofs) / eltsize);
+		if (ofs >= fi->size)
+			avail = 0;
 		if (avail > 0) {
 			memmove(buf, FILEDATA(ino) + ofs, avail * eltsize);
 			buf += avail * eltsize;
@@ -70,8 +82,24 @@ fileino_read(int ino, off_t ofs, void *buf, size_t eltsize, size_t count)
 		sys_ret();
 	}
 	return actual;
+#else	// ! SOL >= 4
+	// Lab 4: insert your file reading code here.
+	warn("fileino_read() not implemented");
+	errno = EINVAL;
+	return -1;
+#endif	// ! SOL >= 4
 }
 
+// Write 'count' data elements each of size 'eltsize'
+// starting at absolute byte offset 'ofs' within the file in inode 'ino'.
+// Returns the number of elements actually written,
+// which should always be equal to the 'count' input parameter
+// unless an error occurs, in which case this function
+// returns -1 and sets errno appropriately.
+// Since PIOS files can be up to only FILE_MAXSIZE bytes in size (4MB),
+// one particular reason an error might occur is if an application
+// tries to grow a file beyond this maximum file size,
+// in which case this function generates the EFBIG error.
 ssize_t
 fileino_write(int ino, off_t ofs, const void *buf, size_t eltsize, size_t count)
 {
@@ -82,6 +110,7 @@ fileino_write(int ino, off_t ofs, const void *buf, size_t eltsize, size_t count)
 	fileinode *fi = &files->fi[ino];
 	assert(fi->size <= FILE_MAXSIZE);
 
+#if SOL >= 4
 	// Return an error if we'd be growing the file too big.
 	size_t len = eltsize * count;
 	size_t lim = ofs + len;
@@ -103,9 +132,18 @@ fileino_write(int ino, off_t ofs, const void *buf, size_t eltsize, size_t count)
 
 	// Write the data.
 	memmove(FILEDATA(ino) + ofs, buf, len);
-	return len;
+	return count;
+#else	// ! SOL >= 4
+	// Lab 4: insert your file writing code here.
+	warn("fileino_write() not implemented");
+	errno = EINVAL;
+	return -1;
+#endif	// ! SOL >= 4
 }
 
+// Return file statistics about a particular inode.
+// The specified inode must indicate a file that exists,
+// but it can be any type of object: e.g., file, directory, special file, etc.
 int
 fileino_stat(int ino, struct stat *st)
 {
@@ -192,6 +230,17 @@ filedesc_open(filedesc *fd, const char *path, int openflags, mode_t mode)
 		return NULL;
 	assert(fileino_exists(ino));
 
+	// Truncate the file if we were asked to
+	if (openflags & O_TRUNC) {
+		if (!(openflags & O_WRONLY)) {
+			warn("filedesc_open: can't truncate non-writable file");
+			errno = EINVAL;
+			return NULL;
+		}
+		if (fileino_truncate(ino, 0) < 0)
+			return NULL;
+	}
+
 	// Initialize the file descriptor
 	fd->ino = ino;
 	fd->flags = openflags;
@@ -247,10 +296,12 @@ filedesc_write(filedesc *fd, const void *buf, size_t eltsize, size_t count)
 		fd->ofs = fi->size;
 
 	// Write the data, growing the file as necessary.
-	if (fileino_write(fd->ino, fd->ofs, buf, eltsize, count) < 0) {
+	ssize_t actual = fileino_write(fd->ino, fd->ofs, buf, eltsize, count);
+	if (actual < 0) {
 		fd->err = errno;	// save error indication for ferror()
 		return -1;
 	}
+	assert(actual == count);
 
 	// Advance the file position
 	fd->ofs += eltsize * count;
@@ -261,15 +312,16 @@ filedesc_write(filedesc *fd, const void *buf, size_t eltsize, size_t count)
 
 // Seek the given file descriptor to a specificied position,
 // which may be relative to the file start, end, or corrent position,
-// depending on 'whence'.
+// depending on 'whence' (SEEK_SET, SEEK_CUR, or SEEK_END).
 // Returns the resulting absolute file position,
 // or returns -1 and sets errno appropriately on error.
 off_t filedesc_seek(filedesc *fd, off_t offset, int whence)
 {
 	assert(filedesc_isopen(fd));
-	fileinode *fi = &files->fi[fd->ino];
 	assert(whence == SEEK_SET || whence == SEEK_CUR || whence == SEEK_END);
+	fileinode *fi = &files->fi[fd->ino];
 
+#if SOL >= 4
 	off_t newofs = offset;
 	if (whence == SEEK_CUR)
 		newofs += fd->ofs;
@@ -279,6 +331,12 @@ off_t filedesc_seek(filedesc *fd, off_t offset, int whence)
 
 	fd->ofs = newofs;
 	return newofs;
+#else	// ! SOL >= 4
+	// Lab 4: insert your file descriptor seek implementation here.
+	warn("filedesc_seek() not implemented");
+	errno = EINVAL;
+	return -1;
+#endif	// ! SOL >= 4
 }
 
 void
