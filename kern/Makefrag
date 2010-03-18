@@ -91,6 +91,7 @@ ifdef LAB4
 # Files in 'user' directory to comprise the kernel's initial file system.
 KERN_INITFILES :=	sh \
 			ls \
+			echo \
 
 # Binary program images to embed within the kernel.
 KERN_BINFILES :=	boot/bootother \

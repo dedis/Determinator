@@ -97,7 +97,7 @@ exec_readelf(const char *path)
 		if (filelo < 0 || filelo > imgsize
 				|| filehi < filelo || filehi > imgsize)
 			goto badelf;
-		memcpy((void*)valo + scratchofs, (void*)filelo,
+		memcpy((void*)valo + scratchofs, imgdata + filelo,
 			filehi - filelo);
 
 		// Finally, remove write permissions on read-only segments.
@@ -131,6 +131,7 @@ exec_copyargs(char *const argv[])
 	sys_get(SYS_ZERO | SYS_PERM | SYS_READ | SYS_WRITE, 0, NULL,
 		NULL, (void*)VM_SCRATCHLO, PTSIZE);
 
+#if SOL >= 4
 	// How many arguments?
 	int argc;
 	for (argc = 0; argv[argc] != NULL; argc++)
@@ -150,11 +151,22 @@ exec_copyargs(char *const argv[])
 		strcpy((void*)esp + scratchofs, argv[i]);
 		((intptr_t*)(dargv + scratchofs))[i] = esp;
 	}
-	esp &= 3;	// get esp word-aligned again
+	esp &= ~3;	// get esp word-aligned again
 
 	// Push the arguments to main()
 	esp -= 4;	*(intptr_t*)(esp + scratchofs) = dargv;
 	esp -= 4;	*(intptr_t*)(esp + scratchofs) = argc;
+#else // ! SOL >= 4
+	// Lab 4: insert your code here to copy our command-line arguments
+	// onto the new process's stack, taking into account the fact that
+	// the stack area is mapped at VM_SCRATCHLO to VM_SCRATCHLO+PTSIZE
+	// in _our_ address space while we're copying the arguments,
+	// but the pointers we're writing into this space will be
+	// interpreted by the newly executed process,
+	// where the stack will be mapped from VM_STACKHI-PTSIZE to VM_STACKHI.
+	warn("exec_copyargs not implemented yet");
+	intptr_t esp = VM_STACKHI;	// no arguments - fix this.
+#endif // ! SOL >= 4
 
 	// Copy the stack into its correct position in child 0.
 	sys_put(SYS_COPY, 0, NULL, (void*)VM_SCRATCHLO,

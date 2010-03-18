@@ -5,6 +5,7 @@
 #include <inc/assert.h>
 #include <inc/unistd.h>
 #include <inc/dirent.h>
+#include <inc/sys/wait.h>
 #include <inc/syscall.h>
 #include <inc/errno.h>
 #include <inc/file.h>
@@ -331,6 +332,25 @@ consincheck()
 	cprintf("consincheck done\n");
 }
 
+void
+execcheck()
+{
+	pid_t pid = fork();
+	if (pid == 0) {		// We're the child.
+		execl("echo", "echo", "-c", "called", "by", "execcheck", NULL);
+		panic("execl() failed: %s\n", strerror(errno));
+	}
+	assert(pid > 0);	// We're the parent.
+
+	// Wait for the child to finish executing, and collect its status.
+	int status = 0xdeadbeef;
+	waitpid(pid, &status, 0);
+	assert(WIFEXITED(status));
+	assert(WEXITSTATUS(status) == 0);
+
+	cprintf("execcheck done\n");
+}
+
 int
 main()
 {
@@ -343,6 +363,8 @@ main()
 
 	consoutcheck();
 	consincheck();
+
+	execcheck();
 
 	cprintf("testfs: all tests completed successfully!\n");
 	return 0;

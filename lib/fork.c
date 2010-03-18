@@ -133,6 +133,8 @@ waitpid(pid_t pid, int *status, int options)
 		if (cs.tf.tf_trapno != T_SYSCALL) {
 			// Yes - terminate the child WITHOUT reconciling,
 			// since the child's results are probably invalid.
+			warn("child %d took trap %d, eip %x\n",
+				pid, cs.tf.tf_trapno, cs.tf.tf_eip);
 			if (status != NULL)
 				*status = WSIGNALED | cs.tf.tf_trapno;
 

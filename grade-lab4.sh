@@ -25,6 +25,9 @@ pts=10; grmltest "Readdir:" "found file .sh..*found file .ls..*readdircheck pass
 pts=10; grmltest "Cons out:" "Buffered console output should NOT have appeared.*write.. to STDOUT_FILENO.*fprintf.. to .stdout.*fprintf.. to .consout. file.*Buffered console output SHOULD have appeared now.123456789"
 pts=10; grmltest "Cons in:" "Enter something: FOOBAR.You typed: FOOBAR"
 
+# Part 3
+pts=10; grmltest "Exec:" "called by execcheck.execcheck done"
+
 
 rm grade-in
 
