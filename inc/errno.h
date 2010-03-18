@@ -28,6 +28,7 @@
 #define ENOTTY		12	/* Inappropriate I/O control operation */
 #define EAGAIN		13	/* Resource temporarily unavailable */
 #define ECHILD		14	/* No child processes */
+#define ECONFLICT	15	/* File system write conflict detected */
 
 #if LAB >= 99
 #define EDOM		X	/* Argument out of domain */

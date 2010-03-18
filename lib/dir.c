@@ -38,8 +38,21 @@ dir_walk(const char *path, mode_t createmode)
 		if (memcmp(path, files->fi[ino].de.d_name, len) != 0)
 			continue;	// no match
 		found:
-		if (path[len] == 0)
-			return ino;	// exact match at end of path
+		if (path[len] == 0) {
+			// Exact match at end of path - but does it exist?
+			if (fileino_exists(ino))
+				return ino;	// yes - return it
+
+			// no - existed, but was deleted.  re-create?
+			if (!createmode) {
+				errno = ENOENT;
+				return -1;
+			}
+			files->fi[ino].ver++;	// an exclusive change
+			files->fi[ino].mode = createmode;
+			files->fi[ino].size = 0;
+			return ino;
+		}
 		if (path[len] != '/')
 			continue;	// no match
 
@@ -83,14 +96,14 @@ dir_walk(const char *path, mode_t createmode)
 		return -1;
 	}
 
-	// Allocate a new inode for this entry
-	// (but leave it in "deleted" state to be filled by the caller).
+	// Allocate a new inode and create this entry with the given mode.
 	ino = fileino_alloc();
 	if (ino < 0)
 		return -1;
 	assert(fileino_isvalid(ino) && !fileino_alloced(ino));
 	strcpy(files->fi[ino].de.d_name, path);
 	files->fi[ino].dino = dino;
+	files->fi[ino].ver = 0;
 	files->fi[ino].mode = createmode;
 	files->fi[ino].size = 0;
 	return ino;

@@ -300,6 +300,7 @@ strerror(int err)
 		"Inappropriate I/O control operation",
 		"Resource temporarily unavailable",
 		"No child processes",
+		"File system write conflict detected",
 	};
 	static char errbuf[64];
 

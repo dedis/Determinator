@@ -332,23 +332,47 @@ consincheck()
 	cprintf("consincheck done\n");
 }
 
-void
-execcheck()
+pid_t
+spawn(const char *arg0, ...)
 {
 	pid_t pid = fork();
 	if (pid == 0) {		// We're the child.
-		execl("echo", "echo", "-c", "called", "by", "execcheck", NULL);
+		execv(arg0, (char *const *)&arg0);
 		panic("execl() failed: %s\n", strerror(errno));
 	}
 	assert(pid > 0);	// We're the parent.
+	return pid;
+}
 
+void
+waitcheck(pid_t pid)
+{
 	// Wait for the child to finish executing, and collect its status.
 	int status = 0xdeadbeef;
 	waitpid(pid, &status, 0);
 	assert(WIFEXITED(status));
 	assert(WEXITSTATUS(status) == 0);
+}
+
+void
+execcheck()
+{
+	waitcheck(spawn("echo", "-c", "called", "by", "execcheck", NULL));
 
 	cprintf("execcheck done\n");
+}
+
+void
+reconcilecheck()
+{
+	printf("reconcilecheck: running echo\n");
+	pid_t pid = spawn("echo", "called", "by", "reconcilecheck", NULL);
+	printf("reconcilecheck: echo running\n");
+	waitcheck(pid);
+	printf("reconcilecheck: echo finished\n");
+	sys_ret();	// flush this output to the real console
+
+	cprintf("reconcilecheck done\n");
 }
 
 int
@@ -365,6 +389,8 @@ main()
 	consincheck();
 
 	execcheck();
+
+	reconcilecheck();
 
 	cprintf("testfs: all tests completed successfully!\n");
 	return 0;

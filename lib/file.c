@@ -187,6 +187,7 @@ fileino_truncate(int ino, off_t newsize)
 		sys_get(SYS_ZERO, 0, NULL, NULL, FILEDATA(ino), FILE_MAXSIZE);
 	}
 	files->fi[ino].size = newsize;
+	files->fi[ino].ver++;	// truncation is always an exclusive change
 	return 0;
 }
 
@@ -229,6 +230,14 @@ filedesc_open(filedesc *fd, const char *path, int openflags, mode_t mode)
 	if (ino < 0)
 		return NULL;
 	assert(fileino_exists(ino));
+
+	// Refuse to open conflict-marked files;
+	// the user needs to resolve the conflict and clear the conflict flag,
+	// or just delete the conflicted file.
+	if (files->fi[ino].mode & S_IFCONF) {
+		errno = ECONFLICT;
+		return NULL;
+	}
 
 	// Truncate the file if we were asked to
 	if (openflags & O_TRUNC) {
@@ -302,6 +311,11 @@ filedesc_write(filedesc *fd, const void *buf, size_t eltsize, size_t count)
 		return -1;
 	}
 	assert(actual == count);
+
+	// Non-append-only writes constitute exclusive modifications,
+	// so must bump the file's version number.
+	if (!(fd->flags & O_APPEND))
+		fi->ver++;
 
 	// Advance the file position
 	fd->ofs += eltsize * count;
