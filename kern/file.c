@@ -146,7 +146,7 @@ file_io(trapframe *tf)
 	proc *cp = proc_cur();
 	assert(cp == proc_root);	// only root process should do this!
 
-	// Note that we're not going to bother protecting ourselves
+	// Note that we don't need to bother protecting ourselves
 	// against memory access traps while accessing user memory here,
 	// because we consider the root process a special, "trusted" process:
 	// the whole system goes down anyway if the root process goes haywire.

@@ -39,7 +39,9 @@ static struct {
 	uint32_t wpos;
 } cons;
 
+#if SOL >= 4
 static int cons_outsize;	// Console output already written by root proc
+#endif
 
 // called by device interrupt routines to feed input characters
 // into the circular console input buffer.
@@ -156,6 +158,7 @@ cputs(const char *str)
 bool
 cons_io(void)
 {
+#if SOL >= 4
 	spinlock_acquire(&cons_lock);
 	bool didio = 0;
 
@@ -184,5 +187,10 @@ cons_io(void)
 
 	spinlock_release(&cons_lock);
 	return didio;
+#else
+	// Lab 4: your console I/O code here.
+	warn("cons_io() not implemented");
+	return 0;	// 0 indicates no I/O done
+#endif
 }
 

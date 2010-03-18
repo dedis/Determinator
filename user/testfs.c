@@ -5,6 +5,7 @@
 #include <inc/assert.h>
 #include <inc/unistd.h>
 #include <inc/dirent.h>
+#include <inc/syscall.h>
 #include <inc/errno.h>
 #include <inc/file.h>
 #include <inc/stat.h>
@@ -294,6 +295,42 @@ readdircheck()
 	cprintf("readdircheck passed\n");
 }
 
+void
+consoutcheck()
+{
+	// Write some text to our 'consout' special file in a few ways
+	const char outstr[] = "conscheck: write() to STDOUT_FILENO\n";
+	write(STDOUT_FILENO, outstr, strlen(outstr));
+	fprintf(stdout, "conscheck: fprintf() to 'stdout'\n");
+	FILE *f = fopen("consout", "a"); assert(f != NULL);
+	fprintf(f, "conscheck: fprintf() to 'consout' file\n");
+	fclose(f);
+
+	cprintf("Buffered console output should NOT have appeared yet\n");
+	sys_ret();	// Synchronize with the kernel, deliver console output
+	cprintf("Buffered console output SHOULD have appeared now\n");
+
+	// More of the same, just all on one line for easy checking...
+	write(STDOUT_FILENO, "456", 3);
+	cprintf("123");
+	sys_ret();
+	write(STDOUT_FILENO, "\n", 1);
+	cprintf("789");
+	sys_ret();
+
+	cprintf("consoutcheck done\n");
+}
+
+void
+consincheck()
+{
+	char *str = readline("Enter something: ");
+	printf("You typed: %s\n", str);
+	sys_ret();
+
+	cprintf("consincheck done\n");
+}
+
 int
 main()
 {
@@ -303,6 +340,9 @@ main()
 	readwritecheck();
 	seekcheck();
 	readdircheck();
+
+	consoutcheck();
+	consincheck();
 
 	cprintf("testfs: all tests completed successfully!\n");
 	return 0;
