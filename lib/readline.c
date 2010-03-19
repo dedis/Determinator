@@ -30,8 +30,10 @@ readline(const char *prompt)
 				putchar(c);
 			buf[i++] = c;
 		} else if (c == '\n' || c == '\r') {
-			if (echoing)
+			if (echoing) {
 				putchar('\n');
+				fflush(stdout);
+			}
 			buf[i] = 0;
 			return buf;
 		}

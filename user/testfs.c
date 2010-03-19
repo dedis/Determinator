@@ -392,8 +392,9 @@ main()
 
 	reconcilecheck();
 
-	cprintf("testfs: all tests completed successfully!\n");
-	return 0;
+	cprintf("testfs: all tests completed; starting shell...\n");
+	execl("sh", "sh", NULL);
+	panic("execl failed: %s", strerror(errno));
 }
 
 #endif // LAB >= 4

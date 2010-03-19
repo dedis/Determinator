@@ -256,6 +256,7 @@ filedesc_open(filedesc *fd, const char *path, int openflags, mode_t mode)
 	fd->ofs = (openflags & O_APPEND) ? files->fi[ino].size : 0;
 	fd->err = 0;
 
+	assert(filedesc_isopen(fd));
 	return fd;
 }
 

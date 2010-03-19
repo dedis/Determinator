@@ -16,14 +16,15 @@
 #define ALLVA		((void*) VM_USERLO)
 #define ALLSIZE		(VM_USERHI - VM_USERLO)
 
-static bool reconcile(pid_t pid, filestate *cfiles);
-static bool recinode(pid_t pid, filestate *src, int srci, filestate *dst,
-			int *imap);
-static bool recappends(pid_t pid, filestate *src, int srci,
+bool reconcile(pid_t pid, filestate *cfiles);
+bool recinode(pid_t pid, filestate *src, int srci, filestate *dst, int *imap);
+bool recappends(pid_t pid, filestate *src, int srci,
 			filestate *dst, int dsti, int *rlenp);
 
 pid_t fork(void)
 {
+	int i;
+
 	// Find a free child process slot.
 	// We just use child process slot numbers as Unix PIDs,
 	// even though child slots are process-local in PIOS
@@ -67,6 +68,10 @@ pid_t fork(void)
 		// Clear our child state array, since we have no children yet.
 		memset(&files->child, 0, sizeof(files->child));
 		files->child[0].state = PROC_RESERVED;
+		for (i = 1; i < FILE_INODES; i++) {
+			files->fi[i].rver = files->fi[i].ver;
+			files->fi[i].rlen = files->fi[i].size;
+		}
 
 		return 0;	// indicate that we're the child.
 	}
@@ -86,7 +91,6 @@ pid_t fork(void)
 	files->child[pid].ic2p[FILEINO_CONSOUT] = FILEINO_CONSOUT;
 	files->child[pid].ip2c[FILEINO_ROOTDIR] = FILEINO_ROOTDIR;
 	files->child[pid].ic2p[FILEINO_ROOTDIR] = FILEINO_ROOTDIR;
-	int i;
 	for (i = 1; i < FILE_INODES; i++) {
 		files->child[pid].rver[i] = files->fi[i].ver;
 		files->child[pid].rlen[i] = files->fi[i].size;
@@ -170,7 +174,7 @@ waitpid(pid_t pid, int *status, int options)
 	}
 }
 
-static bool
+bool
 reconcile(pid_t pid, filestate *cfiles)
 {
 	bool didio = 0;
@@ -218,7 +222,7 @@ reconcile(pid_t pid, filestate *cfiles)
 	return didio;
 }
 
-static bool
+bool
 recinode(pid_t pid, filestate *src, int srci, filestate *dst, int *imap)
 {
 	if (src->fi[srci].de.d_name[0] == 0)
@@ -306,21 +310,28 @@ recinode(pid_t pid, filestate *src, int srci, filestate *dst, int *imap)
 	return 1;	// update occurred
 }
 
-static bool
+bool
 recappends(pid_t pid, filestate *src, int srci, filestate *dst, int dsti,
 		int *rlenp)
 {
 	assert(src == files || dst == files);
 	assert(src->fi[srci].ver == dst->fi[dsti].ver);
+	assert(src->fi[srci].mode == dst->fi[dsti].mode);
+
+	if (!S_ISREG(src->fi[srci].mode))
+		return 0;	// only regular files have data to merge
 
 	// How much did the file grow in the src & dst since last reconcile?
 	int rlen = *rlenp;
 	int srclen = src->fi[srci].size;
-	int dstlen = src->fi[dsti].size;
+	int dstlen = dst->fi[dsti].size;
 	int srcgrow = srclen - rlen;
 	int dstgrow = dstlen - rlen;
 	assert(srcgrow >= 0 && srcgrow <= FILE_MAXSIZE);
 	assert(dstgrow >= 0 && dstgrow <= FILE_MAXSIZE);
+
+	if (srcgrow == 0 && dstgrow == 0)
+		return 0;	// nothing to merge
 
 	// Map if necessary and find src & dst file data areas.
 	// The child's inode table is sitting at VM_SCRATCHLO,
@@ -334,8 +345,8 @@ recappends(pid_t pid, filestate *src, int srci, filestate *dst, int dsti,
 	} else {		// updating from child to parent
 		sys_get(SYS_COPY, pid, NULL,
 			FILEDATA(srci), (void*)VM_SCRATCHLO+PTSIZE, PTSIZE);
-		srcp = (void*)FILEDATA(srci);
 		srcp = (void*)VM_SCRATCHLO+PTSIZE;
+		dstp = (void*)FILEDATA(srci);
 	}
 
 	// Would the new file size be too big after reconcile?  Conflict!

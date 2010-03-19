@@ -142,4 +142,11 @@ fileno(FILE *fd)
 }
 #endif
 
+int
+fflush(FILE *fd)
+{
+	// XXX
+	return 0;
+}
+
 #endif /* LAB >= 4 */

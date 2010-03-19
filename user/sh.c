@@ -90,15 +90,15 @@ again:
 				exit(EXIT_FAILURE);
 			}
 #if LAB >= 1
-			if ((fd = open(t, O_WRONLY)) < 0) {
-				cprintf("open %s for write: %e", t, fd);
+			if ((fd = open(t, O_WRONLY | O_CREAT | O_TRUNC)) < 0) {
+				cprintf("open %s for write: %s", t,
+					strerror(errno));
 				exit(EXIT_FAILURE);
 			}
 			if (fd != 1) {
 				dup2(fd, 1);
 				close(fd);
 			}
-			ftruncate(fd, 0);
 #else
 			// Open 't' for writing as file descriptor 1
 			// (which environments use as standard output).

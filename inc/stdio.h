@@ -65,6 +65,7 @@ void	clearerr(FILE *fd);
 #if LAB >= 99
 int	fileno(FILE *fd);
 #endif
+int	fflush(FILE *fd);
 
 
 // lib/readline.c

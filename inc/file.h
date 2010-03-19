@@ -100,8 +100,10 @@ typedef struct fileinode {		// Per-file state - like an "inode"
 #endif
 	struct dirent de;		// Entry name, "" if free entry
 	int	ver;			// Version - bumped on every change
+	int	rver;			// Version at last reconcile w/ parent
 	mode_t	mode;			// File mode (stat.h), 0 if deleted
 	size_t	size;			// Current size if regular file
+	size_t	rlen;			// Size when last reconciled w/ parent
 } fileinode;
 
 
