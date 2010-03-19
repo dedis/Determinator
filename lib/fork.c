@@ -17,9 +17,8 @@
 #define ALLSIZE		(VM_USERHI - VM_USERLO)
 
 bool reconcile(pid_t pid, filestate *cfiles);
-bool recinode(pid_t pid, filestate *src, int srci, filestate *dst, int *imap);
-bool recappends(pid_t pid, filestate *src, int srci,
-			filestate *dst, int dsti, int *rlenp);
+bool reconcile_inode(pid_t pid, filestate *cfiles, int pino, int cino);
+bool reconcile_merge(pid_t pid, filestate *cfiles, int pino, int cino);
 
 pid_t fork(void)
 {
@@ -68,10 +67,12 @@ pid_t fork(void)
 		// Clear our child state array, since we have no children yet.
 		memset(&files->child, 0, sizeof(files->child));
 		files->child[0].state = PROC_RESERVED;
-		for (i = 1; i < FILE_INODES; i++) {
-			files->fi[i].rver = files->fi[i].ver;
-			files->fi[i].rlen = files->fi[i].size;
-		}
+		for (i = 1; i < FILE_INODES; i++)
+			if (fileino_alloced(i)) {
+				files->fi[i].rino = i;	// 1-to-1 mapping
+				files->fi[i].rver = files->fi[i].ver;
+				files->fi[i].rlen = files->fi[i].size;
+			}
 
 		return 0;	// indicate that we're the child.
 	}
@@ -85,16 +86,6 @@ pid_t fork(void)
 	// so that we can reconcile them later when we synchronize with it.
 	memset(&files->child[pid], 0, sizeof(files->child[pid]));
 	files->child[pid].state = PROC_FORKED;
-	files->child[pid].ip2c[FILEINO_CONSIN] = FILEINO_CONSIN;
-	files->child[pid].ic2p[FILEINO_CONSIN] = FILEINO_CONSIN;
-	files->child[pid].ip2c[FILEINO_CONSOUT] = FILEINO_CONSOUT;
-	files->child[pid].ic2p[FILEINO_CONSOUT] = FILEINO_CONSOUT;
-	files->child[pid].ip2c[FILEINO_ROOTDIR] = FILEINO_ROOTDIR;
-	files->child[pid].ic2p[FILEINO_ROOTDIR] = FILEINO_ROOTDIR;
-	for (i = 1; i < FILE_INODES; i++) {
-		files->child[pid].rver[i] = files->fi[i].ver;
-		files->child[pid].rlen[i] = files->fi[i].size;
-	}
 
 	return pid;
 }
@@ -174,195 +165,210 @@ waitpid(pid_t pid, int *status, int options)
 	}
 }
 
+// Reconcile our file system state, whose metadata is in 'files',
+// with the file system state of child 'pid', whose metadata is in 'cfiles'.
+// Returns nonzero if any changes were propagated, false otherwise.
 bool
 reconcile(pid_t pid, filestate *cfiles)
 {
 	bool didio = 0;
 	int i;
 
-	procinfo *pi = &files->child[pid];
-	for (i = 1; i < FILE_INODES; i++) {
-		// Merge from child into parent, then from parent into child.
-		didio |= recinode(pid, cfiles, i, files, pi->ic2p);
-		didio |= recinode(pid, files, i, cfiles, pi->ip2c);
-#if LAB >= 99
+	// Compute a parent-to-child and child-to-parent inode mapping table.
+	int p2c[FILE_INODES], c2p[FILE_INODES];
+	memset(p2c, 0, sizeof(p2c)); memset(c2p, 0, sizeof(c2p));
+	p2c[FILEINO_CONSIN] = c2p[FILEINO_CONSIN] = FILEINO_CONSIN;
+	p2c[FILEINO_CONSOUT] = c2p[FILEINO_CONSOUT] = FILEINO_CONSOUT;
+	p2c[FILEINO_ROOTDIR] = c2p[FILEINO_ROOTDIR] = FILEINO_ROOTDIR;
 
-		// Make temporary copies of both inodes,
-		// and then reconcile each into the other.
-		const fileinode fi = files->fi[i];
-		const fileinode cfi = cfiles->fi[i];
-		didio |= reconcile_inode(pid, i, &fi, &cfiles->fi[i], 1);
-		didio |= reconcile_inode(pid, i, &cfi, &files->fi[i], 0);
-#if LAB >= 99
-		fileinode *fi = &files->fi[i];
-		fileinode *cfi = &cfiles->fi[i];
-
-		// Handle exclusive modifications via the generation count.
-		int refgen = files->child[pid].igen[i];
-		if (fi->gen > refgen) {
-			if (cfi->gen > refgen) {
-				// Changed in both parent and child - conflict!
-				warn("reconcile: conflict in inode %d", i);
-				fi->mode |= S_IFCONF;
-				cfi->mode |= S_IFCONF;
-				fi->gen = cfi->gen = MAX(fi->gen, cfi->gen);
-				continue;
+	// First make sure all the child's allocated inodes
+	// have a mapping in the parent, creating mappings as needed.
+	// Also keep track of the parent inodes we find mappings for.
+	int cino;
+	for (cino = 1; cino < FILE_INODES; cino++) {
+		fileinode *cfi = &cfiles->fi[cino];
+		if (cfi->de.d_name[0] == 0)
+			continue;	// not allocated in the child
+		if (cfi->mode == 0 && cfi->rino == 0)
+			continue;	// existed only ephemerally in child
+		if (cfi->rino == 0) {
+			// No corresponding parent inode exists - create one.
+			// The parent directory should already have a mapping.
+			if (cfi->dino <= 0 || cfi->dino >= FILE_INODES
+				|| c2p[cfi->dino] == 0) {
+				warn("reconcile: cino %d has invalid parent",
+					cino);
+				continue;	// don't reconcile it
 			}
-
-			// Changed in parent but not child: copy to child.
+			cfi->rino = fileino_create(files, c2p[cfi->dino],
+							cfi->de.d_name);
+			if (cfi->rino <= 0)
+				continue;	// no free inodes!
 		}
-#endif
 
-		// Reset our reference point generation number
-		// for the next time we need to reconcile.
-		files->child[pid].igen[i] = files->fi[i].gen;
-#endif
+		// Check the validity of the child's existing mapping.
+		// If something's fishy, just don't reconcile it,
+		// since we don't want the child to kill the parent this way.
+		int pino = cfi->rino;
+		fileinode *pfi = &files->fi[pino];
+		if (pino <= 0 || pino >= FILE_INODES
+				|| p2c[pfi->dino] != cfi->dino
+				|| strcmp(pfi->de.d_name, cfi->de.d_name) != 0
+				|| cfi->rver > pfi->ver
+				|| cfi->rver > cfi->ver) {
+			warn("reconcile: mapping %d/%d: "
+				"dir %d/%d name %s/%s ver %d/%d(%d)",
+				pino, cino, pfi->dino, cfi->dino,
+				pfi->de.d_name, cfi->de.d_name,
+				pfi->ver, cfi->ver, cfi->rver);
+			continue;
+		}
+
+		// Record the mapping.
+		p2c[pino] = cino;
+		c2p[cino] = pino;
+	}
+
+	// Now make sure all the parent's allocated inodes
+	// have a mapping in the child, creating mappings as needed.
+	int pino;
+	for (pino = 1; pino < FILE_INODES; pino++) {
+		fileinode *pfi = &files->fi[pino];
+		if (pfi->de.d_name[0] == 0 || pfi->mode == 0)
+			continue; // not in use or already deleted
+		if (p2c[pino] != 0)
+			continue; // already mapped
+		cino = fileino_create(cfiles, p2c[pfi->dino], pfi->de.d_name);
+		if (cino <= 0)
+			continue;	// no free inodes!
+		cfiles->fi[cino].rino = pino;
+		p2c[pino] = cino;
+		c2p[cino] = pino;
+	}
+
+	// Finally, reconcile each corresponding pair of inodes.
+	for (pino = 1; pino < FILE_INODES; pino++) {
+		if (!p2c[pino])
+			continue;	// no corresponding inode in child
+		cino = p2c[pino];
+		assert(c2p[cino] == pino);
+
+		didio |= reconcile_inode(pid, cfiles, pino, cino);
 	}
 
 	return didio;
 }
 
 bool
-recinode(pid_t pid, filestate *src, int srci, filestate *dst, int *imap)
+reconcile_inode(pid_t pid, filestate *cfiles, int pino, int cino)
 {
-	if (src->fi[srci].de.d_name[0] == 0)
-		return 0;	// Not allocated to a name yet
+	assert(pino > 0 && pino < FILE_INODES);
+	assert(cino > 0 && cino < FILE_INODES);
+	fileinode *pfi = &files->fi[pino];
+	fileinode *cfi = &cfiles->fi[cino];
 
-	int dsti = imap[srci];	// Map src inode to dst inode number
-	if (dsti == 0) {	// No mapping yet?  Create one.
-		int srcdi = src->fi[srci].dino;
-		assert(srcdi > 0 && srcdi < FILE_INODES);
-		int dstdi = imap[srcdi];
-		assert(dstdi > 0 && dstdi < FILE_INODES); // should be mapped!
+	// Find the reference version number and length for reconciliation
+	int rver = cfi->rver;
+	int rlen = cfi->rlen;
 
-		for (dsti = FILEINO_GENERAL; dsti < FILE_INODES; dsti++)
-			if (dst->fi[dsti].dino == dstdi &&
-					strcmp(src->fi[srci].de.d_name,
-						dst->fi[dsti].de.d_name) == 0)
-				break;
-		if (dsti == FILE_INODES) {	// Doesn't yet exist in dst
-			for (dsti = FILEINO_GENERAL; dsti < FILE_INODES; dsti++)
-				if (dst->fi[dsti].de.d_name[0] == 0)
-					break;
-			if (dsti == FILE_INODES) {
-				warn("recinode: out of inodes");
-				// Mark conflict in src?
-				return 0;
-			}
+	// XXX should protect the parent better from state corruption by child.
 
-			strcpy(dst->fi[dsti].de.d_name,
-				src->fi[srci].de.d_name);
-			dst->fi[dsti].dino = dstdi;
-			dst->fi[dsti].ver = 0;	// always start at ver 0
-		}
-		assert(dsti > 0 && dsti < FILE_INODES);
-		imap[srci] = dsti;
-	}
-	assert(src->fi[srci].dino); assert(dst->fi[dsti].dino);
-	assert(imap[src->fi[srci].dino] == dst->fi[dsti].dino);
-	assert(strcmp(src->fi[srci].de.d_name, dst->fi[dsti].de.d_name) == 0);
-
-	// Now figure out the reference version number for reconciliation
-	assert(src == files || dst == files);
-	int parentino = (src == files) ? srci : dsti;
-	int *rverp = &files->child[pid].rver[parentino];
-	int *rlenp = &files->child[pid].rlen[parentino];
-	int rver = *rverp;
-	int rlen = *rlenp;
-
-	assert(src->fi[srci].ver >= rver);	// version # only increases
-	if (dst->fi[dsti].ver == rver)	// within a version, length only grows
-		assert(dst->fi[dsti].size >= rlen);
+	assert(cfi->ver >= rver);	// version # only increases
+	assert(pfi->ver >= rver);
+	if (cfi->ver == rver)		// within a version, length only grows
+		assert(cfi->size >= rlen);
+	if (pfi->ver == rver)
+		assert(pfi->size >= rlen);
 
 	// If no exclusive changes made in either parent or child,
 	// then just merge any non-exclusive, append-only updates.
-	if (src->fi[srci].ver == rver && dst->fi[dsti].ver == rver)
-		return recappends(pid, src, srci, dst, dsti, rlenp);
+	if (pfi->ver == rver && cfi->ver == rver)
+		return reconcile_merge(pid, cfiles, pino, cino);
 
-	// Nothing to propagate from src to dst?  If so, done for now.
-	if (src->fi[srci].ver == rver)
-		return 0;
-
-	// Destination also changed since reference version or size?  Conflict!
-	if (dst->fi[dsti].ver != rver || dst->fi[dsti].size > rlen) {
-		dst->fi[dsti].ver = src->fi[srci].ver;
-		dst->fi[dsti].mode |= S_IFCONF;
-		return 1;	// I/O of sorts did occur
+	// If both inodes have been changed and at least one was exclusive,
+	// then we have a conflict - just mark both inodes conflicted.
+	if ((pfi->ver > rver || pfi->size > rlen)
+			&& (cfi->ver > rver || cfi->size > rlen)) {
+		warn("reconcile_inode: parent/child conflict: %s (%d/%d)",
+			pfi->de.d_name, pino, cino);
+		pfi->mode |= S_IFCONF;
+		cfi->mode |= S_IFCONF;
+		pfi->ver = cfi->ver = cfi->rver = MAX(pfi->ver, cfi->ver);
+		return 1;	// Changes of sorts were "propagated"
 	}
 
-	// XXX validity-check src inode before propagating!
+	// No conflict: copy the latest version to the other.
+	if (pfi->ver > rver || pfi->size > rlen) {
+		// Parent's version is newer: copy to child.
+		cfi->ver = pfi->ver;
+		cfi->mode = pfi->mode;
+		cfi->size = pfi->size;
 
-	// No conflict - bring dst inode up-to-date with respect to src
-	assert(dst->fi[dsti].ver == rver);
-	dst->fi[dsti].ver = src->fi[srci].ver;
-	dst->fi[dsti].mode = src->fi[srci].mode;
-	dst->fi[dsti].size = src->fi[srci].size;
-	*rverp = src->fi[srci].ver;
-	*rlenp = src->fi[srci].size;
+		sys_put(SYS_COPY, pid, NULL, FILEDATA(pino), FILEDATA(cino),
+			PTSIZE);
+	} else {
+		// Child's version is newer: copy to parent.
+		pfi->ver = cfi->ver;
+		pfi->mode = cfi->mode;
+		pfi->size = cfi->size;
 
-	// ...and copy the entire file data area into the destination
-	if (src == files)	// updating from parent to child
-		sys_put(SYS_COPY, pid, NULL, FILEDATA(srci), FILEDATA(dsti),
+		sys_get(SYS_COPY, pid, NULL, FILEDATA(cino), FILEDATA(pino),
 			PTSIZE);
-	else			// updating from child to parent
-		sys_get(SYS_COPY, pid, NULL, FILEDATA(srci), FILEDATA(dsti),
-			PTSIZE);
-	return 1;	// update occurred
+	}
+
+	// Reset child's reconciliation state.
+	cfi->rver = pfi->ver;
+	cfi->rlen = pfi->size;
+
+	return 1;
 }
 
 bool
-recappends(pid_t pid, filestate *src, int srci, filestate *dst, int dsti,
-		int *rlenp)
+reconcile_merge(pid_t pid, filestate *cfiles, int pino, int cino)
 {
-	assert(src == files || dst == files);
-	assert(src->fi[srci].ver == dst->fi[dsti].ver);
-	assert(src->fi[srci].mode == dst->fi[dsti].mode);
+	fileinode *pfi = &files->fi[pino];
+	fileinode *cfi = &cfiles->fi[cino];
+	assert(pino > 0 && pino < FILE_INODES);
+	assert(cino > 0 && cino < FILE_INODES);
+	assert(pfi->ver == cfi->ver);
+	assert(pfi->mode == cfi->mode);
 
-	if (!S_ISREG(src->fi[srci].mode))
+	if (!S_ISREG(pfi->mode))
 		return 0;	// only regular files have data to merge
 
 	// How much did the file grow in the src & dst since last reconcile?
-	int rlen = *rlenp;
-	int srclen = src->fi[srci].size;
-	int dstlen = dst->fi[dsti].size;
-	int srcgrow = srclen - rlen;
-	int dstgrow = dstlen - rlen;
-	assert(srcgrow >= 0 && srcgrow <= FILE_MAXSIZE);
-	assert(dstgrow >= 0 && dstgrow <= FILE_MAXSIZE);
+	int rlen = cfi->rlen;
+	int plen = pfi->size;
+	int clen = cfi->size;
+	int pgrow = plen - rlen;
+	int cgrow = clen - rlen;
+	assert(pgrow >= 0 && pgrow <= FILE_MAXSIZE);
+	assert(cgrow >= 0 && cgrow <= FILE_MAXSIZE);
 
-	if (srcgrow == 0 && dstgrow == 0)
+	if (pgrow == 0 && cgrow == 0)
 		return 0;	// nothing to merge
 
 	// Map if necessary and find src & dst file data areas.
 	// The child's inode table is sitting at VM_SCRATCHLO,
 	// so map the file data temporarily at VM_SCRATCHLO+PTSIZE.
-	void *srcp, *dstp;
-	if (src == files) {	// updating from parent to child
-		sys_get(SYS_COPY, pid, NULL,
-			FILEDATA(dsti), (void*)VM_SCRATCHLO+PTSIZE, PTSIZE);
-		srcp = FILEDATA(srci);
-		dstp = (void*)VM_SCRATCHLO+PTSIZE;
-	} else {		// updating from child to parent
-		sys_get(SYS_COPY, pid, NULL,
-			FILEDATA(srci), (void*)VM_SCRATCHLO+PTSIZE, PTSIZE);
-		srcp = (void*)VM_SCRATCHLO+PTSIZE;
-		dstp = (void*)FILEDATA(srci);
-	}
+	void *pp = FILEDATA(pino);
+	void *cp = (void*)VM_SCRATCHLO+PTSIZE;
+	sys_get(SYS_COPY, pid, NULL, FILEDATA(cino), cp, PTSIZE);
 
 	// Would the new file size be too big after reconcile?  Conflict!
-	int newlen = rlen + srcgrow + dstgrow;
-	assert(newlen == srclen + dstgrow);
-	assert(newlen == dstlen + srcgrow);
+	int newlen = rlen + pgrow + cgrow;
+	assert(newlen == plen + cgrow);
+	assert(newlen == clen + pgrow);
 	if (newlen > FILE_MAXSIZE) {
-		dst->fi[dsti].mode |= S_IFCONF;
+		pfi->mode |= S_IFCONF;
+		cfi->mode |= S_IFCONF;
 		return 1;	// I/O of sorts did occur
 	}
 
-	// Make sure the perms are adequate on both src and dst
-	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL,
-		srcp, ROUNDUP(newlen, PAGESIZE));
-	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL,
-		dstp, ROUNDUP(newlen, PAGESIZE));
+	// Make sure the perms are adequate in both copies of file
+	int pagelen = ROUNDUP(newlen, PAGESIZE);
+	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, pp, pagelen);
+	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, cp, pagelen);
 
 	// Copy the newly-added parts of the file in both directions.
 	// Note that if both parent and child appended simultaneously,
@@ -370,20 +376,14 @@ recappends(pid_t pid, filestate *src, int srci, filestate *dst, int dsti,
 	// This is unavoidable if we want to allow simultaneous appends
 	// and don't want to change already-written portions:
 	// it's a price we pay for this relaxed consistency model.
-	memcpy(dstp + dstlen, srcp + rlen, srcgrow);
-	memcpy(srcp + srclen, dstp + rlen, dstgrow);
-	src->fi[srci].size = newlen; assert(newlen == srclen + dstgrow);
-	dst->fi[dsti].size = newlen; assert(newlen == dstlen + srcgrow);
-	*rlenp = newlen; assert(newlen == rlen + srcgrow + dstgrow);
+	memcpy(pp + plen, cp + rlen, cgrow);
+	memcpy(cp + clen, pp + rlen, pgrow);
+	pfi->size = newlen; assert(newlen == plen + cgrow);
+	cfi->size = newlen; assert(newlen == clen + pgrow);
+	cfi->rlen = newlen; assert(newlen == rlen + pgrow + cgrow);
 
-	// Copy updated file data back into the child
-	if (src == files) {	// updating from parent to child
-		assert(dstp == (void*)VM_SCRATCHLO+PTSIZE);
-		sys_put(SYS_COPY, pid, NULL, dstp, FILEDATA(dsti), PTSIZE);
-	} else {		// updating from child to parent
-		assert(srcp == (void*)VM_SCRATCHLO+PTSIZE);
-		sys_put(SYS_COPY, pid, NULL, srcp, FILEDATA(srci), PTSIZE);
-	}
+	// Copy child's updated file data back into the child
+	sys_put(SYS_COPY, pid, NULL, cp, FILEDATA(cino), PTSIZE);
 
 	// File merged!
 	return 1;

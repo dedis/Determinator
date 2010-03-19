@@ -100,9 +100,12 @@ typedef struct fileinode {		// Per-file state - like an "inode"
 #endif
 	struct dirent de;		// Entry name, "" if free entry
 	int	ver;			// Version - bumped on every change
-	int	rver;			// Version at last reconcile w/ parent
 	mode_t	mode;			// File mode (stat.h), 0 if deleted
 	size_t	size;			// Current size if regular file
+
+	// File state reconciliation information
+	int	rino;			// Parent's inode this corresponds to
+	int	rver;			// Version at last reconcile w/ parent
 	size_t	rlen;			// Size when last reconciled w/ parent
 } fileinode;
 
@@ -113,10 +116,6 @@ typedef struct fileinode {		// Per-file state - like an "inode"
 // on top of PIOS's minimalistic GET/PUT/RET process management API.
 typedef struct procinfo {
 	int	state;			// Current state of this child process
-	int	rver[FILE_INODES];	// Last reconcile ver, by parent inode
-	int	rlen[FILE_INODES];	// Last reconcile len, by parent inode
-	int	ip2c[FILE_INODES];	// Parent to child inode map
-	int	ic2p[FILE_INODES];	// Child to parent inode map
 } procinfo;
 
 // Values for procinfo.state
@@ -178,6 +177,7 @@ extern filestate *const files;		// always = FILES
 
 
 int fileino_alloc(void);
+int fileino_create(filestate *st, int dino, const char *name);
 ssize_t fileino_read(int ino, off_t ofs, void *buf,
 			size_t eltsize, size_t count);
 ssize_t fileino_write(int ino, off_t ofs, const void *buf,

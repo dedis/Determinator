@@ -32,7 +32,31 @@ fileino_alloc(void)
 		if (files->fi[i].de.d_name[0] == 0)
 			return i;
 
-	warn("freopen: no free inodes\n");
+	warn("fileino_alloc: no free inodes\n");
+	errno = ENOSPC;
+	return -1;
+}
+
+// Allocate an inode and assign it a parent directory and a name.
+// Returns the index of the inode allocated.
+// The created inode is left in the "deleted" state, with mode == 0.
+// If no inodes are available, returns -1 and sets errno accordingly.
+int
+fileino_create(filestate *fs, int dino, const char *name)
+{
+	assert(dino != 0);
+	assert(name != NULL && name[0] != 0);
+	assert(strlen(name) <= NAME_MAX);
+
+	int i;
+	for (i = FILEINO_GENERAL; i < FILE_INODES; i++)
+		if (fs->fi[i].de.d_name[0] == 0) {
+			fs->fi[i].dino = dino;
+			strcpy(fs->fi[i].de.d_name, name);
+			return i;
+		}
+
+	warn("fileino_create: no free inodes\n");
 	errno = ENOSPC;
 	return -1;
 }
