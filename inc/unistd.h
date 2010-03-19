@@ -36,6 +36,7 @@ int	ftruncate(int fn, off_t newlength);
 int	truncate(const char *path, off_t newlength);
 int	isatty(int fn);
 int	remove(const char *path);
+int	fsync(int fn);
 
 #endif	// !PIOS_INC_UNISTD_H
 #endif	// LAB >= 4

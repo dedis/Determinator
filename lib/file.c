@@ -215,6 +215,18 @@ fileino_truncate(int ino, off_t newsize)
 	return 0;
 }
 
+// Flush any outstanding writes on this file to our parent process.
+// (XXX should flushes propagate across multiple levels?)
+int
+fileino_flush(int ino)
+{
+	assert(fileino_isvalid(ino));
+
+	if (files->fi[ino].size > files->fi[ino].rlen)
+		sys_ret();	// synchronize and reconcile with parent
+	return 0;
+}
+
 
 ////////// File descriptor functions //////////
 

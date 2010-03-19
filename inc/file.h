@@ -184,6 +184,7 @@ ssize_t fileino_write(int ino, off_t ofs, const void *buf,
 			size_t eltsize, size_t count);
 int fileino_stat(int ino, struct stat *statbuf);
 int fileino_truncate(int ino, off_t newsize);
+int fileino_flush(int ino);
 
 filedesc *filedesc_alloc(void);
 filedesc *filedesc_open(filedesc *fd, const char *path, int flags, mode_t mode);

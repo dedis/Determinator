@@ -145,8 +145,8 @@ fileno(FILE *fd)
 int
 fflush(FILE *fd)
 {
-	// XXX
-	return 0;
+	assert(filedesc_isopen(fd));
+	return fileino_flush(fd->ino);
 }
 
 #endif /* LAB >= 4 */

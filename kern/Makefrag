@@ -92,6 +92,8 @@ ifdef LAB4
 KERN_INITFILES :=	sh \
 			ls \
 			echo \
+			cat \
+			wc \
 
 # Binary program images to embed within the kernel.
 KERN_BINFILES :=	boot/bootother \

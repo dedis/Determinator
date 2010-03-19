@@ -123,4 +123,11 @@ fstat(int fn, struct stat *statbuf)
 	return fileino_stat(files->fd[fn].ino, statbuf);
 }
 
+int
+fsync(int fn)
+{
+	assert(filedesc_isopen(&files->fd[fn]));
+	return fileino_flush(files->fd[fn].ino);
+}
+
 #endif /* LAB >= 4 */
