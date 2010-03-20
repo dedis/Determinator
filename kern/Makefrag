@@ -33,7 +33,6 @@ KERN_SRCFILES :=	kern/entry.S \
 			dev/timer.c \
 			dev/lapic.c \
 			dev/ioapic.c \
-			dev/ide.c \
 			lib/printfmt.c \
 			lib/cprintf.c \
 			lib/string.c \

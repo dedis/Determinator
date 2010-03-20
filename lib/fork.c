@@ -4,7 +4,6 @@
 #include <inc/file.h>
 #include <inc/stat.h>
 #include <inc/unistd.h>
-#include <inc/sys/wait.h>
 #include <inc/string.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>

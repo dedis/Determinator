@@ -4,7 +4,7 @@
 
 #include <inc/x86.h>
 #include <inc/stat.h>
-#include <inc/fcntl.h>
+#include <inc/unistd.h>
 #include <inc/string.h>
 #include <inc/syscall.h>
 #include <inc/dirent.h>

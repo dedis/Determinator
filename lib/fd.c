@@ -3,7 +3,6 @@
 #include <inc/assert.h>
 #include <inc/unistd.h>
 #include <inc/string.h>
-#include <inc/fcntl.h>
 #include <inc/errno.h>
 #include <inc/unix.h>
 #include <inc/stat.h>

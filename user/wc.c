@@ -1,6 +1,7 @@
 #if LAB >= 4
 #include <inc/types.h>
 #include <inc/stdio.h>
+#include <inc/stdlib.h>
 #include <inc/string.h>
 #include <inc/unistd.h>
 #include <inc/errno.h>

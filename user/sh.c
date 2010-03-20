@@ -5,7 +5,6 @@
 // they would have more time to focus on the final project.
 #endif
 #include <inc/gcc.h>
-#include <inc/fcntl.h>
 #include <inc/stdio.h>
 #include <inc/stdlib.h>
 #include <inc/unistd.h>

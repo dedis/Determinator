@@ -3,7 +3,6 @@
 // used by the standard I/O functions in stdio.c.
 
 #include <inc/file.h>
-#include <inc/fcntl.h>
 #include <inc/unistd.h>
 #include <inc/dirent.h>
 #include <inc/assert.h>

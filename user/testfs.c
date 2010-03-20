@@ -1,11 +1,11 @@
 #if LAB >= 4
 
 #include <inc/stdio.h>
+#include <inc/stdlib.h>
 #include <inc/string.h>
 #include <inc/assert.h>
 #include <inc/unistd.h>
 #include <inc/dirent.h>
-#include <inc/sys/wait.h>
 #include <inc/syscall.h>
 #include <inc/errno.h>
 #include <inc/file.h>
