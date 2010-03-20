@@ -92,7 +92,10 @@ KERN_INITFILES :=	sh \
 			ls \
 			echo \
 			cat \
-			wc \
+			wc
+#if SOL >= 4
+KERN_INITFILES +=	matmult
+#endif
 
 # Binary program images to embed within the kernel.
 KERN_BINFILES :=	boot/bootother \
