@@ -37,9 +37,9 @@ fileino_alloc(void)
 	return -1;
 }
 
-// Allocate an inode and assign it a parent directory and a name.
-// Returns the index of the inode allocated.
-// The created inode is left in the "deleted" state, with mode == 0.
+// Find or create an inode with a given parent directory inode and filename.
+// Returns the index of the inode found or created.
+// A newly-created inode is left in the "deleted" state, with mode == 0.
 // If no inodes are available, returns -1 and sets errno accordingly.
 int
 fileino_create(filestate *fs, int dino, const char *name)
@@ -48,7 +48,14 @@ fileino_create(filestate *fs, int dino, const char *name)
 	assert(name != NULL && name[0] != 0);
 	assert(strlen(name) <= NAME_MAX);
 
+	// First see if an inode already exists for this directory and name.
 	int i;
+	for (i = FILEINO_GENERAL; i < FILE_INODES; i++)
+		if (fs->fi[i].dino == dino
+				&& strcmp(fs->fi[i].de.d_name, name) == 0)
+			return i;
+
+	// No inode allocated to this name - find a free one to allocate.
 	for (i = FILEINO_GENERAL; i < FILE_INODES; i++)
 		if (fs->fi[i].de.d_name[0] == 0) {
 			fs->fi[i].dino = dino;

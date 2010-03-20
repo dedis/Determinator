@@ -349,6 +349,8 @@ main(int argc, char **argv)
 			continue;
 		if (echocmds)
 			fprintf(stdout, "# %s\n", buf);
+		if (strcmp(buf, "exit") == 0)	// built-in command
+			exit(0);
 		if (debug)
 			cprintf("BEFORE FORK\n");
 		if ((r = fork()) < 0)

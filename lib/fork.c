@@ -192,7 +192,7 @@ reconcile(pid_t pid, filestate *cfiles)
 		if (cfi->mode == 0 && cfi->rino == 0)
 			continue;	// existed only ephemerally in child
 		if (cfi->rino == 0) {
-			// No corresponding parent inode exists - create one.
+			// No corresponding parent inode known: find/create one.
 			// The parent directory should already have a mapping.
 			if (cfi->dino <= 0 || cfi->dino >= FILE_INODES
 				|| c2p[cfi->dino] == 0) {
@@ -271,8 +271,10 @@ reconcile_inode(pid_t pid, filestate *cfiles, int pino, int cino)
 	int rver = cfi->rver;
 	int rlen = cfi->rlen;
 
+	// Check some invariants that should hold between
+	// the parent's and child's current version numbers and lengths
+	// and the reference version number and length stored in the child.
 	// XXX should protect the parent better from state corruption by child.
-
 	assert(cfi->ver >= rver);	// version # only increases
 	assert(pfi->ver >= rver);
 	if (cfi->ver == rver)		// within a version, length only grows
@@ -280,10 +282,16 @@ reconcile_inode(pid_t pid, filestate *cfiles, int pino, int cino)
 	if (pfi->ver == rver)
 		assert(pfi->size >= rlen);
 
+#if SOL >= 4
 	// If no exclusive changes made in either parent or child,
 	// then just merge any non-exclusive, append-only updates.
 	if (pfi->ver == rver && cfi->ver == rver)
 		return reconcile_merge(pid, cfiles, pino, cino);
+
+	//cprintf("reconcile %s %d/%d: ver %d/%d(%d) len %d/%d(%d)\n",
+	//	pfi->de.d_name, pino, cino,
+	//	pfi->ver, cfi->ver, rver,
+	//	pfi->size, cfi->size, rlen);
 
 	// If both inodes have been changed and at least one was exclusive,
 	// then we have a conflict - just mark both inodes conflicted.
@@ -321,6 +329,23 @@ reconcile_inode(pid_t pid, filestate *cfiles, int pino, int cino)
 	cfi->rlen = pfi->size;
 
 	return 1;
+#else	// ! SOL >= 4
+	// Lab 4: insert your code here to reconcile the two inodes:
+	// copy the parent's file to the child if only the parent's has changed,
+	// copy the child's file to the parent if only the child's has changed,
+	// and mark both files conflicted if both have been modified.
+	// Then be sure to update the reconciliation state
+	// so that the next reconciliation will start from this point.
+	//
+	// Note: if only one process has made an exclusive modification
+	// that bumps the inode's version number,
+	// and the other process has NOT bumped its inode's version number
+	// but has performed append-only writes increasing the file's length,
+	// that situation still constitutes a conflict
+	// because we don't have a clean way to resolve it automatically.
+	warn("reconcile_inode not implemented");
+	return 0;
+#endif	// ! SOL >= 4
 }
 
 bool
@@ -336,6 +361,7 @@ reconcile_merge(pid_t pid, filestate *cfiles, int pino, int cino)
 	if (!S_ISREG(pfi->mode))
 		return 0;	// only regular files have data to merge
 
+#if SOL >= 4
 	// How much did the file grow in the src & dst since last reconcile?
 	int rlen = cfi->rlen;
 	int plen = pfi->size;
@@ -387,6 +413,15 @@ reconcile_merge(pid_t pid, filestate *cfiles, int pino, int cino)
 
 	// File merged!
 	return 1;
+#else	// ! SOL >= 4
+	// Lab 4: insert your code here to merge inclusive appends:
+	// copy the parent's appends since last reconciliation into the child,
+	// and the child's appends since last reconciliation into the parent.
+	// Parent and child should be left with files of the same size,
+	// although the writes they contain may be in a different order.
+	warn("reconcile_merge not implemented");
+	return 0;
+#endif	// ! SOL >= 4
 }
 
 #endif	// LAB >= 4

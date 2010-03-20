@@ -103,7 +103,7 @@ typedef struct fileinode {		// Per-file state - like an "inode"
 	mode_t	mode;			// File mode (stat.h), 0 if deleted
 	size_t	size;			// Current size if regular file
 
-	// File state reconciliation information
+	// Reference information for file system state reconciliation
 	int	rino;			// Parent's inode this corresponds to
 	int	rver;			// Version at last reconcile w/ parent
 	size_t	rlen;			// Size when last reconciled w/ parent

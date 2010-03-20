@@ -345,14 +345,15 @@ spawn(const char *arg0, ...)
 }
 
 void
-waitcheck(pid_t pid)
+waitcheckstatus(pid_t pid, int statexpect)
 {
 	// Wait for the child to finish executing, and collect its status.
 	int status = 0xdeadbeef;
 	waitpid(pid, &status, 0);
 	assert(WIFEXITED(status));
-	assert(WEXITSTATUS(status) == 0);
+	assert(WEXITSTATUS(status) == statexpect);
 }
+#define waitcheck(pid) waitcheckstatus(pid, 0)
 
 void
 execcheck()
@@ -362,9 +363,46 @@ execcheck()
 	cprintf("execcheck done\n");
 }
 
+pid_t forkwrite(const char *filename)
+{
+	pid_t pid = fork();
+	if (pid == 0) {		// We're the child.
+		FILE *f = fopen(filename, "w"); assert(f != NULL);
+		fprintf(f, "forkwrite: %s\n", filename);
+		fclose(f);
+		exit(0);
+	}
+	assert(pid > 0);	// We're the parent.
+	return pid;
+}
+
 void
 reconcilecheck()
 {
+	// First fork off a child process that just writes one file,
+	// and make sure it appears when we subsequently 'cat' it.
+	waitcheck(forkwrite("reconcilefile0"));
+	waitcheck(spawn("cat", "reconcilefile0", NULL));
+
+	// Now try two concurrent, non-conflicting writes.
+	pid_t p1 = forkwrite("reconcilefile1");
+	pid_t p2 = forkwrite("reconcilefile2");
+	waitcheck(p1);
+	waitcheck(p2);
+	waitcheck(spawn("cat", "reconcilefile1", NULL));
+	waitcheck(spawn("cat", "reconcilefile2", NULL));
+
+	// Now try two concurrent, conflicting writes.
+	p1 = forkwrite("reconcilefileC");
+	p2 = forkwrite("reconcilefileC");
+	waitcheck(p1);
+	waitcheck(p2);
+	waitcheckstatus(spawn("cat", "reconcilefileC", NULL), 1); // fails!
+	waitcheck(spawn("ls", "-l", NULL));
+
+	cprintf("reconcilecheck: basic file reconciliation successful\n");
+
+	// Reconcile append-only console output
 	printf("reconcilecheck: running echo\n");
 	pid_t pid = spawn("echo", "called", "by", "reconcilecheck", NULL);
 	printf("reconcilecheck: echo running\n");

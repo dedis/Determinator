@@ -69,3 +69,6 @@ through the interrupt.
 - rename kern/mp.* to dev/mp.* (or hw/mp.*)?
 
 - take the #if SOL >= 1 out of debug_panic()
+
+- see if dirwalk can be simplified by using fileino_create()
+	(or a generalized fileino_lookup())
