@@ -72,3 +72,5 @@ through the interrupt.
 
 - see if dirwalk can be simplified by using fileino_create()
 	(or a generalized fileino_lookup())
+
+- combine fprintf.c into stdio.c?
