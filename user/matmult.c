@@ -87,28 +87,29 @@ tjoin(uint8_t child)
 #include <assert.h>
 #include <pthread.h>
 
+char tforked[256];
 pthread_t threads[256];
 
 void
 tfork(uint8_t child, void *(*fun)(void *), void *arg)
 {
-	assert(threads[child] == NULL);
+	assert(!tforked[child]);
 
 	int rc = pthread_create(&threads[child], NULL, fun, arg);
 	assert(rc == 0);
+	tforked[child] = 1;
 }
 
 void
 tjoin(uint8_t child)
 {
-	assert(threads[child] != NULL);
+	assert(tforked[child]);
 
 	void *val;
 	int rc = pthread_join(threads[child], &val);
 	assert(rc == 0);
 	assert(val == NULL);
-
-	threads[child] = NULL;
+	tforked[child] = 0;
 }
 
 static __attribute__((always_inline)) uint64_t
@@ -122,29 +123,33 @@ rdtsc(void)
 #endif	// ! PIOS_USER
 
 
-#define MAXDIM	1024
+#define MAXDIM		1024
+
+#define MAXTHREADS	8
 
 typedef int elt;
 
 elt a[MAXDIM*MAXDIM], b[MAXDIM*MAXDIM], r[MAXDIM*MAXDIM];
 
 struct tharg {
-	int i, j, blk, dim;
+	int bi, bj, nbi, nbj, dim;
 };
 
 void *
 blkmult(void *varg)
 {
 	struct tharg *arg = varg;
-	int i = arg->i;
-	int j = arg->j;
-	int blk = arg->blk;
-	int dim = arg->dim;
+	int dim = arg->dim;	// Total matrix size in each dimension
+	int nbi = arg->nbi;	// Number of blocks in i dimension
+	int nbj = arg->nbj;	// Number of blocks in j dimension
+	int bsi = dim/nbi;	// Block size in i dimension
+	int bsj = dim/nbj;	// Block size in j dimension
 
-	int ih = i+blk, jh = j+blk;
+	int il = arg->bi * bsi, jl = arg->bj * bsj;
+	int ih = il + bsi,	jh = jl + bsj;
 	int ii, jj, kk;
-	for (ii = i; ii < ih; ii++)
-		for (jj = j; jj < jh; jj++) {
+	for (ii = il; ii < ih; ii++)
+		for (jj = jl; jj < jh; jj++) {
 			elt sum = 0;
 			for (kk = 0; kk < dim; kk++)
 				sum += a[ii*dim+kk] * b[kk*dim+jj];
@@ -154,49 +159,64 @@ blkmult(void *varg)
 }
 
 void
-matmult(int blk, int dim)
+matmult(int nbi, int nbj, int dim)
 {
 	assert(dim >= 1 && dim <= MAXDIM);
-	assert(blk >= 1 && blk <= dim);
-	assert(dim % blk == 0);
+	assert(nbi >= 1 && nbi <= dim); assert(dim % nbi == 0);
+	assert(nbj >= 1 && nbj <= dim); assert(dim % nbj == 0);
 
-	int nbl = dim/blk;
-	int nth = nbl*nbl;
+	int nth = nbi*nbj;
 	assert(nth >= 1 && nth <= 256);
 
-	int i,j,k;
+	int bi,bj;
 	struct tharg arg[256];
 
 	// Fork off a thread to compute each cell in the result matrix
-	for (i = 0; i < nbl; i++)
-		for (j = 0; j < nbl; j++) {
-			int child = i*nbl + j;
-			arg[child].i = i;
-			arg[child].j = j;
-			arg[child].blk = blk;
+	for (bi = 0; bi < nbi; bi++)
+		for (bj = 0; bj < nbj; bj++) {
+			int child = bi*nbi + bj;
+			arg[child].bi = bi;
+			arg[child].bj = bj;
+			arg[child].nbi = nbi;
+			arg[child].nbj = nbj;
 			arg[child].dim = dim;
 			tfork(child, blkmult, &arg[child]);
 		}
 
 	// Now go back and merge in the results of all our children
-	for (i = 0; i < nbl; i++)
-		for (j = 0; j < nbl; j++) {
-			int child = i*nbl + j;
+	for (bi = 0; bi < nbi; bi++)
+		for (bj = 0; bj < nbj; bj++) {
+			int child = bi*nbi + bj;
 			tjoin(child);
 		}
 }
 
 int main(int argc, char **argv)
 {
-	int dim, blk;
-	for (dim = 256; dim <= 1024; dim *= 2) {
+	int dim, nth, nbi, nbj, iter;
+	for (dim = 16; dim <= MAXDIM; dim *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
-			dim, dim, dim*dim, dim*dim*sizeof(elt));
-		for (blk = dim/16; blk <= dim; blk *= 2) {
+			dim, dim, dim*dim, (int)dim*dim*sizeof(elt));
+		for (nth = nbi = nbj = 1; nth <= MAXTHREADS; ) {
+			assert(nth == nbi * nbj);
+			int niter = MAXDIM/dim;
+			niter = niter * niter;
+
+			matmult(nbi, nbj, dim);	// once to warm up...
+
 			uint64_t ts = rdtsc();
-			matmult(blk, dim);
-			uint64_t td = rdtsc() - ts;
-			printf("blksize %d: %lld ticks\n", blk, td);
+			for (iter = 0; iter < niter; iter++)
+				matmult(nbi, nbj, dim);
+			uint64_t td = (rdtsc() - ts) / niter;
+
+			printf("blksize %dx%d threads %d iters %d: %lld\n",
+				dim/nbi, dim/nbj, nth, niter, (long long)td);
+
+			if (nbi == nbj)
+				nbi *= 2;
+			else
+				nbj *= 2;
+			nth *= 2;
 		}
 	}
 

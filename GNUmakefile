@@ -280,7 +280,7 @@ IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
 QEMUOPTS = -smp 2 -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio
 else
 IMAGES = $(OBJDIR)/kern/kernel.img
-QEMUOPTS = -smp 2 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio
+QEMUOPTS = -smp 4 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio -k en-us -m 2G
 endif  # LAB 5
 
 .gdbinit: .gdbinit.tmpl
