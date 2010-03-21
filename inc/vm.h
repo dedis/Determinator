@@ -66,12 +66,12 @@
 //    VM_STACKHI       |                              |
 //                     |     Per-thread user stack    |
 //                     |                              |
-//    VM_STACKLO,      +------------------------------+ 0x80000000
+//    VM_STACKLO,      +------------------------------+ 0xd0000000
 //    VM_SCRATCHHI     |                              |
 //                     |    Scratch address space     |
 //                     | for file reconciliation etc. |
 //                     |                              |
-//    VM_SCRATCHLO, -> +------------------------------+ 0x80000000
+//    VM_SCRATCHLO, -> +------------------------------+ 0xc0000000
 //    VM_FILEHI        |                              |
 //                     |      File system and         |
 //                     |   process management state   |

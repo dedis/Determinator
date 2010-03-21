@@ -11,6 +11,11 @@
 #include <inc/elf.h>
 #include <inc/vm.h>
 
+
+// Maximum size of executable image we can load -
+// must fit in our scratch area for loading purposes.
+#define EXEMAX	MIN(VM_SHAREHI-VM_SHARELO,VM_SCRATCHHI-VM_SCRATCHLO)
+
 extern void start(void);
 extern void exec_start(intptr_t esp) gcc_noreturn;
 
@@ -51,7 +56,7 @@ int
 exec_readelf(const char *path)
 {
 	// We'll load the ELF image into a scratch area in our address space.
-	sys_get(SYS_ZERO, 0, NULL, NULL, (void*)VM_SCRATCHLO, PTSIZE);
+	sys_get(SYS_ZERO, 0, NULL, NULL, (void*)VM_SCRATCHLO, EXEMAX);
 
 	// Open the ELF image to load.
 	filedesc *fd = filedesc_open(NULL, path, O_RDONLY, 0);
@@ -77,8 +82,8 @@ exec_readelf(const char *path)
 		// The executable should fit in the first 4MB of user space.
 		intptr_t valo = ph->p_va;
 		intptr_t vahi = valo + ph->p_memsz;
-		if (valo < VM_USERLO || valo > VM_USERLO+PTSIZE ||
-				vahi < valo || vahi > VM_USERLO+PTSIZE)
+		if (valo < VM_USERLO || valo > VM_USERLO+EXEMAX ||
+				vahi < valo || vahi > VM_USERLO+EXEMAX)
 			goto badelf;
 
 		// Map all pages the segment touches in our scratch region.
@@ -108,7 +113,7 @@ exec_readelf(const char *path)
 
 	// Copy the ELF image into its correct position in child 0.
 	sys_put(SYS_COPY, 0, NULL, (void*)VM_SCRATCHLO,
-		(void*)VM_USERLO, PTSIZE);
+		(void*)VM_USERLO, EXEMAX);
 
 	// The new program should have the same entrypoint as we do!
 	if (eh->e_entry != (intptr_t)start)

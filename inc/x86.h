@@ -322,10 +322,10 @@ cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp, uint32_t *ecxp, uint32_t *e
 }
 
 static gcc_inline uint64_t
-read_tsc(void)
+rdtsc(void)
 {
         uint64_t tsc;
-        __asm __volatile("rdtsc" : "=A" (tsc));
+        asm volatile("rdtsc" : "=A" (tsc));
         return tsc;
 }
 
