@@ -100,7 +100,13 @@ init(void)
 #if LAB >= 4
 	// Initialize the I/O system.
 	file_init();		// Create root directory and console I/O files
+
+#if SOL >= 4
 	cons_intenable();	// Let the console start producing interrupts
+#else
+	// Lab 4: uncomment this when you can handle IRQ_SERIAL and IRQ_KBD.
+	//cons_intenable();	// Let the console start producing interrupts
+#endif
 
 #endif
 	// Initialize the process management code.

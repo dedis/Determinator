@@ -152,7 +152,7 @@ struct dirent *readdir(DIR *dir)
 	}
 	return NULL;	// End of directory
 #else	// ! SOL >= 4
-	// Lab 4: insert your file reading code here.
+	// Lab 4: insert your directory scanning code here.
 	// Hint: a fileinode's 'dino' field indicates
 	// what directory the file is in;
 	// this function shouldn't return entries from other directories!
