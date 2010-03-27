@@ -250,6 +250,13 @@ trap(trapframe *tf)
 	if (tf->tf_cs & 3)	// Unhandled trap from user mode
 		proc_ret(tf);	// Reflect to parent process
 
+#if SOL >= 2	// XXX just give out this code incl. the cons_lock!
+	// If we panic while holding the console lock,
+	// release it so we don't get into a recursive panic that way.
+	extern spinlock cons_lock;	// XXX move to kern/console.h
+	if (spinlock_holding(&cons_lock))
+		spinlock_release(&cons_lock);
+#endif
 #endif	// SOL >= 2
 	trap_print(tf);
 	panic("unhandled trap");

@@ -85,6 +85,11 @@ endif
 # try to generate a unique GDB port
 GDBPORT	:= $(shell expr `id -u` % 5000 + 25000)
 
+# Correct option to enable the GDB stub and specify its port number to qemu.
+# First is for qemu versions <= 0.10, second is for later qemu versions.
+QEMUPORT := -s -p $(GDBPORT)
+#QEMUPORT := -gdb tcp::$(GDBPORT)
+
 CC	:= $(GCCPREFIX)gcc -pipe
 AS	:= $(GCCPREFIX)as
 AR	:= $(GCCPREFIX)ar
@@ -296,11 +301,11 @@ qemu-nox: $(IMAGES)
 
 qemu-gdb: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
-	$(QEMU) $(QEMUOPTS) -s -S -p $(GDBPORT)
+	$(QEMU) $(QEMUOPTS) -S $(QEMUPORT)
 
 qemu-gdb-nox: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
-	$(QEMU) -nographic $(QEMUOPTS) -s -S -p $(GDBPORT)
+	$(QEMU) -nographic $(QEMUOPTS) -S $(QEMUPORT)
 
 which-qemu:
 	@echo $(QEMU)

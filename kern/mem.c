@@ -94,8 +94,8 @@ extmem = 1024*1024*1024 - MEM_EXT;	// assume 1GB total memory
 		// Off-limits until proven otherwise.
 		int inuse = 1;
 
-		// The bottom basemem bytes are free except page 0.
-		if (i != 0 && i < basemem / PAGESIZE)
+		// The bottom basemem bytes are free except page 0 and 1.
+		if (i > 1 && i < basemem / PAGESIZE)
 			inuse = 0;
 
 		// The IO hole and the kernel abut.
@@ -123,13 +123,13 @@ extmem = 1024*1024*1024 - MEM_EXT;	// assume 1GB total memory
 	// For step (2), here is some incomplete/incorrect example code
 	// that simply marks all mem_npage pages as free.
 	// Which memory is actually free?
-	//  1) Treat page 0 as in-use (not available).
-	//     This way we preserve the real-mode IDT and BIOS structures
-	//     in case we ever need them.  (Currently we don't, but...)
-	//  2) Mark the rest of base memory as free.
-	//  3) Then comes the IO hole [MEM_IO, MEM_EXT).
+	//  1) Reserve page 0 for the real-mode IDT and BIOS structures
+	//     (do not allow this page to be used for anything else).
+	//  2) Reserve page 1 for the AP bootstrap code (boot/bootother.S).
+	//  3) Mark the rest of base memory as free.
+	//  4) Then comes the IO hole [MEM_IO, MEM_EXT).
 	//     Mark it as in-use so that it can never be allocated.      
-	//  4) Then extended memory [MEM_EXT, ...).
+	//  5) Then extended memory [MEM_EXT, ...).
 	//     Some of it is in use, some is free.
 	//     Which pages hold the kernel and the pageinfo array?
 	//     (See the comment on the start[] and end[] symbols above.)
@@ -226,7 +226,7 @@ mem_free(pageinfo *pi)
 void
 mem_incref(pageinfo *pi)
 {
-	assert(pi > &mem_pageinfo[0] && pi < &mem_pageinfo[mem_npage]);
+	assert(pi > &mem_pageinfo[1] && pi < &mem_pageinfo[mem_npage]);
 	assert(pi != mem_ptr2pi(pmap_zero));	// Don't alloc/free zero page!
 	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
 
@@ -238,7 +238,7 @@ mem_incref(pageinfo *pi)
 void
 mem_decref(pageinfo* pi)
 {
-	assert(pi > &mem_pageinfo[0] && pi < &mem_pageinfo[mem_npage]);
+	assert(pi > &mem_pageinfo[1] && pi < &mem_pageinfo[mem_npage]);
 	assert(pi != mem_ptr2pi(pmap_zero));	// Don't alloc/free zero page!
 	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
 

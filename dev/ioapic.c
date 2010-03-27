@@ -62,9 +62,13 @@ ioapic_init(void)
 
 	maxintr = (ioapic_read(REG_VER) >> 16) & 0xFF;
 	id = ioapic_read(REG_ID) >> 24;
+	if (id == 0) {
+		// I/O APIC ID not initialized yet - have to do it ourselves.
+		ioapic_write(REG_ID, ioapicid << 24);
+		id = ioapicid;
+	}
 	if (id != ioapicid)
-		cprintf("ioapicinit: id %d != ioapicid %d; not a MP\n",
-			id, ioapicid);
+		warn("ioapicinit: id %d != ioapicid %d\n", id, ioapicid);
 
 	// Mark all interrupts edge-triggered, active high, disabled,
 	// and not routed to any CPUs.

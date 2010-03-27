@@ -32,7 +32,7 @@ $(OBJDIR)/boot/bootblock: $(BOOT_OBJS)
 
 $(OBJDIR)/boot/bootother: $(OBJDIR)/boot/bootother.o
 	@echo + ld boot/bootother
-	$(V)$(LD) $(LDFLAGS) -N -e start -Ttext 0x7000 -o $@.elf $^
+	$(V)$(LD) $(LDFLAGS) -N -e start -Ttext 0x1000 -o $@.elf $^
 	$(V)$(OBJDUMP) -S $@.elf >$@.asm
 	$(V)$(OBJCOPY) -S -O binary $@.elf $@
 
