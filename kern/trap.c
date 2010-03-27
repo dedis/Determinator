@@ -261,7 +261,9 @@ trap(trapframe *tf)
 static void gcc_noreturn
 trap_check_recover(trapframe *tf, void *recoverdata)
 {
-	tf->tf_eip = (uint32_t) recoverdata;
+	trap_check_args *args = recoverdata;
+	tf->tf_eip = (uint32_t) args->reip;	// Use recovery EIP on return
+	args->trapno = tf->tf_trapno;		// Return trap number
 	trap_return(tf);
 }
 
@@ -274,9 +276,7 @@ trap_check_kernel(void)
 
 	cpu *c = cpu_cur();
 	c->recover = trap_check_recover;
-
-	trap_check(NULL, &c->recoverdata);
-
+	trap_check(&c->recoverdata);
 	c->recover = NULL;	// No more mr. nice-guy; traps are real again
 
 	cprintf("trap_check_kernel() succeeded!\n");
@@ -293,10 +293,7 @@ trap_check_user(void)
 
 	cpu *c = &cpu_boot;	// cpu_cur doesn't work from user mode!
 	c->recover = trap_check_recover;
-
-	trap_check((trapframe*)(c->kstackhi - trapframe_usize),
-			&c->recoverdata);
-
+	trap_check(&c->recoverdata);
 	c->recover = NULL;	// No more mr. nice-guy; traps are real again
 
 	cprintf("trap_check_user() succeeded!\n");
@@ -304,26 +301,21 @@ trap_check_user(void)
 
 // Multi-purpose trap checking function.
 void
-trap_check(trapframe *tf, void **recover_eip)
+trap_check(void **argsp)
 {
 	volatile int cookie = 0xfeedface;
-
-	// If caller didn't specify location of trapframe,
-	// expect it to appear on the current (i.e., kernel) stack.
-	if (!tf) {
-		assert((read_cs() & 3) == 0);	// better be in kernel mode!
-		tf = (trapframe*)(read_esp() - trapframe_ksize);
-	}
+	volatile trap_check_args args;
+	*argsp = (void*)&args;	// provide args needed for trap recovery
 
 	// Try a divide by zero trap.
 	// Be careful when using && to take the address of a label:
 	// some versions of GCC (4.4.2 at least) will incorrectly try to
 	// eliminate code it thinks is _only_ reachable via such a pointer.
-	*recover_eip = &&after_div0;
+	args.reip = &&after_div0;
 	int zero = 0;
 	cookie = 1 / zero;
 after_div0:
-	assert(tf->tf_trapno == T_DIVIDE);
+	assert(args.trapno == T_DIVIDE);
 
 	// Make sure we got our correct stack back with us.
 	// The asm ensures gcc uses ebp/esp to get the cookie.
@@ -331,48 +323,48 @@ after_div0:
 	assert(cookie == 0xfeedface);
 
 	// Breakpoint trap
-	*recover_eip = &&after_breakpoint;
+	args.reip = &&after_breakpoint;
 	asm volatile("int3");
 after_breakpoint:
-	assert(tf->tf_trapno == T_BRKPT);
+	assert(args.trapno == T_BRKPT);
 
 	// Overflow trap
-	*recover_eip = &&after_overflow;
+	args.reip = &&after_overflow;
 	asm volatile("addl %0,%0; into" : : "r" (0x70000000));
 after_overflow:
-	assert(tf->tf_trapno == T_OFLOW);
+	assert(args.trapno == T_OFLOW);
 
 	// Bounds trap
-	*recover_eip = &&after_bound;
+	args.reip = &&after_bound;
 	int bounds[2] = { 1, 3 };
 	asm volatile("boundl %0,%1" : : "r" (0), "m" (bounds[0]));
 after_bound:
-	assert(tf->tf_trapno == T_BOUND);
+	assert(args.trapno == T_BOUND);
 
 	// Illegal instruction trap
-	*recover_eip = &&after_illegal;
+	args.reip = &&after_illegal;
 	asm volatile("ud2");	// guaranteed to be undefined
 after_illegal:
-	assert(tf->tf_trapno == T_ILLOP);
+	assert(args.trapno == T_ILLOP);
 
 	// General protection fault due to invalid segment load
-	*recover_eip = &&after_gpfault;
+	args.reip = &&after_gpfault;
 	asm volatile("movl %0,%%fs" : : "r" (-1));
 after_gpfault:
-	assert(tf->tf_trapno == T_GPFLT);
+	assert(args.trapno == T_GPFLT);
 
 	// General protection fault due to privilege violation
 	if (read_cs() & 3) {
-		*recover_eip = &&after_priv;
+		args.reip = &&after_priv;
 		asm volatile("lidt %0" : : "m" (idt_pd));
 	after_priv:
-		assert(tf->tf_trapno == T_GPFLT);
+		assert(args.trapno == T_GPFLT);
 	}
 
 	// Make sure our stack cookie is still with us
 	assert(cookie == 0xfeedface);
 
-	*recover_eip = NULL;	// cleanup
+	*argsp = NULL;	// recovery mechanism not needed anymore
 }
 
 #endif /* LAB >= 1 */
