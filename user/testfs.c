@@ -89,7 +89,8 @@ readwritecheck()
 	int fd = open("ls", O_RDONLY); assert(fd > 0);
 	ssize_t act = read(fd, buf, 2048);
 	assert(act == 2048);
-	assert(((elfhdr*)buf)->e_magic == ELF_MAGIC); // should be an ELF file
+	elfhdr *eh = (elfhdr*) buf;
+	assert(eh->e_magic == ELF_MAGIC); // should be an ELF file
 	close(fd);
 
 	// Overwrite the first 1K with zeros.
@@ -164,7 +165,8 @@ seekcheck()
 	// and compare against what we get if we directly seek to a block
 	rc = lseek(fd, -st.st_size, SEEK_END); assert(rc == 0);
 	act = read(fd, buf, 2048); assert(act == 2048);
-	assert(((elfhdr*)buf)->e_magic == ELF_MAGIC); // should be an ELF file
+	elfhdr *eh = (elfhdr*) buf;
+	assert(eh->e_magic == ELF_MAGIC); // should be an ELF file
 	for (i = 0; i < 32; i++) { // read next 32 2KB chunks
 		act = read(fd, buf, 2048); assert(act == 2048);
 	}

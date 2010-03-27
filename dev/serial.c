@@ -44,8 +44,10 @@ serial_intr(void)
 void
 serial_putc(int c)
 {
+	if (!serial_exists)
+		return;
+
 	int i;
-	
 	for (i = 0;
 	     !(inb(COM1 + COM_LSR) & COM_LSR_TXRDY) && i < 12800;
 	     i++)

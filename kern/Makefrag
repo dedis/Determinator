@@ -165,3 +165,22 @@ $(OBJDIR)/pios-grub: $(OBJDIR)/kern/kernel
 	@echo + oc $@
 	$(V)$(OBJCOPY) --adjust-vma=0x10000000 $^ $@
 
+# Create VMware disk image to run under VMware, VirtualBox, etc.
+%.vmdk: %.img
+	qemu-img convert -f raw -O vmdk $*.img $*.vmdk
+
+# Run PIOS under VirtualBox
+vbox: $(OBJDIR)/kern/kernel.vmdk vbox-stop
+	@VBoxManage storageattach PIOS --storagectl "IDE Controller" --port 0 \
+		--device 0 --type hdd --medium `/bin/pwd`/obj/kern/kernel.vmdk
+	VBoxManage startvm PIOS
+
+# Stop VirtualBox's PIOS virtual machine
+vbox-stop:
+	@VBoxManage controlvm PIOS poweroff >/dev/null 2>&1 || true
+	@until VBoxManage showvminfo PIOS -machinereadable | \
+		grep -q 'VMState="poweroff"' ; do echo waiting; sleep 1; done
+	@VBoxManage storageattach PIOS --storagectl "IDE Controller" --port 0 \
+		--device 0 --type hdd --medium none >/dev/null 2>&1 || true
+	@VBoxManage closemedium disk `/bin/pwd`/obj/kern/kernel.vmdk \
+		>/dev/null 2>&1 || true

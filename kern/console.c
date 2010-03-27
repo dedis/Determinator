@@ -115,7 +115,7 @@ cons_init(void)
 	serial_init();
 
 	if (!serial_exists)
-		cprintf("Serial port does not exist!\n");
+		warn("Serial port does not exist!\n");
 }
 
 #if LAB >= 4
