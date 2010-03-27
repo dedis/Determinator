@@ -102,6 +102,8 @@ _alltraps:
 	movw %ax,%ds
 	movw %ax,%es
 
+	xorl %ebp,%ebp		# don't let debug_trace() walk into user space
+
 	pushl %esp		# pass pointer to this trapframe 
 	call trap		# and call trap (does not return)
 
