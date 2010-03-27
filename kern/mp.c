@@ -19,6 +19,7 @@
 int ismp;
 int ncpu;
 uint8_t ioapicid;
+volatile struct ioapic *ioapic;
 
 
 static uint8_t
@@ -99,7 +100,7 @@ mp_init(void)
 	struct mp      *mp;
 	struct mpconf  *conf;
 	struct mpproc  *proc;
-	struct mpioapic *ioapic;
+	struct mpioapic *mpio;
 
 	if (!cpu_onboot())	// only do once, on the boot CPU
 		return;
@@ -114,19 +115,21 @@ mp_init(void)
 		switch (*p) {
 		case MPPROC:
 			proc = (struct mpproc *) p;
+			p += sizeof(struct mpproc);
+			if (!(proc->flags & MPENAB))
+				continue;	// processor disabled
 
 			// Get a cpu struct and kernel stack for this CPU.
 			cpu *c = (proc->flags & MPBOOT)
 					? &cpu_boot : cpu_alloc();
 			c->id = proc->apicid;
-
 			ncpu++;
-			p += sizeof(struct mpproc);
 			continue;
 		case MPIOAPIC:
-			ioapic = (struct mpioapic *) p;
-			ioapicid = ioapic->apicno;
+			mpio = (struct mpioapic *) p;
 			p += sizeof(struct mpioapic);
+			ioapicid = mpio->apicno;
+			ioapic = (struct ioapic *) mpio->addr;
 			continue;
 		case MPBUS:
 		case MPIOINTR:
