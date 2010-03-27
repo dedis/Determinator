@@ -144,8 +144,8 @@ cpu_bootothers(void)
 		return;
 	}
 
-	// Write bootstrap code to unused memory at 0x7000.
-	uint8_t *code = (uint8_t*)0x7000;
+	// Write bootstrap code to unused memory at 0x1000.
+	uint8_t *code = (uint8_t*)0x1000;
 	memmove(code, _binary_obj_boot_bootother_start,
 		(uint32_t)_binary_obj_boot_bootother_size);
 
