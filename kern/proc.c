@@ -259,7 +259,7 @@ static struct cpustate child_state;
 static char gcc_aligned(16) child_stack[4][PAGESIZE];
 
 static volatile uint32_t pingpong = 0;
-static void *recoveip;
+static void *recovargs;
 
 void
 proc_check(void)
@@ -311,18 +311,21 @@ proc_check(void)
 	i = 0;
 	sys_get(SYS_REGS, i, &child_state, NULL, NULL, 0);
 		// get child 0's state
-	assert(recoveip == NULL);
+	assert(recovargs == NULL);
 	do {
 		sys_put(SYS_REGS | SYS_START, i, &child_state, NULL, NULL, 0);
 		sys_get(SYS_REGS, i, &child_state, NULL, NULL, 0);
-		if (recoveip) {	// set eip to the recovery point
+		if (recovargs) {	// trap recovery needed
+			trap_check_args *args = recovargs;
 			cprintf("recover from trap %d\n",
 				child_state.tf.tf_trapno);
-			child_state.tf.tf_eip = (uint32_t)recoveip;
+			child_state.tf.tf_eip = (uint32_t) args->reip;
+			args->trapno = child_state.tf.tf_trapno;
 		} else
 			assert(child_state.tf.tf_trapno == T_SYSCALL);
 		i = (i+1) % 4;	// rotate to next child proc
 	} while (child_state.tf.tf_trapno != T_SYSCALL);
+	assert(recovargs == NULL);
 
 	cprintf("proc_check() trap reflection test succeeded\n");
 
@@ -355,9 +358,9 @@ static void child(int n)
 
 	// Only "child 0" (or the proc that thinks it's child 0), trap check...
 	if (n == 0) {
-		trap_check(&child_state.tf, &recoveip);
-
-		recoveip = NULL;	// return to parent cleanly
+		assert(recovargs == NULL);
+		trap_check(&recovargs);
+		assert(recovargs == NULL);
 		sys_ret();
 	}
 

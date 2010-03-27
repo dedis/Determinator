@@ -79,9 +79,14 @@ spinlock_holding(spinlock *lock)
 #endif // SOL >= 2
 }
 
-void spinlock_debug_godeep(int depth, spinlock* lk) {
-	if (depth==0) spinlock_acquire(lk);
-	else spinlock_debug_godeep(depth-1, lk);
+// Function that simply recurses to a specified depth.
+// The useless return value and volatile parameter are
+// so GCC doesn't collapse it via tail-call elimination.
+int gcc_noinline
+spinlock_godeep(volatile int depth, spinlock* lk)
+{
+	if (depth==0) { spinlock_acquire(lk); return 1; }
+	else return spinlock_godeep(depth-1, lk) * depth;
 }
 
 void spinlock_check()
@@ -102,7 +107,8 @@ void spinlock_check()
 	for (run=0;run<NUMRUNS;run++) 
 	{
 		// Lock all locks
-		for(i=0;i<NUMLOCKS;i++) spinlock_debug_godeep(i,&locks[i]);
+		for(i=0;i<NUMLOCKS;i++)
+			spinlock_godeep(i, &locks[i]);
 
 		// Make sure that all locks have the right CPU
 		for(i=0;i<NUMLOCKS;i++)
@@ -110,15 +116,15 @@ void spinlock_check()
 		// Make sure that all locks have holding correctly implemented.
 		for(i=0;i<NUMLOCKS;i++)
 			assert(spinlock_holding(&locks[i]) != 0);
-		// Make sure that top i frames are somewhere in debug_godeep.
+		// Make sure that top i frames are somewhere in godeep.
 		for(i=0;i<NUMLOCKS;i++) 
 		{
 			for(j=0; j<=i && j < DEBUG_TRACEFRAMES ; j++) 
 			{
 				assert(locks[i].eips[j] >=
-					(uint32_t)spinlock_debug_godeep);
+					(uint32_t)spinlock_godeep);
 				assert(locks[i].eips[j] <
-					(uint32_t)spinlock_debug_godeep+100);
+					(uint32_t)spinlock_godeep+100);
 			}
 		}
 
