@@ -54,7 +54,8 @@ mem_init(void)
 	size_t basemem = ROUNDDOWN(nvram_read16(NVRAM_BASELO)*1024, PAGESIZE);
 	size_t extmem = ROUNDDOWN(nvram_read16(NVRAM_EXTLO)*1024, PAGESIZE);
 
-extmem = 1024*1024*1024 - MEM_EXT;	// assume 1GB total memory
+	warn("Assuming we have 1GB of memory!");
+	extmem = 1024*1024*1024 - MEM_EXT;	// assume 1GB total memory
 
 	// The maximum physical address is the top of extended memory.
 	mem_max = MEM_EXT + extmem;

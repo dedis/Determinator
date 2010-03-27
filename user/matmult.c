@@ -86,6 +86,7 @@ tjoin(uint8_t child)
 #include <string.h>
 #include <assert.h>
 #include <pthread.h>
+#include <sys/time.h>
 
 char tforked[256];
 pthread_t threads[256];
@@ -115,9 +116,15 @@ tjoin(uint8_t child)
 static __attribute__((always_inline)) uint64_t
 rdtsc(void)
 {
+#if 0
 	uint32_t tsclo, tschi;
         asm volatile("rdtsc" : "=a" (tsclo), "=d" (tschi));
         return (uint64_t)tschi << 32 | tsclo;
+#else
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return (uint64_t)tv.tv_sec * 1000000 + tv.tv_usec;
+#endif
 }
 
 #endif	// ! PIOS_USER
@@ -196,11 +203,11 @@ int main(int argc, char **argv)
 	int dim, nth, nbi, nbj, iter;
 	for (dim = 16; dim <= MAXDIM; dim *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
-			dim, dim, dim*dim, (int)dim*dim*sizeof(elt));
+			dim, dim, dim*dim, dim*dim*(int)sizeof(elt));
 		for (nth = nbi = nbj = 1; nth <= MAXTHREADS; ) {
 			assert(nth == nbi * nbj);
 			int niter = MAXDIM/dim;
-			niter = niter * niter;
+			niter = niter * niter; // * niter;	// MM = O(n^3)
 
 			matmult(nbi, nbj, dim);	// once to warm up...
 
