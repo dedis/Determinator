@@ -124,9 +124,9 @@ sys_time(void)
 #endif	// ! PIOS_USER
 
 
+#define MINDIM		16
 #define MAXDIM		1024
-
-#define MAXTHREADS	8
+#define MAXTHREADS	2	//8
 
 typedef int elt;
 
@@ -194,15 +194,8 @@ matmult(int nbi, int nbj, int dim)
 
 int main(int argc, char **argv)
 {
-	uint64_t b = sys_time(), t;
-	while (1) {
-		while ((t = sys_time()) < b);
-		cprintf("%llu\n", t);
-		b += 1000000000;
-	}
-
 	int dim, nth, nbi, nbj, iter;
-	for (dim = 16; dim <= MAXDIM; dim *= 2) {
+	for (dim = MINDIM; dim <= MAXDIM; dim *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			dim, dim, dim*dim, dim*dim*(int)sizeof(elt));
 		for (nth = nbi = nbj = 1; nth <= MAXTHREADS; ) {
