@@ -87,8 +87,8 @@ GDBPORT	:= $(shell expr `id -u` % 5000 + 25000)
 
 # Correct option to enable the GDB stub and specify its port number to qemu.
 # First is for qemu versions <= 0.10, second is for later qemu versions.
-QEMUPORT := -s -p $(GDBPORT)
-#QEMUPORT := -gdb tcp::$(GDBPORT)
+#QEMUPORT := -s -p $(GDBPORT)
+QEMUPORT := -gdb tcp::$(GDBPORT)
 
 CC	:= $(GCCPREFIX)gcc -pipe
 AS	:= $(GCCPREFIX)as

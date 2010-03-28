@@ -27,6 +27,7 @@
 
 #if LAB >= 2
 #include <dev/pic.h>
+#include <dev/timer.h>
 #include <dev/lapic.h>
 #include <dev/ioapic.h>
 #if SOL >= 3	// XXX rdtsc calibration
@@ -96,6 +97,7 @@ init(void)
 	// Find and start other processors in a multiprocessor system
 	mp_init();		// Find info about processors in system
 	pic_init();		// setup the legacy PIC (mainly to disable it)
+	timer_init();		// 8253 timer, used to calibrate LAPIC timers
 	ioapic_init();		// prepare to handle external device interrupts
 	lapic_init();		// setup this CPU's local APIC
 	cpu_bootothers();	// Get other processors started

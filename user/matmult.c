@@ -113,18 +113,12 @@ tjoin(uint8_t child)
 	tforked[child] = 0;
 }
 
-static __attribute__((always_inline)) uint64_t
-rdtsc(void)
+uint64_t
+sys_time(void)
 {
-#if 0
-	uint32_t tsclo, tschi;
-        asm volatile("rdtsc" : "=a" (tsclo), "=d" (tschi));
-        return (uint64_t)tschi << 32 | tsclo;
-#else
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	return (uint64_t)tv.tv_sec * 1000000 + tv.tv_usec;
-#endif
+	return ((uint64_t)tv.tv_sec * 1000000 + tv.tv_usec) * 1000; // ns
 }
 
 #endif	// ! PIOS_USER
@@ -200,6 +194,13 @@ matmult(int nbi, int nbj, int dim)
 
 int main(int argc, char **argv)
 {
+	uint64_t b = sys_time(), t;
+	while (1) {
+		while ((t = sys_time()) < b);
+		cprintf("%llu\n", t);
+		b += 1000000000;
+	}
+
 	int dim, nth, nbi, nbj, iter;
 	for (dim = 16; dim <= MAXDIM; dim *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
@@ -211,10 +212,10 @@ int main(int argc, char **argv)
 
 			matmult(nbi, nbj, dim);	// once to warm up...
 
-			uint64_t ts = rdtsc();
+			uint64_t ts = sys_time();
 			for (iter = 0; iter < niter; iter++)
 				matmult(nbi, nbj, dim);
-			uint64_t td = (rdtsc() - ts) / niter;
+			uint64_t td = (sys_time() - ts) / niter;
 
 			printf("blksize %dx%d threads %d iters %d: %lld\n",
 				dim/nbi, dim/nbj, nth, niter, (long long)td);

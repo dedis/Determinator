@@ -6,12 +6,15 @@
 
 
 // System call command codes (passed in EAX)
-#define SYS_TYPE	0x00000003	// Basic operation type
+#define SYS_TYPE	0x0000000f	// Basic operation type
 #define SYS_CPUTS	0x00000000	// Write debugging string to console
 #define SYS_PUT		0x00000001	// Push data to child and start it
 #define SYS_PUT		0x00000001	// Push data to child and start it
 #define SYS_GET		0x00000002	// Pull results from child
 #define SYS_RET		0x00000003	// Return to parent
+#if SOL >= 4
+#define SYS_TIME	0x00000004	// Get time since kernel boot
+#endif
 
 #define SYS_START	0x00000010	// Put: start child running
 #if LAB >= 99
@@ -81,6 +84,9 @@ void sys_put(uint32_t flags, uint8_t child, cpustate *cpu,
 void sys_get(uint32_t flags, uint8_t child, cpustate *cpu,
 		void *childsrc, void *localdest, size_t size);
 void sys_ret(void);
+#if SOL >= 4
+uint64_t sys_time(void);	// returns nanoseconds since kernel boot
+#endif
 
 #endif /* !__ASSEMBLER__ */
 

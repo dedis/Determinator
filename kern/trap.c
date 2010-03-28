@@ -17,6 +17,7 @@
 #include <kern/pmap.h>
 #endif
 
+#include <dev/timer.h>
 #include <dev/lapic.h>
 #if LAB >= 4
 #include <dev/kbd.h>
@@ -44,12 +45,13 @@ trap_init_idt(void)
 	extern char
 		Xdivide,Xdebug,Xnmi,Xbrkpt,Xoflow,Xbound,
 		Xillop,Xdevice,Xdblflt,Xtss,Xsegnp,Xstack,
-		Xgpflt,Xpgflt,Xfperr,Xalign,Xmchk,Xdefault,Xsyscall;
+		Xgpflt,Xpgflt,Xfperr,Xalign,Xmchk,Xdefault;
 #if SOL >= 2
 	extern char
 		Xirq0,Xirq1,Xirq2,Xirq3,Xirq4,Xirq5,
 		Xirq6,Xirq7,Xirq8,Xirq9,Xirq10,Xirq11,
-		Xirq12,Xirq13,Xirq14,Xirq15;
+		Xirq12,Xirq13,Xirq14,Xirq15,
+		Xsyscall,Xltimer,Xlerror;
 #endif	// SOL >= 2
 	int i;
 
@@ -83,10 +85,6 @@ trap_init_idt(void)
 	SETGATE(idt[T_MCHK],   0, CPU_GDT_KCODE, &Xmchk,   0);
 
 #if SOL >= 2
-	// Use DPL=3 here because system calls are explicitly invoked
-	// by the user process (with "int $T_SYSCALL").
-	SETGATE(idt[T_SYSCALL], 0, CPU_GDT_KCODE, &Xsyscall, 3);
-
 	SETGATE(idt[T_IRQ0 + 0], 0, CPU_GDT_KCODE, &Xirq0, 0);
 	SETGATE(idt[T_IRQ0 + 1], 0, CPU_GDT_KCODE, &Xirq1, 0);
 	SETGATE(idt[T_IRQ0 + 2], 0, CPU_GDT_KCODE, &Xirq2, 0);
@@ -103,6 +101,15 @@ trap_init_idt(void)
 	SETGATE(idt[T_IRQ0 + 13], 0, CPU_GDT_KCODE, &Xirq13, 0);
 	SETGATE(idt[T_IRQ0 + 14], 0, CPU_GDT_KCODE, &Xirq14, 0);
 	SETGATE(idt[T_IRQ0 + 15], 0, CPU_GDT_KCODE, &Xirq15, 0);
+
+	// Use DPL=3 here because system calls are explicitly invoked
+	// by the user process (with "int $T_SYSCALL").
+	SETGATE(idt[T_SYSCALL], 0, CPU_GDT_KCODE, &Xsyscall, 3);
+
+	// Vectors we use for local APIC interrupts
+	SETGATE(idt[T_LTIMER], 0, CPU_GDT_KCODE, &Xltimer, 0);
+	SETGATE(idt[T_LERROR], 0, CPU_GDT_KCODE, &Xlerror, 0);
+
 #endif	// SOL >= 2
 #else	// not SOL >= 1
 	
@@ -217,9 +224,10 @@ trap(trapframe *tf)
 		assert(tf->tf_cs & 3);	// syscalls only come from user space
 		syscall(tf);
 		break;
-	case T_IRQ0 + IRQ_TIMER:
-		//cprintf("TIMER on %d\n", c->id);
+	case T_LTIMER:
 		lapic_eoi();
+		uint64_t t = timer_read(); // update PIT count high bits
+		//cprintf("LTIMER on %d: %lld\n", c->id, (long long)t);
 		if (tf->tf_cs & 3)	// If in user mode, context switch
 			proc_yield(tf);
 		trap_return(tf);	// Otherwise, stay in idle loop

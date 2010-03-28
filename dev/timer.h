@@ -1,6 +1,4 @@
 #if LAB >= 4
-/*	$NetBSD: timerreg.h,v 1.4 1994/10/27 04:18:17 cgd Exp $	*/
-
 /*
  * Register definitions for the Intel
  * 8253/8254/82C54 Programmable Interval Timer (PIT).
@@ -36,6 +34,10 @@
  * Timer 2 is used to generate console beeps.
  */
 
+/* I/O addresses of the timer */
+#define	IO_TIMER1	0x040		/* 8253 Timer #1 */
+#define	IO_TIMER2	0x048		/* 8253 Timer #2 (EISA only) */
+
 /*
  * Frequency of all three count-down timers; (TIMER_FREQ/freq) is the
  * appropriate count to generate a frequency of freq hz.
@@ -64,5 +66,9 @@
 #define		TIMER_MSB	0x20	/* r/w counter MSB */
 #define		TIMER_16BIT	0x30	/* r/w counter 16 bits, LSB first */
 #define		TIMER_BCD	0x01	/* count in BCD */
+
+
+void timer_init(void);
+uint64_t timer_read(void);
 
 #endif // LAB >= 4
