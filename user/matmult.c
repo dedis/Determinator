@@ -126,7 +126,7 @@ sys_time(void)
 
 #define MINDIM		16
 #define MAXDIM		1024
-#define MAXTHREADS	2	//8
+#define MAXTHREADS	8
 
 typedef int elt;
 
