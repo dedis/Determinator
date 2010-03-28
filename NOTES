@@ -36,3 +36,18 @@ Challenge!  Add saving/restoring of FPU and SSE state using FXSAVE/FXRESTORE.
 Further challenge: save/restore FPU/SSE state lazily.
 (Especially challenging on a multiprocessor; requires CPU shootdown.)
 
+
+
+---
+28-Mar-10
+
+On building a cross-compiler for PIOS...
+
+configure command line for binutils:
+../configure --target=pios --prefix=$HOME/det/pios/xc --disable-werror
+
+configure command line for gcc:
+../configure --target=pios --prefix=$HOME/det/pios/xc
+
+might also need:
+../configure --target=i386-elf --disable-nls --without-headers --with-newlib --disable-threads --disable-shared --disable-libmudflap --disable-libssp : (reconfigured) ../configure --target=i386-elf --enable-languages=c --disable-nls --without-headers --with-newlib --disable-threads --disable-shared --disable-libmudflap --disable-libssp

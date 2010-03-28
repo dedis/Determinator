@@ -3,7 +3,7 @@
 #ifndef PIOS_INC_DIRENT_H
 #define PIOS_INC_DIRENT_H 1
 
-#include <inc/file.h>		// defines struct dirent
+#include <file.h>		// defines struct dirent
 
 
 typedef struct filedesc DIR;	// A DIR in PIOS is just a file descriptor

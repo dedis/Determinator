@@ -17,7 +17,7 @@
 #ifndef PIOS_INC_FILE_H
 #define PIOS_INC_FILE_H 1
 
-#include <inc/types.h>
+#include <types.h>
 
 
 // These definitions should really be in limits.h according to POSIX

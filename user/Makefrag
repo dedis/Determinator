@@ -7,10 +7,10 @@ $(OBJDIR)/user/%.o: user/%.c
 	$(V)$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(OBJDIR)/lib/entry.o \
-		$(OBJDIR)/lib/libpios.a
+		$(OBJDIR)/lib/libc.a
 	@echo + ld $@
 	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(OBJDIR)/lib/entry.o $@.o \
-		-L$(OBJDIR)/lib -lpios $(GCC_LIB)
+		-L$(OBJDIR)/lib -lc $(GCC_LIB)
 	$(V)$(OBJDUMP) -S $@ > $@.asm
 	$(V)$(NM) -n $@ > $@.sym
 endif

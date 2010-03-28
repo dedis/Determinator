@@ -2,7 +2,7 @@
 #ifndef PIOS_INC_SYSCALL_H
 #define PIOS_INC_SYSCALL_H
 
-#include <inc/trap.h>
+#include <trap.h>
 
 
 // System call command codes (passed in EAX)

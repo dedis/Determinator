@@ -33,7 +33,38 @@ $(OBJDIR)/lib/%.o: lib/%.S
 	@mkdir -p $(@D)
 	$(V)$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
 
-$(OBJDIR)/lib/libpios.a: $(LIB_OBJFILES)
+$(OBJDIR)/lib/libc.a: $(LIB_OBJFILES)
 	@echo + ar $@
 	$(V)$(AR) r $@ $(LIB_OBJFILES)
 
+#if SOL >= 4
+# Rules for building a target install tree for a GCC (cross-)compiler
+
+XCDIR := xc/pios
+XC_INCFILES := $(patsubst inc/%,%,$(wildcard inc/*.h))
+
+all:	$(addprefix $(XCDIR)/include/,$(XC_INCFILES)) \
+	$(XCDIR)/include/sys \
+	$(XCDIR)/lib/libc.a \
+	$(XCDIR)/lib/libg.a \
+	$(XCDIR)/lib/crt0.o
+
+$(XCDIR)/include $(XCDIR)/lib:
+	mkdir -p $@
+
+$(XCDIR)/include/%.h: inc/%.h $(XCDIR)/include
+	cp $< $@
+
+$(XCDIR)/include/sys: $(XCDIR)/include
+	ln -s . $@
+
+$(XCDIR)/lib/libc.a: $(OBJDIR)/lib/libc.a $(XCDIR)/lib
+	cp $< $@
+$(XCDIR)/lib/libg.a: $(OBJDIR)/lib/libc.a $(XCDIR)/lib
+	cp $< $@
+
+# XXX maybe just rename entry.S to crt0.S?
+$(XCDIR)/lib/crt0.o: $(OBJDIR)/lib/entry.o
+	cp $< $@
+
+#endif
