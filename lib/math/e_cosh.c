@@ -11,8 +11,6 @@
  * ====================================================
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 /* __ieee754_cosh(x)
  * Method : 
@@ -45,7 +43,7 @@ __ieee754_cosh(double x)
 {
 	double t,w;
 	int32_t ix;
-	u_int32_t lx;
+	uint32_t lx;
 
     /* High word of |x|. */
 	GET_HIGH_WORD(ix,x);
@@ -74,7 +72,7 @@ __ieee754_cosh(double x)
     /* |x| in [log(maxdouble), overflowthresold] */
 	GET_LOW_WORD(lx,x);
 	if (ix<0x408633CE ||
-	      ((ix==0x408633ce)&&(lx<=(u_int32_t)0x8fb9f87d))) {
+	      ((ix==0x408633ce)&&(lx<=(uint32_t)0x8fb9f87d))) {
 	    w = __ieee754_exp(half*fabs(x));
 	    t = half*w;
 	    return t*w;

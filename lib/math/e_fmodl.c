@@ -10,11 +10,9 @@
  * ====================================================
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 #include <float.h>
-#include <stdint.h>
+#include <types.h>
 
 #include "fpmath.h"
 #include "math.h"

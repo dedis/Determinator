@@ -4,7 +4,7 @@ OBJDIRS += user
 $(OBJDIR)/user/%.o: user/%.c
 	@echo + cc[USER] $<
 	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(OBJDIR)/lib/entry.o \
 		$(OBJDIR)/lib/libc.a

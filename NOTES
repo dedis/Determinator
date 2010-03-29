@@ -47,7 +47,7 @@ configure command line for binutils:
 ../configure --target=pios --prefix=$HOME/det/pios/xc --disable-werror
 
 configure command line for gcc:
-../configure --target=pios --prefix=$HOME/det/pios/xc
+../configure --target=pios --prefix=$HOME/det/pios/xc --enable-languages=c
 
 might also need:
 ../configure --target=i386-elf --disable-nls --without-headers --with-newlib --disable-threads --disable-shared --disable-libmudflap --disable-libssp : (reconfigured) ../configure --target=i386-elf --enable-languages=c --disable-nls --without-headers --with-newlib --disable-threads --disable-shared --disable-libmudflap --disable-libssp

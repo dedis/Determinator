@@ -10,8 +10,6 @@
  * ====================================================
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 /*
  * finite(x) returns 1 is x is finite, else 0;
@@ -25,5 +23,5 @@ __FBSDID("$FreeBSD$");
 {
 	int32_t hx;
 	GET_HIGH_WORD(hx,x);
-	return (int)((u_int32_t)((hx&0x7fffffff)-0x7ff00000)>>31);
+	return (int)((uint32_t)((hx&0x7fffffff)-0x7ff00000)>>31);
 }

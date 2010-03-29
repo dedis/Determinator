@@ -23,14 +23,13 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $FreeBSD$
  */
 
 #include <sys/endian.h>
 #include <ctype.h>
 #include <float.h>
 #include <math.h>
-#include <stdint.h>
+#include <types.h>
 #include <strings.h>
 
 #include "math_private.h"

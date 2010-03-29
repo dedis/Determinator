@@ -13,8 +13,6 @@
  * ====================================================
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 #include "math.h"
 #include "math_private.h"
@@ -44,7 +42,7 @@ __ieee754_expf(float x)	/* default IEEE double exp */
 {
 	float y,hi=0.0,lo=0.0,c,t,twopk;
 	int32_t k=0,xsb;
-	u_int32_t hx;
+	uint32_t hx;
 
 	GET_FLOAT_WORD(hx,x);
 	xsb = (hx>>31)&1;		/* sign bit of x */

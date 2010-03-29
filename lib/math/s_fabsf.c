@@ -13,8 +13,6 @@
  * ====================================================
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 /*
  * fabsf(x) returns the absolute value of x.
@@ -26,7 +24,7 @@ __FBSDID("$FreeBSD$");
 float
 fabsf(float x)
 {
-	u_int32_t ix;
+	uint32_t ix;
 	GET_FLOAT_WORD(ix,x);
 	SET_FLOAT_WORD(x,ix&0x7fffffff);
         return x;

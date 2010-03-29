@@ -10,8 +10,6 @@
  * ====================================================
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 /* cos(x)
  * Return cosine function of x.

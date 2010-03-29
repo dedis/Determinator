@@ -11,7 +11,6 @@
  */
 
 #ifndef lint
-static char rcsid[] = "$FreeBSD$";
 #endif
 
 /*
@@ -21,7 +20,6 @@ static char rcsid[] = "$FreeBSD$";
  * exponentiation or a multiplication.
  */
 
-#include <sys/cdefs.h>
 #include <float.h>
 
 #include "math.h"

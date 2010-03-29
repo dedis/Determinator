@@ -54,7 +54,10 @@ TOP = .
 
 # try to infer the correct GCCPREFIX
 ifndef GCCPREFIX
-GCCPREFIX := $(shell if i386-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
+GCCPREFIX := $(shell \
+	if pios-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
+	then echo 'pios-'; \
+	elif i386-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
 	then echo 'i386-elf-'; \
 	elif objdump -i 2>&1 | grep 'elf32-i386' >/dev/null 2>&1; \
 	then echo ''; \
@@ -104,13 +107,21 @@ NCC	:= gcc $(CC_VER) -pipe
 TAR	:= gtar
 PERL	:= perl
 
+
+# If we're not using the special "PIOS edition" of GCC,
+# reconfigure the host OS's compiler for our purposes.
+ifneq ($(GCCPREFIX),pios-)
+CFLAGS += -nostdinc -m32
+LDFLAGS += -nostdlib -m elf_i386 -e start
+endif
+
 # Compiler flags
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
 # XXX modified to -O2 for benchmarking
-CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -O2 -fno-builtin \
-		-I$(TOP) -I$(TOP)/inc -MD 
-CFLAGS += -Wall -Wno-unused -Werror -gstabs -m32
+CFLAGS += $(DEFS) $(LABDEFS) -O2 -fno-builtin \
+		-I$(TOP) -I$(TOP)/inc -MD  \
+		-Wall -Wno-unused -Werror -gstabs
 
 # Add -fno-stack-protector if the option exists.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
@@ -118,9 +129,6 @@ CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 &
 # Kernel versus user compiler flags
 KERN_CFLAGS := $(CFLAGS) -DPIOS_KERNEL
 USER_CFLAGS := $(CFLAGS) -DPIOS_USER
-
-# Linker flags
-LDFLAGS := -m elf_i386 -e start -nostdlib
 
 KERN_LDFLAGS := $(LDFLAGS) -Ttext=0x00100000
 USER_LDFLAGS := $(LDFLAGS) -Ttext=0x40000000

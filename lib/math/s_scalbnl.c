@@ -11,7 +11,6 @@
  */
 
 #ifndef lint
-static char rcsid[] = "$FreeBSD$";
 #endif
 
 /*
@@ -27,7 +26,6 @@ static char rcsid[] = "$FreeBSD$";
  * for scalbn(), so we don't use this routine.
  */
 
-#include <sys/cdefs.h>
 #include <float.h>
 #include <math.h>
 

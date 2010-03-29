@@ -11,8 +11,6 @@
  * ====================================================
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 /*
  * __ieee754_scalb(x, fn) is provide for

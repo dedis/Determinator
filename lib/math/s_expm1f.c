@@ -13,8 +13,6 @@
  * ====================================================
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 #include "math.h"
 #include "math_private.h"
@@ -40,7 +38,7 @@ expm1f(float x)
 {
 	float y,hi,lo,c,t,e,hxs,hfx,r1,twopk;
 	int32_t k,xsb;
-	u_int32_t hx;
+	uint32_t hx;
 
 	GET_FLOAT_WORD(hx,x);
 	xsb = hx&0x80000000;		/* sign bit of x */

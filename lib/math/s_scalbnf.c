@@ -14,10 +14,8 @@
  */
 
 #ifndef lint
-static char rcsid[] = "$FreeBSD$";
 #endif
 
-#include <sys/cdefs.h>
 
 #include "math.h"
 #include "math_private.h"

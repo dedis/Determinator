@@ -11,8 +11,6 @@
  * ====================================================
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 /* __ieee754_log(x)
  * Return the logrithm of x
@@ -87,7 +85,7 @@ __ieee754_log(double x)
 {
 	double hfsq,f,s,z,R,w,t1,t2,dk;
 	int32_t k,hx,i,j;
-	u_int32_t lx;
+	uint32_t lx;
 
 	EXTRACT_WORDS(hx,lx,x);
 

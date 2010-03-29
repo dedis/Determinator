@@ -24,8 +24,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 /*
  * Compute tan(x) for x where x is reduced to y = x - k * pi / 2.

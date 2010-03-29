@@ -124,17 +124,17 @@ KERN_BINFILES := $(patsubst %, $(OBJDIR)/%, $(KERN_BINFILES))
 $(OBJDIR)/kern/%.o: kern/%.c
 	@echo + cc $<
 	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/kern/%.o: kern/%.S
 	@echo + as $<
 	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/dev/%.o: dev/%.c
 	@echo + cc $<
 	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
 
 # How to build the kernel itself
 $(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)

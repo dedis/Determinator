@@ -11,8 +11,6 @@
  * From: @(#)s_ceil.c 5.1 93/09/24
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 /*
  * ceill(x)
@@ -25,7 +23,7 @@ __FBSDID("$FreeBSD$");
 
 #include <float.h>
 #include <math.h>
-#include <stdint.h>
+#include <types.h>
 
 #include "fpmath.h"
 

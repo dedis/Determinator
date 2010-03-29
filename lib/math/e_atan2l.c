@@ -13,8 +13,6 @@
  *
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 /*
  * See comments in e_atan2.c.

@@ -14,7 +14,6 @@
  */
 
 #ifndef lint
-static char rcsid[] = "$FreeBSD$";
 #endif
 
 #include "math.h"
@@ -28,7 +27,7 @@ __ieee754_sqrtf(float x)
 	float z;
 	int32_t sign = (int)0x80000000;
 	int32_t ix,s,q,m,t,i;
-	u_int32_t r;
+	uint32_t r;
 
 	GET_FLOAT_WORD(ix,x);
 

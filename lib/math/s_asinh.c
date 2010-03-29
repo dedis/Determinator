@@ -10,8 +10,6 @@
  * ====================================================
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
 
 /* asinh(x)
  * Method :

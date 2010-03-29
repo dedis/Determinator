@@ -1,0 +1,11 @@
+
+LIB_SRCFILES +=		$(wildcard lib/math/*.c) \
+			$(wildcard lib/math/*.S)
+
+# The BSD math library generates lots of warnings; just quiet them...
+$(OBJDIR)/lib/math/%.o: lib/math/%.c
+	@echo + cc[USER] $<
+	@mkdir -p $(@D)
+	$(V)$(CC) $(USER_CFLAGS) -c -o $@ -Wno-uninitialized -Wno-implicit \
+		-Wno-error $<
+

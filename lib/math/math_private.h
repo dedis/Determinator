@@ -11,14 +11,12 @@
 
 /*
  * from: @(#)fdlibm.h 5.1 93/09/24
- * $FreeBSD$
  */
 
 #ifndef _MATH_PRIVATE_H_
 #define	_MATH_PRIVATE_H_
 
-#include <sys/types.h>
-#include <machine/endian.h>
+#include <types.h>
 
 /*
  * The original fdlibm code used statements like:
@@ -55,8 +53,8 @@ typedef union
   double value;
   struct
   {
-    u_int32_t msw;
-    u_int32_t lsw;
+    uint32_t msw;
+    uint32_t lsw;
   } parts;
 } ieee_double_shape_type;
 
@@ -69,8 +67,8 @@ typedef union
   double value;
   struct
   {
-    u_int32_t lsw;
-    u_int32_t msw;
+    uint32_t lsw;
+    uint32_t msw;
   } parts;
 } ieee_double_shape_type;
 
