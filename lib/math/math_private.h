@@ -18,6 +18,8 @@
 
 #include <types.h>
 
+#include "fpmath.h"
+
 /*
  * The original fdlibm code used statements like:
  *	n0 = ((*(int*)&one)>>29)^1;		* index of high word *

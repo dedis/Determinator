@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2002, 2003 David Schultz <das@FreeBSD.ORG>
+ * Copyright (c) 2007 David Schultz
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -11,10 +11,10 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL AUTHOR OR CONTRIBUTORS BE LIABLE
  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
  * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
@@ -24,34 +24,22 @@
  * SUCH DAMAGE.
  *
  */
-#ifndef _MATH_FPMATH_H_
-#define _MATH_FPMATH_H_
 
-union IEEEl2bits {
-	long double	e;
-	struct {
-		unsigned int	manl	:32;
-		unsigned int	manh	:32;
-		unsigned int	exp	:15;
-		unsigned int	sign	:1;
-		unsigned int	junk	:16;
-	} bits;
-	struct {
-		unsigned long long man	:64;
-		unsigned int 	expsign	:16;
-		unsigned int	junk	:16;
-	} xbits;
-};
+#include <math.h>
 
-#define	LDBL_NBIT	0x80000000
-#define	mask_nbit_l(u)	((u).bits.manh &= ~LDBL_NBIT)
+#include "fpmath.h"
+#include "../src/math_private.h"
 
-#define	LDBL_MANH_SIZE	32
-#define	LDBL_MANL_SIZE	32
+long double
+nanl(const char *s)
+{
+	union {
+		union IEEEl2bits ieee;
+		uint32_t bits[3];
+	} u;
 
-#define	LDBL_TO_ARRAY32(u, a) do {			\
-	(a)[0] = (uint32_t)(u).bits.manl;		\
-	(a)[1] = (uint32_t)(u).bits.manh;		\
-} while (0)
-
-#endif	// _MATH_FPMATH_H_
+	_scan_nan(u.bits, 3, s);
+	u.ieee.bits.exp = 0x7fff;
+	u.ieee.bits.manh |= 0xc0000000;	/* make it a quiet NaN */
+	return (u.ieee.e);
+}

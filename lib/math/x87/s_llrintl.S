@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2002, 2003 David Schultz <das@FreeBSD.ORG>
+ * Copyright (c) 2005 David Schultz <das@FreeBSD.ORG>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,36 +22,15 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
  */
-#ifndef _MATH_FPMATH_H_
-#define _MATH_FPMATH_H_
 
-union IEEEl2bits {
-	long double	e;
-	struct {
-		unsigned int	manl	:32;
-		unsigned int	manh	:32;
-		unsigned int	exp	:15;
-		unsigned int	sign	:1;
-		unsigned int	junk	:16;
-	} bits;
-	struct {
-		unsigned long long man	:64;
-		unsigned int 	expsign	:16;
-		unsigned int	junk	:16;
-	} xbits;
-};
-
-#define	LDBL_NBIT	0x80000000
-#define	mask_nbit_l(u)	((u).bits.manh &= ~LDBL_NBIT)
-
-#define	LDBL_MANH_SIZE	32
-#define	LDBL_MANL_SIZE	32
-
-#define	LDBL_TO_ARRAY32(u, a) do {			\
-	(a)[0] = (uint32_t)(u).bits.manl;		\
-	(a)[1] = (uint32_t)(u).bits.manh;		\
-} while (0)
-
-#endif	// _MATH_FPMATH_H_
+#include <machine/asm.h>
+__FBSDID("$FreeBSD$"); 
+	
+ENTRY(llrintl)
+	fldt	4(%esp)
+	subl	$8,%esp
+	fistpll	(%esp)
+	popl	%eax
+	popl	%edx
+	ret

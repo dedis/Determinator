@@ -1,8 +1,25 @@
 
-LIB_SRCFILES +=		$(wildcard lib/math/*.c) \
-			$(wildcard lib/math/*.S)
+# Generic math library source files
+MATH_SRCFILES :=	$(wildcard lib/math/*.c)
 
-# The BSD math library generates lots of warnings; just quiet them...
+# Sources for 80-bit-precision long doubles
+MATH_LD80_SRCFILES :=	$(wildcard lib/math/ld80/*.c)
+MATH_SRCFILES :=	$(filter-out $(patsubst lib/math/ld80/%.c,lib/math/%.c,\
+					$(MATH_LD80_SRCFILES)),\
+				$(MATH_SRCFILES)) $(MATH_LD80_SRCFILES)
+
+# Sources specific to the x87 FPU
+MATH_X87_SRCFILES :=	$(wildcard lib/math/x87/*.c) \
+			$(wildcard lib/math/x87/*.S)
+MATH_SRCFILES :=	$(filter-out $(patsubst lib/math/x87/%.S,lib/math/%.c,\
+					$(MATH_X87_SRCFILES)),\
+				$(MATH_SRCFILES)) $(MATH_X87_SRCFILES)
+
+# Merge them into libc's complete list of sources
+LIB_SRCFILES +=		$(MATH_SRCFILES)
+
+
+# The BSD math library generates lots of warnings; quiet them...
 $(OBJDIR)/lib/math/%.o: lib/math/%.c
 	@echo + cc[USER] $<
 	@mkdir -p $(@D)
