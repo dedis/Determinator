@@ -74,3 +74,7 @@ through the interrupt.
 	(or a generalized fileino_lookup())
 
 - combine fprintf.c into stdio.c?
+
+- Move #if SOL down below the asserts at the beginning of setperm(),
+  to make the function's API clearer (especially for the 'perm' arg).
+
