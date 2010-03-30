@@ -280,19 +280,18 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
-ifdef LAB5
-IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
-QEMUOPTS = -smp 2 -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio
-else
 IMAGES = $(OBJDIR)/kern/kernel.img
-QEMUOPTS = -smp 2 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio
-endif  # LAB 5
+QEMUOPTS = -smp 2 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio \
+		-net user -net nic,model=i82559er
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
 qemu: $(IMAGES)
 	$(QEMU) $(QEMUOPTS)
+#if LAB >= 99
+# qemu -net nic -net socket,mcast=230.0.0.1:1234
+#endif
 
 qemu-nox: $(IMAGES)
 	echo "*** Use Ctrl-a x to exit"

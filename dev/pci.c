@@ -3,6 +3,8 @@
 #include <inc/assert.h>
 #include <inc/string.h>
 
+#include <kern/cpu.h>
+
 #include <dev/pci.h>
 #include <dev/e100.h>
 
@@ -248,9 +250,12 @@ pci_func_enable(struct pci_func *f)
 int
 pci_init(void)
 {
+	if (!cpu_onboot())
+		return 0;
+
 	static struct pci_bus root_bus;
 	memset(&root_bus, 0, sizeof(root_bus));
-	
+
 	return pci_scan_bus(&root_bus);
 }
 

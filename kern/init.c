@@ -29,6 +29,9 @@
 #include <dev/pic.h>
 #include <dev/lapic.h>
 #include <dev/ioapic.h>
+#if LAB >= 5
+#include <dev/pci.h>
+#endif	// LAB >= 5
 #endif	// LAB >= 2
 
 
@@ -100,6 +103,7 @@ init(void)
 #if LAB >= 4
 	// Initialize the I/O system.
 	file_init();		// Create root directory and console I/O files
+	pci_init();		// Initialize the PCI bus and network card
 
 #if SOL >= 4
 	cons_intenable();	// Let the console start producing interrupts

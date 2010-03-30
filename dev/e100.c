@@ -26,6 +26,7 @@ uint8_t e100_irq;
 #define	E100_CSR_SCB_COMMAND		0x02	// scb_command (1 byte)
 #define	E100_CSR_SCB_GENERAL		0x04	// scb_general (4 bytes)
 #define	E100_CSR_PORT			0x08	// port (4 bytes)
+#define E100_CSR_EEPROM			0x0e	// EEPROM control reg (1 byte)
 
 #define E100_PORT_SOFTWARE_RESET	0
 
@@ -55,6 +56,12 @@ uint8_t e100_irq;
 
 #define E100_RFA_CONTROL_SF		0x0008	// simple/flexible memory mode
 #define E100_RFA_CONTROL_S		0x4000	// suspend after reception
+
+// EEPROM control register bits
+#define E100_EESK			0x01
+#define E100_EECS			0x02
+#define E100_EEDI			0x04
+#define E100_EEDO			0x08
 
 
 struct e100_cb_tx {
@@ -116,6 +123,12 @@ static struct {
 	struct e100_rx_slot rx[E100_RX_SLOTS];
 	int rx_tail;
 	char rx_idle;
+
+	int eebits;
+	union {
+		uint8_t mac[6];
+		uint16_t mac16[3];
+	};
 } the_e100;
 
 
@@ -271,6 +284,53 @@ void e100_intr(void)
 		cprintf("e100_intr: unhandled STAT/ACK %x\n", r);
 }
 
+// Clock a serial opcode/address bit out to the EEPROM.
+int e100_eebit(bool bit)
+{
+	int eedi = bit ? E100_EEDI : 0;
+	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi);
+	udelay(2);
+	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi | E100_EESK);
+	udelay(2);
+	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi);
+	udelay(2);
+	return inb(the_e100.iobase + E100_CSR_EEPROM) & E100_EEDO;
+}
+
+#if LAB >= 99
+// Clock a serial data bit in from the EEPROM.
+int e100_eein(bool bit)
+{
+	int eedi = bit ? E100_EEDI : 0;
+	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi);
+	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi | E100_EESK);
+	udelay(2);
+	int eedo = inb(the_e100.iobase + E100_CSR_EEPROM) & E100_EEDO;
+	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi);
+	udelay(2);
+	return eedo;
+}
+
+#endif
+// Read a register from the 82559's serial EEPROM.
+// See Intel's 82559 EEPROM Map (AP-394) for its layout.
+uint16_t e100_eeread(uint8_t addr)
+{
+	int i;
+
+	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS);	// activate
+	e100_eebit(1); e100_eebit(1); e100_eebit(0);		// read opcode
+	for (i = the_e100.eebits - 1; i >= 0; i--)		// address
+		e100_eebit(addr & (1 << i));
+	uint16_t val = 0;
+	for (i = 15; i >= 0; i--)
+		if (e100_eebit(0))
+			val |= 1 << i;
+	outb(the_e100.iobase + E100_CSR_EEPROM, 0);		// deactivate
+	udelay(2);
+	return val;
+}
+
 int e100_attach(struct pci_func *pcif)
 {
 	int i, next;
@@ -305,6 +365,26 @@ int e100_attach(struct pci_func *pcif)
 		the_e100.rx[i].rfd.link_addr = mem_phys(&the_e100.rx[next].rfd);
 		the_e100.rx[i].rfd.size = NET_MAXPKT;
 	}
+
+	// Determine the EEPROM's size (number of address bits)
+	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS);	// activate
+	e100_eebit(1); e100_eebit(1); e100_eebit(0);		// read opcode
+	the_e100.eebits = 1;
+	while (e100_eebit(0) != 0)
+		the_e100.eebits++;
+	outb(the_e100.iobase + E100_CSR_EEPROM, 0);		// deactivate
+	udelay(2);
+	//cprintf("e100: EEPROM size %dx16\n", 1 << the_e100.eebits);
+
+	// Read the NIC's MAC address
+	// (If we were diligent we would verify the EEPROM's checksum.)
+	the_e100.mac16[0] = e100_eeread(0);
+	the_e100.mac16[1] = e100_eeread(1);
+	the_e100.mac16[2] = e100_eeread(2);
+	cprintf("e100: MAC address");
+	for (i = 0; i < 6; i++)
+		cprintf("%c%02x", i ? ':' : ' ', the_e100.mac[i]);
+	cprintf("\n");
 
 	// Enable network card interrupts
 	pic_enable(e100_irq);
