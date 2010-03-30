@@ -570,6 +570,7 @@ pmap_setperm(pde_t *pdir, uint32_t va, uint32_t size, int perm)
 	assert(PGOFF(size) == 0);
 	assert(va >= VM_USERLO && va < VM_USERHI);
 	assert(size <= VM_USERHI - va);
+	assert((perm & ~(SYS_RW)) == 0);
 
 	pmap_inval(pdir, va, size);	// invalidate region we're modifying
 
