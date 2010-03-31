@@ -35,7 +35,7 @@
 // but that might make debugging a bit more challenging.
 typedef struct pageinfo {
 	struct pageinfo	*free_next;	// Next page number on free list
-	uint32_t	refcount;	// Reference count on allocated pages
+	int32_t	refcount;		// Reference count on allocated pages
 } pageinfo;
 
 
@@ -61,6 +61,10 @@ pageinfo *mem_alloc(void);
 
 // Return a physical page to the free list.
 void mem_free(pageinfo *pi);
+
+void mem_incref(pageinfo *pp);
+void mem_decref(pageinfo* pp);
+
 
 #endif /* !PIOS_KERN_MEM_H */
 #endif // LAB >= 1

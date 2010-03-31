@@ -6,9 +6,6 @@
 #include <inc/trap.h>
 
 #include <kern/cpu.h>
-#if LAB >= 4
-#include <kern/picirq.h>
-#endif
 
 
 
@@ -63,7 +60,6 @@ TRAPHANDLER_NOEC(Xmchk,   T_MCHK)
 /* system call entry point */
 TRAPHANDLER_NOEC(Xsyscall, T_SYSCALL)
 
-#if SOL >= 4
 /* the external device interrupts */
 TRAPHANDLER_NOEC(Xirq0,   T_IRQ0+0)
 TRAPHANDLER_NOEC(Xirq1,   T_IRQ0+1)
@@ -82,7 +78,6 @@ TRAPHANDLER_NOEC(Xirq13,  T_IRQ0+13)
 TRAPHANDLER_NOEC(Xirq14,  T_IRQ0+14)
 TRAPHANDLER_NOEC(Xirq15,  T_IRQ0+15)
 
-#endif	// SOL >=4
 #endif	// SOL >= 2
 /* default handler -- not for any specific trap */
 TRAPHANDLER     (Xdefault, T_DEFAULT)
@@ -106,6 +101,8 @@ _alltraps:
 	movl $CPU_GDT_KDATA,%eax # load kernel's data segment
 	movw %ax,%ds
 	movw %ax,%es
+
+	xorl %ebp,%ebp		# don't let debug_trace() walk into user space
 
 	pushl %esp		# pass pointer to this trapframe 
 	call trap		# and call trap (does not return)

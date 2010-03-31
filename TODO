@@ -2,3 +2,79 @@ Post-2010 TODOs:
 
 - Fix the SEGDESC* macros to take a system/application flag argument
 
+- lab1: do user-mode trap handling after memory initialization,
+	or else don't panic in mem_init so kernel gets to user-mode test.
+	Perhaps move user-mode test to lab2?
+
+- Strip as much unnecessary garbage as possible out of printfmt.c
+
+- get rid of tf_ and reg_ prefixes from trapframe and regs structs
+
+- Rename 'dev' directory to 'hw', move kern/mp.* into it
+	(since it's hardware-related but not really a device driver).
+
+- Isn't it a bug (both in xv6 and PIOS) to EOI on a spurious interrupt?
+
+- If your code panics in user(), then the problem is that printing
+requires syscalls. Either implement enough of the syscall to get
+printing to work, or do the following. Set IOPL flag to 3 and modify
+cputs to NOT call sys_cputs. Basically what that means is the user
+processes will print using the same method as the kernel, without going
+through the interrupt.
+
+- Don't include the 'refcount' member in 'pageinfo' until lab 3?
+
+- Shouldn't proc_init() be called in init.c _before_ cpu_bootothers()?
+
+- Add a field for the page fault linear address in trapframe?
+
+- Add a singly- and/or doubly-linked list exercise
+  using double-indirect pointers to some appropriate homework.
+
+- Make the boot loader clear BSS as a proper ELF loader should,
+  since it's not that much harder than making the kernel do it?
+  If so, adjust lab 3's program loader text appropriately.
+
+- Split root program loading code out of init() into startroot() function
+
+- Simplify/rationalize kern/console.c a bit -
+  e.g., make cons_intr() just dump stuff into an iocons struct directly.
+  Get rid of cons.rpos and cons_getc() entirely, probably,
+  and make cputs() build atop cons_startio().
+  Maybe just give the students the console spinlock code?
+
+- Instead of putting an ELF loader in the kernel,
+  just have a user-mode utility that creates an "initial system snapshot"
+  containing a loaded root process and an initial file system?
+
+- Lab2 or Lab3 challenge problem: add SYS_GET/SYS_PUT option
+  to rearrange the process hierarchy and free processes.
+
+- Naming consistency: rename console.{c,h} to cons.{c,h}
+
+- Make the kernel's program loader push at least minimal args on the stack,
+  instead of having to kludge lib/entry.S.
+
+- Rename 'filestate' to 'procstate' and 'files' macro to 'procst' or something?
+
+- Add a lot of incremental checking code to lab3, for each stage;
+  try to detect some of the most common errors early, such as:
+	- failing to load cr3 when switching processes
+	- failing to check that a process is waiting/stopped before readying it
+	- failing to set SYS_READ/SYS_WRITE correctly when loading or copying
+	- giving copied page mappings GREATER permissions than the source
+
+- In trap() or proc_ret(), check cr3 against proc->pdir.
+
+- rename kern/mp.* to dev/mp.* (or hw/mp.*)?
+
+- take the #if SOL >= 1 out of debug_panic()
+
+- see if dirwalk can be simplified by using fileino_create()
+	(or a generalized fileino_lookup())
+
+- combine fprintf.c into stdio.c?
+
+- Move #if SOL down below the asserts at the beginning of setperm(),
+  to make the function's API clearer (especially for the 'perm' arg).
+

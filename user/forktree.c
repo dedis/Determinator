@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 99	// XXX reinstate in lab3 or lab4?
 // Fork a binary tree of processes and display their structure.
 
 #include <inc/lib.h>

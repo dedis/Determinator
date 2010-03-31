@@ -20,14 +20,9 @@ typedef unsigned long long uint64_t;
 
 // Pointers and addresses are 32 bits long.
 // We use pointer types to represent virtual addresses,
-// uintptr_t to represent the numerical values of virtual addresses,
-// and physaddr_t to represent physical addresses.
+// and [u]intptr_t to represent the numerical values of virtual addresses.
 typedef int32_t intptr_t;
 typedef uint32_t uintptr_t;
-typedef uint32_t physaddr_t;
-
-// Page numbers are 32 bits long.
-typedef uint32_t ppn_t;
 
 // size_t is used for memory object sizes.
 typedef uint32_t size_t;
@@ -37,6 +32,13 @@ typedef int32_t ssize_t;
 
 // off_t is used for file offsets and lengths.
 typedef int32_t off_t;
+
+// Random Unix API compatibility types
+typedef int pid_t;
+typedef int dev_t;
+typedef int ino_t;
+typedef int mode_t;
+typedef int nlink_t;
 
 // Efficient min and max operations
 #define MIN(_a, _b)						\
@@ -68,5 +70,8 @@ typedef int32_t off_t;
 
 // Return the offset of 'member' relative to the beginning of a struct type
 #define offsetof(type, member)  ((size_t) (&((type*)0)->member))
+
+// Make the compiler think a value is getting used, even if it isn't.
+#define USED(x)		(void)(x)
 
 #endif /* !PIOS_INC_TYPES_H */

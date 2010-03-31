@@ -2,6 +2,9 @@
 // Basic string routines.  Not hardware optimized, but not shabby.
 
 #include <inc/string.h>
+#if LAB >= 4
+#include <inc/stdio.h>
+#endif
 
 // Using assembly for memset/memmove
 // makes some difference on real hardware,
@@ -41,7 +44,8 @@ strcpy(char *dst, const char *src)
 }
 
 char *
-strncpy(char *dst, const char *src, size_t size) {
+strncpy(char *dst, const char *src, size_t size)
+{
 	size_t i;
 	char *ret;
 
@@ -177,8 +181,6 @@ memset(void *v, int c, size_t n)
 	return v;
 }
 
-/* no memcpy - use memmove instead */
-
 void *
 memmove(void *dst, const void *src, size_t n)
 {
@@ -200,10 +202,8 @@ memmove(void *dst, const void *src, size_t n)
 }
 #endif
 
-/* sigh - gcc emits references to this for structure assignments! */
-/* it is *not* prototyped in inc/string.h - do not use directly. */
 void *
-memcpy(void *dst, void *src, size_t n)
+memcpy(void *dst, const void *src, size_t n)
 {
 	return memmove(dst, src, n);
 }
@@ -279,5 +279,37 @@ strtol(const char *s, char **endptr, int base)
 		*endptr = (char *) s;
 	return (neg ? -val : val);
 }
+
+#if LAB >= 4
+char *
+strerror(int err)
+{
+	static char *errtab[] = {
+		"(no error)",
+		"Invalid argument",
+		"No such file or directory",
+		"Bad file descriptor",
+		"File exists",
+		"File too large",
+		"Too many open files",
+		"Is a directory",
+		"Not a directory",
+		"Directory not empty",
+		"File name too long",
+		"No space left on device",
+		"Inappropriate I/O control operation",
+		"Resource temporarily unavailable",
+		"No child processes",
+		"Conflict detected",
+	};
+	static char errbuf[64];
+
+	if (err >= 0 && err < sizeof(errtab)/sizeof(errtab[0]))
+		return errtab[err];
+
+	sprintf(errbuf, "Unknown error code %d", err);
+	return errbuf;
+}
+#endif
 
 #endif

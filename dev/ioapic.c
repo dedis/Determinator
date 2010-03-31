@@ -13,7 +13,7 @@
 #include <dev/ioapic.h>
 
 
-#define IOAPIC  0xFEC00000   // Default physical address of IO APIC
+//#define IOAPIC  0xFEC00000   // Default physical address of IO APIC
 
 #define REG_ID     0x00  // Register index: ID
 #define REG_VER    0x01  // Register index: version
@@ -28,9 +28,6 @@
 #define INT_LEVEL      0x00008000  // Level-triggered (vs edge-)
 #define INT_ACTIVELOW  0x00002000  // Active low (vs high)
 #define INT_LOGICAL    0x00000800  // Destination is CPU id (vs APIC ID)
-
-
-static volatile struct ioapic *ioapic;
 
 
 // IO APIC MMIO structure: write reg, then read or write data.
@@ -61,12 +58,17 @@ ioapic_init(void)
 
 	if(!ismp)
 		return;
+	assert(ioapic != NULL);
 
-	ioapic = (volatile struct ioapic*)IOAPIC;
 	maxintr = (ioapic_read(REG_VER) >> 16) & 0xFF;
 	id = ioapic_read(REG_ID) >> 24;
+	if (id == 0) {
+		// I/O APIC ID not initialized yet - have to do it ourselves.
+		ioapic_write(REG_ID, ioapicid << 24);
+		id = ioapicid;
+	}
 	if (id != ioapicid)
-		cprintf("ioapicinit: id isn't equal to ioapicid; not a MP\n");
+		warn("ioapicinit: id %d != ioapicid %d\n", id, ioapicid);
 
 	// Mark all interrupts edge-triggered, active high, disabled,
 	// and not routed to any CPUs.

@@ -10,27 +10,15 @@ run
 
 score=0
 
-pts=20
-echo_n "Page directory: "
- if grep "check_boot_pgdir() succeeded!" grade-out >/dev/null
- then
-	pass
- else
-	fail
- fi
+pts=20; greptest "Spinlocks:  " "spinlock_check() succeeded!"
+pts=20; greptest "Scheduler:  " "in user()"
+pts=20; greptest "Fork/join:  " "proc_check() 2-child test succeeded"
+pts=20; greptest "Preemption: " "proc_check() 4-child test succeeded"
+pts=20; greptest "Reflection: " "proc_check() trap reflection test succeeded"
 
-pts=30
-echo_n "Page management: "
- if grep "page_check() succeeded!" grade-out >/dev/null
- then
-	pass
- else
-	fail
- fi
+echo "Score: $score/100"
 
-echo "Score: $score/50"
-
-if [ $score -lt 50 ]; then
+if [ $score -lt 100 ]; then
     exit 1
 fi
 #endif

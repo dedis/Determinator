@@ -1,5 +1,4 @@
-#if LAB >= 4
-#elif LAB >= 3
+#if LAB >= 99
 // test reads and writes to a large bss
 
 #include <inc/lib.h>

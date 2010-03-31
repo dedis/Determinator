@@ -1,5 +1,5 @@
-#if LAB >= 5
-#include <inc/lib.h>
+#if LAB >= 4
+#include <inc/stdio.h>
 
 // Collect up to 256 characters into a buffer
 // and perform ONE system call to print all of them,
@@ -7,10 +7,10 @@
 // and prevent interrupts from causing context switches
 // in the middle of a console output line and such.
 struct printbuf {
-	int fd;		// file descriptor
+	FILE *fh;	// file descriptor
 	int idx;	// current buffer index
 	ssize_t result;	// accumulated results from write
-	int error;	// first error that occurred
+	bool err;	// first error that occurred, 0 if none
 	char buf[256];
 };
 
@@ -18,12 +18,11 @@ struct printbuf {
 static void
 writebuf(struct printbuf *b)
 {
-	if (b->error > 0) {
-		ssize_t result = write(b->fd, b->buf, b->idx);
-		if (result > 0)
-			b->result += result;
+	if (!b->err) {
+		size_t result = fwrite(b->buf, 1, b->idx, b->fh);
+		b->result += result;
 		if (result != b->idx) // error, or wrote less than supplied
-			b->error = (result < 0 ? result : 0);
+			b->err = 1;
 	}
 }
 
@@ -39,29 +38,29 @@ putch(int ch, void *thunk)
 }
 
 int
-vfprintf(int fd, const char *fmt, va_list ap)
+vfprintf(FILE *fh, const char *fmt, va_list ap)
 {
 	struct printbuf b;
 
-	b.fd = fd;
+	b.fh = fh;
 	b.idx = 0;
 	b.result = 0;
-	b.error = 1;
+	b.err = 0;
 	vprintfmt(putch, &b, fmt, ap);
 	if (b.idx > 0)
 		writebuf(&b);
 
-	return (b.result ? b.result : b.error);
+	return b.result;
 }
 
 int
-fprintf(int fd, const char *fmt, ...)
+fprintf(FILE *fh, const char *fmt, ...)
 {
 	va_list ap;
 	int cnt;
 
 	va_start(ap, fmt);
-	cnt = vfprintf(fd, fmt, ap);
+	cnt = vfprintf(fh, fmt, ap);
 	va_end(ap);
 
 	return cnt;
@@ -74,10 +73,10 @@ printf(const char *fmt, ...)
 	int cnt;
 
 	va_start(ap, fmt);
-	cnt = vfprintf(1, fmt, ap);
+	cnt = vfprintf(stdout, fmt, ap);
 	va_end(ap);
 
 	return cnt;
 }
 
-#endif
+#endif /* LAB >= 4 */

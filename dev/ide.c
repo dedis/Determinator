@@ -1,12 +1,22 @@
-#if LAB >= 5
+#if LAB >= 99
 /*
  * Minimal PIO-based (non-interrupt-driven) IDE driver code.
  * For information about what all this IDE/ATA magic means,
  * see the materials available on the class references page.
  */
 
-#include "fs.h"
+#include <inc/stdio.h>
+#include <inc/assert.h>
 #include <inc/x86.h>
+#include <inc/trap.h>
+
+#include <kern/spinlock.h>
+#include <kern/mp.h>
+#include <kern/io.h>
+
+#include <dev/ide.h>
+#include <dev/pic.h>
+#include <dev/ioapic.h>
 
 #define IDE_BSY		0x80
 #define IDE_DRDY	0x40
@@ -14,31 +24,35 @@
 #define IDE_ERR		0x01
 
 static int diskno = 1;
-#if LAB >= 99
-static uint32_t first_sect = 0;
-static uint32_t last_sect = 0xFFFFFFFFU;
-#endif
+
+static spinlock idelock;
+static bool pending;		// read/write I/O operation in progress
+static bool write;		// pending operation is a write
+static int secno;		// sector number of pending operation
+static bool done;		// pending operation has completed
 
 static int
-ide_wait_ready(bool check_error)
+ide_wait()
 {
 	int r;
-
 	while (((r = inb(0x1F7)) & (IDE_BSY|IDE_DRDY)) != IDE_DRDY)
-		/* do nothing */;
-
-	if (check_error && (r & (IDE_DF|IDE_ERR)) != 0)
-		return -1;
-	return 0;
+		pause();
+	return (r & (IDE_DF|IDE_ERR)) == 0;
 }
 
-bool
-ide_probe_disk1(void)
+void
+ide_init(void)
 {
 	int r, x;
 
+	spinlock_init(&idelock);
+
+	// Enable the IDE interrupt
+	pic_enable(IRQ_IDE);
+	ioapic_enable(IRQ_IDE, ncpu - 1);
+
 	// wait for Device 0 to be ready
-	ide_wait_ready(0);
+	ide_wait();
 
 	// switch to Device 1
 	outb(0x1F6, 0xE0 | (1<<4));
@@ -47,94 +61,78 @@ ide_probe_disk1(void)
 	for (x = 0; 
            x < 1000 && ((r = inb(0x1F7)) & (IDE_BSY|IDE_DF|IDE_ERR)) != 0; 
            x++)
-		/* do nothing */;
+		pause();
+	if (x == 1000)
+		panic("Disk 1 not present!");
 
 	// switch back to Device 0
 	outb(0x1F6, 0xE0 | (0<<4));
+}
 
-	cprintf("Device 1 presence: %d\n", (x < 1000));
-	return (x < 1000);
+// Output to disk device: initiate a sector read or write.
+void ide_output(const struct iodisk *io)
+{
+	spinlock_acquire(&idelock);
+	if(pending)
+		panic("overlapped disk I/O not supported");
+
+	ide_wait();
+
+	outb(0x3f6, 0);		// generate interrupt
+	outb(0x1f2, 1);		// number of sectors
+	outb(0x1f3, io->secno & 0xff);
+	outb(0x1f4, (io->secno >> 8) & 0xff);
+	outb(0x1f5, (io->secno >> 16) & 0xff);
+	outb(0x1f6, 0xe0 | ((diskno & 1)<<4) | ((io->secno>>24) & 0x0F));
+
+	if (io->write) {
+		outb(0x1f7, 0x30);	// CMD 0x30 means write sector
+		outsl(0x1f0, io->data, IODISK_SECSIZE/4);
+	} else {
+		outb(0x1f7, 0x20);	// CMD 0x20 means read sector
+	}
+
+	pending = 1;
+	write = io->write;
+	secno = io->secno;
+	done = 0;
+	spinlock_release(&idelock);
+}
+
+// Input from disk device: collect the results of a read or write.
+bool ide_input(struct iodisk *io)
+{
+	spinlock_acquire(&idelock);
+	if (!pending || !done) {
+		spinlock_release(&idelock);
+		return 0;	// no results ready to return
+	}
+
+	// Fill in the iodisk struct with the completion information
+	io->type = IO_DISK;
+	io->write = write;
+	io->secno = secno;
+
+	// If it was a read operation, pull in the sector data
+	if (!write && ide_wait())
+		insl(0x1f0, io->data, IODISK_SECSIZE/4);
+	pending = done = 0;
+
+	spinlock_release(&idelock);
+	return 1;
 }
 
 void
-ide_set_disk(int d)
+ide_intr(void)
 {
-	if (d != 0 && d != 1)
-		panic("bad disk number");
-	diskno = d;
+	spinlock_acquire(&idelock);
+	if (pending)
+		done = 1;
+	else
+		warn("Suprious IDE interrupt\n");
+	spinlock_release(&idelock);
+
+	io_check();	// see if the user process is waiting for input
 }
 
-#if LAB >= 99
-void
-ide_set_partition(uint32_t f, uint32_t n)
-{
-	first_sect = f;
-	last_sect = first_sect + n;
-}
-
-#endif
-int
-ide_read(uint32_t secno, void *dst, size_t nsecs)
-{
-	int r;
-
-	assert(nsecs <= 256);
-
-#if LAB >= 99
-	// don't allow reads past the disk boundary
-	secno += first_sect;
-	if (secno + nsecs < secno || secno + nsecs > last_sect)
-		return -1;
-
-#endif
-	ide_wait_ready(0);
-
-	outb(0x1F2, nsecs);
-	outb(0x1F3, secno & 0xFF);
-	outb(0x1F4, (secno >> 8) & 0xFF);
-	outb(0x1F5, (secno >> 16) & 0xFF);
-	outb(0x1F6, 0xE0 | ((diskno&1)<<4) | ((secno>>24)&0x0F));
-	outb(0x1F7, 0x20);	// CMD 0x20 means read sector
-
-	for (; nsecs > 0; nsecs--, dst += SECTSIZE) {
-		if ((r = ide_wait_ready(1)) < 0)
-			return r;
-		insl(0x1F0, dst, SECTSIZE/4);
-	}
-	
-	return 0;
-}
-
-int
-ide_write(uint32_t secno, const void *src, size_t nsecs)
-{
-	int r;
-	
-	assert(nsecs <= 256);
-
-#if LAB >= 99
-	// don't allow writes past the disk boundary
-	secno += first_sect;
-	if (secno + nsecs < secno || secno + nsecs > last_sect)
-		return -1;
-
-#endif
-	ide_wait_ready(0);
-
-	outb(0x1F2, nsecs);
-	outb(0x1F3, secno & 0xFF);
-	outb(0x1F4, (secno >> 8) & 0xFF);
-	outb(0x1F5, (secno >> 16) & 0xFF);
-	outb(0x1F6, 0xE0 | ((diskno&1)<<4) | ((secno>>24)&0x0F));
-	outb(0x1F7, 0x30);	// CMD 0x30 means write sector
-
-	for (; nsecs > 0; nsecs--, src += SECTSIZE) {
-		if ((r = ide_wait_ready(1)) < 0)
-			return r;
-		outsl(0x1F0, src, SECTSIZE/4);
-	}
-
-	return 0;
-}
-
-#endif
+#endif	/* LAB >= 4 */

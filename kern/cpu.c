@@ -40,12 +40,12 @@ cpu cpu_boot = {
 #if SOL >= 1
 
 		// 0x18 - user code segment
-		[CPU_GDT_UCODE >> 3] = SEGDESC32(1, STA_X | STA_R, 0x0,
-					0xffffffff, 3),
+		[CPU_GDT_UCODE >> 3] = SEGDESC32(1, STA_X | STA_R,
+					0x00000000, 0xffffffff, 3),
 
 		// 0x20 - user data segment
-		[CPU_GDT_UDATA >> 3] = SEGDESC32(1, STA_W, 0x0,
-					0xffffffff, 3),
+		[CPU_GDT_UDATA >> 3] = SEGDESC32(1, STA_W,
+					0x00000000, 0xffffffff, 3),
 
 		// 0x28 - tss, initialized in cpu_init()
 		[CPU_GDT_TSS >> 3] = SEGDESC_NULL,
@@ -143,8 +143,8 @@ cpu_bootothers(void)
 		return;
 	}
 
-	// Write bootstrap code to unused memory at 0x7000.
-	uint8_t *code = (uint8_t*)0x7000;
+	// Write bootstrap code to unused memory at 0x1000.
+	uint8_t *code = (uint8_t*)0x1000;
 	memmove(code, _binary_obj_boot_bootother_start,
 		(uint32_t)_binary_obj_boot_bootother_size);
 

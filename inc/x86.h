@@ -217,21 +217,21 @@ static gcc_inline uint32_t
 read_eflags(void)
 {
         uint32_t eflags;
-        __asm __volatile("pushfl; popl %0" : "=r" (eflags));
+        __asm __volatile("pushfl; popl %0" : "=rm" (eflags));
         return eflags;
 }
 
 static gcc_inline void
 write_eflags(uint32_t eflags)
 {
-        __asm __volatile("pushl %0; popfl" : : "r" (eflags));
+        __asm __volatile("pushl %0; popfl" : : "rm" (eflags));
 }
 
 static gcc_inline uint32_t
 read_ebp(void)
 {
         uint32_t ebp;
-        __asm __volatile("movl %%ebp,%0" : "=r" (ebp));
+        __asm __volatile("movl %%ebp,%0" : "=rm" (ebp));
         return ebp;
 }
 
@@ -239,10 +239,19 @@ static gcc_inline uint32_t
 read_esp(void)
 {
         uint32_t esp;
-        __asm __volatile("movl %%esp,%0" : "=r" (esp));
+        __asm __volatile("movl %%esp,%0" : "=rm" (esp));
         return esp;
 }
 
+static gcc_inline uint16_t
+read_cs(void)
+{
+        uint16_t cs;
+        __asm __volatile("movw %%cs,%0" : "=rm" (cs));
+        return cs;
+}
+
+// Atomically set *addr to newval and return the old value of *addr.
 static inline uint32_t
 xchg(volatile uint32_t *addr, uint32_t newval)
 {
@@ -254,6 +263,45 @@ xchg(volatile uint32_t *addr, uint32_t newval)
 	       "1" (newval) :
 	       "cc");
 	return result;
+}
+
+// Atomically add incr to *addr.
+static inline void
+lockadd(volatile int32_t *addr, int32_t incr)
+{
+	asm volatile("lock; addl %1,%0" : "+m" (*addr) : "r" (incr) : "cc");
+}
+
+// Atomically add incr to *addr and return true if the result is zero.
+static inline uint8_t
+lockaddz(volatile int32_t *addr, int32_t incr)
+{
+	uint8_t zero;
+	asm volatile("lock; addl %2,%0; setzb %1"
+		: "+m" (*addr), "=rm" (zero)
+		: "r" (incr)
+		: "cc");
+	return zero;
+}
+
+// Atomically add incr to *addr and return the old value of *addr.
+static inline int32_t
+xadd(volatile uint32_t *addr, int32_t incr)
+{
+	int32_t result;
+
+	// The + in "+m" denotes a read-modify-write operand.
+	asm volatile("lock; xaddl %0, %1" :
+	       "+m" (*addr), "=a" (result) :
+	       "1" (incr) :
+	       "cc");
+	return result;
+}
+
+static inline void
+pause(void)
+{
+	asm volatile("pause" : : : "memory");
 }
 
 static gcc_inline void
@@ -274,11 +322,42 @@ cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp, uint32_t *ecxp, uint32_t *e
 }
 
 static gcc_inline uint64_t
-read_tsc(void)
+rdtsc(void)
 {
         uint64_t tsc;
-        __asm __volatile("rdtsc" : "=A" (tsc));
+        asm volatile("rdtsc" : "=A" (tsc));
         return tsc;
 }
+
+// Enable external device interrupts.
+static gcc_inline void
+sti(void)
+{
+	asm volatile("sti");
+}
+
+// Disable external device interrupts.
+static gcc_inline void
+cli(void)
+{
+	asm volatile("cli");
+}
+
+// Byte-swap a 32-bit word to convert to/from big-endian byte order.
+// (Reverses the order of the 4 bytes comprising the word.)
+static gcc_inline uint32_t
+bswap(uint32_t v)
+{
+	uint32_t r;
+	asm volatile("bswap %0" : "=r" (r) : "0" (v));
+	return r;
+}
+
+// Host/network byte-order conversion for x86
+#define htons(v)	(((uint16_t)(v) >> 8) | ((v) << 8))
+#define ntohs(v)	(((uint16_t)(v) >> 8) | ((v) << 8))
+#define htonl(v)	bswap(v)
+#define ntohl(v)	bswap(v)
+
 
 #endif /* !PIOS_INC_X86_H */

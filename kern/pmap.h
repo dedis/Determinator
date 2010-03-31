@@ -7,90 +7,51 @@
 # error "This is a kernel header; user programs should not #include it"
 #endif
 
-#include <inc/memlayout.h>
 #include <inc/assert.h>
-#if LAB >= 3
-struct Env;
-#endif
+#include <inc/mmu.h>
+#include <inc/vm.h>
+
+#include <kern/mem.h>
 
 
-/* This macro takes a kernel virtual address -- an address that points above
- * KERNBASE, where the machine's maximum 256MB of physical memory is mapped --
- * and returns the corresponding physical address.  It panics if you pass it a
- * non-kernel virtual address.
- */
-#define PADDR(kva)						\
-({								\
-	physaddr_t __m_kva = (physaddr_t) (kva);		\
-	if (__m_kva < KERNBASE)					\
-		panic("PADDR called with invalid kva %08lx", __m_kva);\
-	__m_kva - KERNBASE;					\
-})
-
-/* This macro takes a physical address and returns the corresponding kernel
- * virtual address.  It panics if you pass an invalid physical address. */
-#define KADDR(pa)						\
-({								\
-	physaddr_t __m_pa = (pa);				\
-	uint32_t __m_ppn = PPN(__m_pa);				\
-	if (__m_ppn >= npage)					\
-		panic("KADDR called with invalid pa %08lx", __m_pa);\
-	(void*) (__m_pa + KERNBASE);				\
-})
+// Page directory entries and page table entries are 32-bit integers.
+typedef uint32_t pde_t;
+typedef uint32_t pte_t;
 
 
+// Bootstrap page directory that identity-maps the kernel's address space.
+extern pde_t pmap_bootpdir[1024];
 
-extern char bootstacktop[], bootstack[];
+// Statically allocated page that we always keep set to all zeros.
+extern uint8_t pmap_zero[PAGESIZE];
 
-extern physaddr_t boot_cr3;
-extern pde_t *boot_pgdir;
+// Memory mappings representing cleared (zero) memory
+// always have a pointer to pmap_zero in the PGADDR part of their PTE.
+// Such zero mappings do NOT increment the refcount on the pmap_zero page.
+//
+// A zero mapping containing PTE_ZERO in its PGADDR part
+// but have SYS_READ and potentially SYS_WRITE nominal permissions.
+// A zero mapping with SYS_READ also has PTE_P (present) set,
+// but a zero mapping with SYS_WRITE never has PTE_W (writeable) set -
+// instead the page fault handler creates copies of the zero page on demand.
+#define PTE_ZERO	((uint32_t)pmap_zero)
 
-extern struct Segdesc gdt[];
-extern struct Pseudodesc gdt_pd;
 
-void	i386_vm_init();
-void	i386_detect_memory();
+void pmap_init(void);
+pte_t *pmap_newpdir(void);
+void pmap_freepdir(pte_t *pdir);
+pte_t *pmap_walk(pde_t *pdir, uint32_t uva, bool writing);
+pte_t *pmap_insert(pde_t *pdir, pageinfo *pi, uint32_t uva, int perm);
+void pmap_remove(pde_t *pdir, uint32_t uva, size_t size);
+void pmap_inval(pde_t *pdir, uint32_t uva, size_t size);
+int pmap_copy(pde_t *spdir, uint32_t sva, pde_t *dpdir, uint32_t dva,
+		size_t size);
+int pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
+		pde_t *dpdir, uint32_t dva, size_t size);
+int pmap_setperm(pde_t *pdir, uint32_t va, uint32_t size, int perm);
+void pmap_pagefault(trapframe *tf);
+void pmap_check(void);
 
-void	page_init(void);
-int	page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm);
-void	page_remove(pde_t *pgdir, void *va);
-struct Page *page_lookup(pde_t *pgdir, void *va, pte_t **pte_store);
-void	page_decref(struct Page *pp);
-
-void	tlb_invalidate(pde_t *pgdir, void *va);
-
-#if LAB >= 3
-int	user_mem_check(struct Env *env, const void *va, size_t len, int perm);
-void	user_mem_assert(struct Env *env, const void *va, size_t len, int perm);
-
-#endif
-static inline ppn_t
-page2ppn(struct Page *pp)
-{
-	return pp - pages;
-}
-
-static inline physaddr_t
-page2pa(struct Page *pp)
-{
-	return page2ppn(pp) << PGSHIFT;
-}
-
-static inline struct Page*
-pa2page(physaddr_t pa)
-{
-	if (PPN(pa) >= npage)
-		panic("pa2page called with invalid pa");
-	return &pages[PPN(pa)];
-}
-
-static inline void*
-page2kva(struct Page *pp)
-{
-	return KADDR(page2pa(pp));
-}
-
-pte_t *pgdir_walk(pde_t *pgdir, const void *va, int create);
 
 #endif /* !PIOS_KERN_PMAP_H */
 #endif // LAB >= 3

@@ -85,6 +85,11 @@ endif
 # try to generate a unique GDB port
 GDBPORT	:= $(shell expr `id -u` % 5000 + 25000)
 
+# Correct option to enable the GDB stub and specify its port number to qemu.
+# First is for qemu versions <= 0.10, second is for later qemu versions.
+QEMUPORT := -s -p $(GDBPORT)
+#QEMUPORT := -gdb tcp::$(GDBPORT)
+
 CC	:= $(GCCPREFIX)gcc -pipe
 AS	:= $(GCCPREFIX)as
 AR	:= $(GCCPREFIX)ar
@@ -103,16 +108,20 @@ PERL	:= perl
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
 CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -O1 -fno-builtin -I$(TOP) -MD 
-CFLAGS += -Wall -Wno-format -Wno-unused -Werror -gstabs -m32
+CFLAGS += -Wall -Wno-unused -Werror -gstabs -m32
 
 # Add -fno-stack-protector if the option exists.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
-# Common linker flags
-LDFLAGS := -m elf_i386
+# Kernel versus user compiler flags
+KERN_CFLAGS := $(CFLAGS) -DPIOS_KERNEL
+USER_CFLAGS := $(CFLAGS) -DPIOS_USER
 
-# Linker flags for PIOS user programs
-ULDFLAGS := -T user/user.ld
+# Linker flags
+LDFLAGS := -m elf_i386 -e start -nostdlib
+
+KERN_LDFLAGS := $(LDFLAGS) -Ttext=0x00100000
+USER_LDFLAGS := $(LDFLAGS) -Ttext=0x40000000
 
 GCC_LIB := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
 
@@ -132,9 +141,6 @@ all:
 .PRECIOUS: %.o $(OBJDIR)/boot/%.o $(OBJDIR)/kern/%.o \
 	   $(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/net/%.o \
 	   $(OBJDIR)/user/%.o
-
-KERN_CFLAGS := $(CFLAGS) -DPIOS_KERNEL -gstabs
-USER_CFLAGS := $(CFLAGS) -DPIOS_USER -gstabs
 
 
 
@@ -189,7 +195,7 @@ clean-labsetup:
 # Include Makefrags for subdirectories
 include boot/Makefrag
 include kern/Makefrag
-#if LAB >= 3
+#if LAB >= 2
 include lib/Makefrag
 #endif
 #if LAB >= 3
@@ -199,7 +205,7 @@ include user/Makefrag
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S *.ld
-LAB_DIRS := inc boot kern dev lib
+LAB_DIRS := inc boot kern dev lib user
 LAB_FILES := CODING GNUmakefile mergedep.pl grade-functions.sh .gdbinit.tmpl \
 	boot/sign.pl \
 	conf/env.mk \
@@ -274,19 +280,18 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
-ifdef LAB5
-IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
-QEMUOPTS = -smp 2 -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio
-else
 IMAGES = $(OBJDIR)/kern/kernel.img
-QEMUOPTS = -smp 2 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio
-endif  # LAB 5
+QEMUOPTS = -smp 2 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio \
+		-net user -net nic,model=i82559er
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
 qemu: $(IMAGES)
 	$(QEMU) $(QEMUOPTS)
+#if LAB >= 99
+# qemu -net nic -net socket,mcast=230.0.0.1:1234
+#endif
 
 qemu-nox: $(IMAGES)
 	echo "*** Use Ctrl-a x to exit"
@@ -294,11 +299,11 @@ qemu-nox: $(IMAGES)
 
 qemu-gdb: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
-	$(QEMU) $(QEMUOPTS) -s -S -p $(GDBPORT)
+	$(QEMU) $(QEMUOPTS) -S $(QEMUPORT)
 
 qemu-gdb-nox: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
-	$(QEMU) -nographic $(QEMUOPTS) -s -S -p $(GDBPORT)
+	$(QEMU) -nographic $(QEMUOPTS) -S $(QEMUPORT)
 
 which-qemu:
 	@echo $(QEMU)

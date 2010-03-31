@@ -9,6 +9,9 @@
 
 #include <kern/console.h>
 #include <kern/debug.h>
+#if LAB >= 2
+#include <kern/spinlock.h>
+#endif
 
 
 // Variable panicstr contains argument to first call to panic; used as flag
@@ -23,10 +26,21 @@ debug_panic(const char *file, int line, const char *fmt,...)
 	va_list ap;
 	int i;
 
-	if (panicstr)
-		goto dead;
-	panicstr = fmt;
+	// Avoid infinite recursion if we're panicking from kernel mode.
+	if ((read_cs() & 3) == 0) {
+		if (panicstr)
+			goto dead;
+		panicstr = fmt;
+	}
 
+#if SOL >= 2	// XXX just give out this code incl. the cons_lock!
+	// If we panic while holding the console lock,
+	// release it so we don't get into a recursive panic that way.
+	extern spinlock cons_lock;	// XXX move to kern/console.h
+	if (spinlock_holding(&cons_lock))
+		spinlock_release(&cons_lock);
+
+#endif
 	// First print the requested message
 	va_start(ap, fmt);
 	cprintf("kernel panic at %s:%d: ", file, line);

@@ -12,8 +12,18 @@
 #if LAB >= 2
 #include <kern/spinlock.h>
 #endif
+#if LAB >= 3
+#include <kern/pmap.h>
+#endif
 
 #include <dev/nvram.h>
+
+
+// These special symbols mark the start and end of
+// the program's entire linker-arranged memory region,
+// including the program's code, data, and bss sections.
+// Use these to avoid treating kernel code/data pages as free memory!
+extern char start[], end[];
 
 
 size_t mem_max;			// Maximum physical address
@@ -35,16 +45,12 @@ mem_init(void)
 	if (!cpu_onboot())	// only do once, on the boot CPU
 		return;
 
-	// These special symbols mark the start and end of
-	// the program's entire linker-arranged memory region,
-	// including the program's code, data, and bss sections.
-	// Use these to avoid treating kernel code/data pages as free memory!
-	extern char start[], end[];
-
 	// Determine how much base (<640K) and extended (>1MB) memory
 	// is available in the system (in bytes),
 	// by reading the PC's BIOS-managed nonvolatile RAM (NVRAM).
 	// The NVRAM tells us how many kilobytes there are.
+	// Since the count is 16 bits, this gives us up to 64MB of RAM;
+	// additional RAM beyond that would have to be detected another way.
 	size_t basemem = ROUNDDOWN(nvram_read16(NVRAM_BASELO)*1024, PAGESIZE);
 	size_t extmem = ROUNDDOWN(nvram_read16(NVRAM_EXTLO)*1024, PAGESIZE);
 
@@ -78,7 +84,7 @@ mem_init(void)
 
 	// Chain all the available physical pages onto the free page list.
 #if SOL >= 2
-	spinlock_init(&mem_freelock, "mem_freelist lock");
+	spinlock_init(&mem_freelock);
 #endif
 	pageinfo **freetail = &mem_freelist;
 	int i;
@@ -86,8 +92,8 @@ mem_init(void)
 		// Off-limits until proven otherwise.
 		int inuse = 1;
 
-		// The bottom basemem bytes are free except page 0.
-		if (i != 0 && i < basemem / PAGESIZE)
+		// The bottom basemem bytes are free except page 0 and 1.
+		if (i > 1 && i < basemem / PAGESIZE)
 			inuse = 0;
 
 		// The IO hole and the kernel abut.
@@ -115,13 +121,13 @@ mem_init(void)
 	// For step (2), here is some incomplete/incorrect example code
 	// that simply marks all mem_npage pages as free.
 	// Which memory is actually free?
-	//  1) Treat page 0 as in-use (not available).
-	//     This way we preserve the real-mode IDT and BIOS structures
-	//     in case we ever need them.  (Currently we don't, but...)
-	//  2) Mark the rest of base memory as free.
-	//  3) Then comes the IO hole [MEM_IO, MEM_EXT).
+	//  1) Reserve page 0 for the real-mode IDT and BIOS structures
+	//     (do not allow this page to be used for anything else).
+	//  2) Reserve page 1 for the AP bootstrap code (boot/bootother.S).
+	//  3) Mark the rest of base memory as free.
+	//  4) Then comes the IO hole [MEM_IO, MEM_EXT).
 	//     Mark it as in-use so that it can never be allocated.      
-	//  4) Then extended memory [MEM_EXT, ...).
+	//  5) Then extended memory [MEM_EXT, ...).
 	//     Some of it is in use, some is free.
 	//     Which pages hold the kernel and the pageinfo array?
 	//     Hint: the linker places the kernel (see start and end above),
@@ -215,15 +221,29 @@ mem_free(pageinfo *pi)
 #endif /* not SOL >= 1 */
 }
 
-//
-// Decrement the reference count on a page,
-// freeing it if there are no more refs.
-//
+// Atomically increment the reference count on a page.
 void
-page_decref(pageinfo* pp)
+mem_incref(pageinfo *pi)
 {
-	if (--pp->refcount == 0)
-		mem_free(pp);
+	assert(pi > &mem_pageinfo[1] && pi < &mem_pageinfo[mem_npage]);
+	assert(pi != mem_ptr2pi(pmap_zero));	// Don't alloc/free zero page!
+	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
+
+	lockadd(&pi->refcount, 1);
+}
+
+// Atomically decrement the reference count on a page,
+// freeing the page if there are no more refs.
+void
+mem_decref(pageinfo* pi)
+{
+	assert(pi > &mem_pageinfo[1] && pi < &mem_pageinfo[mem_npage]);
+	assert(pi != mem_ptr2pi(pmap_zero));	// Don't alloc/free zero page!
+	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
+
+	if (lockaddz(&pi->refcount, -1))
+		mem_free(pi);
+	assert(pi->refcount >= 0);
 }
 
 
@@ -241,8 +261,14 @@ mem_check()
         // if there's a page that shouldn't be on
         // the free list, try to make sure it
         // eventually causes trouble.
-	for (pp = mem_freelist; pp != 0; pp = pp->free_next)
+	int freepages = 0;
+	for (pp = mem_freelist; pp != 0; pp = pp->free_next) {
 		memset(mem_pi2ptr(pp), 0x97, 128);
+		freepages++;
+	}
+	cprintf("mem_check: %d free pages\n", freepages);
+	assert(freepages < mem_npage);	// can't have more free than total!
+	assert(freepages > 16000);	// make sure it's in the right ballpark
 
 	// should be able to allocate three pages
 	pp0 = pp1 = pp2 = 0;

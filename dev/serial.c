@@ -2,10 +2,15 @@
 // See COPYRIGHT for copyright information.
 
 #include <inc/x86.h>
+#include <inc/trap.h>
 
 #include <kern/console.h>
 
 #include <dev/serial.h>
+#if LAB >= 4
+#include <dev/pic.h>
+#include <dev/ioapic.h>
+#endif
 
 
 bool serial_exists;
@@ -39,8 +44,10 @@ serial_intr(void)
 void
 serial_putc(int c)
 {
+	if (!serial_exists)
+		return;
+
 	int i;
-	
 	for (i = 0;
 	     !(inb(COM1 + COM_LSR) & COM_LSR_TXRDY) && i < 12800;
 	     i++)
@@ -73,11 +80,17 @@ serial_init(void)
 	serial_exists = (inb(COM1+COM_LSR) != 0xFF);
 	(void) inb(COM1+COM_IIR);
 	(void) inb(COM1+COM_RX);
+}
 
 #if LAB >= 4
+void
+serial_intenable(void)
+{
 	// Enable serial interrupts
-	if (serial_exists)
-		pic_setmask(irq_mask_8259A & ~(1<<4));
-#endif
+	if (serial_exists) {
+		pic_enable(IRQ_SERIAL);
+		ioapic_enable(IRQ_SERIAL, 0);
+	}
 }
+#endif
 

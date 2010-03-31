@@ -3,10 +3,15 @@
 #include <inc/types.h>
 #include <inc/stdio.h>
 #include <inc/x86.h>
+#include <inc/trap.h>
 
 #include <kern/console.h>
 
 #include <dev/kbd.h>
+#if LAB >= 4
+#include <dev/pic.h>
+#include <dev/ioapic.h>
+#endif
 
 
 #define NO		0
@@ -14,11 +19,9 @@
 #define SHIFT		(1<<0)
 #define CTL		(1<<1)
 #define ALT		(1<<2)
-
 #define CAPSLOCK	(1<<3)
 #define NUMLOCK		(1<<4)
 #define SCROLLLOCK	(1<<5)
-
 #define E0ESC		(1<<6)
 
 
@@ -177,10 +180,18 @@ kbd_intr(void)
 void
 kbd_init(void)
 {
-#if LAB >= 4
-	// Drain the kbd buffer so that Bochs generates interrupts.
-	kbd_intr();
-	pic_setmask(irq_mask_8259A & ~(1<<1));
-#endif
 }
+
+#if LAB >= 4
+void
+kbd_intenable(void)
+{
+	// Enable interrupt delivery via the PIC/APIC
+	pic_enable(IRQ_KBD);
+	ioapic_enable(IRQ_KBD, 0);
+
+	// Drain the kbd buffer so that the hardware generates interrupts.
+	kbd_intr();
+}
+#endif
 

@@ -10,6 +10,9 @@
 #include <inc/trap.h>
 
 #include <kern/spinlock.h>
+#if LAB >= 3
+#include <kern/pmap.h>
+#endif
 
 
 #define PROC_CHILDREN	256	// Max # of children a process can have
@@ -41,14 +44,12 @@ typedef struct proc {
 	// Save area for user-mode register state when proc is not running.
 	trapframe	tf;		// general registers
 	fxsave		fx;		// FPU/MMX/XMM state
+#if LAB >= 3
 
-#if SOL >= 3
 	// Virtual memory state for this process.
-	uint32_t	pdbr;		// Working page directory
-#if SOL >= 4
-	uint32_t	oldpd;		// Snapshot from last Put, NULL if Got
-#endif	// SOL >= 4
-#endif	// SOL >= 3
+	pde_t		*pdir;		// Working page directory
+	pde_t		*rpdir;		// Reference page directory
+#endif	// LAB >= 3
 } proc;
 
 #define proc_cur()	(cpu_cur()->proc)
@@ -57,13 +58,19 @@ typedef struct proc {
 // Special "null process" - always just contains zero in all fields.
 extern proc proc_null;
 
+// Special root process - the only one that can do direct external I/O.
+extern proc *proc_root;
+
 
 void proc_init(void);	// Initialize process management code
 proc *proc_alloc(proc *p, uint32_t cn);	// Allocate new child
 void proc_ready(proc *p);	// Make process p ready
-void gcc_noreturn proc_wait(proc *p, proc *cp, trapframe *tf);
+void proc_wait(proc *p, proc *cp, trapframe *tf) gcc_noreturn;
 void proc_sched(void) gcc_noreturn;	// Find and run some ready process
-void gcc_noreturn proc_run(proc *p);	// Run a specific process
+void proc_run(proc *p) gcc_noreturn;	// Run a specific process
+void proc_yield(trapframe *tf) gcc_noreturn;	// Yield to another process
+void proc_ret(trapframe *tf) gcc_noreturn;	// Return to parent process
+void proc_check(void);			// Check process code
 
 
 #endif // !PIOS_KERN_PROC_H

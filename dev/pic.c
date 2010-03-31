@@ -1,7 +1,8 @@
-#if LAB >= 4
+#if LAB >= 2
 // Driver code for the 8259A Programmable Interrupt Controller (PIC).
 // See COPYRIGHT for copyright information.
 
+#include <inc/trap.h>
 #include <inc/assert.h>
 
 #include <dev/pic.h>
@@ -9,13 +10,15 @@
 
 // Current IRQ mask.
 // Initial IRQ mask has interrupt 2 enabled (for slave 8259A).
-uint16_t irq_mask_8259A = 0xFFFF & ~(1<<IRQ_SLAVE);
+static uint16_t irqmask = 0xFFFF & ~(1<<IRQ_SLAVE);
 static bool didinit;
 
 /* Initialize the 8259A interrupt controllers. */
 void
 pic_init(void)
 {
+	if (didinit)		// only do once on bootstrap CPU
+		return;
 	didinit = 1;
 
 	// mask all interrupts
@@ -65,27 +68,32 @@ pic_init(void)
 	outb(IO_PIC2, 0x68);               /* OCW3 */
 	outb(IO_PIC2, 0x0a);               /* OCW3 */
 
-	if (irq_mask_8259A != 0xFFFF)
-		pic_setmask(irq_mask_8259A);
+	if (irqmask != 0xFFFF)
+		pic_setmask(irqmask);
 }
 
 void
 pic_setmask(uint16_t mask)
 {
-	int i;
-	irq_mask_8259A = mask;
-	if (!didinit)
-		return;
+	irqmask = mask;
 	outb(IO_PIC1+1, (char)mask);
 	outb(IO_PIC2+1, (char)(mask >> 8));
+#if LAB >= 99
 	cprintf("enabled interrupts:");
 	for (i = 0; i < 16; i++)
 		if (~mask & (1<<i))
 			cprintf(" %d", i);
 	cprintf("\n");
+#endif
 }
 
-#if LAB >= 6
+void
+pic_enable(int irq)
+{
+	pic_setmask(irqmask & ~(1 << irq));
+}
+
+#if LAB >= 99
 void
 pic_eoi(void)
 {
@@ -98,5 +106,5 @@ pic_eoi(void)
 	outb(IO_PIC2, 0x20);
 }
 
-#endif /* LAB >= 6 */
-#endif /* LAB >= 3 */
+#endif /* LAB >= 99 */
+#endif /* LAB >= 2 */

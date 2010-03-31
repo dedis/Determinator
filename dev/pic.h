@@ -1,7 +1,6 @@
-#if LAB >= 4
+#if LAB >= 2
 // Hardware definitions for the 8259A Programmable Interrupt Controller (PIC).
 // See COPYRIGHT for copyright information.
-
 #ifndef PIOS_DEV_PIC_H
 #define PIOS_DEV_PIC_H
 
@@ -24,12 +23,14 @@
 #include <inc/x86.h>
 
 extern uint16_t irq_mask_8259A;
+
 void pic_init(void);
 void pic_setmask(uint16_t mask);
-#if LAB >= 6
+void pic_enable(int irq);
+#if LAB >= 99
 void pic_eoi(void);
 #endif
 #endif // !__ASSEMBLER__
 
 #endif // !PIOS_DEV_PIC_H
-#endif // LAB >= 4
+#endif // LAB >= 2

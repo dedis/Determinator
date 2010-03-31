@@ -1,47 +1,19 @@
 #if LAB >= 3
-#include <inc/mmu.h>
-#include <inc/memlayout.h>
 
-.data
-#if LAB >= 5
-	// define page-aligned fsipcbuf for fsipc.c
-	// ... and fdtab for file.c
-	.p2align PGSHIFT
-	.globl fsipcbuf
-fsipcbuf:
-	.space PAGESIZE
-	.globl fdtab
-fdtab:
-	.space PAGESIZE
-#if LAB >= 6
-	.globl nsipcbuf
-	// page-aligned nsipcbuf for nsipc.c
-nsipcbuf:
-	.space PAGESIZE
-#endif
-#endif
+#include <inc/syscall.h>
+#include <inc/vm.h>
 
+	.text
 
-// Define the global symbols 'envs', 'pages', 'vpt', and 'vpd'
-// so that they can be used in C as if they were ordinary global arrays.
-	.globl envs
-	.set envs, UENVS
-	.globl pages
-	.set pages, UPAGES
-	.globl vpt
-	.set vpt, UVPT
-	.globl vpd
-	.set vpd, (UVPT+(UVPT>>12)*4)
-
-
-// Entrypoint - this is where the kernel (or our parent environment)
-// starts us running when we are initially loaded into a new environment.
-.text
-.globl _start
-_start:
-	// See if we were started with arguments on the stack
-	cmpl $USTACKTOP, %esp
-	jne args_exist
+// Start entrypoint - this is where the kernel (or our parent process)
+// starts us running when we are initially loaded into a new process.
+	.globl start
+start:
+#if LAB >= 4
+	// See if we were started with arguments on the stack.
+	// If not, our esp will start on a nice big power-of-two boundary.
+	testl $0x0fffffff, %esp
+	jnz args_exist
 
 	// If not, push dummy argc/argv arguments.
 	// This happens when we are loaded by the kernel,
@@ -50,7 +22,42 @@ _start:
 	pushl $0
 
 args_exist:
-	call libmain
-1:      jmp 1b
+#endif
+	call	main	// run the program
+
+	pushl	%eax	// use with main's return value as exit status
+	call	exit
+1:	jmp 1b
+
+
+// Start entrypoint for exec.  When our exec code replaces an existing process
+// with a new one, it loads the new program image into child process 0,
+// then calls this "function" with the new program's initial stack pointer
+// as the only argument.
+// Here we overwrite our entire user space memory state with that of child 0,
+// clear child 0's address space, and start the new program.
+// Since the old program's executable gets overwritten by the new one
+// during the first system call below, this code will continue to work
+// after that point ONLY if this particular code sequence is identical
+// and at the same location in EVERY user program.
+// We guarantee this by putting it in lib/entry.S, which is always the same
+// and linked at the beginning of every user program.
+	.globl exec_start
+exec_start:
+	movl	4(%esp),%esp	// Load new executable's initial stack pointer
+	xorl	%ebp,%ebp	// New stack will be at its first stack frame
+
+	movl	$SYS_GET|SYS_COPY,%eax	// Copy child 0's memory onto our own.
+	xorl	%edx,%edx		// edx[0-7] = child 0
+	movl	$VM_USERLO,%esi
+	movl	$VM_USERLO,%edi
+	movl	$VM_USERHI-VM_USERLO,%ecx
+	int	$T_SYSCALL
+
+	movl	$SYS_PUT|SYS_ZERO,%eax	// Zero out child 0's state
+	int	$T_SYSCALL
+
+	jmp	start
+
 
 #endif // LAB >= 3

@@ -14,11 +14,13 @@ char *	strchr(const char *s, char c);
 char *	strfind(const char *s, char c);
 
 void *	memset(void *dst, int c, size_t len);
-/* no memcpy - use memmove instead */
+void *	memcpy(void *dst, const void *src, size_t len);
 void *	memmove(void *dst, const void *src, size_t len);
 int	memcmp(const void *s1, const void *s2, size_t len);
 void *	memfind(const void *s, int c, size_t len);
 
 long	strtol(const char *s, char **endptr, int base);
+
+char *	strerror(int err);
 
 #endif /* not PIOS_INC_STRING_H */

@@ -1,79 +1,107 @@
-#if LAB >= 2
-// User-visible virtual memory layout and related definitions.
+#if LAB >= 3
+// User-visible virtual memory layout definitions.
 // See COPYRIGHT for copyright information.
 #ifndef PIOS_INC_VM_H
 #define PIOS_INC_VM_H
 
-/*
- * This file contains definitions for memory management in our OS,
- * which are relevant to both the kernel and user-mode software.
- *
- * User-visible virtual memory map:                    user
- *                                                  permissions  
- *    4 Gig ---------> +==============================+
- *                     |                              | --
- *                     |     Reserved for kernel:     | --
- *                     |      always inaccessible     | --
- *                     |       to user processes      | --
- *                     |        (see kern/vm.h)       | --
- *    VM_KERNLO,       |                              | --
- *    VM_USERHI, ----> +==============================+ 0x80000000
- *    VM_USTACKHI      |                              | RW
- *                     | User process grow-down stack | RW
- *                     |                              | RW
- *    VM_USTACKLO, --> +------------------------------+ 0x70000000      --+
- *                     |                              | RW
- *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
- *                     :              .               :
- *                     :              .               :
- *                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
- *                     |                              | RW
- *                     |      Dynamic user heap       | RW
- *                     |                              | RW
- *                     | - - - - - - - - - - - - - - -|
- *                     |    Static user data, bss     | RW
- *                     | - - - - - - - - - - - - - - -|
- *                     |          User code           | RO
- *    VM_UTEXT ------> +------------------------------+ 0x00800000
- *                     |                              |
- *                     | - - - - - - - - - - - - - - -|
- *                     |  User STAB Data (optional)   | RO
- *    VM_USTABS -----> +------------------------------+ 0x00200000
- *                     |     Unmapped Memory (*)      |
- *    0 -------------> +==============================+
- *
- * (*) Note: "Unmapped Memory" is normally unmapped, but user programs may
- *     map pages there if desired.
- */
-
-
-// All virtual address space above the 2GB mark is kernel-accessible only;
-// user processes cannot map anything there and always fault if they touch it.
-// Virtual address space below this mark may be user-accessible if mapped.
-#define VM_USERHI	0x80000000
-#define VM_KERNLO	0x80000000
-
-
-// The user stack grows downward from the top of user-accessible memory.
-// This region allows the user stack to grow up to 256MB in size.
 //
-// The kernel needs to know the boundary between user stack
-// and normal user code/data/bss/heap because the stack is thread-private:
-// when a group of forked child threads synchronize and rejoin their parent,
-// the kernel thread does not attempt to reconcile the user memory
-// from VM_USTACKLO up to the parent thread's ESP at the time of fork,
-// because that area will contain different private garbage for each thread.
+// The PIOS kernel divides the 4GB linear (post-segmentation) address space
+// into three parts:
 //
-#define VM_USTACKHI	0x80000000
-#define VM_USTACKLO	0x70000000
+// - The low 1GB contains fixed direct mappings of physical memory,
+//   representing the address space in which the kernel operates.
+//   This way the kernel's address space effectively remains the same
+//   both before and after it initializes the MMU and enables paging.
+//   (It also means we can use at most 1GB of physical memory!)
+//
+// - The next 2.75GB contains the running process's user-level address space.
+//   This is the only address range user-mode processes can access or map.
+//
+// - The top 256MB once again contains direct mappings of physical memory,
+//   giving the kernel access to the high I/O region, e.g., the local APIC.
+//
+// Kernel's linear address map: 	              Permissions
+//                                                    kernel/user
+//
+//    4 Gig ---------> +==============================+
+//                     |                              | RW/--
+//                     |    High 32-bit I/O region    | RW/--
+//                     |                              | RW/--
+//    VM_USERHI -----> +==============================+ 0xf0000000
+//                     |                              | RW/RW
+//                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+//                     :              .               :
+//                     :              .               :
+//                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+//                     |                              | RW/RW
+//                     |  User address space (2.75GB) | RW/RW
+//                     |        (see inc/vm.h)        | RW/RW
+//                     |                              | RW/RW
+//    VM_USERLO -----> +==============================+ 0x40000000
+//                     |                              | RW/--
+//                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+//                     :              .               :
+//                     :              .               :
+//                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+//                     |                              | RW/--
+//                     |    Physical memory (1GB)     | RW/--
+//                     |    incl. I/O, kernel, ...    | RW/--
+//                     |                              | RW/--
+//    0 -------------> +==============================+
+//
+#define	VM_USERHI	0xf0000000
+#define	VM_USERLO	0x40000000
 
 
-// We link user-level programs so as to start at this address.
-#define VM_UTEXT	0x00800000
+//
+// Within the user-space region, user processes are technically free
+// to organize their address space however they see fit.
+// However, the following layout reflects conventions
+// that PIOS's user-space library infrastructure use
+// for communication between parent and child processes
+// (and ultimately between the PIOS kernel and the root process).
+//
+//                     |                              |
+//    VM_USERHI, ----> +==============================+ 0xf0000000
+//    VM_STACKHI       |                              |
+//                     |     Per-thread user stack    |
+//                     |                              |
+//    VM_STACKLO,      +------------------------------+ 0xd0000000
+//    VM_SCRATCHHI     |                              |
+//                     |    Scratch address space     |
+//                     | for file reconciliation etc. |
+//                     |                              |
+//    VM_SCRATCHLO, -> +------------------------------+ 0xc0000000
+//    VM_FILEHI        |                              |
+//                     |      File system and         |
+//                     |   process management state   |
+//                     |                              |
+//    VM_FILELO, ----> +------------------------------+ 0x80000000
+//    VM_SHAREHI       |                              |
+//                     |  General-purpose use space   |
+//                     | shared between user threads: |
+//                     |   program text, data, heap   |
+//                     |                              |
+//    VM_SHARELO, ---> +==============================+ 0x40000000
+//    VM_USERLO        |                              |
 
-// The location of the user-level STABS debugging structure, if loaded
-#define VM_USTABS	0x00200000
+// Standard area for the user-space stack (thread-private)
+#define VM_STACKHI	0xf0000000
+#define VM_STACKLO	0xd0000000
+
+// Scratch address space region for general use (e.g., by exec)
+#define VM_SCRATCHHI	0xd0000000
+#define VM_SCRATCHLO	0xc0000000
+
+// Address space area for file system and Unix process state
+#define VM_FILEHI	0xc0000000
+#define VM_FILELO	0x80000000
+
+// General-purpose address space shared between "threads"
+// created via SYS_SNAP/SYS_MERGE.
+#define VM_SHAREHI	0x80000000
+#define VM_SHARELO	0x40000000
 
 
 #endif /* !PIOS_INC_VM_H */
-#endif // LAB >= 2
+#endif // LAB >= 3

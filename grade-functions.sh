@@ -17,6 +17,7 @@ timeout=30
 preservefs=n
 qemu=`$make -s --no-print-directory which-qemu`
 brkfn=done
+in=/dev/null
 
 echo_n () {
 	# suns can't echo -n, and Mac OS X can't echo "x\c"
@@ -38,26 +39,25 @@ run () {
 	t0=`date +%s.%N 2>/dev/null`
 	(
 		ulimit -t $timeout
-		exec $qemu -nographic $qemuopts -serial file:grade-out -monitor null -no-reboot $qemuextra
-	) >$out 2>$err &
+		exec $qemu -nographic $qemuopts -serial stdio -monitor null \
+			-no-reboot $qemuextra
+	) <$in >grade-out 2>$err &
 	PID=$!
 
 	# Wait for QEMU to start
 	sleep 1
 
 	if [ "$brkfn" ]; then
-		# Find the address of the kernel $brkfn function,
-		# which is typically what the kernel monitor uses to
-		# read commands interactively.
+		# Find the address of the function $brkfn in the kernel.
 		brkaddr=`grep " $brkfn\$" obj/kern/kernel.sym | sed -e's/ .*$//g'`
 
 		(
 			echo "target remote localhost:$port"
 			echo "br *0x$brkaddr"
 			echo c
-		) > grade-in
-		gdb -batch -nx -x grade-in > /dev/null 2>&1
-		rm grade-in
+		) > grade-gdb-in
+		gdb -batch -nx -x grade-gdb-in > /dev/null 2>&1
+		rm grade-gdb-in
 
 		# Make sure QEMU is dead.  On OS X, exiting gdb
 		# doesn't always exit QEMU.
@@ -90,6 +90,17 @@ fail () {
 greptest () {
 	echo_n "$1"
 	if grep "$2" grade-out >/dev/null
+	then
+		pass
+	else
+		fail
+	fi
+}
+
+# Grep for a multi-line pattern
+grmltest () {
+	echo_n "$1"
+	if tr <grade-out '\n' '!' | grep "$2" >/dev/null
 	then
 		pass
 	else

@@ -1,23 +1,34 @@
-#if LAB >= 5
-#include <inc/lib.h>
+#if LAB >= 4
+#include <inc/stdio.h>
+#include <inc/string.h>
 
-void
-umain(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
 	int i, nflag;
+	int (*pr)(const char *fmt, ...) = printf;
 
 	nflag = 0;
-	if (argc > 1 && strcmp(argv[1], "-n") == 0) {
-		nflag = 1;
+	while (argc > 1 && argv[1][0] == '-') {
+		if (argv[1][1] == 'n')
+			nflag = 1;
+		else if (argv[1][1] == 'c')
+			pr = cprintf;
+		else
+			break;
 		argc--;
 		argv++;
 	}
+
 	for (i = 1; i < argc; i++) {
 		if (i > 1)
-			write(1, " ", 1);
-		write(1, argv[i], strlen(argv[i]));
+			pr(" ");
+		pr("%s", argv[i]);
 	}
 	if (!nflag)
-		write(1, "\n", 1);
+		pr("\n");
+
+	return 0;
 }
-#endif
+
+#endif	// LAB >= 4

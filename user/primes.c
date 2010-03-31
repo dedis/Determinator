@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 99	// XXX reinstate when we have pipes implemented?
 // Concurrent version of prime sieve of Eratosthenes.
 // Invented by Doug McIlroy, inventor of Unix pipes.
 // See http://plan9.bell-labs.com/~rsc/thread.html.

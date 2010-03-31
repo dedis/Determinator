@@ -40,6 +40,7 @@ struct mpproc {         // processor table entry
 	uint8_t apicid;			// local APIC id
 	uint8_t version;		// local APIC version
 	uint8_t flags;			// CPU flags
+	  #define MPENAB 0x01		// This processor is enabled.
 	  #define MPBOOT 0x02           // This proc is the bootstrap processor.
 	uint8_t signature[4];		// CPU signature
 	uint32_t feature;		// feature flags from CPUID instruction
@@ -63,9 +64,10 @@ struct mpioapic {       // I/O APIC table entry
 
 
 // System information gleaned by mp_init()
-int ismp;			// True if this is an MP-capable system
-int ncpu;			// Total number of CPUs found
-uint8_t ioapicid;		// I/O APIC ID
+extern int ismp;		// True if this is an MP-capable system
+extern int ncpu;		// Total number of CPUs found
+extern uint8_t ioapicid;	// APIC ID of system's I/O APIC
+extern volatile struct ioapic *ioapic;	// Address of I/O APIC
 
 
 void mp_init(void);

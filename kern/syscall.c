@@ -13,33 +13,126 @@
 #include <kern/syscall.h>
 
 
-#if SOL >= 2
-static void sys_ret(trapframe *tf) gcc_noreturn;
+#if SOL >= 3
+static void gcc_noreturn do_ret(trapframe *tf);
+#endif
 
+
+// During a system call, generate a specific processor trap -
+// as if the user code's INT 0x30 instruction had caused it -
+// and reflect the trap to the parent process as with other traps.
 static void gcc_noreturn
-sys_recover(trapframe *ktf, void *recoverdata)
+systrap(trapframe *utf, int trapno, int err)
 {
+#if SOL >= 3
+	//cprintf("systrap: reflect trap %d to parent process\n", trapno);
+	utf->tf_trapno = trapno;
+	utf->tf_err = err;
+	utf->tf_eip -= 2;	// back up before int 0x30 syscall instruction
+	proc_ret(utf);
+#else
+	panic("systrap() not implemented.");
+#endif
+}
+
+// Recover from a trap that occurs during a copyin or copyout,
+// by aborting the system call and reflecting the trap to the parent process,
+// behaving as if the user program's INT instruction had caused the trap.
+// This uses the 'recover' pointer in the current cpu struct,
+// and invokes systrap() above to blame the trap on the user process.
+//
+// Notes:
+// - Be sure the parent gets the correct tf_trapno, tf_err, and tf_eip values.
+// - Be sure to release any spinlocks you were holding during the copyin/out.
+//
+static void gcc_noreturn
+sysrecover(trapframe *ktf, void *recoverdata)
+{
+#if SOL >= 3
 	trapframe *utf = (trapframe*)recoverdata;	// user trapframe
 
 	cpu *c = cpu_cur();
-	assert(c->recover == sys_recover);
+	assert(c->recover == sysrecover);
 	c->recover = NULL;
 
-	proc *p = proc_cur();
-	spinlock_release(&p->lock);	// release lock we were holding
-
 	// Pretend that a trap caused this process to stop.
-	utf->tf_trapno = ktf->tf_trapno;	// copy trap info
-	utf->tf_err = ktf->tf_err;
-	utf->tf_eip -= 2;	// back up before int 0x30 syscall instruction
-	sys_ret(utf);
+	systrap(utf, ktf->tf_trapno, ktf->tf_err);
+#else
+	panic("sysrecover() not implemented.");
+#endif
 }
-#endif	// SOL >= 2
+
+// Check a user virtual address block for validity:
+// i.e., make sure the complete area specified lies in
+// the user address space between VM_USERLO and VM_USERHI.
+// If not, abort the syscall by sending a T_GPFLT to the parent,
+// again as if the user program's INT instruction was to blame.
+//
+// Note: Be careful that your arithmetic works correctly
+// even if size is very large, e.g., if uva+size wraps around!
+//
+static void checkva(trapframe *utf, uint32_t uva, size_t size)
+{
+#if SOL >= 3
+	if (uva < VM_USERLO || uva >= VM_USERHI
+			|| size >= VM_USERHI - uva) {
+
+		// Outside of user address space!  Simulate a page fault.
+		systrap(utf, T_PGFLT, 0);
+	}
+#else
+	panic("checkva() not implemented.");
+#endif
+}
+
+// Copy data to/from user space,
+// using checkva() above to validate the address range
+// and using sysrecover() to recover from any traps during the copy.
+void usercopy(trapframe *utf, bool copyout,
+			void *kva, uint32_t uva, size_t size)
+{
+	checkva(utf, uva, size);
+
+	// Now do the copy, but recover from page faults.
+#if SOL >= 3
+	cpu *c = cpu_cur();
+	assert(c->recover == NULL);
+	c->recover = sysrecover;
+
+	//pmap_inval(proc_cur()->pdir, VM_USERLO, VM_USERHI-VM_USERLO);
+
+	if (copyout)
+		memmove((void*)uva, kva, size);
+	else
+		memmove(kva, (void*)uva, size);
+
+	assert(c->recover == sysrecover);
+	c->recover = NULL;
+#else
+	panic("syscall_usercopy() not implemented.");
+#endif
+}
 
 static void
-sys_put(trapframe *tf, uint32_t cmd)
+do_cputs(trapframe *tf, uint32_t cmd)
 {
+	// Print the string supplied by the user: pointer in EBX
+#if SOL >= 3
+	char buf[SYS_CPUTS_MAX+1];
+	usercopy(tf, 0, buf, tf->tf_regs.reg_ebx, SYS_CPUTS_MAX);
+	buf[SYS_CPUTS_MAX] = 0;	// make sure it's null-terminated
+	cprintf("%s", buf);
+#else	// SOL < 3
+	cprintf("%s", (char*)tf->tf_regs.reg_ebx);
+#endif	// SOL < 3
+
+	trap_return(tf);	// syscall completed
+}
 #if SOL >= 2
+
+static void
+do_put(trapframe *tf, uint32_t cmd)
+{
 	proc *p = proc_cur();
 	assert(p->state == PROC_RUN && p->runcpu == cpu_cur());
 
@@ -58,35 +151,86 @@ sys_put(trapframe *tf, uint32_t cmd)
 	if (cp->state != PROC_STOP)
 		proc_wait(p, cp, tf);
 
+	// Since the child is now stopped, it's ours to control;
+	// we no longer need our process lock -
+	// and we don't want to be holding it if usercopy() below aborts.
+	spinlock_release(&p->lock);
+
 	// Put child's general register state
 	if (cmd & SYS_REGS) {
-		// Recover from traps caused by dereferencing user pointer
-		cpu *c = cpu_cur();
-		assert(c->recover == NULL);
-		c->recover = sys_recover;
-		c->recoverdata = tf;
 
 		// Copy user's trapframe into child process
+#if SOL >= 3
+		usercopy(tf, 0, &cp->tf, tf->tf_regs.reg_ebx,
+				sizeof(trapframe));
+#else
 		cpustate *cs = (cpustate*) tf->tf_regs.reg_ebx;
 		cp->tf = cs->tf;
+#endif
 
-		c->recover = NULL;	// finished successfully
+		// Make sure process uses user-mode segments and eflag settings
+		cp->tf.tf_ds = CPU_GDT_UDATA | 3;
+		cp->tf.tf_es = CPU_GDT_UDATA | 3;
+		cp->tf.tf_cs = CPU_GDT_UCODE | 3;
+		cp->tf.tf_ss = CPU_GDT_UDATA | 3;
+		cp->tf.tf_eflags &=
+			FL_CF|FL_PF|FL_AF|FL_ZF|FL_SF|FL_TF|FL_DF|FL_OF;
+		cp->tf.tf_eflags |= FL_IF;	// enable interrupts
 	}
 
+#if SOL >= 3
+	uint32_t sva = tf->tf_regs.reg_esi;
+	uint32_t dva = tf->tf_regs.reg_edi;
+	uint32_t size = tf->tf_regs.reg_ecx;
+	switch (cmd & SYS_MEMOP) {
+	case 0:	// no memory operation
+		break;
+	case SYS_COPY:
+		// validate source region
+		if (PTOFF(sva) || PTOFF(size)
+				|| sva < VM_USERLO || sva > VM_USERHI
+				|| size > VM_USERHI-sva)
+			systrap(tf, T_GPFLT, 0);
+		// fall thru...
+	case SYS_ZERO:
+		// validate destination region
+		if (PTOFF(dva) || PTOFF(size)
+				|| dva < VM_USERLO || dva > VM_USERHI
+				|| size > VM_USERHI-dva)
+			systrap(tf, T_GPFLT, 0);
+
+		switch (cmd & SYS_MEMOP) {
+		case SYS_ZERO:	// zero memory and clear permissions
+			pmap_remove(cp->pdir, dva, size);
+			break;
+		case SYS_COPY:	// copy from local src to dest in child
+			pmap_copy(p->pdir, sva, cp->pdir, dva, size);
+			break;
+		}
+		break;
+	default:
+		systrap(tf, T_GPFLT, 0);
+	}
+
+	if (cmd & SYS_PERM)
+		if (!pmap_setperm(cp->pdir, dva, size, cmd & SYS_RW))
+			panic("pmap_put: no memory to set permissions");
+
+	if (cmd & SYS_SNAP)	// Snapshot child's state
+		pmap_copy(cp->pdir, VM_USERLO, cp->rpdir, VM_USERLO,
+				VM_USERHI-VM_USERLO);
+
+#endif	// SOL >= 3
 	// Start the child if requested
 	if (cmd & SYS_START)
 		proc_ready(cp);
 
 	trap_return(tf);	// syscall completed
-#else	// SOL >= 2
-	panic("sys_put not implemented");
-#endif	// SOL >= 2
 }
 
 static void
-sys_get(trapframe *tf, uint32_t cmd)
+do_get(trapframe *tf, uint32_t cmd)
 {
-#if SOL >= 2
 	proc *p = proc_cur();
 	assert(p->state == PROC_RUN && p->runcpu == cpu_cur());
 
@@ -102,73 +246,100 @@ sys_get(trapframe *tf, uint32_t cmd)
 	if (cp->state != PROC_STOP)
 		proc_wait(p, cp, tf);
 
+	// Since the child is now stopped, it's ours to control;
+	// we no longer need our process lock -
+	// and we don't want to be holding it if usercopy() below aborts.
+	spinlock_release(&p->lock);
+
 	// Get child's general register state
 	if (cmd & SYS_REGS) {
-		// Recover from traps caused by dereferencing user pointer
-		cpu *c = cpu_cur();
-		assert(c->recover == NULL);
-		c->recover = sys_recover;
-		c->recoverdata = tf;
 
 		// Copy child process's trapframe into user space
+#if SOL >= 3
+		usercopy(tf, 1, &cp->tf, tf->tf_regs.reg_ebx,
+				sizeof(trapframe));
+#else
 		cpustate *cs = (cpustate*) tf->tf_regs.reg_ebx;
 		cs->tf = cp->tf;
-
-		c->recover = NULL;	// finished successfully
+#endif
 	}
 
+#if SOL >= 3
+	uint32_t sva = tf->tf_regs.reg_esi;
+	uint32_t dva = tf->tf_regs.reg_edi;
+	uint32_t size = tf->tf_regs.reg_ecx;
+	switch (cmd & SYS_MEMOP) {
+	case 0:	// no memory operation
+		break;
+	case SYS_COPY:
+	case SYS_MERGE:
+		// validate source region
+		if (PTOFF(sva) || PTOFF(size)
+				|| sva < VM_USERLO || sva > VM_USERHI
+				|| size > VM_USERHI-sva)
+			systrap(tf, T_GPFLT, 0);
+		// fall thru...
+	case SYS_ZERO:
+		// validate destination region
+		if (PTOFF(dva) || PTOFF(size)
+				|| dva < VM_USERLO || dva > VM_USERHI
+				|| size > VM_USERHI-dva)
+			systrap(tf, T_GPFLT, 0);
+
+		switch (cmd & SYS_MEMOP) {
+		case SYS_ZERO:	// zero memory and clear permissions
+			pmap_remove(p->pdir, dva, size);
+			break;
+		case SYS_COPY:	// copy from local src to dest in child
+			pmap_copy(cp->pdir, sva, p->pdir, dva, size);
+			break;
+		case SYS_MERGE:	// merge from local src to dest in child
+			pmap_merge(cp->rpdir, cp->pdir, sva,
+					p->pdir, dva, size);
+			break;
+		}
+		break;
+	default:
+		systrap(tf, T_GPFLT, 0);
+	}
+
+	if (cmd & SYS_PERM)
+		if (!pmap_setperm(p->pdir, dva, size, cmd & SYS_RW))
+			panic("pmap_get: no memory to set permissions");
+
+	if (cmd & SYS_SNAP)
+		systrap(tf, T_GPFLT, 0);	// only valid for PUT
+
+#endif	// SOL >= 3
 	trap_return(tf);	// syscall completed
-#else	// SOL >= 2
-	panic("sys_get not implemented");
-#endif	// SOL >= 2
 }
 
 static void gcc_noreturn
-sys_ret(trapframe *tf)
+do_ret(trapframe *tf)
 {
-#if SOL >= 2
-	proc *cp = proc_cur();		// we're the child
-	assert(cp->state == PROC_RUN && cp->runcpu == cpu_cur());
-	proc *p = cp->parent;		// find our parent
-
-	spinlock_acquire(&p->lock);	// lock both in proper order
-
-	cp->state = PROC_STOP;		// we're becoming stopped
-	cp->runcpu = NULL;		// no longer running
-	cp->tf = *tf;			// save our register state
-
-	// If parent is waiting to sync with us, wake it up.
-	if (p->state == PROC_WAIT && p->waitchild == cp) {
-		p->waitchild = NULL;
-		proc_run(p);
-	}
-
-	spinlock_release(&p->lock);
-	proc_sched();			// find and run someone else
-
-#else	// SOL >= 2
-	panic("sys_ret not implemented");
-#endif	// SOL >= 2
+	proc_ret(tf);
 }
+#endif	// SOL >= 2
 
 // Common function to handle all system calls -
-// decode the system call type and call the appropriate function.
+// decode the system call type and call an appropriate handler function.
 // Be sure to handle undefined system calls appropriately.
 void
 syscall(trapframe *tf)
 {
-#if SOL >= 2
 	// EAX register holds system call command/flags
 	uint32_t cmd = tf->tf_regs.reg_eax;
 	switch (cmd & SYS_TYPE) {
-	case SYS_PUT:	return sys_put(tf, cmd);
-	case SYS_GET:	return sys_get(tf, cmd);
-	case SYS_RET:	return sys_ret(tf);
+	case SYS_CPUTS:	return do_cputs(tf, cmd);
+#if SOL >= 2
+	case SYS_PUT:	return do_put(tf, cmd);
+	case SYS_GET:	return do_get(tf, cmd);
+	case SYS_RET:	return do_ret(tf);
+#else	// not SOL >= 2
+	// Your implementations of SYS_PUT, SYS_GET, SYS_RET here...
+#endif	// not SOL >= 2
 	default:	return;		// handle as a regular trap
 	}
-#else	// not SOL >= 2
-	panic("syscall not implemented");
-#endif	// not SOL >= 2
 }
 
 #endif	// LAB >= 2

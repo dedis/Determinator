@@ -67,34 +67,12 @@ lapic_init()
 	lapicw(TPR, 0);
 }
 
-#if LAB > 99
-int
-cpunum(void)
-{
-  // Cannot call cpu when interrupts are enabled:
-  // result not guaranteed to last long enough to be used!
-  // Would prefer to panic but even printing is chancy here:
-  // almost everything, including cprintf and panic, calls cpu,
-  // often indirectly through acquire and release.
-  if (read_eflags() & FL_IF){
-    static int n;
-    if(n++ == 0)
-      cprintf("cpu called from %x with interrupts enabled\n",
-        __builtin_return_address(0));
-  }
-
-  if (lapic)
-    return lapic[ID]>>24;
-  return 0;
-}
-#endif
-
 // Acknowledge interrupt.
 void
 lapic_eoi(void)
 {
-  if (lapic)
-    lapicw(EOI, 0);
+	if (lapic)
+		lapicw(EOI, 0);
 }
 
 // Spin for a given number of microseconds.
