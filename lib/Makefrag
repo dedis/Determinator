@@ -18,6 +18,8 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/readline.c
 
 #if SOL >= 4
+LIB_SRCFILES +=		lib/thread.c
+
 # Sun math library (snatched from FreeBSD 8.0.0)
 include lib/math/Makefrag
 #endif
