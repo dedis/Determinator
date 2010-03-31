@@ -94,7 +94,8 @@ KERN_INITFILES :=	sh \
 			cat \
 			wc
 #if SOL >= 4
-KERN_INITFILES +=	matmult
+KERN_INITFILES +=	matmult \
+			microbench
 #endif
 
 # Binary program images to embed within the kernel.

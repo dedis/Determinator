@@ -17,6 +17,10 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/fprintf.c \
 			lib/readline.c
 
+#if SOL >= 4
+LIB_SRCFILES +=		lib/thread.c
+#endif
+
 # Build files only if they exist.
 LIB_SRCFILES := $(wildcard $(LIB_SRCFILES))
 
