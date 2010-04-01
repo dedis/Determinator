@@ -7,6 +7,7 @@
 # error "This is a kernel header; user programs should not #include it"
 #endif
 
+#include <inc/gcc.h>
 #include <inc/trap.h>
 
 
@@ -127,9 +128,21 @@ typedef struct net_pullrp {
 #define RR_HOME		0x000001fe	// 8-bit home node
 #define RR_HOMESHIFT		1	// Home node field starts at bit 1
 
+// Macros to construct and extract fields from remote refs
+#define RRCONS(node,addr)	(((addr) & RR_ADDR) | ((uint8_t)(node) << 1))
+#define RRNODE(rr)		((uint8_t)((rr) >> RR_HOMESHIFT))
+#define RRADDR(rr)		((rr) & RR_ADDR)
+
+
+extern uint8_t net_node;	// My node number - from net_mac[5]
+extern uint8_t net_mac[6];	// My MAC address from the Ethernet card
+
+
+struct trapframe;
 
 void net_init(void);
 void net_rx(void *ethpkt, int len);
+void gcc_noreturn net_migrate(struct trapframe *tf, uint8_t node);
 
 #endif // !PIOS_KERN_NET_H
 #endif // LAB >= 2

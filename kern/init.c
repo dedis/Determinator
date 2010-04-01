@@ -23,16 +23,19 @@
 #endif
 #if LAB >= 4
 #include <kern/file.h>
-#endif
+#endif	// LAB >= 4
+#if LAB >= 5
+#include <kern/net.h>
+#endif	// LAB >= 5
 
 #if LAB >= 2
 #include <dev/pic.h>
 #include <dev/lapic.h>
 #include <dev/ioapic.h>
+#endif	// LAB >= 2
 #if LAB >= 5
 #include <dev/pci.h>
 #endif	// LAB >= 5
-#endif	// LAB >= 2
 
 
 // User-mode stack for user(), below, to run on.
@@ -103,7 +106,10 @@ init(void)
 #if LAB >= 4
 	// Initialize the I/O system.
 	file_init();		// Create root directory and console I/O files
+#if LAB >= 5
 	pci_init();		// Initialize the PCI bus and network card
+	net_init();		
+#endif // LAB >= 5
 
 #if SOL >= 4
 	cons_intenable();	// Let the console start producing interrupts
@@ -112,7 +118,7 @@ init(void)
 	//cons_intenable();	// Let the console start producing interrupts
 #endif
 
-#endif
+#endif // LAB >= 4
 	// Initialize the process management code.
 	proc_init();
 #endif

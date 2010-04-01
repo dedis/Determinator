@@ -385,6 +385,7 @@ int e100_attach(struct pci_func *pcif)
 	for (i = 0; i < 6; i++)
 		cprintf("%c%02x", i ? ':' : ' ', the_e100.mac[i]);
 	cprintf("\n");
+	memcpy(net_mac, the_e100.mac, 6);
 
 	// Enable network card interrupts
 	pic_enable(e100_irq);

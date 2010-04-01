@@ -11,6 +11,9 @@
 #include <kern/trap.h>
 #include <kern/proc.h>
 #include <kern/syscall.h>
+#if LAB >= 5
+#include <kern/net.h>
+#endif
 
 
 #if SOL >= 3
@@ -136,6 +139,14 @@ do_put(trapframe *tf, uint32_t cmd)
 	proc *p = proc_cur();
 	assert(p->state == PROC_RUN && p->runcpu == cpu_cur());
 
+	// First migrate if we need to.
+	uint8_t node = (tf->tf_regs.reg_edx >> 8) & 0xff;
+	if (node == 0) node = RRNODE(p->home);		// Goin' home
+	if (node != net_node) {
+		tf->tf_eip -= 2;	// Restart syscall after we arrive
+		net_migrate(tf, node);
+	}
+
 	spinlock_acquire(&p->lock);
 
 	// Find the named child process; create if it doesn't exist
@@ -234,6 +245,14 @@ do_get(trapframe *tf, uint32_t cmd)
 	proc *p = proc_cur();
 	assert(p->state == PROC_RUN && p->runcpu == cpu_cur());
 
+	// First migrate if we need to.
+	uint8_t node = (tf->tf_regs.reg_edx >> 8) & 0xff;
+	if (node == 0) node = RRNODE(p->home);		// Goin' home
+	if (node != net_node) {
+		tf->tf_eip -= 2;	// Restart syscall after we arrive
+		net_migrate(tf, node);
+	}
+
 	spinlock_acquire(&p->lock);
 
 	// Find the named child process; DON'T create if it doesn't exist
@@ -317,6 +336,15 @@ do_get(trapframe *tf, uint32_t cmd)
 static void gcc_noreturn
 do_ret(trapframe *tf)
 {
+#if SOL >= 5
+	// First migrate to our home node if we're not already there.
+	proc *p = proc_cur();
+	if (net_node != RRNODE(p->home)) {
+		tf->tf_eip -= 2;	// Restart syscall when we arrive
+		net_migrate(tf, RRNODE(p->home));
+	}
+
+#endif
 	proc_ret(tf);
 }
 #endif	// SOL >= 2

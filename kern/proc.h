@@ -51,6 +51,8 @@ typedef struct proc {
 	pde_t		*rpdir;		// Reference page directory
 #if LAB >= 5
 
+	// Network and progress migration state.
+	uint32_t	home;		// RR to proc's home node and addr
 #endif
 #endif	// LAB >= 3
 } proc;
