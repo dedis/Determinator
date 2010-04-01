@@ -78,3 +78,13 @@ through the interrupt.
 - Move #if SOL down below the asserts at the beginning of setperm(),
   to make the function's API clearer (especially for the 'perm' arg).
 
+- Add an explicit state/type field to struct pageinfo that can distinguish:
+	- free pages
+	- pages permanently reserved/unused/invalid
+	- pages allocated for user data
+	- pages allocated as page tables
+	- pages allocated as page directories
+	- pages allocated as processes
+	- pages allocated as CPUs
+	- ...
+

@@ -40,8 +40,10 @@
 #define SYS_READ	0x00000200	// Read permission (NB: in PTE_AVAIL)
 #define SYS_WRITE	0x00000400	// Write permission (NB: in PTE_AVAIL)
 #define SYS_RW		0x00000600	// Both read and write permission
+#if LAB >= 99
 #define SYS_EXEC	0x00000800	// Execute permission (NB: in PTE_AVAIL)
 #define SYS_RWX		0x00000e00	// Read, write, and execute permission
+#endif
 #endif	// LAB >= 3
 
 
@@ -53,7 +55,12 @@
 
 // Register conventions on GET/PUT system call entry:
 //	EAX:	System call command/flags (SYS_*)
-//	EDX:	0-7:	Child process number to get/put
+#if LAB >= 5
+//	EDX:	bits 15-8: Node number to migrate to, 0 for current
+//		bits 7-0: Child process number on above node to get/put
+#else
+//	EDX:	bits 7-0: Child process number to get/put
+#endif
 #if LAB >= 99
 //		8-15:	if SYS_PROC: process number in child to copy
 //		16-23:	if SYS_PROC: process number in parent to copy
@@ -76,9 +83,9 @@ typedef struct cpustate {
 
 // Prototypes for user-level syscalls stubs defined in lib/syscall.c
 void sys_cputs(const char *s);
-void sys_put(uint32_t flags, uint8_t child, cpustate *cpu,
+void sys_put(uint32_t flags, uint16_t child, cpustate *cpu,
 		void *localsrc, void *childdest, size_t size);
-void sys_get(uint32_t flags, uint8_t child, cpustate *cpu,
+void sys_get(uint32_t flags, uint16_t child, cpustate *cpu,
 		void *childsrc, void *localdest, size_t size);
 void sys_ret(void);
 

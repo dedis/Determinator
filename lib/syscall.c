@@ -26,7 +26,7 @@ sys_cputs(const char *s)
 }
 
 void
-sys_put(uint32_t flags, uint8_t child, cpustate *cpu,
+sys_put(uint32_t flags, uint16_t child, cpustate *cpu,
 		void *localsrc, void *childdest, size_t size)
 {
 	asm volatile("int %0" :
@@ -41,7 +41,7 @@ sys_put(uint32_t flags, uint8_t child, cpustate *cpu,
 }
 
 void
-sys_get(uint32_t flags, uint8_t child, cpustate *cpu,
+sys_get(uint32_t flags, uint16_t child, cpustate *cpu,
 		void *childsrc, void *localdest, size_t size)
 {
 	asm volatile("int %0" :

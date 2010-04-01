@@ -7,6 +7,9 @@
 # error "This is a kernel header; user programs should not #include it"
 #endif
 
+#include <inc/trap.h>
+
+
 // Ethernet header
 typedef struct net_ethhdr {
 	uint8_t		dst[6];		// Destination MAC address
@@ -63,49 +66,66 @@ typedef struct net_dhcphdr {
 // Message types
 typedef enum net_msgtype {
 	NET_INVALID	= 0,
+#if LAB >= 99
 	NET_STATUS,		// Message announcing our existence and status
-	NET_MIGRATEREQ,
-	NET_MIGRATEREPLY,
-	NET_FAULTREQ,
-	NET_FAULTREPLY,
+#endif
+	NET_MIGRQ,		// Migrate request
+	NET_MIGRP,		// Migrate reply
+	NET_FAULTRQ,		// Fault request
+	NET_FAULTRP,		// Fault reply
 } net_msgtype;
 
+#if LAB >= 99
 typedef struct net_statusmsg {
 	net_ethhdr	eth;
 	net_msgtype	type;	// = NET_STATUS
 	int		load;	// number of procs in our ready queue
 };
 
-typedef struct net_migratereq {
+#endif
+typedef struct net_migrq {
 	net_ethhdr	eth;
-	net_msgtype	type;	// = NET_MIGRATEREQ
+	net_msgtype	type;	// = NET_MIGRQ
 	uint32_t	proc;	// Origin node and addr in origin of proc
 	trapframe	tf;	// general registers
 	fxsave		fx;	// FPU/MMX/XMM state
-};
+} net_migrq;
 
-typedef struct net_migreatreply {
+typedef struct net_migrp {
 	net_ethhdr	eth;
-	net_msgtype	type;	// = NET_MIGRATEREPLY
+	net_msgtype	type;	// = NET_MIGRP
 	int		orig;	// Origin node number
 	uint32_t	proc;	// Phys addr of proc struct on origin node
-};
+} net_migrp;
 
-typedef struct net_faultreq {
+// Pull a page from a remote node
+typedef struct net_pullrq {
 	net_ethhdr	eth;
-	net_msgtype	type;	// = NET_FAULTREQ
+	net_msgtype	type;	// = NET_PULLRQ
 	int		orig;	// Origin node number
 	uint32_t	proc;	// Phys addr of page on origin node
-};
+} net_pullrq;
 
-typedef struct net_faultreply {
+// Page pull reply - 3 required per page, to fit in Ethernet packet size.
+#define NET_PULL_PARTSIZE	1368	// 1368*3 ~~ 4096
+typedef struct net_pullrp {
 	net_ethhdr	eth;
-	net_msgtype	type;	// = NET_FAULTREPLY
+	net_msgtype	type;	// = NET_PULLRP
 	int		orig;	// Origin node number
 	uint32_t	proc;	// Phys addr of page on origin node
 	int		part;	// Which part of the page this is: 0, 1, or 2
-	char		data[1400];
-};
+	char		data[1368];
+} net_pullrp;
+
+
+// 32-bit remote reference layout.
+// Note that bit 0, corresponding to PTE_P, must always be zero,
+// so that an RR can coexist with local page refs in page dirs & ptables.
+#define RR_ADDR		0xfffff000	// Page's physical address on home node
+#define RR_REMOTE	0x00000800	// Set to distinguish from a local ref
+#define RR_RW		0x00000600	// Nominal perms for mapping (=SYS_RW)
+#define RR_HOME		0x000001fe	// 8-bit home node
+#define RR_HOMESHIFT		1	// Home node field starts at bit 1
 
 
 void net_init(void);

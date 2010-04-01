@@ -36,6 +36,12 @@
 typedef struct pageinfo {
 	struct pageinfo	*free_next;	// Next page number on free list
 	int32_t	refcount;		// Reference count on allocated pages
+#if LAB >= 5
+	uint32_t distref;		// Page's home node and physaddr
+	uint32_t sharemask;		// Other nodes I've given distrefs to
+	struct pageinfo *homelist;	// My pages with homes at this physaddr
+	struct pageinfo *homenext;	// Next pointer on homelist
+#endif
 } pageinfo;
 
 
