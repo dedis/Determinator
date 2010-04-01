@@ -22,6 +22,6 @@ all: obj/host/matmult obj/host/microbench
 $(OBJDIR)/host/%: user/%.c lib/thread.c
 	@echo + ld $@
 	$(V)mkdir -p $(OBJDIR)/host
-	$(V)gcc -m32 -O2 -o $@ -I$(TOP) $^
+	$(V)gcc -m32 -O2 -o $@ -I$(TOP) $^ -lpthread
 #endif
 endif
