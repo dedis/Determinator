@@ -181,6 +181,8 @@ int e100_tx(void *hdr, int hlen, void *body, int blen)
 	assert(hlen + blen <= NET_MAXPKT);
 	int i;
 
+	cprintf("e100_tx: hdr %d body %d tot %d\n", hlen, blen, hlen+blen);
+
 	if (the_e100.tx_head - the_e100.tx_tail == E100_TX_SLOTS) {
 		warn("e100_tx: no transmit buffers");
 		return 0;
@@ -193,7 +195,7 @@ int e100_tx(void *hdr, int hlen, void *body, int blen)
 	memcpy(the_e100.tx[i].buf+hlen, body, blen);
 
 	// Set up the transmit command block
-	the_e100.tx[i].tcb.tbd_number = hlen + blen;
+	the_e100.tx[i].tcb.byte_count = 0x8000 | (hlen + blen);
 	the_e100.tx[i].tcb.cb_status = 0;
 	the_e100.tx[i].tcb.cb_command = E100_CB_COMMAND_XMIT |
 		E100_CB_COMMAND_I | E100_CB_COMMAND_S;
@@ -223,6 +225,7 @@ static void e100_intr_tx(void)
 {
 	int i;
 
+	cprintf("e100_intr_tx\n");
 	// Bump tx_tail past all transmit commands that have completed
 	for (; the_e100.tx_head != the_e100.tx_tail; the_e100.tx_tail++) {
 		i = the_e100.tx_tail % E100_TX_SLOTS;
@@ -236,6 +239,7 @@ static void e100_intr_rx(void)
 	int *count;
 	int i;
 
+	cprintf("e100_intr_rx\n");
 	for (; ; the_e100.rx_tail++) {
 		i = the_e100.rx_tail % E100_RX_SLOTS;
 
@@ -259,10 +263,11 @@ static void e100_intr_rx(void)
 void e100_intr(void)
 {
 	int r;
-	
+
+	cprintf("e100_intr\n");
 	r = inb(the_e100.iobase + E100_CSR_SCB_STATACK);
 	outb(the_e100.iobase + E100_CSR_SCB_STATACK, r);
-	
+
 	if (r & (E100_SCB_STATACK_CXTNO | E100_SCB_STATACK_CNA)) {
 		r &= ~(E100_SCB_STATACK_CXTNO | E100_SCB_STATACK_CNA);
 		e100_intr_tx();
@@ -352,7 +357,7 @@ int e100_attach(struct pci_func *pcif)
 		memset(&the_e100.tx[i], 0, sizeof(the_e100.tx[i]));
 		the_e100.tx[i].tcb.link_addr = mem_phys(&the_e100.tx[next].tcb);
 		the_e100.tx[i].tcb.tbd_array_addr = ~0;
-		the_e100.tx[i].tcb.tbd_number = 1;
+		the_e100.tx[i].tcb.tbd_number = 0;
 		the_e100.tx[i].tcb.tx_threshold = 4;
 	}
 

@@ -45,9 +45,11 @@ static char gcc_aligned(16) user_stack[PAGESIZE];
 #ifndef ROOTEXE_START
 #if LAB == 3
 #define ROOTEXE_START _binary_obj_user_testvm_start
-#elif LAB >= 4
+#elif LAB == 4
 #define ROOTEXE_START _binary_obj_user_testfs_start
-#endif // LAB >= 4
+#elif LAB >= 5
+#define ROOTEXE_START _binary_obj_user_sh_start
+#endif // LAB >= 5
 #endif
 extern char ROOTEXE_START[];
 

@@ -9,18 +9,21 @@
 
 #include <inc/gcc.h>
 #include <inc/trap.h>
+#include <inc/syscall.h>
 
 
 // Ethernet header
 typedef struct net_ethhdr {
 	uint8_t		dst[6];		// Destination MAC address
 	uint8_t		src[6];		// Source MAC address
-	uint16_t	etype;		// Ethernet packet type
+	uint16_t	type;		// Ethernet packet type
 } net_ethhdr;
 
 #define NET_ETYPE_IP	0x0800		// Ethernet packet type for IPv4
 
 #define NET_MAXPKT	1514		// Max Ethernet packet size
+
+#define NET_MAXNODES	32		// Max number of nodes in system
 
 #if LAB >= 99
 // Internet Protocol (IP) header - see RFC791
@@ -76,29 +79,27 @@ typedef enum net_msgtype {
 	NET_FAULTRP,		// Fault reply
 } net_msgtype;
 
-#if LAB >= 99
-typedef struct net_statusmsg {
-	net_ethhdr	eth;
-	net_msgtype	type;	// = NET_STATUS
-	int		load;	// number of procs in our ready queue
-};
+// Minimal packet header for all our network messages
+typedef struct net_hdr {
+	net_ethhdr	eth;	// Ethernet header always comes first
+	net_msgtype	type;	// Message request/response type
+} net_hdr;
 
-#endif
 typedef struct net_migrq {
 	net_ethhdr	eth;
 	net_msgtype	type;	// = NET_MIGRQ
-	uint32_t	proc;	// Origin node and addr in origin of proc
-	trapframe	tf;	// general registers
-	fxsave		fx;	// FPU/MMX/XMM state
+	uint32_t	home;	// Remote ref for proc's home node & physaddr
+	uint32_t	pdir;	// Remote ref for proc's page directory
+	cpustate	cpu;	// Process's CPU state
 } net_migrq;
 
 typedef struct net_migrp {
 	net_ethhdr	eth;
 	net_msgtype	type;	// = NET_MIGRP
-	int		orig;	// Origin node number
-	uint32_t	proc;	// Phys addr of proc struct on origin node
+	uint32_t	home;	// Remote ref for proc being acknowledged
 } net_migrp;
 
+#if LAB >= 99
 // Pull a page from a remote node
 typedef struct net_pullrq {
 	net_ethhdr	eth;
@@ -108,7 +109,7 @@ typedef struct net_pullrq {
 } net_pullrq;
 
 // Page pull reply - 3 required per page, to fit in Ethernet packet size.
-#define NET_PULL_PARTSIZE	1368	// 1368*3 ~~ 4096
+#define NET_PULL_PARTSIZE	1368	// 1368*3 >= 4096
 typedef struct net_pullrp {
 	net_ethhdr	eth;
 	net_msgtype	type;	// = NET_PULLRP
@@ -117,6 +118,7 @@ typedef struct net_pullrp {
 	int		part;	// Which part of the page this is: 0, 1, or 2
 	char		data[1368];
 } net_pullrp;
+#endif
 
 
 // 32-bit remote reference layout.

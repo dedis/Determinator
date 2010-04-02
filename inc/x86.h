@@ -354,8 +354,8 @@ bswap(uint32_t v)
 }
 
 // Host/network byte-order conversion for x86
-#define htons(v)	(((uint16_t)(v) >> 8) | ((v) << 8))
-#define ntohs(v)	(((uint16_t)(v) >> 8) | ((v) << 8))
+#define htons(v)	(((uint16_t)(v) >> 8) | (uint16_t)((v) << 8))
+#define ntohs(v)	(((uint16_t)(v) >> 8) | (uint16_t)((v) << 8))
 #define htonl(v)	bswap(v)
 #define ntohl(v)	bswap(v)
 

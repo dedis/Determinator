@@ -22,6 +22,10 @@ typedef enum proc_state {
 	PROC_READY,		// Scheduled to run but not running now
 	PROC_RUN,		// Running on some CPU
 	PROC_WAIT,		// Waiting to synchronize with child
+#if LAB >= 5
+	PROC_MIGR,		// Migrating to another node
+	PROC_AWAY,		// Migrated to another node
+#endif
 } proc_state;
 
 // Thread control block structure.
@@ -53,6 +57,8 @@ typedef struct proc {
 
 	// Network and progress migration state.
 	uint32_t	home;		// RR to proc's home node and addr
+	uint32_t	rrpdir;		// RR to migration source's page dir
+	struct proc	*migrnext;	// Next on list of migrating procs
 #endif
 #endif	// LAB >= 3
 } proc;

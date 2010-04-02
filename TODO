@@ -88,3 +88,10 @@ through the interrupt.
 	- pages allocated as CPUs
 	- ...
 
+- scrub contents of all pages immediately on free?
+
+- give them the syscall work function skeletons;
+  make sure that child number is extracted from regs as a uint8_t?
+
+- Add a checksum of some kind to all the initial files,
+  and check them in testfs?

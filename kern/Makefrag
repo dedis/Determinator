@@ -44,19 +44,6 @@ KERN_SRCFILES :=	kern/entry.S \
 # Build files only if they exist.
 KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
 
-ifdef LAB5
-# Files in 'user' directory to comprise the kernel's initial file system.
-KERN_INITFILES :=	sh \
-			ls \
-			echo \
-			cat \
-			wc \
-
-# Binary program images to embed within the kernel.
-KERN_BINFILES :=	boot/bootother \
-			user/testfs \
-			$(patsubst %,user/%,$(KERN_INITFILES))
-else
 ifdef LAB4
 # Files in 'user' directory to comprise the kernel's initial file system.
 KERN_INITFILES :=	sh \
@@ -64,22 +51,22 @@ KERN_INITFILES :=	sh \
 			echo \
 			cat \
 			wc \
+			testfs
+endif
+ifdef LAB5
+KERN_INITFILES +=	testmigr
+endif
 
 # Binary program images to embed within the kernel.
-KERN_BINFILES :=	boot/bootother \
-			user/testfs \
-			$(patsubst %,user/%,$(KERN_INITFILES))
-else
-ifdef LAB3
-KERN_BINFILES :=	boot/bootother \
-			user/testvm
-else
 ifdef LAB2
 KERN_BINFILES :=	boot/bootother
-endif	# not LAB2
-endif	# not LAB3
-endif	# not LAB4
-endif	# not LAB5
+endif
+ifdef LAB3
+KERN_BINFILES +=	user/testvm
+endif
+ifdef LAB4
+KERN_BINFILES +=	$(patsubst %,user/%,$(KERN_INITFILES))
+endif
 
 KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))
 KERN_OBJFILES := $(patsubst %.S, $(OBJDIR)/%.o, $(KERN_OBJFILES))
