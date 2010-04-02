@@ -276,7 +276,13 @@ void mem_rrtrack(uint32_t rr, pageinfo *pi)
 	uint32_t addr = RRADDR(rr);
 	pageinfo *hpi = mem_phys2pi(addr);
 	assert(hpi > &mem_pageinfo[1] && hpi < &mem_pageinfo[mem_npage]);
-	assert(mem_rrlookup(rr) == NULL);	// shouldn't already be there!
+
+	// Quick scan just to make sure it's not already there - shouldn't be!
+	pageinfo *spi;
+	for (spi = hpi->homelist; spi != NULL; spi = spi->homenext) {
+		assert(RRADDR(spi->home) == addr);
+		assert(spi->home != rr);
+	}
 
 	// Insert the new page at the head of the appropriate homelist
 	pi->home = rr;

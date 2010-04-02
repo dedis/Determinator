@@ -64,7 +64,7 @@ net_rx(void *pkt, int len)
 		warn("net_rx: stray packet received for someone else");
 		return;	// drop
 	}
-	if (memcpy(h->eth.src, net_mac, 5) != 0		// from a node we know?
+	if (memcmp(h->eth.src, net_mac, 5) != 0		// from a node we know?
 			|| h->eth.src[5] < 1 || h->eth.src[5] > NET_MAXNODES) {
 		warn("net_rx: stray packet received from outside cluster");
 		return; // drop

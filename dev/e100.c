@@ -112,8 +112,7 @@ struct e100_tx_slot {
 
 struct e100_rx_slot {
 	struct e100_rfd rfd;	// Receive frame descriptor
-	struct e100_rbd rbd;	// Receive buffer descriptor
-	char buf[NET_MAXPKT];	// Buffer
+	char buf[NET_MAXPKT];	// Buffer - right after rfd in simplified mode
 };
 
 static struct {
@@ -185,7 +184,7 @@ int e100_tx(void *hdr, int hlen, void *body, int blen)
 	assert(hlen + blen <= NET_MAXPKT);
 	int i;
 
-	cprintf("e100_tx: hdr %d body %d tot %d\n", hlen, blen, hlen+blen);
+	//cprintf("e100_tx: hdr %d body %d tot %d\n", hlen, blen, hlen+blen);
 
 	if (the_e100.tx_head - the_e100.tx_tail == E100_TX_SLOTS) {
 		warn("e100_tx: no transmit buffers");
@@ -230,7 +229,6 @@ static void e100_intr_tx(void)
 {
 	int i;
 
-	cprintf("e100_intr_tx\n");
 	// Bump tx_tail past all transmit commands that have completed
 	for (; the_e100.tx_head != the_e100.tx_tail; the_e100.tx_tail++) {
 		i = the_e100.tx_tail % E100_TX_SLOTS;
@@ -244,18 +242,24 @@ static void e100_intr_rx(void)
 	int *count;
 	int i;
 
-	cprintf("e100_intr_rx\n");
 	for (; ; the_e100.rx_tail++) {
 		i = the_e100.rx_tail % E100_RX_SLOTS;
 
 		if (!(the_e100.rx[i].rfd.status & E100_RFA_STATUS_C))
 			break;	// We've processed all received packets
 
-cprintf("status %x actual %x count %x\n", the_e100.rx[i].rfd.status,
-	the_e100.rx[i].rfd.actual, the_e100.rx[i].rbd.rbd_count);
+#if LAB >= 99
+cprintf("status %x actual %d count %x\n", the_e100.rx[i].rfd.status,
+	the_e100.rx[i].rfd.actual);
+int j;
+for (j = 0; j < the_e100.rx[i].rfd.actual; j++) {
+	cprintf(" %02x", (uint8_t)the_e100.rx[i].buf[j]);
+	if ((j % 16) == 15) cprintf("\n");
+}
+#endif
 		// Dispatch the received packet to our network stack.
 		if (the_e100.rx[i].rfd.status & E100_RFA_STATUS_OK) {
-			int len = the_e100.rx[i].rbd.rbd_count & E100_SIZE_MASK;
+			int len = the_e100.rx[i].rfd.actual & E100_SIZE_MASK;
 			net_rx(the_e100.rx[i].buf, len);
 		} else
 			warn("e100: packet receive error: %x",
@@ -271,8 +275,8 @@ void e100_intr(void)
 {
 	int r;
 
-	cprintf("e100_intr\n");
 	r = inb(the_e100.iobase + E100_CSR_SCB_STATACK);
+	//cprintf("e100_intr status %x\n", r);
 	outb(the_e100.iobase + E100_CSR_SCB_STATACK, r);
 
 	if (r & (E100_SCB_STATACK_CXTNO | E100_SCB_STATACK_CNA)) {
@@ -288,9 +292,9 @@ void e100_intr(void)
 	if (r & E100_SCB_STATACK_RNR) {
 		r &= ~E100_SCB_STATACK_RNR;
 		the_e100.rx_idle = 1;
-		e100_rx_start();
 		cprintf("e100_intr: RNR interrupt, no RX bufs?\n");
 	}
+	e100_rx_start();
 
 	if (r)
 		cprintf("e100_intr: unhandled STAT/ACK %x\n", r);
@@ -372,15 +376,10 @@ int e100_attach(struct pci_func *pcif)
 	for (i = 0; i < E100_RX_SLOTS; i++) {
 		next = (i + 1) % E100_RX_SLOTS;
 		memset(&the_e100.rx[i], 0, sizeof(the_e100.rx[i]));
-		the_e100.rx[i].rfd.control = 
-			E100_RFA_CONTROL_SF | E100_RFA_CONTROL_S;
+		the_e100.rx[i].rfd.control = E100_RFA_CONTROL_S;
 		the_e100.rx[i].rfd.status = 0;
+		the_e100.rx[i].rfd.size = NET_MAXPKT;
 		the_e100.rx[i].rfd.link_addr = mem_phys(&the_e100.rx[next].rfd);
-		the_e100.rx[i].rfd.rbd_addr = mem_phys(&the_e100.rx[i].rbd);
-		the_e100.rx[i].rbd.rbd_link = mem_phys(&the_e100.rx[next].rbd);
-		the_e100.rx[i].rbd.rbd_buffer = mem_phys(&the_e100.rx[i].buf);
-		the_e100.rx[i].rbd.rbd_size = NET_MAXPKT;
-		the_e100.rx[i].rbd.rbd_count = 0x8765;
 	}
 
 	// Determine the EEPROM's size (number of address bits)
