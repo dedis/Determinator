@@ -17,12 +17,13 @@ uint8_t net_mac[6];	// My MAC address from the Ethernet card
 spinlock net_lock;
 proc *net_migrlist;	// List of currently migrating processes
 
-#define NET_ETHERTYPE	9876	// Claim this ethertype for our packets
+#define NET_ETHERTYPE	0x9876	// Claim this ethertype for our packets
 
 
+void net_txmigrq(proc *p);
 void net_rxmigrq(net_migrq *migrq);
-void net_rxmigrp(net_migrp *migrp);
 void net_txmigrp(uint8_t dstnode, uint32_t prochome);
+void net_rxmigrp(net_migrp *migrp);
 
 void
 net_init(void)
@@ -41,7 +42,8 @@ net_init(void)
 static void
 net_ethsetup(net_ethhdr *eth, uint8_t destnode)
 {
-	assert(destnode != 0 && destnode != net_node);
+	assert(destnode > 0 && destnode < NET_MAXNODES);
+	assert(destnode != net_node);	// soliloquy isn't a virtue here
 
 	memcpy(eth->dst, net_mac, 6);	eth->dst[5] = destnode;
 	memcpy(eth->src, net_mac, 6);
@@ -122,15 +124,6 @@ net_migrate(trapframe *tf, uint8_t dstnode)
 	assert(dstnode != 0 && dstnode != RRNODE(p->home));
 	cprintf("proc %x migrating to node %d\n", p, dstnode);
 
-	// Create and send a migrate request
-	net_migrq rq;
-	net_ethsetup(&rq.eth, dstnode);
-	rq.type = NET_MIGRQ;
-	rq.home = p->home;
-	rq.pdir = RRCONS(net_node, mem_phys(p->pdir));
-	rq.cpu.tf = p->tf;
-	rq.cpu.fx = p->fx;
-
 	// Account for the fact that we've shared this process,
 	// to make sure the remote refs it contains don't go away.
 	// (In the case of a proc it won't anyway, but just for consistency.)
@@ -139,17 +132,34 @@ net_migrate(trapframe *tf, uint8_t dstnode)
 	// Mark the process "migrated" and put it to sleep on the migrlist
 	spinlock_acquire(&net_lock);
 	assert(p->state == PROC_RUN);
+	assert(p->migrdest == 0);
 	assert(p->migrnext == NULL);
 	p->state = PROC_MIGR;
+	p->migrdest = dstnode;
 	p->migrnext = net_migrlist;
 	net_migrlist = p;
-	spinlock_release(&net_lock);
 
-	// Ship out the migrate request
-	net_tx(&rq, sizeof(rq), NULL, 0);
+	// Ship out a migrate request for this process
+	net_txmigrq(p);
+
+	spinlock_release(&net_lock);
 
 	// Go do something else
 	proc_sched();
+}
+
+void
+net_txmigrq(proc *p)
+{
+	// Create and send a migrate request
+	net_migrq rq;
+	net_ethsetup(&rq.eth, p->migrdest);
+	rq.type = NET_MIGRQ;
+	rq.home = p->home;
+	rq.pdir = RRCONS(net_node, mem_phys(p->pdir));
+	rq.cpu.tf = p->tf;
+	rq.cpu.fx = p->fx;
+	net_tx(&rq, sizeof(rq), NULL, 0);
 }
 
 // This gets called by net_rx() to process a received migrq packet.
@@ -220,6 +230,30 @@ void net_rxmigrp(net_migrp *migrp)
 	}
 
 	cprintf("net_rxmigrp: proc %x successfully migrated\n");
+	assert(p->migrdest != 0);
+	p->migrdest = 0;
+	p->migrnext = NULL;
+}
+
+// Called by trap() on every timer interrupt,
+// so that we can periodically retransmit lost packets.
+void
+net_tick()
+{
+	if (!cpu_onboot())
+		return;		// count only one CPU's ticks
+
+	static int tick;
+	if (++tick & 63)
+		return;
+
+	spinlock_acquire(&net_lock);
+	proc *p;
+	for (p = net_migrlist; p != NULL; p = p->migrnext) {
+		cprintf("retransmit migrq for %x\n", p);
+		net_txmigrq(p);
+	}
+	spinlock_release(&net_lock);
 }
 
 #endif // LAB >= 5

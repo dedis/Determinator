@@ -46,6 +46,7 @@ uint8_t e100_irq;
 
 // command flags
 #define E100_CB_COMMAND_SF		0x0008	// simple/flexible mode
+#define E100_CB_COMMAND_NC		0x0010	// insert CRC and source addr
 #define E100_CB_COMMAND_I		0x2000	// interrupt on completion
 #define E100_CB_COMMAND_S		0x4000	// suspend on completion
 
@@ -104,12 +105,15 @@ struct e100_rbd {
 
 struct e100_tx_slot {
 	struct e100_cb_tx tcb;	// Transmit command block
-	char buf[NET_MAXPKT];	// Buffer - must immediately follow TCB
+	struct e100_tbd tbd;	// Transmit buffer descriptor
+	struct e100_tbd unused;	// Some cards require a second "Extended TBD"
+	char buf[NET_MAXPKT];	// Buffer
 };
 
 struct e100_rx_slot {
 	struct e100_rfd rfd;	// Receive frame descriptor
-	char buf[NET_MAXPKT];	// Buffer - must immediately follow RFD
+	struct e100_rbd rbd;	// Receive buffer descriptor
+	char buf[NET_MAXPKT];	// Buffer
 };
 
 static struct {
@@ -195,10 +199,11 @@ int e100_tx(void *hdr, int hlen, void *body, int blen)
 	memcpy(the_e100.tx[i].buf+hlen, body, blen);
 
 	// Set up the transmit command block
-	the_e100.tx[i].tcb.byte_count = 0x8000 | (hlen + blen);
+	the_e100.tx[i].tbd.tb_addr = mem_phys(the_e100.tx[i].buf);
+	the_e100.tx[i].tbd.tb_size = hlen + blen;
 	the_e100.tx[i].tcb.cb_status = 0;
-	the_e100.tx[i].tcb.cb_command = E100_CB_COMMAND_XMIT |
-		E100_CB_COMMAND_I | E100_CB_COMMAND_S;
+	the_e100.tx[i].tcb.cb_command = E100_CB_COMMAND_XMIT
+		| E100_CB_COMMAND_SF | E100_CB_COMMAND_I | E100_CB_COMMAND_S;
 	the_e100.tx_head++;
 
 	e100_tx_start();
@@ -246,9 +251,11 @@ static void e100_intr_rx(void)
 		if (!(the_e100.rx[i].rfd.status & E100_RFA_STATUS_C))
 			break;	// We've processed all received packets
 
+cprintf("status %x actual %x count %x\n", the_e100.rx[i].rfd.status,
+	the_e100.rx[i].rfd.actual, the_e100.rx[i].rbd.rbd_count);
 		// Dispatch the received packet to our network stack.
 		if (the_e100.rx[i].rfd.status & E100_RFA_STATUS_OK) {
-			int len = the_e100.rx[i].rfd.actual & E100_SIZE_MASK;
+			int len = the_e100.rx[i].rbd.rbd_count & E100_SIZE_MASK;
 			net_rx(the_e100.rx[i].buf, len);
 		} else
 			warn("e100: packet receive error: %x",
@@ -356,8 +363,8 @@ int e100_attach(struct pci_func *pcif)
 		next = (i + 1) % E100_TX_SLOTS;
 		memset(&the_e100.tx[i], 0, sizeof(the_e100.tx[i]));
 		the_e100.tx[i].tcb.link_addr = mem_phys(&the_e100.tx[next].tcb);
-		the_e100.tx[i].tcb.tbd_array_addr = ~0;
-		the_e100.tx[i].tcb.tbd_number = 0;
+		the_e100.tx[i].tcb.tbd_array_addr = mem_phys(&the_e100.tx[i].tbd);
+		the_e100.tx[i].tcb.tbd_number = 1;
 		the_e100.tx[i].tcb.tx_threshold = 4;
 	}
 
@@ -365,10 +372,15 @@ int e100_attach(struct pci_func *pcif)
 	for (i = 0; i < E100_RX_SLOTS; i++) {
 		next = (i + 1) % E100_RX_SLOTS;
 		memset(&the_e100.rx[i], 0, sizeof(the_e100.rx[i]));
+		the_e100.rx[i].rfd.control = 
+			E100_RFA_CONTROL_SF | E100_RFA_CONTROL_S;
 		the_e100.rx[i].rfd.status = 0;
-		the_e100.rx[i].rfd.control = E100_RFA_CONTROL_S;
 		the_e100.rx[i].rfd.link_addr = mem_phys(&the_e100.rx[next].rfd);
-		the_e100.rx[i].rfd.size = NET_MAXPKT;
+		the_e100.rx[i].rfd.rbd_addr = mem_phys(&the_e100.rx[i].rbd);
+		the_e100.rx[i].rbd.rbd_link = mem_phys(&the_e100.rx[next].rbd);
+		the_e100.rx[i].rbd.rbd_buffer = mem_phys(&the_e100.rx[i].buf);
+		the_e100.rx[i].rbd.rbd_size = NET_MAXPKT;
+		the_e100.rx[i].rbd.rbd_count = 0x8765;
 	}
 
 	// Determine the EEPROM's size (number of address bits)
@@ -395,6 +407,9 @@ int e100_attach(struct pci_func *pcif)
 	// Enable network card interrupts
 	pic_enable(e100_irq);
 	ioapic_enable(e100_irq, 0);
+
+	// Start receiving packets
+	e100_rx_start();
 
 	return 1;
 }

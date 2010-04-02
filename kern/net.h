@@ -21,7 +21,7 @@ typedef struct net_ethhdr {
 
 #define NET_ETYPE_IP	0x0800		// Ethernet packet type for IPv4
 
-#define NET_MAXPKT	1514		// Max Ethernet packet size
+#define NET_MAXPKT	1514		// Max Ethernet packet size w/o csum
 
 #define NET_MAXNODES	32		// Max number of nodes in system
 
@@ -144,6 +144,7 @@ struct trapframe;
 
 void net_init(void);
 void net_rx(void *ethpkt, int len);
+void net_tick(void);
 void gcc_noreturn net_migrate(struct trapframe *tf, uint8_t node);
 
 #endif // !PIOS_KERN_NET_H

@@ -58,6 +58,7 @@ typedef struct proc {
 	// Network and progress migration state.
 	uint32_t	home;		// RR to proc's home node and addr
 	uint32_t	rrpdir;		// RR to migration source's page dir
+	uint8_t		migrdest;	// Destination we're migrating to
 	struct proc	*migrnext;	// Next on list of migrating procs
 #endif
 #endif	// LAB >= 3

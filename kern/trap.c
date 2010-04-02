@@ -226,6 +226,7 @@ trap(trapframe *tf)
 	case T_IRQ0 + IRQ_TIMER:
 		//cprintf("TIMER on %d\n", c->id);
 		lapic_eoi();
+		net_tick();
 		if (tf->tf_cs & 3)	// If in user mode, context switch
 			proc_yield(tf);
 		trap_return(tf);	// Otherwise, stay in idle loop
