@@ -25,6 +25,7 @@ typedef enum proc_state {
 #if LAB >= 5
 	PROC_MIGR,		// Migrating to another node
 	PROC_AWAY,		// Migrated to another node
+	PROC_PULL,		// Migrated to another node
 #endif
 } proc_state;
 
@@ -60,6 +61,14 @@ typedef struct proc {
 	uint32_t	rrpdir;		// RR to migration source's page dir
 	uint8_t		migrdest;	// Destination we're migrating to
 	struct proc	*migrnext;	// Next on list of migrating procs
+
+	// Remote reference pulling state.
+	struct proc	*pullnext;	// Next on list of page-pulling procs
+	uint32_t	pullva;		// Where we are pulling in our addr spc
+	uint32_t	pullrr;		// Current RR we are pulling
+	void		*pullpg;	// Local page we are pulling into
+	uint8_t		pglevel;	// 0=page, 1=page table, 2=pdir
+	uint8_t		arrived;	// Bits 0-2: which parts have arrived
 #endif
 #endif	// LAB >= 3
 } proc;

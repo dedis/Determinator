@@ -16,6 +16,7 @@ uint8_t net_mac[6];	// My MAC address from the Ethernet card
 
 spinlock net_lock;
 proc *net_migrlist;	// List of currently migrating processes
+proc *net_pulllist;	// List of processes currently pulling a page
 
 #define NET_ETHERTYPE	0x9876	// Claim this ethertype for our packets
 
@@ -24,6 +25,12 @@ void net_txmigrq(proc *p);
 void net_rxmigrq(net_migrq *migrq);
 void net_txmigrp(uint8_t dstnode, uint32_t prochome);
 void net_rxmigrp(net_migrp *migrp);
+
+void gcc_noreturn net_pull(proc *p, uint32_t rr, void *pg, int pglevel);
+void net_txpullrq(proc *p);
+void net_rxpullrq(net_pullrq *pullrq);
+void net_txpullrp(uint8_t dstnode, uint32_t prochome);
+void net_rxpullrp(net_pullrp *pullrp);
 
 void
 net_init(void)
@@ -88,6 +95,20 @@ net_rx(void *pkt, int len)
 		}
 		net_rxmigrp(pkt);
 		break;
+	case NET_PULLRQ:
+		if (len < sizeof(net_pullrq)) {
+			warn("net_rx: runt pull request (%d bytes)", len);
+			return;	// drop
+		}
+		net_rxpullrq(pkt);
+		break;
+	case NET_PULLRP:
+		if (len < sizeof(net_pullrp)) {
+			warn("net_rx: runt pull reply (%d bytes)", len);
+			return;	// drop
+		}
+		net_rxpullrp(pkt, len);
+		break;
 	default:
 		warn("net_rx: unrecognized message type %x", h->type);
 		return;
@@ -143,14 +164,15 @@ net_migrate(trapframe *tf, uint8_t dstnode)
 	net_txmigrq(p);
 
 	spinlock_release(&net_lock);
-
-	// Go do something else
-	proc_sched();
+	proc_sched();	// Go do something else
 }
 
 void
 net_txmigrq(proc *p)
 {
+	assert(p->state == PROC_MIGR);
+	assert(spinlock_holding(&net_lock));
+
 	// Create and send a migrate request
 	net_migrq rq;
 	net_ethsetup(&rq.eth, p->migrdest);
@@ -191,11 +213,15 @@ void net_rxmigrq(net_migrq *migrq)
 	p->tf = migrq->cpu.tf;
 	p->fx = migrq->cpu.fx;
 	p->rrpdir = migrq->pdir;
+	p->pullva = PROC_USERLO;	// pull from USERLO to USERHI
 
 	// Acknowledge the migration request so the source node stops resending
 	net_txmigrp(srcnode, p->home);
 
-	panic("XXX");
+	// Now we need to pull over the page directory next,
+	// before we can do anything else.
+	// Just pull it straight into our proc's page directory;
+	net_pull(p, p->rrpdir, p->pdir, 2);
 }
 
 // Transmit a migration reply to a given node, for a given proc's home RR
@@ -255,5 +281,153 @@ net_tick()
 	}
 	spinlock_release(&net_lock);
 }
+
+// Pull a page via a remote ref and put this process to sleep waiting for it.
+void gcc_noreturn
+net_pull(proc *p, uint32_t rr, void *pg, int pglevel)
+{
+	assert(p == proc_cur());
+	uint8_t dstnode = RRNODE(rr);
+	assert(dstnode > 0 && dstnode <= NET_MAXNODES && dstnode != net_node);
+	assert(pglevel >= 0 && pglevel <= 2);
+
+	spinlock_acquire(&net_lock);
+
+	assert(p->pullnext == NULL);
+	p->pullnext = net_pulllist);
+	net_pulllist = p;
+	p->state = PROC_PULL;
+	p->pullrr = rr;
+	p->pullpg = pg;
+	p->pglevel = pglevel;
+	p->arrived = 0;		// Bitmask of page parts that have arrived
+
+	// Ship out a pull request
+	net_txpullrq(p);
+
+	spinlock_release(&net_lock);
+	proc_sched();	// Go do something else
+}
+
+// Transmit a page pull request on behalf of some process.
+void
+net_txpullrq(proc *p)
+{
+	assert(p->state == PROC_PULL);
+	assert(spinlock_holding(&net_lock));
+
+	// Create and send a pull request
+	net_pullrq rq;
+	net_ethsetup(&rq.eth, RRNODE(p->pullrr));
+	rq.type = NET_PULLRQ;
+	rq.rr = p->pullrr;
+	net_tx(&rq, sizeof(rq), NULL, 0);
+}
+
+// Process a page pull request we've received.
+void
+net_rxpullrq(net_pullrq *rq)
+{
+	assert(rq->type == NET_PULLRQ);
+	uint8_t rqnode = rq->eth.src[5];
+	assert(rqnode > 0 && rqnode <= NET_MAXNODES && rqnode != net_node);
+
+	// Validate the requested node number and page address.
+	uint32_t rr = rq->rr;
+	if (RRNODE(rr) != net_node) {
+		warn("net_rxpullrq: pull request came to wrong node!?");
+		return;
+	}
+	uint32_t addr = RRADDR(rr);
+	pageinfo *pi = mem_phys2pi(addr);
+	if (pi <= &mem_pageinfo[0] || pi >= &mem_pageinfo[mem_npage]) {
+		warn("net_rxpullrq: pull request for invalid page %x", addr);
+		return;
+	}
+	if (pi->refcount == 0) {
+		warn("net_rxpullrq: pull request for free page %x", addr);
+		return;
+	}
+	if (pi->home != 0) {
+		warn("net_rxpullrq: pull request for unowned page %x", addr);
+		return;
+	}
+	void *pg = mem_ptr(pg);
+	cprintf("net_rxpullrq: %x", pg);
+
+	// OK, looks legit as far as we can tell.
+	// Send back the page contents in three parts,
+	// so that each part is small enough to fit in an Ethernet packet.
+	assert(NET_PULLPART0 == NET_PULLPART);
+	assert(NET_PULLPART1 == NET_PULLPART);
+	assert(NET_PULLPART2 <= NET_PULLPART);
+	net_pullrp rph;
+	net_ethsetup(&rph.eth, rqnode);
+	rph.type = NET_PULLRP;
+	rph.rr = rr;
+	rph.part = 0;
+	net_tx(&rph, sizeof(rph), pg+NET_PULLPART*0, NET_PULLPART0);
+	rph.part = 1;
+	net_tx(&rph, sizeof(rph), pg+NET_PULLPART*1, NET_PULLPART1);
+	rph.part = 2;
+	net_tx(&rph, sizeof(rph), pg+NET_PULLPART*2, NET_PULLPART2);
+
+	// Mark this page shared with the requesting node.
+	// (XXX might be necessarily only for pdir/ptab pages.)
+	assert(NET_MAXNODES <= sizeof(pi->shared)*8);
+	pi->shared |= 1 << (rqnode-1);
+}
+
+#if LAB >= 99
+void
+net_txpullrp(uint8_t dstnode, uint32_t prochome)
+{
+}
+
+#endif // LAB >= 99
+void
+net_rxpullrp(net_pullrphdr *rp, int len)
+{
+	static const int partlen[3] = {
+		NET_PULLPART0, NET_PULLPART1, NET_PULLPART2};
+
+	assert(rp->type == NET_PULLRP);
+
+	// Find the process waiting for this pull reply, if any.
+	spinlock_acquire(&net_lock);
+	proc *p;
+	for (p = net_pulllist; p != NULL; p = p->pullnext) {
+		assert(p->state == PROC_PULL);
+		if (p->pullrr == rp->rr)
+			break;
+	}
+	if (p == NULL) {
+		warn("net_rxpullrp: no process waiting for RR %x", rp->rr);
+		return spinlock_release(&net_lock);
+	}
+	if (rp->part < 0 || rp->part > 2) {
+		warn("net_rxpullrp: invalid part number %d", rp->part);
+		return spinlock_release(&net_lock);
+	}
+	if (p->arrived & (1 << rp->part)) {
+		warn("net_rxpullrp: part %d already arrived", rp->part);
+		return spinlock_release(&net_lock);
+	}
+	int datalen = len - sizeof(*rp);
+	if (datalen != partlen[rp->part]) {
+		warn("net_rxpullrp: part %d wrong size %d", rp->part, datalen);
+		return spinlock_release(&net_lock);
+	}
+
+	// If it's part of a page directory or page table,
+	// convert the sender's local PDEs/PTEs into remote refs.
+	if (p->pglevel > 0) {
+		uint32_t *pte = (uint32_t*)rp->data;
+		XXX maybe better just to do this on the source node...
+	}
+
+	spinlock_release(&net_lock);
+}
+
 
 #endif // LAB >= 5

@@ -99,26 +99,25 @@ typedef struct net_migrp {
 	uint32_t	home;	// Remote ref for proc being acknowledged
 } net_migrp;
 
-#if LAB >= 99
 // Pull a page from a remote node
 typedef struct net_pullrq {
 	net_ethhdr	eth;
 	net_msgtype	type;	// = NET_PULLRQ
-	int		orig;	// Origin node number
-	uint32_t	proc;	// Phys addr of page on origin node
+	uint32_t	rr;	// Remote ref to pdir, ptab, or page
 } net_pullrq;
 
 // Page pull reply - 3 required per page, to fit in Ethernet packet size.
-#define NET_PULL_PARTSIZE	1368	// 1368*3 >= 4096
-typedef struct net_pullrp {
+#define NET_PULLPART	1368		// 1368*3 >= 4096
+#define NET_PULLPART0	NET_PULLPART
+#define NET_PULLPART1	NET_PULLPART
+#define NET_PULLPART2	(PAGESIZE-NET_PULLPART0-NET_PULLPART1)
+typedef struct net_pullrphdr {
 	net_ethhdr	eth;
 	net_msgtype	type;	// = NET_PULLRP
-	int		orig;	// Origin node number
-	uint32_t	proc;	// Phys addr of page on origin node
+	uint32_t	rr;	// Remote reference
 	int		part;	// Which part of the page this is: 0, 1, or 2
-	char		data[1368];
-} net_pullrp;
-#endif
+	char		data[0]; // Variable-length payload follows pullrphdr
+} net_pullrphdr;
 
 
 // 32-bit remote reference layout.
