@@ -192,6 +192,7 @@ pmap_walk(pde_t *pdir, uint32_t va, bool writing)
 		for (i = 0; i < NPTENTRIES; i++) {
 			uint32_t pte = ptab[i];
 			nptab[i] = pte & ~PTE_W;
+			assert(PGADDR(pte) != 0);
 			if (PGADDR(pte) != PTE_ZERO)
 				mem_incref(mem_phys2pi(PGADDR(pte)));
 		}

@@ -145,8 +145,10 @@ void gcc_noinline
 net_migrate(trapframe *tf, uint8_t dstnode)
 {
 	proc *p = proc_cur();
-	assert(dstnode != 0 && dstnode != RRNODE(p->home));
-	cprintf("proc %x migrating to node %d\n", p, dstnode);
+	p->tf = *tf;		// Save proc's CPU state
+	assert(dstnode > 0 && dstnode <= NET_MAXNODES && dstnode != net_node);
+	//cprintf("proc %x at eip %x migrating to node %d\n",
+	//	p, p->tf.tf_eip, dstnode);
 
 	// Account for the fact that we've shared this process,
 	// to make sure the remote refs it contains don't go away.
@@ -177,7 +179,7 @@ net_txmigrq(proc *p)
 	assert(spinlock_holding(&net_lock));
 
 	// Create and send a migrate request
-	cprintf("net_txmigrq proc %x home %x pdir %x\n", p, p->home, p->pdir);
+	//cprintf("net_txmigrq proc %x home %x pdir %x\n", p, p->home, p->pdir);
 	net_migrq rq;
 	net_ethsetup(&rq.eth, p->migrdest);
 	rq.type = NET_MIGRQ;
@@ -195,14 +197,18 @@ void net_rxmigrq(net_migrq *migrq)
 	assert(srcnode > 0 && srcnode <= NET_MAXNODES);
 
 	// Do we already have a local proc corresponding to the remote one?
-	pageinfo *pi = mem_rrlookup(migrq->home);
-	proc *p = pi != NULL ? mem_pi2ptr(pi) : NULL;
+	proc *p = NULL;
+	if (RRNODE(migrq->home) == net_node) {	// Our proc returning home
+		p = mem_ptr(RRADDR(migrq->home));
+	} else {	// Someone else's proc - have we seen it before?
+		pageinfo *pi = mem_rrlookup(migrq->home);
+		p = pi != NULL ? mem_pi2ptr(pi) : NULL;
+	}
 	if (p == NULL) {
 		p = proc_alloc(NULL, 0);	// Allocate new "root proc"
 		p->state = PROC_AWAY;		// Pretend it's been away
 		p->home = migrq->home;
-		pi = mem_ptr2pi(p);
-		mem_rrtrack(migrq->home, pi);	// Track for future reference
+		mem_rrtrack(migrq->home, mem_ptr2pi(p)); // Track for future
 	}
 	assert(p->home == migrq->home);
 
@@ -221,6 +227,11 @@ void net_rxmigrq(net_migrq *migrq)
 
 	// Acknowledge the migration request so the source node stops resending
 	net_txmigrp(srcnode, p->home);
+
+	// Free the proc's old page directory and allocate a fresh one.
+	// (The old pdir will hang around until all shared copies disappear.)
+	mem_decref(mem_ptr2pi(p->pdir));
+	p->pdir = pmap_newpdir();	assert(p->pdir);
 
 	// Now we need to pull over the page directory next,
 	// before we can do anything else.
@@ -260,10 +271,11 @@ void net_rxmigrp(net_migrp *migrp)
 		return;	// drop packet
 	}
 
-	cprintf("net_rxmigrp: proc %x successfully migrated\n");
+	//cprintf("net_rxmigrp: proc %x successfully migrated\n");
 	assert(p->migrdest != 0);
 	p->migrdest = 0;
 	p->migrnext = NULL;
+	p->state = PROC_AWAY;
 }
 
 // Called by trap() on every timer interrupt,
@@ -300,10 +312,11 @@ net_tick()
 void
 net_pull(proc *p, uint32_t rr, void *pg, int pglevel)
 {
-	cprintf("net_pull: proc %x rr %x -> %x level %d\n",
-		p, rr, pg, pglevel);
+	//cprintf("net_pull: proc %x rr %x -> %x level %d\n",
+	//	p, rr, pg, pglevel);
 	uint8_t dstnode = RRNODE(rr);
-	assert(dstnode > 0 && dstnode <= NET_MAXNODES && dstnode != net_node);
+	assert(dstnode > 0 && dstnode <= NET_MAXNODES);
+	assert(dstnode != net_node);
 	assert(pglevel >= 0 && pglevel <= 2);
 
 	spinlock_acquire(&net_lock);
@@ -461,8 +474,8 @@ net_rxpullrp(net_pullrphdr *rp, int len)
 		if (p->pullrr == rp->rr)
 			break;
 	}
-	if (p == NULL) {
-		warn("net_rxpullrp: no process waiting for RR %x", rp->rr);
+	if (p == NULL) {	// Probably a duplicate due to retransmission
+		//warn("net_rxpullrp: no process waiting for RR %x", rp->rr);
 		return spinlock_release(&net_lock);
 	}
 	int part = rp->part;
@@ -517,6 +530,7 @@ net_rxpullrp(net_pullrphdr *rp, int len)
 			p->pullva = PTADDR(p->pullva + PTSIZE);
 			continue;
 		}
+		assert(PGADDR(*pde) != 0);
 		uint32_t *ptab = mem_ptr(PGADDR(*pde));
 
 		// Pull or traverse PTE to find page.
@@ -526,6 +540,7 @@ net_rxpullrp(net_pullrphdr *rp, int len)
 				return;	// Wait for the pull to complete.
 		}
 		assert(!(*pte & PTE_REMOTE));
+		assert(PGADDR(*pte) != 0);
 		p->pullva += PAGESIZE;	// Page is local - move to next.
 	}
 
@@ -543,36 +558,49 @@ net_pullpte(proc *p, uint32_t *pte, int pglevel)
 	uint32_t rr = *pte;
 	assert(rr & RR_REMOTE);
 
-	// Don't pull zero pages - just use our own copy instead.
+	// Don't pull zero pages - just use our own zero page.
 	if (RRADDR(rr) == 0) {
 		*pte = PTE_ZERO | (rr & RR_RW);
+		if (rr & SYS_READ)
+			*pte |= PTE_P | PTE_U;	// make it readable
+		return 1;
+	}
+
+	// If the RR is to OUR node, no need to pull it from anywhere!
+	if (RRNODE(rr) == net_node) {
+		//cprintf("net_pullpte: RR %x is ours\n", rr);
+		pageinfo *pi = mem_phys2pi(RRADDR(rr));
+		mem_incref(pi);
+		assert(pi->home == 0);		// We should be the origin
+		assert(pi->shared != 0);	// but we must have shared it!
+		*pte = mem_pi2phys(pi) | (rr & RR_RW);
+		ptefixed:
 		if (pglevel > PGLEV_PAGE || rr & SYS_READ)
 			*pte |= PTE_P | PTE_U;	// make it readable
 		return 1;
 	}
-	//cprintf("net_pullpte proc %x rr %x level %d\n", p, rr, pglevel);
 
 	// If we already have a copy of the page, just reuse it.
 	pageinfo *pi = mem_rrlookup(rr);
 	if (pi != NULL) {
-		cprintf("net_pullpte: already have RR %x\n", rr);
+		//cprintf("net_pullpte: already have RR %x\n", rr);
 		assert(pi->home == rr);
 		assert(pi->shared != 0);
 		*pte = mem_pi2phys(pi) | (rr & RR_RW);
-		if (pglevel > PGLEV_PAGE || rr & SYS_READ)
-			*pte |= PTE_P | PTE_U;	// make it readable
-		return 1;
+		goto ptefixed;
 	}
 
 	// Allocate a page to pull into, and replace the pte with that.
 	pi = mem_alloc(); assert(pi != NULL);
+	mem_incref(pi);
 	*pte = mem_pi2phys(pi) | (rr & RR_RW);
 	if (pglevel > PGLEV_PAGE || rr & SYS_READ)
 		*pte |= PTE_P | PTE_U;	// make it readable (but read-only)
 
-	pi->home = rr;			// remember where it came from
+	mem_rrtrack(rr, pi);		// Track page's origin for future reuse
 	pi->shared = 1 << (RRNODE(rr) - 1);	// and that it's shared
 	assert(pi->shared != 0);
+	assert(pi->home == rr);
 
 	net_pull(p, rr, mem_pi2ptr(pi), pglevel);	// go pull the page
 	return 0;	// Now must wait for pull to complete.

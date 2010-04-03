@@ -16,6 +16,8 @@ main()
 	migrate(1);
 	migrate(2);
 	migrate(1);
+	migrate(2);
+	migrate(1);
 	cprintf("testmigr done\n");
 	return 0;
 }
