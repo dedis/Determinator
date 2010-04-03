@@ -16,6 +16,9 @@
 #if LAB >= 3
 #include <kern/pmap.h>
 #endif
+#if LAB >= 5
+#include <kern/net.h>
+#endif
 
 #include <dev/timer.h>
 #include <dev/lapic.h>
@@ -23,7 +26,10 @@
 #include <dev/kbd.h>
 #include <dev/serial.h>
 #endif
+#if LAB >= 5
+#include <dev/e100.h>
 #endif
+#endif // LAB >= 2
 
 
 // Interrupt descriptor table.  Must be built at run time because
@@ -228,6 +234,9 @@ trap(trapframe *tf)
 		lapic_eoi();
 		uint64_t t = timer_read(); // update PIT count high bits
 		//cprintf("LTIMER on %d: %lld\n", c->id, (long long)t);
+#if SOL >= 5
+		net_tick();
+#endif
 		if (tf->tf_cs & 3)	// If in user mode, context switch
 			proc_yield(tf);
 		trap_return(tf);	// Otherwise, stay in idle loop
@@ -247,7 +256,7 @@ trap(trapframe *tf)
 	case T_IRQ0 + IRQ_IDE:
 		lapic_eoi();
 		ide_intr();
-		break;
+		trap_return(tf);
 #endif
 	case T_IRQ0 + IRQ_SPURIOUS:
 		cprintf("cpu%d: spurious interrupt at %x:%x\n",
@@ -255,8 +264,24 @@ trap(trapframe *tf)
 		trap_return(tf); // Note: no EOI (see Local APIC manual)
 		break;
 	}
-	if (tf->tf_cs & 3)	// Unhandled trap from user mode
-		proc_ret(tf);	// Reflect to parent process
+#if SOL >= 5
+	if (tf->tf_trapno == T_IRQ0 + e100_irq) {
+		lapic_eoi();
+		e100_intr();
+		trap_return(tf);
+	}
+	if (tf->tf_cs & 3) {	// Unhandled trap from user mode
+		// First migrate to our home node if we're not already there.
+		proc *p = proc_cur();
+		if (net_node != RRNODE(p->home))
+			net_migrate(tf, RRNODE(p->home));
+		proc_ret(tf);	// Reflect trap to parent process
+	}
+#else // ! SOL >= 5
+	if (tf->tf_cs & 3) {	// Unhandled trap from user mode
+		proc_ret(tf);	// Reflect trap to parent process
+	}
+#endif // ! SOL >= 5
 
 #if SOL >= 2	// XXX just give out this code incl. the cons_lock!
 	// If we panic while holding the console lock,

@@ -85,8 +85,9 @@ QEMU := $(shell if which qemu > /dev/null; \
 	echo "***" 1>&2; exit 1)
 endif
 
-# try to generate a unique GDB port
+# try to generate unique GDB and network port numbers
 GDBPORT	:= $(shell expr `id -u` % 5000 + 25000)
+NETPORT := $(shell expr `id -u` % 5000 + 30000)
 
 # Correct option to enable the GDB stub and specify its port number to qemu.
 # First is for qemu versions <= 0.10, second is for later qemu versions.
@@ -290,19 +291,30 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
-ifdef LAB5
-IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
-QEMUOPTS = -smp 2 -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio
-else
 IMAGES = $(OBJDIR)/kern/kernel.img
 QEMUOPTS = -smp 8 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio -k en-us -m 2G
-endif  # LAB 5
+#QEMUNET = -net socket,mcast=230.0.0.1:$(NETPORT) -net nic,model=i82559er
+QEMUNET = -net nic,model=i82559er
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
+ifdef LAB5
+qemu: $(IMAGES)
+	@rm -f node?.dump
+	$(QEMU) $(QEMUOPTS) $(QEMUNET),macaddr=52:54:00:12:34:02 \
+		-net socket,listen=:$(NETPORT) -net dump,file=node2.dump \
+		</dev/null | sed -e 's/^/2: /g' &
+	@sleep 1
+	$(QEMU) $(QEMUOPTS) $(QEMUNET),macaddr=52:54:00:12:34:01 \
+		-net socket,connect=:$(NETPORT) -net dump,file=node1.dump
+else
 qemu: $(IMAGES)
 	$(QEMU) $(QEMUOPTS)
+endif
+#if LAB >= 5
+# qemu -net nic -net socket,mcast=230.0.0.1:1234
+#endif
 
 qemu-nox: $(IMAGES)
 	echo "*** Use Ctrl-a x to exit"

@@ -24,8 +24,8 @@
 .long MULTIBOOT_HEADER_FLAGS
 .long CHECKSUM
 
-.globl		start
-start:
+.globl		start,_start
+start: _start:
 	movw	$0x1234,0x472			# warm boot BIOS flag
 
 	# Clear the frame pointer register (EBP)
