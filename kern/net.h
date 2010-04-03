@@ -75,8 +75,8 @@ typedef enum net_msgtype {
 #endif
 	NET_MIGRQ,		// Migrate request
 	NET_MIGRP,		// Migrate reply
-	NET_FAULTRQ,		// Fault request
-	NET_FAULTRP,		// Fault reply
+	NET_PULLRQ,		// Page pull request
+	NET_PULLRP,		// Page pull reply
 } net_msgtype;
 
 // Minimal packet header for all our network messages
@@ -104,6 +104,8 @@ typedef struct net_pullrq {
 	net_ethhdr	eth;
 	net_msgtype	type;	// = NET_PULLRQ
 	uint32_t	rr;	// Remote ref to pdir, ptab, or page
+	uint8_t		pglev;	// 0=page, 1=page table, 2=page directory
+	uint8_t		need;	// Bits 2-0: which parts of page are needed
 } net_pullrq;
 
 // Page pull reply - 3 required per page, to fit in Ethernet packet size.
@@ -130,9 +132,16 @@ typedef struct net_pullrphdr {
 #define RR_HOMESHIFT		1	// Home node field starts at bit 1
 
 // Macros to construct and extract fields from remote refs
-#define RRCONS(node,addr)	(((addr) & RR_ADDR) | ((uint8_t)(node) << 1))
+#define RRCONS(node,addr,perm)	(RR_REMOTE | ((addr) & RR_ADDR) \
+				 | ((uint8_t)(node) << 1) | ((perm) & RR_RW))
 #define RRNODE(rr)		((uint8_t)((rr) >> RR_HOMESHIFT))
 #define RRADDR(rr)		((rr) & RR_ADDR)
+
+#define PTE_REMOTE	RR_REMOTE	// RRs can masquerade as PTEs
+
+#define PGLEV_PAGE		0	// Plain data page
+#define PGLEV_PTAB		1	// Page directory
+#define PGLEV_PDIR		2	// Page directory
 
 
 extern uint8_t net_node;	// My node number - from net_mac[5]

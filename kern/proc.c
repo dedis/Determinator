@@ -53,6 +53,7 @@ proc_alloc(proc *p, uint32_t cn)
 	pageinfo *pi = mem_alloc();
 	if (!pi)
 		return NULL;
+	mem_incref(pi);
 
 	proc *cp = (proc*)mem_pi2ptr(pi);
 	memset(cp, 0, sizeof(proc));
@@ -60,7 +61,7 @@ proc_alloc(proc *p, uint32_t cn)
 	cp->parent = p;
 	cp->state = PROC_STOP;
 #if LAB >= 5
-	cp->home = RRCONS(net_node, mem_phys(cp));
+	cp->home = RRCONS(net_node, mem_phys(cp), 0);
 #endif	// LAB >= 5
 
 	// register state

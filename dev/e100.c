@@ -6,6 +6,7 @@
 #include <inc/assert.h>
 
 #include <kern/mem.h>
+#include <kern/spinlock.h>
 #include <kern/net.h>
 
 #include <dev/pic.h>
@@ -116,15 +117,17 @@ struct e100_rx_slot {
 };
 
 static struct {
+	spinlock lock;
 	uint32_t iobase;
 
 	struct e100_tx_slot tx[E100_TX_SLOTS];
-	int tx_head;
-	int tx_tail;
+	int tx_head;	// Next slot we'll use to enqueue a tx packet
+	int tx_tail;	// Next slot e100 should transmit and mark complete
 	char tx_idle;
 
 	struct e100_rx_slot rx[E100_RX_SLOTS];
-	int rx_tail;
+	int rx_head;	// Next slot e100 should receive into and mark complete
+	int rx_tail;	// Last slot e100 can use before it must suspend
 	char rx_idle;
 
 	int eebits;
@@ -132,7 +135,7 @@ static struct {
 		uint8_t mac[6];
 		uint16_t mac16[3];
 	};
-} the_e100;
+} e100;
 
 
 static void udelay(unsigned int u)
@@ -148,7 +151,7 @@ e100_scb_wait(void)
 	int i;
 
 	for (i = 0; i < 100000; i++)
-		if (inb(the_e100.iobase + E100_CSR_SCB_COMMAND) == 0)
+		if (inb(e100.iobase + E100_CSR_SCB_COMMAND) == 0)
 			return;
 	
 	cprintf("e100_scb_wait: timeout\n");
@@ -157,22 +160,24 @@ e100_scb_wait(void)
 static void
 e100_scb_cmd(uint8_t cmd)
 {
-	outb(the_e100.iobase + E100_CSR_SCB_COMMAND, cmd);
+	outb(e100.iobase + E100_CSR_SCB_COMMAND, cmd);
 }
 
 static void e100_tx_start(void)
 {
-	int i = the_e100.tx_tail % E100_TX_SLOTS;
+	assert(spinlock_holding(&e100.lock));
 
-	if (the_e100.tx_tail == the_e100.tx_head)
+	int i = e100.tx_tail % E100_TX_SLOTS;
+
+	if (e100.tx_tail == e100.tx_head)
 		panic("oops, no TCBs");
 
-	if (the_e100.tx_idle) {
+	if (e100.tx_idle) {
 		e100_scb_wait();
-		outl(the_e100.iobase + E100_CSR_SCB_GENERAL, 
-		     mem_phys(&the_e100.tx[i].tcb));
+		outl(e100.iobase + E100_CSR_SCB_GENERAL, 
+		     mem_phys(&e100.tx[i].tcb));
 		e100_scb_cmd(E100_SCB_COMMAND_CU_START);
-		the_e100.tx_idle = 0;
+		e100.tx_idle = 0;
 	} else {
 		e100_scb_wait();
 		e100_scb_cmd(E100_SCB_COMMAND_CU_RESUME);
@@ -186,39 +191,53 @@ int e100_tx(void *hdr, int hlen, void *body, int blen)
 
 	//cprintf("e100_tx: hdr %d body %d tot %d\n", hlen, blen, hlen+blen);
 
-	if (the_e100.tx_head - the_e100.tx_tail == E100_TX_SLOTS) {
+	spinlock_acquire(&e100.lock);
+
+	if (e100.tx_head - e100.tx_tail == E100_TX_SLOTS) {
 		warn("e100_tx: no transmit buffers");
+		spinlock_release(&e100.lock);
 		return 0;
 	}
 
-	i = the_e100.tx_head % E100_TX_SLOTS;
+	i = e100.tx_head % E100_TX_SLOTS;
 
 	// Copy the packet header and body into the transmit buffer
-	memcpy(the_e100.tx[i].buf, hdr, hlen);
-	memcpy(the_e100.tx[i].buf+hlen, body, blen);
+	memcpy(e100.tx[i].buf, hdr, hlen);
+	memcpy(e100.tx[i].buf+hlen, body, blen);
+
+	// Compute the total packet length,
+	// accounting for Ethernet's 64-byte minimum.
+	// XXX include the 4-byte trailing CRC.
+	int len = MAX(hlen + blen, 64);
 
 	// Set up the transmit command block
-	the_e100.tx[i].tbd.tb_addr = mem_phys(the_e100.tx[i].buf);
-	the_e100.tx[i].tbd.tb_size = hlen + blen;
-	the_e100.tx[i].tcb.cb_status = 0;
-	the_e100.tx[i].tcb.cb_command = E100_CB_COMMAND_XMIT
+	e100.tx[i].tbd.tb_addr = mem_phys(e100.tx[i].buf);
+	e100.tx[i].tbd.tb_size = len;
+	e100.tx[i].tcb.cb_status = 0;
+	e100.tx[i].tcb.cb_command = E100_CB_COMMAND_XMIT
 		| E100_CB_COMMAND_SF | E100_CB_COMMAND_I | E100_CB_COMMAND_S;
-	the_e100.tx_head++;
+	e100.tx_head++;
 
 	e100_tx_start();
+
+	spinlock_release(&e100.lock);
 	return 1;
 }
 
 static void e100_rx_start(void)
 {
-	int i = the_e100.rx_tail % E100_RX_SLOTS;
+	assert(spinlock_holding(&e100.lock));
 
-	if (the_e100.rx_idle) {
+	int i = e100.rx_head % E100_RX_SLOTS;
+	if (e100.rx[i].rfd.status & E100_RFA_STATUS_C)
+		return;		// We haven't finished processing this RFD.
+
+	if (e100.rx_idle) {
 		e100_scb_wait();
-		outl(the_e100.iobase + E100_CSR_SCB_GENERAL, 
-		     mem_phys(&the_e100.rx[i].rfd));
+		outl(e100.iobase + E100_CSR_SCB_GENERAL, 
+		     mem_phys(&e100.rx[i].rfd));
 		e100_scb_cmd(E100_SCB_COMMAND_RU_START);
-		the_e100.rx_idle = 0;
+		e100.rx_idle = 0;
 	} else {
 		e100_scb_wait();
 		e100_scb_cmd(E100_SCB_COMMAND_RU_RESUME);
@@ -230,87 +249,124 @@ static void e100_intr_tx(void)
 	int i;
 
 	// Bump tx_tail past all transmit commands that have completed
-	for (; the_e100.tx_head != the_e100.tx_tail; the_e100.tx_tail++) {
-		i = the_e100.tx_tail % E100_TX_SLOTS;
-		if (!(the_e100.tx[i].tcb.cb_status & E100_CB_STATUS_C))
+	for (; e100.tx_head != e100.tx_tail; e100.tx_tail++) {
+		i = e100.tx_tail % E100_TX_SLOTS;
+		if (!(e100.tx[i].tcb.cb_status & E100_CB_STATUS_C))
 			break;
 	}
 }
 
 static void e100_intr_rx(void)
 {
+	assert(spinlock_holding(&e100.lock));
+
 	int *count;
 	int i;
 
-	for (; ; the_e100.rx_tail++) {
-		i = the_e100.rx_tail % E100_RX_SLOTS;
-
-		if (!(the_e100.rx[i].rfd.status & E100_RFA_STATUS_C))
-			break;	// We've processed all received packets
+	// Dispatch newly-filled receive buffers
+	// to the kernel's network protocol stack.
+	// The network stack might transmit during this upcall,
+	// so we have to release and reacquire the e100.lock in the loop.
+	// We use the RFD's E100_RFA_STATUS_C bit as a high-level "lock"
+	// on the RFD while the received packet is being processed.
+	while (1) {
+		i = e100.rx_head % E100_RX_SLOTS;
+		if (!(e100.rx[i].rfd.status & E100_RFA_STATUS_C))
+			break;	// No more un-processed packets received
 
 #if LAB >= 99
-cprintf("status %x actual %d count %x\n", the_e100.rx[i].rfd.status,
-	the_e100.rx[i].rfd.actual);
+cprintf("status %x actual %d count %x\n", e100.rx[i].rfd.status,
+	e100.rx[i].rfd.actual);
 int j;
-for (j = 0; j < the_e100.rx[i].rfd.actual; j++) {
-	cprintf(" %02x", (uint8_t)the_e100.rx[i].buf[j]);
+for (j = 0; j < e100.rx[i].rfd.actual; j++) {
+	cprintf(" %02x", (uint8_t)e100.rx[i].buf[j]);
 	if ((j % 16) == 15) cprintf("\n");
 }
 #endif
+		// "Claim" this RFD by moving e100.rx_head past it,
+		// while leaving the E100_RFA_STATUS_OK bit set.
+		// Other CPUs might concurrently claim other RFDs
+		// while we have the e100.lock released below.
+		e100.rx_head++;
+
 		// Dispatch the received packet to our network stack.
-		if (the_e100.rx[i].rfd.status & E100_RFA_STATUS_OK) {
-			int len = the_e100.rx[i].rfd.actual & E100_SIZE_MASK;
-			net_rx(the_e100.rx[i].buf, len);
+		if (e100.rx[i].rfd.status & E100_RFA_STATUS_OK) {
+			spinlock_release(&e100.lock);
+			int len = e100.rx[i].rfd.actual & E100_SIZE_MASK;
+			net_rx(e100.rx[i].buf, len);
+			spinlock_acquire(&e100.lock);
 		} else
 			warn("e100: packet receive error: %x",
-				the_e100.rx[i].rfd.status);
+				e100.rx[i].rfd.status);
+		assert(e100.rx[i].rfd.status & E100_RFA_STATUS_C);
 
-		// Get this receive buffer ready to be filled again
-		the_e100.rx[i].rfd.status = 0;
-		the_e100.rx[i].rfd.actual = 0;
+		// Un-claim this RFD and get it ready to be filled again.
+		// Different RFDs might be un-claimed out of order
+		// due to concurrency among the CPUs.
+		// But mark all RFDs "suspend" until tail catches up.
+		e100.rx[i].rfd.control = E100_RFA_CONTROL_S;
+		e100.rx[i].rfd.status = 0;
+		e100.rx[i].rfd.actual = 0;
+	}
+
+	// Now move the tail forward to the first uncompleted RFD,
+	// clearing unnecessary "suspend" bits as we go.
+	while (e100.rx_tail < e100.rx_head) {
+		i = e100.rx_tail % E100_RX_SLOTS;
+		if (e100.rx[i].rfd.status & E100_RFA_STATUS_C)
+			break;	// This RFD still being processed by some CPU
+
+		assert(e100.rx[i].rfd.control == E100_RFA_CONTROL_S);
+		i = (e100.rx_tail - 1) % E100_RX_SLOTS;
+		e100.rx[i].rfd.control = 0;	// Prev RFD need not suspend
+		e100.rx_tail++;
 	}
 }
 
 void e100_intr(void)
 {
-	int r;
+	spinlock_acquire(&e100.lock);
 
-	r = inb(the_e100.iobase + E100_CSR_SCB_STATACK);
+	int r = inb(e100.iobase + E100_CSR_SCB_STATACK);
+	outb(e100.iobase + E100_CSR_SCB_STATACK, r);
 	//cprintf("e100_intr status %x\n", r);
-	outb(the_e100.iobase + E100_CSR_SCB_STATACK, r);
 
 	if (r & (E100_SCB_STATACK_CXTNO | E100_SCB_STATACK_CNA)) {
 		r &= ~(E100_SCB_STATACK_CXTNO | E100_SCB_STATACK_CNA);
 		e100_intr_tx();
 	}
-
-	if (r & E100_SCB_STATACK_FR) {
-		r &= ~E100_SCB_STATACK_FR;
-		e100_intr_rx();
-	}
+	if (e100.tx_head > e100.tx_tail)
+		e100_tx_start();
 
 	if (r & E100_SCB_STATACK_RNR) {
 		r &= ~E100_SCB_STATACK_RNR;
-		the_e100.rx_idle = 1;
+		e100.rx_idle = 1;
 		cprintf("e100_intr: RNR interrupt, no RX bufs?\n");
+	}
+
+	if (r & E100_SCB_STATACK_FR) {
+		r &= ~E100_SCB_STATACK_FR;
+		e100_intr_rx();	// releases and re-acquires e100.lock!
 	}
 	e100_rx_start();
 
 	if (r)
-		cprintf("e100_intr: unhandled STAT/ACK %x\n", r);
+		warn("e100_intr: unhandled STAT/ACK %x\n", r);
+
+	spinlock_release(&e100.lock);
 }
 
 // Clock a serial opcode/address bit out to the EEPROM.
 int e100_eebit(bool bit)
 {
 	int eedi = bit ? E100_EEDI : 0;
-	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi);
+	outb(e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi);
 	udelay(2);
-	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi | E100_EESK);
+	outb(e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi | E100_EESK);
 	udelay(2);
-	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi);
+	outb(e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi);
 	udelay(2);
-	return inb(the_e100.iobase + E100_CSR_EEPROM) & E100_EEDO;
+	return inb(e100.iobase + E100_CSR_EEPROM) & E100_EEDO;
 }
 
 #if LAB >= 99
@@ -318,11 +374,11 @@ int e100_eebit(bool bit)
 int e100_eein(bool bit)
 {
 	int eedi = bit ? E100_EEDI : 0;
-	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi);
-	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi | E100_EESK);
+	outb(e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi);
+	outb(e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi | E100_EESK);
 	udelay(2);
-	int eedo = inb(the_e100.iobase + E100_CSR_EEPROM) & E100_EEDO;
-	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi);
+	int eedo = inb(e100.iobase + E100_CSR_EEPROM) & E100_EEDO;
+	outb(e100.iobase + E100_CSR_EEPROM, E100_EECS | eedi);
 	udelay(2);
 	return eedo;
 }
@@ -334,15 +390,15 @@ uint16_t e100_eeread(uint8_t addr)
 {
 	int i;
 
-	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS);	// activate
+	outb(e100.iobase + E100_CSR_EEPROM, E100_EECS);	// activate
 	e100_eebit(1); e100_eebit(1); e100_eebit(0);		// read opcode
-	for (i = the_e100.eebits - 1; i >= 0; i--)		// address
+	for (i = e100.eebits - 1; i >= 0; i--)		// address
 		e100_eebit(addr & (1 << i));
 	uint16_t val = 0;
 	for (i = 15; i >= 0; i--)
 		if (e100_eebit(0))
 			val |= 1 << i;
-	outb(the_e100.iobase + E100_CSR_EEPROM, 0);		// deactivate
+	outb(e100.iobase + E100_CSR_EEPROM, 0);		// deactivate
 	udelay(2);
 	return val;
 }
@@ -354,61 +410,64 @@ int e100_attach(struct pci_func *pcif)
 	pci_func_enable(pcif);
 
 	e100_irq = pcif->irq_line;
-	the_e100.iobase = pcif->reg_base[1];
-	the_e100.tx_idle = 1;
-	the_e100.rx_idle = 1;
+	e100.iobase = pcif->reg_base[1];
+	e100.tx_idle = 1;
+	e100.rx_idle = 1;
 
 	// Reset the card
-	outl(the_e100.iobase + E100_CSR_PORT, E100_PORT_SOFTWARE_RESET);
+	outl(e100.iobase + E100_CSR_PORT, E100_PORT_SOFTWARE_RESET);
 	udelay(10);
 
 	// Setup TX DMA ring for CU
 	for (i = 0; i < E100_TX_SLOTS; i++) {
 		next = (i + 1) % E100_TX_SLOTS;
-		memset(&the_e100.tx[i], 0, sizeof(the_e100.tx[i]));
-		the_e100.tx[i].tcb.link_addr = mem_phys(&the_e100.tx[next].tcb);
-		the_e100.tx[i].tcb.tbd_array_addr = mem_phys(&the_e100.tx[i].tbd);
-		the_e100.tx[i].tcb.tbd_number = 1;
-		the_e100.tx[i].tcb.tx_threshold = 4;
+		memset(&e100.tx[i], 0, sizeof(e100.tx[i]));
+		e100.tx[i].tcb.link_addr = mem_phys(&e100.tx[next].tcb);
+		e100.tx[i].tcb.tbd_array_addr = mem_phys(&e100.tx[i].tbd);
+		e100.tx[i].tcb.tbd_number = 1;
+		e100.tx[i].tcb.tx_threshold = 4;
 	}
 
 	// Setup RX DMA ring for RU
 	for (i = 0; i < E100_RX_SLOTS; i++) {
 		next = (i + 1) % E100_RX_SLOTS;
-		memset(&the_e100.rx[i], 0, sizeof(the_e100.rx[i]));
-		the_e100.rx[i].rfd.control = E100_RFA_CONTROL_S;
-		the_e100.rx[i].rfd.status = 0;
-		the_e100.rx[i].rfd.size = NET_MAXPKT;
-		the_e100.rx[i].rfd.link_addr = mem_phys(&the_e100.rx[next].rfd);
+		memset(&e100.rx[i], 0, sizeof(e100.rx[i]));
+		e100.rx[i].rfd.control = 0;
+		e100.rx[i].rfd.status = 0;
+		e100.rx[i].rfd.size = NET_MAXPKT;
+		e100.rx[i].rfd.link_addr = mem_phys(&e100.rx[next].rfd);
 	}
+	e100.rx[E100_RX_SLOTS-1].rfd.control = E100_RFA_CONTROL_S;
 
 	// Determine the EEPROM's size (number of address bits)
-	outb(the_e100.iobase + E100_CSR_EEPROM, E100_EECS);	// activate
+	outb(e100.iobase + E100_CSR_EEPROM, E100_EECS);	// activate
 	e100_eebit(1); e100_eebit(1); e100_eebit(0);		// read opcode
-	the_e100.eebits = 1;
+	e100.eebits = 1;
 	while (e100_eebit(0) != 0)
-		the_e100.eebits++;
-	outb(the_e100.iobase + E100_CSR_EEPROM, 0);		// deactivate
+		e100.eebits++;
+	outb(e100.iobase + E100_CSR_EEPROM, 0);		// deactivate
 	udelay(2);
-	//cprintf("e100: EEPROM size %dx16\n", 1 << the_e100.eebits);
+	//cprintf("e100: EEPROM size %dx16\n", 1 << e100.eebits);
 
 	// Read the NIC's MAC address
 	// (If we were diligent we would verify the EEPROM's checksum.)
-	the_e100.mac16[0] = e100_eeread(0);
-	the_e100.mac16[1] = e100_eeread(1);
-	the_e100.mac16[2] = e100_eeread(2);
+	e100.mac16[0] = e100_eeread(0);
+	e100.mac16[1] = e100_eeread(1);
+	e100.mac16[2] = e100_eeread(2);
 	cprintf("e100: MAC address");
 	for (i = 0; i < 6; i++)
-		cprintf("%c%02x", i ? ':' : ' ', the_e100.mac[i]);
+		cprintf("%c%02x", i ? ':' : ' ', e100.mac[i]);
 	cprintf("\n");
-	memcpy(net_mac, the_e100.mac, 6);
+	memcpy(net_mac, e100.mac, 6);
 
 	// Enable network card interrupts
 	pic_enable(e100_irq);
 	ioapic_enable(e100_irq, 0);
 
 	// Start receiving packets
+	spinlock_acquire(&e100.lock);
 	e100_rx_start();
+	spinlock_release(&e100.lock);
 
 	return 1;
 }

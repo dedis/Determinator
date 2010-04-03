@@ -95,6 +95,7 @@ pmap_init(void)
 
 //
 // Allocate a new page directory, initialized from the bootstrap pdir.
+// Returns the new pdir with a reference count of 1.
 //
 pte_t *
 pmap_newpdir(void)
@@ -102,6 +103,7 @@ pmap_newpdir(void)
 	pageinfo *pi = mem_alloc();
 	if (pi == NULL)
 		return NULL;
+	mem_incref(pi);
 	pte_t *pdir = mem_pi2ptr(pi);
 
 	// Initialize it from the bootstrap page directory

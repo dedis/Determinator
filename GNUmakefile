@@ -293,7 +293,8 @@ ifdef LAB5
 qemu: $(IMAGES)
 	@rm -f node?.dump
 	$(QEMU) $(QEMUOPTS) $(QEMUNET),macaddr=52:54:00:12:34:02 \
-		-net socket,listen=:$(NETPORT) -net dump,file=node2.dump &
+		-net socket,listen=:$(NETPORT) -net dump,file=node2.dump \
+		</dev/null | sed -e 's/^/2: /g' &
 	@sleep 1
 	$(QEMU) $(QEMUOPTS) $(QEMUNET),macaddr=52:54:00:12:34:01 \
 		-net socket,connect=:$(NETPORT) -net dump,file=node1.dump

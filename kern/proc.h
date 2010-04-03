@@ -67,7 +67,7 @@ typedef struct proc {
 	uint32_t	pullva;		// Where we are pulling in our addr spc
 	uint32_t	pullrr;		// Current RR we are pulling
 	void		*pullpg;	// Local page we are pulling into
-	uint8_t		pglevel;	// 0=page, 1=page table, 2=pdir
+	uint8_t		pglev;		// Level: 0=page, 1=page table, 2=pdir
 	uint8_t		arrived;	// Bits 0-2: which parts have arrived
 #endif
 #endif	// LAB >= 3
