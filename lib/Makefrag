@@ -19,6 +19,9 @@ LIB_SRCFILES :=		lib/console.c \
 
 #if SOL >= 4
 LIB_SRCFILES +=		lib/thread.c
+
+# Sun math library (snatched from FreeBSD 8.0.0)
+#include lib/math/Makefrag
 #endif
 
 # Build files only if they exist.
@@ -30,12 +33,12 @@ LIB_OBJFILES := $(patsubst lib/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
 $(OBJDIR)/lib/%.o: lib/%.c
 	@echo + cc[USER] $<
 	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/%.S
 	@echo + as[USER] $<
 	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/lib/libc.a: $(LIB_OBJFILES)
 	@echo + ar $@

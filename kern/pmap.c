@@ -95,6 +95,7 @@ pmap_init(void)
 
 //
 // Allocate a new page directory, initialized from the bootstrap pdir.
+// Returns the new pdir with a reference count of 1.
 //
 pte_t *
 pmap_newpdir(void)
@@ -102,6 +103,7 @@ pmap_newpdir(void)
 	pageinfo *pi = mem_alloc();
 	if (pi == NULL)
 		return NULL;
+	mem_incref(pi);
 	pte_t *pdir = mem_pi2ptr(pi);
 
 	// Initialize it from the bootstrap page directory
@@ -190,6 +192,7 @@ pmap_walk(pde_t *pdir, uint32_t va, bool writing)
 		for (i = 0; i < NPTENTRIES; i++) {
 			uint32_t pte = ptab[i];
 			nptab[i] = pte & ~PTE_W;
+			assert(PGADDR(pte) != 0);
 			if (PGADDR(pte) != PTE_ZERO)
 				mem_incref(mem_phys2pi(PGADDR(pte)));
 		}
@@ -570,6 +573,7 @@ pmap_setperm(pde_t *pdir, uint32_t va, uint32_t size, int perm)
 	assert(PGOFF(size) == 0);
 	assert(va >= VM_USERLO && va < VM_USERHI);
 	assert(size <= VM_USERHI - va);
+	assert((perm & ~(SYS_RW)) == 0);
 
 	pmap_inval(pdir, va, size);	// invalidate region we're modifying
 

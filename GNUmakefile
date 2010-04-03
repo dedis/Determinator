@@ -54,7 +54,10 @@ TOP = .
 
 # try to infer the correct GCCPREFIX
 ifndef GCCPREFIX
-GCCPREFIX := $(shell if i386-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
+GCCPREFIX := $(shell \
+	if pios-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
+	then echo 'pios-'; \
+	elif i386-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
 	then echo 'i386-elf-'; \
 	elif objdump -i 2>&1 | grep 'elf32-i386' >/dev/null 2>&1; \
 	then echo ''; \
@@ -82,8 +85,9 @@ QEMU := $(shell if which qemu > /dev/null; \
 	echo "***" 1>&2; exit 1)
 endif
 
-# try to generate a unique GDB port
+# try to generate unique GDB and network port numbers
 GDBPORT	:= $(shell expr `id -u` % 5000 + 25000)
+NETPORT := $(shell expr `id -u` % 5000 + 30000)
 
 # Correct option to enable the GDB stub and specify its port number to qemu.
 # First is for qemu versions <= 0.10, second is for later qemu versions.
@@ -104,13 +108,21 @@ NCC	:= gcc $(CC_VER) -pipe
 TAR	:= gtar
 PERL	:= perl
 
+
+# If we're not using the special "PIOS edition" of GCC,
+# reconfigure the host OS's compiler for our purposes.
+ifneq ($(GCCPREFIX),pios-)
+CFLAGS += -nostdinc -m32
+LDFLAGS += -nostdlib -m elf_i386 -e start
+endif
+
 # Compiler flags
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
 # XXX modified to -O2 for benchmarking
-CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -O2 -fno-builtin \
-		-I$(TOP) -I$(TOP)/inc -MD 
-CFLAGS += -Wall -Wno-unused -Werror -gstabs -m32
+CFLAGS += $(DEFS) $(LABDEFS) -O2 -fno-builtin \
+		-I$(TOP) -I$(TOP)/inc -MD  \
+		-Wall -Wno-unused -Werror -gstabs
 
 # Add -fno-stack-protector if the option exists.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
@@ -118,9 +130,6 @@ CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 &
 # Kernel versus user compiler flags
 KERN_CFLAGS := $(CFLAGS) -DPIOS_KERNEL
 USER_CFLAGS := $(CFLAGS) -DPIOS_USER
-
-# Linker flags
-LDFLAGS := -m elf_i386 -e start -nostdlib
 
 KERN_LDFLAGS := $(LDFLAGS) -Ttext=0x00100000
 USER_LDFLAGS := $(LDFLAGS) -Ttext=0x40000000
@@ -282,19 +291,30 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
-ifdef LAB5
-IMAGES = $(OBJDIR)/kern/kernel.img $(OBJDIR)/fs/fs.img
-QEMUOPTS = -smp 2 -hda $(OBJDIR)/kern/kernel.img -hdb $(OBJDIR)/fs/fs.img -serial mon:stdio
-else
 IMAGES = $(OBJDIR)/kern/kernel.img
 QEMUOPTS = -smp 8 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio -k en-us -m 2G
-endif  # LAB 5
+#QEMUNET = -net socket,mcast=230.0.0.1:$(NETPORT) -net nic,model=i82559er
+QEMUNET = -net nic,model=i82559er
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
+ifdef LAB5
+qemu: $(IMAGES)
+	@rm -f node?.dump
+	$(QEMU) $(QEMUOPTS) $(QEMUNET),macaddr=52:54:00:12:34:02 \
+		-net socket,listen=:$(NETPORT) -net dump,file=node2.dump \
+		</dev/null | sed -e 's/^/2: /g' &
+	@sleep 1
+	$(QEMU) $(QEMUOPTS) $(QEMUNET),macaddr=52:54:00:12:34:01 \
+		-net socket,connect=:$(NETPORT) -net dump,file=node1.dump
+else
 qemu: $(IMAGES)
 	$(QEMU) $(QEMUOPTS)
+endif
+#if LAB >= 5
+# qemu -net nic -net socket,mcast=230.0.0.1:1234
+#endif
 
 qemu-nox: $(IMAGES)
 	echo "*** Use Ctrl-a x to exit"

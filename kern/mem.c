@@ -15,6 +15,9 @@
 #if LAB >= 3
 #include <kern/pmap.h>
 #endif
+#if LAB >= 5
+#include <kern/net.h>
+#endif
 
 #include <dev/nvram.h>
 
@@ -244,11 +247,86 @@ mem_decref(pageinfo* pi)
 	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
 
 	if (lockaddz(&pi->refcount, -1))
-		mem_free(pi);
+#if LAB >= 5
+		if (pi->shared == 0)	// free only if no remote refs
+#endif
+			mem_free(pi);
 	assert(pi->refcount >= 0);
 }
 
+#if LAB >= 5
+// When we receive a copy of a page or kernel object from a remote node,
+// we call this function to keep track of the page's origin,
+// so that we can later find it again given the same remote reference.
+void mem_rrtrack(uint32_t rr, pageinfo *pi)
+{
+	assert(pi > &mem_pageinfo[1] && pi < &mem_pageinfo[mem_npage]);
+	assert(pi != mem_ptr2pi(pmap_zero));	// Don't track zero page!
+	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
 
+	// Change these to use whatever your memory spinlock is called.
+	spinlock_acquire(&mem_freelock);
+
+	uint8_t node = RRNODE(rr);
+	assert(node > 0 && node <= NET_MAXNODES);
+
+	// Look up our pageinfo struct containing our homelist
+	// for the appropriate remote physical address.
+	// This design assumes that our pageinfo array will be big enough,
+	// which implies that all nodes must have the same amount of RAM.
+	// This could easily be fixed by allocating a separate hash table
+	// to map remote physical addresses to lists of local pages.
+	uint32_t addr = RRADDR(rr);
+	pageinfo *hpi = mem_phys2pi(addr);
+	assert(hpi > &mem_pageinfo[1] && hpi < &mem_pageinfo[mem_npage]);
+
+	// Quick scan just to make sure it's not already there - shouldn't be!
+	pageinfo *spi;
+	for (spi = hpi->homelist; spi != NULL; spi = spi->homenext) {
+		assert(RRADDR(spi->home) == addr);
+		assert(spi->home != rr);
+	}
+
+	// Insert the new page at the head of the appropriate homelist
+	pi->home = rr;
+	pi->homenext = hpi->homelist;
+	hpi->homelist = pi;
+
+	spinlock_release(&mem_freelock);
+}
+
+// Given a remote reference to a page on some other node,
+// see if we already have a corresponding local page
+// and return a pointer the beginning of that page if so.
+// Otherwise, returns NULL.
+pageinfo *
+mem_rrlookup(uint32_t rr)
+{
+	// Change these to use whatever your memory spinlock is called.
+	spinlock_acquire(&mem_freelock);
+
+	uint8_t node = RRNODE(rr);
+	assert(node > 0 && node <= NET_MAXNODES);
+	uint32_t addr = RRADDR(rr);
+	pageinfo *pi = mem_phys2pi(addr);
+	assert(pi > &mem_pageinfo[1] && pi < &mem_pageinfo[mem_npage]);
+
+	// Search for a page corresponding to this rr in the homelist
+	for (pi = pi->homelist; pi != NULL; pi = pi->homenext) {
+		assert(RRADDR(pi->home) == addr);
+		if (pi->home == rr) {		// found it!
+			// Take a reference while we still have
+			// the pageinfo array locked, so it can't go away.
+			mem_incref(pi);
+			break;
+		}
+	}
+
+	spinlock_release(&mem_freelock);
+	return pi;
+}
+
+#endif	// LAB >= 5
 //
 // Check the physical page allocator (mem_alloc(), mem_free())
 // for correct operation after initialization via mem_init().

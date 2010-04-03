@@ -36,6 +36,12 @@
 typedef struct pageinfo {
 	struct pageinfo	*free_next;	// Next page number on free list
 	int32_t	refcount;		// Reference count on allocated pages
+#if LAB >= 5
+	uint32_t home;			// Remote reference to page's home
+	uint32_t shared;		// Other nodes I've given distrefs to
+	struct pageinfo *homelist;	// My pages with homes at this physaddr
+	struct pageinfo *homenext;	// Next pointer on homelist
+#endif
 } pageinfo;
 
 
@@ -65,6 +71,10 @@ void mem_free(pageinfo *pi);
 void mem_incref(pageinfo *pp);
 void mem_decref(pageinfo* pp);
 
+#if LAB >= 5
+void mem_rrtrack(uint32_t rr, pageinfo *pi);
+pageinfo *mem_rrlookup(uint32_t rr);
+#endif // LAB >= 5
 
 #endif /* !PIOS_KERN_MEM_H */
 #endif // LAB >= 1
