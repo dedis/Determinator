@@ -139,6 +139,7 @@ do_put(trapframe *tf, uint32_t cmd)
 	proc *p = proc_cur();
 	assert(p->state == PROC_RUN && p->runcpu == cpu_cur());
 
+#if SOL >= 5
 	// First migrate if we need to.
 	uint8_t node = (tf->tf_regs.reg_edx >> 8) & 0xff;
 	if (node == 0) node = RRNODE(p->home);		// Goin' home
@@ -147,6 +148,7 @@ do_put(trapframe *tf, uint32_t cmd)
 		net_migrate(tf, node);
 	}
 
+#endif // SOL >= 5
 	spinlock_acquire(&p->lock);
 
 	// Find the named child process; create if it doesn't exist
@@ -245,6 +247,7 @@ do_get(trapframe *tf, uint32_t cmd)
 	proc *p = proc_cur();
 	assert(p->state == PROC_RUN && p->runcpu == cpu_cur());
 
+#if SOL >= 5
 	// First migrate if we need to.
 	uint8_t node = (tf->tf_regs.reg_edx >> 8) & 0xff;
 	if (node == 0) node = RRNODE(p->home);		// Goin' home
@@ -253,6 +256,7 @@ do_get(trapframe *tf, uint32_t cmd)
 		net_migrate(tf, node);
 	}
 
+#endif // SOL >= 5
 	spinlock_acquire(&p->lock);
 
 	// Find the named child process; DON'T create if it doesn't exist
