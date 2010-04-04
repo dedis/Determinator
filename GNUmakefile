@@ -70,7 +70,10 @@ endif
 
 # try to infer the correct QEMU
 ifndef QEMU
-QEMU := $(shell if which qemu > /dev/null; \
+QEMU := $(shell \
+	if test -x /c/cs422/tools/bin/qemu; \
+	then echo /c/cs422/tools/bin/qemu; exit; \
+	elif which qemu > /dev/null; \
 	then echo qemu; exit; \
 	else \
 	qemu=/Applications/Q.app/Contents/MacOS/i386-softmmu.app/Contents/MacOS/i386-softmmu; \
@@ -88,8 +91,8 @@ NETPORT := $(shell expr `id -u` % 5000 + 30000)
 
 # Correct option to enable the GDB stub and specify its port number to qemu.
 # First is for qemu versions <= 0.10, second is for later qemu versions.
-QEMUPORT := -s -p $(GDBPORT)
-#QEMUPORT := -gdb tcp::$(GDBPORT)
+#QEMUPORT := -s -p $(GDBPORT)
+QEMUPORT := -gdb tcp::$(GDBPORT)
 
 CC	:= $(GCCPREFIX)gcc -pipe
 AS	:= $(GCCPREFIX)as
@@ -284,7 +287,10 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 IMAGES = $(OBJDIR)/kern/kernel.img
 QEMUOPTS = -smp 2 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio
 #QEMUNET = -net socket,mcast=230.0.0.1:$(NETPORT) -net nic,model=i82559er
-QEMUNET = -net nic,model=i82559er
+QEMUNET1 = -net nic,model=i82559er,macaddr=52:54:00:12:34:01 \
+		-net socket,connect=:$(NETPORT) -net dump,file=node1.dump
+QEMUNET2 = -net nic,model=i82559er,macaddr=52:54:00:12:34:02 \
+		-net socket,listen=:$(NETPORT) -net dump,file=node2.dump
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
@@ -292,12 +298,9 @@ QEMUNET = -net nic,model=i82559er
 ifdef LAB5
 qemu: $(IMAGES)
 	@rm -f node?.dump
-	$(QEMU) $(QEMUOPTS) $(QEMUNET),macaddr=52:54:00:12:34:02 \
-		-net socket,listen=:$(NETPORT) -net dump,file=node2.dump \
-		</dev/null | sed -e 's/^/2: /g' &
+	$(QEMU) $(QEMUOPTS) $(QEMUNET2) </dev/null | sed -e 's/^/2: /g' &
 	@sleep 1
-	$(QEMU) $(QEMUOPTS) $(QEMUNET),macaddr=52:54:00:12:34:01 \
-		-net socket,connect=:$(NETPORT) -net dump,file=node1.dump
+	$(QEMU) $(QEMUOPTS) $(QEMUNET1)
 else
 qemu: $(IMAGES)
 	$(QEMU) $(QEMUOPTS)
@@ -310,9 +313,18 @@ qemu-nox: $(IMAGES)
 	echo "*** Use Ctrl-a x to exit"
 	$(QEMU) -nographic $(QEMUOPTS)
 
+ifdef LAB5
+qemu-gdb: $(IMAGES) .gdbinit
+	@echo "*** Now run 'gdb'." 1>&2
+	@rm -f node?.dump
+	$(QEMU) $(QEMUOPTS) $(QEMUNET2) </dev/null | sed -e 's/^/2: /g' &
+	@sleep 1
+	$(QEMU) $(QEMUOPTS) $(QEMUNET1) -S $(QEMUPORT)
+else
 qemu-gdb: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUPORT)
+endif
 
 qemu-gdb-nox: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
