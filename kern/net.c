@@ -41,7 +41,7 @@ net_init(void)
 
 	// Ethernet card should already have been initialized
 	assert(net_mac[0] != 0 && net_mac[5] != 0);
-	net_node = net_mac[5];
+	net_node = net_mac[5];	// Last byte in MAC addr is our node number
 
 	spinlock_init(&net_lock);
 }
@@ -56,6 +56,17 @@ net_ethsetup(net_ethhdr *eth, uint8_t destnode)
 	memcpy(eth->dst, net_mac, 6);	eth->dst[5] = destnode;
 	memcpy(eth->src, net_mac, 6);
 	eth->type = htons(NET_ETHERTYPE);
+}
+
+// Just a trivial wrapper for the e100 driver's transmit function.
+// The two buffers provided get concatenated to form the transmitted packet;
+// this is just a convenience (and optimization) for when the caller has a
+// "packet head" and a "packet body" coming from different memory areas.
+// To transmit from just one buffer, set blen to zero.
+int net_tx(void *hdr, int hlen, void *body, int blen)
+{
+	//cprintf("net_tx %d+%d\n", hlen, blen);
+	return e100_tx(hdr, hlen, body, blen);
 }
 
 // The e100 network interface device driver calls this
@@ -82,6 +93,8 @@ net_rx(void *pkt, int len)
 		warn("net_rx: unrecognized ethertype %x", ntohs(h->eth.type));
 		return;	// drop
 	}
+
+#if SOL >= 5
 	switch (h->type) {
 	case NET_MIGRQ:
 		if (len < sizeof(net_migrq)) {
@@ -115,13 +128,45 @@ net_rx(void *pkt, int len)
 		warn("net_rx: unrecognized message type %x", h->type);
 		return;
 	}
+#else
+	// Lab 5: your code here to process received messages.
+	warn("net_rx: received a message; now what?");
+#endif // ! SOL >= 5
 }
 
-// Just a trivial wrapper for the e100 driver's transmit function
-int net_tx(void *hdr, int hlen, void *body, int blen)
+// Called by trap() on every timer interrupt,
+// so that we can periodically retransmit lost packets.
+void
+net_tick()
 {
-	//cprintf("net_tx %d+%d\n", hlen, blen);
-	return e100_tx(hdr, hlen, body, blen);
+	if (!cpu_onboot())
+		return;		// count only one CPU's ticks
+
+	static int tick;
+	if (++tick & 63)
+		return;
+
+	spinlock_acquire(&net_lock);
+
+#if SOL >= 5
+	// Retransmit process migrate requests
+	proc *p;
+	for (p = net_migrlist; p != NULL; p = p->migrnext) {
+		cprintf("retransmit migrq for %x\n", p);
+		net_txmigrq(p);
+	}
+
+	// Retransmit page pull requests
+	for (p = net_pulllist; p != NULL; p = p->pullnext) {
+		cprintf("retransmit pullrq for %x\n", p);
+		net_txpullrq(p);
+	}
+#else	// ! SOL >= 5
+	// Lab 5: your code here.
+	warn("net_tick() should probably be doing something.");
+#endif	// ! SOL >= 5
+
+	spinlock_release(&net_lock);
 }
 
 // Whenever we send a page containing remote refs to a new node,
@@ -146,6 +191,7 @@ net_migrate(trapframe *tf, uint8_t dstnode)
 {
 	proc *p = proc_cur();
 	p->tf = *tf;		// Save proc's CPU state
+
 	assert(dstnode > 0 && dstnode <= NET_MAXNODES && dstnode != net_node);
 	//cprintf("proc %x at eip %x migrating to node %d\n",
 	//	p, p->tf.tf_eip, dstnode);
@@ -155,7 +201,8 @@ net_migrate(trapframe *tf, uint8_t dstnode)
 	// (In the case of a proc it won't anyway, but just for consistency.)
 	net_rrshare(p, dstnode);
 
-	// Mark the process "migrated" and put it to sleep on the migrlist
+#if SOL >= 5
+	// Mark the process "migrating" and put it to sleep on the migrlist
 	spinlock_acquire(&net_lock);
 	assert(p->state == PROC_RUN);
 	assert(p->migrdest == 0);
@@ -170,14 +217,26 @@ net_migrate(trapframe *tf, uint8_t dstnode)
 
 	spinlock_release(&net_lock);
 	proc_sched();	// Go do something else
+#else	// ! SOL >= 5
+	// Lab 5: insert your code here to place process in PROC_MIGR state,
+	// add it to the list of migrating processes (net_migrlist),
+	// and call net_txmigrq() to send out a migrate request packet.
+	panic("net_migrate not implemented");
+#endif	// ! SOL >= 5
 }
 
+// Transmit a process migration request message
+// using the state in process 'p'.
+// This function does not cause p's state to change,
+// since we don't know if this migration request will be received
+// until we get a reply via net_rxmigrp().
 void
 net_txmigrq(proc *p)
 {
 	assert(p->state == PROC_MIGR);
 	assert(spinlock_holding(&net_lock));
 
+#if SOL >= 5
 	// Create and send a migrate request
 	//cprintf("net_txmigrq proc %x home %x pdir %x\n", p, p->home, p->pdir);
 	net_migrq rq;
@@ -188,6 +247,11 @@ net_txmigrq(proc *p)
 	rq.cpu.tf = p->tf;
 	rq.cpu.fx = p->fx;
 	net_tx(&rq, sizeof(rq), NULL, 0);
+#else	// ! SOL >= 5
+	// Lab 5: insert code to create and send out a migrate request
+	// for a process waiting to migrate (in the PROC_MIGR state).
+	warn("net_txmigrq not implemented");
+#endif	// ! SOL >= 5
 }
 
 // This gets called by net_rx() to process a received migrq packet.
@@ -204,10 +268,10 @@ void net_rxmigrq(net_migrq *migrq)
 		pageinfo *pi = mem_rrlookup(migrq->home);
 		p = pi != NULL ? mem_pi2ptr(pi) : NULL;
 	}
-	if (p == NULL) {
-		p = proc_alloc(NULL, 0);	// Allocate new "root proc"
+	if (p == NULL) {			// Unrecognized proc RR
+		p = proc_alloc(NULL, 0);	// Allocate new local proc
 		p->state = PROC_AWAY;		// Pretend it's been away
-		p->home = migrq->home;
+		p->home = migrq->home;		// Record where proc originated
 		mem_rrtrack(migrq->home, mem_ptr2pi(p)); // Track for future
 	}
 	assert(p->home == migrq->home);
@@ -244,11 +308,16 @@ void net_rxmigrq(net_migrq *migrq)
 void
 net_txmigrp(uint8_t dstnode, uint32_t prochome)
 {
+#if SOL >= 5
 	net_migrp migrp;
 	net_ethsetup(&migrp.eth, dstnode);
 	migrp.type = NET_MIGRP;
 	migrp.home = prochome;
 	net_tx(&migrp, sizeof(migrp), NULL, 0);
+#else	// ! SOL >= 5
+	// Lab 5: insert code to create and send out a migrate reply.
+	warn("net_txmigrp not implemented");
+#endif	// ! SOL >= 5
 }
 
 // Receive a migrate reply message.
@@ -257,6 +326,7 @@ void net_rxmigrp(net_migrp *migrp)
 	uint8_t msgsrcnode = migrp->eth.src[5];
 	assert(msgsrcnode > 0 && msgsrcnode <= NET_MAXNODES);
 
+#if SOL >= 5
 	// Lookup and remove the process from the migrlist.
 	spinlock_acquire(&net_lock);
 	proc *p, **pp;
@@ -276,36 +346,14 @@ void net_rxmigrp(net_migrp *migrp)
 	p->migrdest = 0;
 	p->migrnext = NULL;
 	p->state = PROC_AWAY;
-}
-
-// Called by trap() on every timer interrupt,
-// so that we can periodically retransmit lost packets.
-void
-net_tick()
-{
-	if (!cpu_onboot())
-		return;		// count only one CPU's ticks
-
-	static int tick;
-	if (++tick & 63)
-		return;
-
-	spinlock_acquire(&net_lock);
-
-	// Retransmit process migrate requests
-	proc *p;
-	for (p = net_migrlist; p != NULL; p = p->migrnext) {
-		cprintf("retransmit migrq for %x\n", p);
-		net_txmigrq(p);
-	}
-
-	// Retransmit page pull requests
-	for (p = net_pulllist; p != NULL; p = p->pullnext) {
-		cprintf("retransmit pullrq for %x\n", p);
-		net_txpullrq(p);
-	}
-
-	spinlock_release(&net_lock);
+#else	// ! SOL >= 5
+	// Lab 5: insert code to process a migrate reply message.
+	// Look for the appropriate migrating proc in the migrlist,
+	// and if it's there, remove it and mark it PROC_AWAY.
+	// Remember that duplicate packets can arrive due to retransmissions:
+	// nothing bad should happen if there's no such proc in the migrlist.
+	warn("net_rxmigrp not implemented");
+#endif	// ! SOL >= 5
 }
 
 // Pull a page via a remote ref and put process p to sleep waiting for it.

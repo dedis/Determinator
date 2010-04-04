@@ -179,6 +179,10 @@ mem_alloc(void)
 	if (pi != NULL) {
 		mem_freelist = pi->free_next;	// Remove page from free list
 		pi->free_next = NULL;		// Mark it not on the free list
+#if SOL >= 5
+		pi->home = 0;			// Assume it originated here
+		pi->shared = 0;			// Unshared initially
+#endif
 	}
 
 #if SOL >= 2
@@ -272,7 +276,7 @@ void mem_rrtrack(uint32_t rr, pageinfo *pi)
 	// This design assumes that our pageinfo array will be big enough,
 	// which implies that all nodes must have the same amount of RAM.
 	// This could easily be fixed by allocating a separate hash table
-	// to map remote physical addresses to lists of local pages.
+	// mapping remote references to local pages.
 	uint32_t addr = RRADDR(rr);
 	pageinfo *hpi = mem_phys2pi(addr);
 	assert(hpi > &mem_pageinfo[1] && hpi < &mem_pageinfo[mem_npage]);

@@ -274,15 +274,6 @@ static void e100_intr_rx(void)
 		if (!(e100.rx[i].rfd.status & E100_RFA_STATUS_C))
 			break;	// No more un-processed packets received
 
-#if LAB >= 99
-cprintf("status %x actual %d count %x\n", e100.rx[i].rfd.status,
-	e100.rx[i].rfd.actual);
-int j;
-for (j = 0; j < e100.rx[i].rfd.actual; j++) {
-	cprintf(" %02x", (uint8_t)e100.rx[i].buf[j]);
-	if ((j % 16) == 15) cprintf("\n");
-}
-#endif
 		// "Claim" this RFD by moving e100.rx_head past it,
 		// while leaving the E100_RFA_STATUS_OK bit set.
 		// Other CPUs might concurrently claim other RFDs
@@ -303,7 +294,7 @@ for (j = 0; j < e100.rx[i].rfd.actual; j++) {
 		// Un-claim this RFD and get it ready to be filled again.
 		// Different RFDs might be un-claimed out of order
 		// due to concurrency among the CPUs.
-		// But mark all RFDs "suspend" until tail catches up.
+		// Mark all RFDs "suspend" until tail catches up.
 		e100.rx[i].rfd.control = E100_RFA_CONTROL_S;
 		e100.rx[i].rfd.status = 0;
 		e100.rx[i].rfd.actual = 0;
