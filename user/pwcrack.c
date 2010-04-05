@@ -15,7 +15,7 @@
 #define MAXCHR		('~')	// Maximum ASCII value a string may contain
 
 #define MAXLEN		10
-#define BLOCKLEN	3
+#define BLOCKLEN	2
 
 #define hexdig(c)	((c) >= '0' && (c) <= '9' ? (c) - '0' : \
 			 (c) >= 'a' && (c) <= 'f' ? (c) - 'a' + 10 : \
@@ -89,8 +89,6 @@ int psearch(uint8_t *str, int len, const unsigned char *hash)
 				cprintf("child %x: search from '%s'\n",
 					child[i], str);
 				search(str, len, 0, BLOCKLEN, hash);
-				cprintf("child %x: %sfound\n", child[i],
-					found ? "" : "not ");
 				sys_ret();
 			}
 			done |= incstr(str, BLOCKLEN, len);

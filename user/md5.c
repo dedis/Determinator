@@ -1,3 +1,4 @@
+#if LAB >= 5
 /*
  * MD5C.C - RSA Data Security, Inc., MD5 message-digest algorithm
  */
@@ -320,3 +321,4 @@ Decode(output, input, len)
 			(((uint32_t) input[j + 2]) << 16) | (((uint32_t) input[j + 3]) << 24);
 }
 
+#endif // LAB >= 5

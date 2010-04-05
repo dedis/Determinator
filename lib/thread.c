@@ -1,3 +1,4 @@
+#if LAB >= 4
 
 #include <inc/stdio.h>
 #include <inc/string.h>
@@ -69,3 +70,4 @@ tjoin(uint16_t child)
 	}
 }
 
+#endif // LAB >= 4

@@ -367,6 +367,7 @@ net_pull(proc *p, uint32_t rr, void *pg, int pglevel)
 	assert(dstnode != net_node);
 	assert(pglevel >= 0 && pglevel <= 2);
 
+#if SOL >= 5
 	spinlock_acquire(&net_lock);
 
 	assert(p->pullnext == NULL);
@@ -382,6 +383,12 @@ net_pull(proc *p, uint32_t rr, void *pg, int pglevel)
 	net_txpullrq(p);
 
 	spinlock_release(&net_lock);
+#else	// ! SOL >= 5
+	// Lab 5: insert code here to put the process into the PROC_PULL state,
+	// save in the proc structure all information needed for the pull,
+	// and transmit a pull message using net_txpullrq().
+	warn("net_pull not implemented");
+#endif	// ! SOL >= 5
 }
 
 // Transmit a page pull request on behalf of some process.
@@ -391,6 +398,7 @@ net_txpullrq(proc *p)
 	assert(p->state == PROC_PULL);
 	assert(spinlock_holding(&net_lock));
 
+#if SOL >= 5
 	// Create and send a pull request
 	//cprintf("net_txpullrq proc %x rr %x lev %d need %x\n",
 	//	p, p->pullrr, p->pglev, p->arrived ^ 7);
@@ -401,6 +409,10 @@ net_txpullrq(proc *p)
 	rq.pglev = p->pglev;
 	rq.need = p->arrived ^ 7;	// Need all parts that haven't arrived
 	net_tx(&rq, sizeof(rq), NULL, 0);
+#else	// ! SOL >= 5
+	// Lab 5: transmit or retransmit a pull request (net_pullrq).
+	warn("net_txpullrq not implemented");
+#endif	// ! SOL >= 5
 }
 
 // Process a page pull request we've received.
@@ -434,11 +446,19 @@ net_rxpullrq(net_pullrq *rq)
 	void *pg = mem_pi2ptr(pi);
 
 	// OK, looks legit as far as we can tell.
+	// Mark the page shared, since we're about to share it.
+	net_rrshare(pg, rqnode);
+
 	// Send back whichever of the three page parts the caller still needs.
 	// (We must divide the page into parts to fit into Ethernet packets.)
+#if SOL >= 5
 	if (rq->need & 1) net_txpullrp(rqnode, rr, rq->pglev, 0, pg);
 	if (rq->need & 2) net_txpullrp(rqnode, rr, rq->pglev, 1, pg);
 	if (rq->need & 4) net_txpullrp(rqnode, rr, rq->pglev, 2, pg);
+#else	// ! SOL >= 5
+	// Lab 5: use net_txpullrp() to send the appropriate parts of the page.
+	warn("net_rxpullrq not fully implemented");
+#endif	// ! SOL >= 5
 
 	// Mark this page shared with the requesting node.
 	// (XXX might be necessarily only for pdir/ptab pages.)
@@ -466,8 +486,9 @@ net_txpullrp(uint8_t rqnode, uint32_t rr, int pglev, int part, void *pg)
 	int nrrs = len/4;
 	uint32_t rrs[nrrs];
 	if (pglev > 0) {
-		int i;
 		const uint32_t *pt = data;
+#if SOL >= 5
+		int i;
 		for (i = 0; i < nrrs; i++) {
 			uint32_t pte = pt[i];
 			if (pte & PTE_REMOTE) {	// Already remote: just copy
@@ -493,6 +514,15 @@ net_txpullrp(uint8_t rqnode, uint32_t rr, int pglev, int part, void *pg)
 				rrs[i] = RRCONS(net_node, addr, pte & RR_RW);
 			}
 		}
+#else	// ! SOL >= 5
+	// Lab 5: convert the PDEs or PTEs in pt[0..nrrs-1]
+	// into corresponding remote references in rrs[0..nrrs-1].
+	// For PDEs/PTEs pointing to PMAP_ZERO, produce an RR that is zero
+	// except for the RR_REMOTE and the PDE/PTE's nominal permissions.
+	// For page directories, just produce zero RRs
+	// for PDEs representing the non-user portions of the address space.
+	warn("net_txpullrq not fully implemented");
+#endif	// ! SOL >= 5
 		data = rrs;	// Send RRs instead of original page.
 	}
 
@@ -593,7 +623,7 @@ net_rxpullrp(net_pullrphdr *rp, int len)
 	}
 
 	// We've pulled the proc's entire address space: it's ready to go!
-	cprintf("net_rxpullrp: migration complete\n");
+	//cprintf("net_rxpullrp: migration complete\n");
 	proc_ready(p);
 }
 
@@ -606,6 +636,7 @@ net_pullpte(proc *p, uint32_t *pte, int pglevel)
 	uint32_t rr = *pte;
 	assert(rr & RR_REMOTE);
 
+#if SOL >= 5
 	// Don't pull zero pages - just use our own zero page.
 	if (RRADDR(rr) == 0) {
 		*pte = PTE_ZERO | (rr & RR_RW);
@@ -652,6 +683,23 @@ net_pullpte(proc *p, uint32_t *pte, int pglevel)
 
 	net_pull(p, rr, mem_pi2ptr(pi), pglevel);	// go pull the page
 	return 0;	// Now must wait for pull to complete.
+#else	// ! SOL >= 5
+	// Lab 5: Examine an RR that we received in a pdir or ptable,
+	// and figure out how to convert it to a local PDE or PTE.
+	// There are four important cases to handle:
+	// - The RR is zero except for RR_REMOTE and RR_RW (the permissions):
+	//   convert it into a PTE_ZERO mapping immediately, and return 1.
+	// - The RR refers to a page on OUR node (RRNODE(rr) == net_node):
+	//   convert it directly back into a PDE or PTE and return 1.
+	// - The RR refers to a page whose home is on another node,
+	//   but which we've seen before (mem_rrlookup(rr) != NULL):
+	//   convert it directly into a PDE or PTE and return 1.
+	// - The RR refers to a remote page we haven't seen before:
+	//   allocate a page to hold a local copy,
+	//   initiate a pull on that page by calling net_pull(),
+	//   and return 0 indicating we have to wait for the pull to complete.
+	panic("net_pullpte not implemented");
+#endif	// ! SOL >= 5
 }
 
 #endif // LAB >= 5
