@@ -54,7 +54,8 @@ KERN_INITFILES :=	sh \
 			testfs
 endif
 ifdef LAB5
-KERN_INITFILES +=	testmigr
+KERN_INITFILES +=	testmigr \
+			pwcrack
 endif
 
 # Binary program images to embed within the kernel.

@@ -53,5 +53,10 @@ int	remove(const char *path);
 int	fsync(int fn);
 
 
+// PIOS-specific thread fork/join functions
+int	tfork(uint16_t child);
+void	tjoin(uint16_t child);
+
+
 #endif	// !PIOS_INC_UNISTD_H
 #endif	// LAB >= 4
