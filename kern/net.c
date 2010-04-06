@@ -515,13 +515,15 @@ net_txpullrp(uint8_t rqnode, uint32_t rr, int pglev, int part, void *pg)
 			}
 		}
 #else	// ! SOL >= 5
-	// Lab 5: convert the PDEs or PTEs in pt[0..nrrs-1]
-	// into corresponding remote references in rrs[0..nrrs-1].
-	// For PDEs/PTEs pointing to PMAP_ZERO, produce an RR that is zero
-	// except for the RR_REMOTE and the PDE/PTE's nominal permissions.
-	// For page directories, just produce zero RRs
-	// for PDEs representing the non-user portions of the address space.
-	warn("net_txpullrq not fully implemented");
+		// Lab 5: convert the PDEs or PTEs in pt[0..nrrs-1]
+		// into corresponding remote references in rrs[0..nrrs-1].
+		// For PDEs/PTEs pointing to PMAP_ZERO,
+		// produce an RR that is zero except for the RR_REMOTE
+		// and the PDE/PTE's nominal permissions.
+		// For page directories, just produce zero RRs
+		// for PDEs representing the non-user portions
+		// of the address space.
+		warn("net_txpullrq not fully implemented");
 #endif	// ! SOL >= 5
 		data = rrs;	// Send RRs instead of original page.
 	}

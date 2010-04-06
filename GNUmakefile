@@ -213,7 +213,7 @@ LAB_DIRS := inc boot kern dev lib user
 LAB_FILES := CODING GNUmakefile mergedep.pl grade-functions.sh .gdbinit.tmpl \
 	boot/sign.pl \
 	conf/env.mk \
-	$(foreach lab,1 2 3 4 5 6 7,grade-lab$(lab).sh) \
+	$(foreach lab,1 2 3 4 5,grade-lab$(lab).sh) \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
 # Fake targets to export the student lab handout and solution trees.
@@ -273,8 +273,8 @@ build-sol%: export-sol% always
 	cd sol$*; $(MAKE)
 build-prep%: export-prep% always
 	cd prep$*; $(MAKE)
-build-all-sols: build-sol1 build-sol2 build-sol3 build-sol4 build-sol5 build-sol6 build-sol7
-build-all-labs: build-lab1 build-lab2 build-lab3 build-lab4 build-lab5 build-lab6 build-lab7
+build-all-sols: build-sol1 build-sol2 build-sol3 build-sol4 build-sol5
+build-all-labs: build-lab1 build-lab2 build-lab3 build-lab4 build-lab5
 build-all: build-all-sols build-all-labs
 
 grade-sol%: export-sol% always
@@ -305,9 +305,6 @@ else
 qemu: $(IMAGES)
 	$(QEMU) $(QEMUOPTS)
 endif
-#if LAB >= 5
-# qemu -net nic -net socket,mcast=230.0.0.1:1234
-#endif
 
 qemu-nox: $(IMAGES)
 	echo "*** Use Ctrl-a x to exit"
