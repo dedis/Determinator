@@ -155,18 +155,18 @@ typedef struct segdesc {
 // Segment that is loadable but faults when used
 #define SEGDESC_FAULT	(struct segdesc){ 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0 }
 // Normal segment
-#define SEGDESC32(type, base, lim, dpl) (struct segdesc)		\
+#define SEGDESC32(app, type, base, lim, dpl) (struct segdesc)		\
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
-    type, 1, dpl, 1, (unsigned) (lim) >> 28, 0, 0, 1, 1,		\
+    (type), (app), (dpl), 1, (unsigned) (lim) >> 28, 0, 0, 1, 1,	\
     (unsigned) (base) >> 24 }
-#define SEGDESC16(type, base, lim, dpl) (struct segdesc)		\
+#define SEGDESC16(app, type, base, lim, dpl) (struct segdesc)		\
 { (lim) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,		\
-    type, 1, dpl, 1, (unsigned) (lim) >> 16, 0, 0, 1, 0,		\
+    (type), (app), (dpl), 1, (unsigned) (lim) >> 16, 0, 0, 1, 0,	\
     (unsigned) (base) >> 24 }
 
 #endif /* !__ASSEMBLER__ */
 
-// Application segment type bits
+// Application segment type bits ('app' bit = 1)
 #define STA_X		0x8	    // Executable segment
 #define STA_E		0x4	    // Expand down (non-executable segments)
 #define STA_C		0x4	    // Conforming code segment (executable only)
@@ -174,7 +174,7 @@ typedef struct segdesc {
 #define STA_R		0x2	    // Readable (executable segments)
 #define STA_A		0x1	    // Accessed
 
-// System segment type bits
+// System segment type bits ('app' bit = 0)
 #define STS_T16A	0x1	    // Available 16-bit TSS
 #define STS_LDT		0x2	    // Local Descriptor Table
 #define STS_T16B	0x3	    // Busy 16-bit TSS

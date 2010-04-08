@@ -136,7 +136,8 @@ mem_init(void)
 	//  5) Then extended memory [MEM_EXT, ...).
 	//     Some of it is in use, some is free.
 	//     Which pages hold the kernel and the pageinfo array?
-	//     (See the comment on the start[] and end[] symbols above.)
+	//     Hint: the linker places the kernel (see start and end above),
+	//     but YOU decide where to place the pageinfo array.
 	// Change the code to reflect this.
 	pageinfo **freetail = &mem_freelist;
 	int i;
