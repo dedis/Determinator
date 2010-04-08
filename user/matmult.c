@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include <inc/thread.h>
+#include <inc/bench.h>
 
 
 #define MINDIM		16
@@ -64,14 +64,14 @@ matmult(int nbi, int nbj, int dim)
 			arg[child].nbi = nbi;
 			arg[child].nbj = nbj;
 			arg[child].dim = dim;
-			tfork(child, blkmult, &arg[child]);
+			bench_fork(child, blkmult, &arg[child]);
 		}
 
 	// Now go back and merge in the results of all our children
 	for (bi = 0; bi < nbi; bi++)
 		for (bj = 0; bj < nbj; bj++) {
 			int child = bi*nbi + bj;
-			tjoin(child);
+			bench_join(child);
 		}
 }
 
@@ -88,10 +88,10 @@ int main(int argc, char **argv)
 
 			matmult(nbi, nbj, dim);	// once to warm up...
 
-			uint64_t ts = sys_time();
+			uint64_t ts = bench_time();
 			for (iter = 0; iter < niter; iter++)
 				matmult(nbi, nbj, dim);
-			uint64_t td = (sys_time() - ts) / niter;
+			uint64_t td = (bench_time() - ts) / niter;
 
 			printf("blksize %dx%d threads %d iters %d: %lld\n",
 				dim/nbi, dim/nbj, nth, niter, (long long)td);

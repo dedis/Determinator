@@ -13,12 +13,13 @@ void migrate(int node)
 int
 main()
 {
+	// Basic migration test
 	migrate(1);
 	migrate(2);
 	migrate(1);
 	migrate(2);
-	migrate(1);
-	cprintf("testmigr done\n");
+
+	printf("testmigr done\n");
 	return 0;
 }
 

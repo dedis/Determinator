@@ -95,3 +95,8 @@ through the interrupt.
 
 - Add a checksum of some kind to all the initial files,
   and check them in testfs?
+
+- Eliminate remote ref tracking stuff for migration,
+  and instead just force processes always to migrate back home
+  before they can migrate anywhere else?
+

@@ -52,15 +52,17 @@ KERN_INITFILES :=	sh \
 			cat \
 			wc \
 			testfs
-endif
-ifdef LAB5
-KERN_INITFILES +=	testmigr
-endif
-
 #if SOL >= 4
+# Performance benchmarking programs
 KERN_INITFILES +=	matmult \
 			microbench
 #endif
+endif
+
+ifdef LAB5
+KERN_INITFILES +=	testmigr \
+			pwcrack
+endif
 
 # Binary program images to embed within the kernel.
 ifdef LAB2

@@ -15,10 +15,11 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/fork.c \
 			lib/exec.c \
 			lib/fprintf.c \
-			lib/readline.c
+			lib/readline.c \
+			lib/thread.c
 
 #if SOL >= 4
-LIB_SRCFILES +=		lib/thread.c
+LIB_SRCFILES +=		lib/bench.c
 
 # Sun math library (snatched from FreeBSD 8.0.0)
 #include lib/math/Makefrag

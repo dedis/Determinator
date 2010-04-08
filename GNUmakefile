@@ -73,7 +73,10 @@ endif
 
 # try to infer the correct QEMU
 ifndef QEMU
-QEMU := $(shell if which qemu > /dev/null; \
+QEMU := $(shell \
+	if test -x /c/cs422/tools/bin/qemu; \
+	then echo /c/cs422/tools/bin/qemu; exit; \
+	elif which qemu > /dev/null; \
 	then echo qemu; exit; \
 	else \
 	qemu=/Applications/Q.app/Contents/MacOS/i386-softmmu.app/Contents/MacOS/i386-softmmu; \
@@ -220,7 +223,7 @@ LAB_DIRS := inc boot kern dev lib user
 LAB_FILES := CODING GNUmakefile mergedep.pl grade-functions.sh .gdbinit.tmpl \
 	boot/sign.pl \
 	conf/env.mk \
-	$(foreach lab,1 2 3 4 5 6 7,grade-lab$(lab).sh) \
+	$(foreach lab,1 2 3 4 5,grade-lab$(lab).sh) \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
 # Fake targets to export the student lab handout and solution trees.
@@ -280,8 +283,8 @@ build-sol%: export-sol% always
 	cd sol$*; $(MAKE)
 build-prep%: export-prep% always
 	cd prep$*; $(MAKE)
-build-all-sols: build-sol1 build-sol2 build-sol3 build-sol4 build-sol5 build-sol6 build-sol7
-build-all-labs: build-lab1 build-lab2 build-lab3 build-lab4 build-lab5 build-lab6 build-lab7
+build-all-sols: build-sol1 build-sol2 build-sol3 build-sol4 build-sol5
+build-all-labs: build-lab1 build-lab2 build-lab3 build-lab4 build-lab5
 build-all: build-all-sols build-all-labs
 
 grade-sol%: export-sol% always
@@ -292,9 +295,13 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
 IMAGES = $(OBJDIR)/kern/kernel.img
-QEMUOPTS = -smp 8 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio -k en-us -m 2G
+QEMUOPTS = -smp 8 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio \
+		-k en-us -m 2G
 #QEMUNET = -net socket,mcast=230.0.0.1:$(NETPORT) -net nic,model=i82559er
-QEMUNET = -net nic,model=i82559er
+QEMUNET1 = -net nic,model=i82559er,macaddr=52:54:00:12:34:01 \
+		-net socket,connect=:$(NETPORT) -net dump,file=node1.dump
+QEMUNET2 = -net nic,model=i82559er,macaddr=52:54:00:12:34:02 \
+		-net socket,listen=:$(NETPORT) -net dump,file=node2.dump
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
@@ -302,27 +309,30 @@ QEMUNET = -net nic,model=i82559er
 ifdef LAB5
 qemu: $(IMAGES)
 	@rm -f node?.dump
-	$(QEMU) $(QEMUOPTS) $(QEMUNET),macaddr=52:54:00:12:34:02 \
-		-net socket,listen=:$(NETPORT) -net dump,file=node2.dump \
-		</dev/null | sed -e 's/^/2: /g' &
+	$(QEMU) $(QEMUOPTS) $(QEMUNET2) </dev/null | sed -e 's/^/2: /g' &
 	@sleep 1
-	$(QEMU) $(QEMUOPTS) $(QEMUNET),macaddr=52:54:00:12:34:01 \
-		-net socket,connect=:$(NETPORT) -net dump,file=node1.dump
+	$(QEMU) $(QEMUOPTS) $(QEMUNET1)
 else
 qemu: $(IMAGES)
 	$(QEMU) $(QEMUOPTS)
 endif
-#if LAB >= 5
-# qemu -net nic -net socket,mcast=230.0.0.1:1234
-#endif
 
 qemu-nox: $(IMAGES)
 	echo "*** Use Ctrl-a x to exit"
 	$(QEMU) -nographic $(QEMUOPTS)
 
+ifdef LAB5
+qemu-gdb: $(IMAGES) .gdbinit
+	@echo "*** Now run 'gdb'." 1>&2
+	@rm -f node?.dump
+	$(QEMU) $(QEMUOPTS) $(QEMUNET2) </dev/null | sed -e 's/^/2: /g' &
+	@sleep 1
+	$(QEMU) $(QEMUOPTS) $(QEMUNET1) -S $(QEMUPORT)
+else
 qemu-gdb: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUPORT)
+endif
 
 qemu-gdb-nox: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2

@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <stdint.h>
 
-#include <inc/thread.h>
+#include <inc/bench.h>
 
 
 #define MAXTHREADS	8
@@ -57,10 +57,10 @@ void writetest(struct args *a)
 
 	for (th = 0; th < a->nthreads; th++) {
 		a->thread = th;
-		tfork(th, writefun, &a);
+		bench_fork(th, writefun, &a);
 	}
 	for (th = 0; th < a->nthreads; th++) {
-		tjoin(th);
+		bench_join(th);
 	}
 }
 
@@ -71,10 +71,10 @@ int main(int argc, char **argv)
 
 	forktest();	// once to warm up
 	const int forkiters = 10000;
-	uint64_t ts = sys_time();
+	uint64_t ts = bench_time();
 	for (i = 0; i < forkiters; i++)
 		forktest();
-	uint64_t td = (sys_time() - ts) / forkiters;
+	uint64_t td = (bench_time() - ts) / forkiters;
 	printf("proc fork/wait: %lld ns\n", (long long)td);
 
 	for (full = 0; full < 2; full++) {
@@ -86,10 +86,10 @@ int main(int argc, char **argv)
 				a.val = val++;
 				writetest(&a);		// once to warm up
 				const int iters = 10000;
-				ts = sys_time();
+				ts = bench_time();
 				for (j = 0; j < iters; j++)
 					writetest(&a);
-				td = (sys_time() - ts) / iters;
+				td = (bench_time() - ts) / iters;
 				printf("fork/join x%d, %s %d pages: %lld ns\n",
 					nth,
 					full ? "scrubbing" : "touching", np,

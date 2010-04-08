@@ -66,7 +66,6 @@ typedef struct net_dhcphdr {
 } net_dhcphdr;
 #endif
 
-
 // Message types
 typedef enum net_msgtype {
 	NET_INVALID	= 0,

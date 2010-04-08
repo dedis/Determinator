@@ -38,7 +38,7 @@ typedef struct pageinfo {
 	int32_t	refcount;		// Reference count on allocated pages
 #if LAB >= 5
 	uint32_t home;			// Remote reference to page's home
-	uint32_t shared;		// Other nodes I've given distrefs to
+	uint32_t shared;		// Other nodes I've given RRs to
 	struct pageinfo *homelist;	// My pages with homes at this physaddr
 	struct pageinfo *homenext;	// Next pointer on homelist
 #endif
