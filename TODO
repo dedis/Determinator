@@ -74,3 +74,29 @@ through the interrupt.
 	(or a generalized fileino_lookup())
 
 - combine fprintf.c into stdio.c?
+
+- Move #if SOL down below the asserts at the beginning of setperm(),
+  to make the function's API clearer (especially for the 'perm' arg).
+
+- Add an explicit state/type field to struct pageinfo that can distinguish:
+	- free pages
+	- pages permanently reserved/unused/invalid
+	- pages allocated for user data
+	- pages allocated as page tables
+	- pages allocated as page directories
+	- pages allocated as processes
+	- pages allocated as CPUs
+	- ...
+
+- scrub contents of all pages immediately on free?
+
+- give them the syscall work function skeletons;
+  make sure that child number is extracted from regs as a uint8_t?
+
+- Add a checksum of some kind to all the initial files,
+  and check them in testfs?
+
+- Eliminate remote ref tracking stuff for migration,
+  and instead just force processes always to migrate back home
+  before they can migrate anywhere else?
+

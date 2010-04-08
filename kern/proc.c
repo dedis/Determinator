@@ -13,6 +13,9 @@
 #if LAB >= 4
 #include <kern/file.h>
 #endif
+#if LAB >= 5
+#include <kern/net.h>
+#endif
 
 
 proc proc_null;		// null process - just leave it initialized to 0
@@ -50,12 +53,16 @@ proc_alloc(proc *p, uint32_t cn)
 	pageinfo *pi = mem_alloc();
 	if (!pi)
 		return NULL;
+	mem_incref(pi);
 
 	proc *cp = (proc*)mem_pi2ptr(pi);
 	memset(cp, 0, sizeof(proc));
 	spinlock_init(&cp->lock);
 	cp->parent = p;
 	cp->state = PROC_STOP;
+#if LAB >= 5
+	cp->home = RRCONS(net_node, mem_phys(cp), 0);
+#endif	// LAB >= 5
 
 	// register state
 	cp->tf.tf_ds = CPU_GDT_UDATA | 3;

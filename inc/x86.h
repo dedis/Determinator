@@ -343,4 +343,21 @@ cli(void)
 	asm volatile("cli");
 }
 
+// Byte-swap a 32-bit word to convert to/from big-endian byte order.
+// (Reverses the order of the 4 bytes comprising the word.)
+static gcc_inline uint32_t
+bswap(uint32_t v)
+{
+	uint32_t r;
+	asm volatile("bswap %0" : "=r" (r) : "0" (v));
+	return r;
+}
+
+// Host/network byte-order conversion for x86
+#define htons(v)	(((uint16_t)(v) >> 8) | (uint16_t)((v) << 8))
+#define ntohs(v)	(((uint16_t)(v) >> 8) | (uint16_t)((v) << 8))
+#define htonl(v)	bswap(v)
+#define ntohl(v)	bswap(v)
+
+
 #endif /* !PIOS_INC_X86_H */

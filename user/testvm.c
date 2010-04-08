@@ -112,7 +112,8 @@ trapcheck(int trapno)
 
 #define writefaulttest(va) \
 	if (!fork(SYS_START, 0)) \
-		{ *(volatile int*)(va) = 0xdeadbeef; sys_ret(); } \
+		{ volatile int *p = (volatile int*)(va); \
+		  *p = 0xdeadbeef; sys_ret(); } \
 	join(0, 0, T_PGFLT);
 
 static void cputsfaultchild(int arg) {

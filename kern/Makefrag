@@ -25,6 +25,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			kern/syscall.c \
 			kern/pmap.c \
 			kern/file.c \
+			kern/net.c \
 			dev/video.c \
 			dev/kbd.c \
 			dev/serial.c \
@@ -33,6 +34,8 @@ KERN_SRCFILES :=	kern/entry.S \
 			dev/timer.c \
 			dev/lapic.c \
 			dev/ioapic.c \
+			dev/pci.c \
+			dev/e100.c \
 			lib/printfmt.c \
 			lib/cprintf.c \
 			lib/string.c \
@@ -41,80 +44,36 @@ KERN_SRCFILES :=	kern/entry.S \
 # Build files only if they exist.
 KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
 
-ifdef LAB7
-# Binary program images to embed within the kernel.
-KERN_BINFILES :=	user/icode \
-			user/idle \
-			user/pingpong \
-			user/primes \
-			user/testpteshare \
-			user/testfdsharing \
-			user/testpipe \
-			user/testpiperace \
-			user/testpiperace2 \
-			user/primespipe \
-			user/testkbd \
-			user/testshell \
-			fs/fs \
-			net/testoutput \
-			net/testinput \
-			net/ns
-else
-ifdef LAB6
-KERN_BINFILES :=	user/idle \
-			user/pingpong \
-			user/primes \
-			user/writemotd \
-			user/icode \
-			user/testtime \
-			user/httpd \
-			user/echosrv \
-			user/echotest \
-			fs/fs \
-			net/testoutput \
-			net/testinput \
-			net/ns
-else
-ifdef LAB5
-# Binary program images to embed within the kernel.
-KERN_BINFILES :=	user/idle \
-			user/forktree \
-			user/pingpong \
-			user/primes \
-			user/testfsipc \
-			user/writemotd \
-			user/icode \
-			fs/fs
-else
 ifdef LAB4
 # Files in 'user' directory to comprise the kernel's initial file system.
 KERN_INITFILES :=	sh \
 			ls \
 			echo \
 			cat \
-			wc
+			wc \
+			testfs
+endif
 #if SOL >= 4
+# Performance benchmarking programs
 KERN_INITFILES +=	matmult \
 			microbench
 #endif
 
+ifdef LAB5
+KERN_INITFILES +=	testmigr \
+			pwcrack
+endif
+
 # Binary program images to embed within the kernel.
-KERN_BINFILES :=	boot/bootother \
-			user/testfs \
-			$(patsubst %,user/%,$(KERN_INITFILES))
-else
-ifdef LAB3
-KERN_BINFILES :=	boot/bootother \
-			user/testvm
-else
 ifdef LAB2
 KERN_BINFILES :=	boot/bootother
-endif	# not LAB2
-endif	# not LAB3
-endif	# not LAB4
-endif	# not LAB5
-endif	# not LAB6
-endif	# not LAB7
+endif
+ifdef LAB3
+KERN_BINFILES +=	user/testvm
+endif
+ifdef LAB4
+KERN_BINFILES +=	$(patsubst %,user/%,$(KERN_INITFILES))
+endif
 
 KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))
 KERN_OBJFILES := $(patsubst %.S, $(OBJDIR)/%.o, $(KERN_OBJFILES))
