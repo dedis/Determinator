@@ -53,7 +53,14 @@ KERN_INITFILES :=	sh \
 			wc \
 			testfs \
 			fun
+#if SOL >= 4
+# Performance benchmarking programs
+KERN_INITFILES +=	matmult \
+			microbench
+#endif
+>>>>>>> 32c2dfe3be801ca9b35044629637b8c07322c0b6:kern/Makefrag
 endif
+
 ifdef LAB5
 KERN_INITFILES +=	testmigr \
 			pwcrack
@@ -79,17 +86,17 @@ KERN_BINFILES := $(patsubst %, $(OBJDIR)/%, $(KERN_BINFILES))
 $(OBJDIR)/kern/%.o: kern/%.c
 	@echo + cc $<
 	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/kern/%.o: kern/%.S
 	@echo + as $<
 	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/dev/%.o: dev/%.c
 	@echo + cc $<
 	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
 
 # How to build the kernel itself
 $(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)

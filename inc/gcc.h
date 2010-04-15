@@ -22,5 +22,28 @@
 // (and GCC complains if you write a noreturn function that does).
 #define gcc_noreturn		__attribute__((noreturn))
 
+// Functions declared pure have no non-stack writes or other side-effects.
+// Those declared pure2 do not even read anything but their direct arguments.
+#define gcc_pure		__attribute__((pure))
+#define gcc_pure2		__attribute__((const))
+
+#if SOL >= 4
+
+// Surround function declarations in system C header files with these
+// so the C++ compiler will know that they're C and not C++ functions.
+#ifdef __cplusplus
+#define __BEGIN_DECLS	extern "C" {
+#define __END_DECLS	}
+#else
+#define __BEGIN_DECLS
+#define __END_DECLS
+#endif
+
+// Declare 'alias' to be a weak reference to symbol 'sym'
+#define	__weak_reference(sym,alias)	\
+	__asm__(".weak " #alias);	\
+	__asm__(".equ "  #alias ", " #sym)
+
+#endif	// SOL >= 4
 
 #endif	// PIOS_INC_GCC_H

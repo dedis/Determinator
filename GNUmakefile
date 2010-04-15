@@ -54,7 +54,10 @@ TOP = .
 
 # try to infer the correct GCCPREFIX
 ifndef GCCPREFIX
-GCCPREFIX := $(shell if i386-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
+GCCPREFIX := $(shell \
+	if pios-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
+	then echo 'pios-'; \
+	elif i386-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
 	then echo 'i386-elf-'; \
 	elif objdump -i 2>&1 | grep 'elf32-i386' >/dev/null 2>&1; \
 	then echo ''; \
@@ -108,11 +111,21 @@ NCC	:= gcc $(CC_VER) -pipe
 TAR	:= gtar
 PERL	:= perl
 
+
+# If we're not using the special "PIOS edition" of GCC,
+# reconfigure the host OS's compiler for our purposes.
+ifneq ($(GCCPREFIX),pios-)
+CFLAGS += -nostdinc -m32
+LDFLAGS += -nostdlib -m elf_i386 -e start
+endif
+
 # Compiler flags
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
-CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -O1 -fno-builtin -I$(TOP) -MD 
-CFLAGS += -Wall -Wno-unused -Werror -gstabs -m32
+# XXX modified to -O2 for benchmarking
+CFLAGS += $(DEFS) $(LABDEFS) -O2 -fno-builtin \
+		-I$(TOP) -I$(TOP)/inc -MD  \
+		-Wall -Wno-unused -Werror -gstabs
 
 # Add -fno-stack-protector if the option exists.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
@@ -120,9 +133,6 @@ CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 &
 # Kernel versus user compiler flags
 KERN_CFLAGS := $(CFLAGS) -DPIOS_KERNEL
 USER_CFLAGS := $(CFLAGS) -DPIOS_USER
-
-# Linker flags
-LDFLAGS := -m elf_i386 -e start -nostdlib
 
 KERN_LDFLAGS := $(LDFLAGS) -Ttext=0x00100000
 USER_LDFLAGS := $(LDFLAGS) -Ttext=0x40000000
@@ -285,7 +295,8 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
 IMAGES = $(OBJDIR)/kern/kernel.img
-QEMUOPTS = -smp 2 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio
+QEMUOPTS = -smp 8 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio \
+		-k en-us -m 2G
 #QEMUNET = -net socket,mcast=230.0.0.1:$(NETPORT) -net nic,model=i82559er
 QEMUNET1 = -net nic,model=i82559er,macaddr=52:54:00:12:34:01 \
 		-net socket,connect=:$(NETPORT) -net dump,file=node1.dump

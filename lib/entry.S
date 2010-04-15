@@ -7,8 +7,10 @@
 
 // Start entrypoint - this is where the kernel (or our parent process)
 // starts us running when we are initially loaded into a new process.
-	.globl start
-start:
+start:	.globl start
+#if SOL >= 4
+_start:	.globl _start		# for GCC's i386-elf target
+#endif
 #if LAB >= 4
 	// See if we were started with arguments on the stack.
 	// If not, our esp will start on a nice big power-of-two boundary.

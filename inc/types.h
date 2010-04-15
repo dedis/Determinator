@@ -9,26 +9,29 @@
 typedef int bool;
 
 // Explicitly-sized versions of integer types
-typedef __signed char int8_t;
-typedef unsigned char uint8_t;
-typedef short int16_t;
-typedef unsigned short uint16_t;
-typedef int int32_t;
-typedef unsigned int uint32_t;
-typedef long long int64_t;
-typedef unsigned long long uint64_t;
+typedef signed char		int8_t;
+typedef unsigned char		uint8_t;
+typedef short			int16_t;
+typedef unsigned short		uint16_t;
+typedef int			int32_t;
+typedef unsigned int		uint32_t;
+typedef long long		int64_t;
+typedef unsigned long long	uint64_t;
 
 // Pointers and addresses are 32 bits long.
 // We use pointer types to represent virtual addresses,
 // and [u]intptr_t to represent the numerical values of virtual addresses.
-typedef int32_t intptr_t;
-typedef uint32_t uintptr_t;
+typedef int32_t			intptr_t;
+typedef uint32_t		uintptr_t;
 
-// size_t is used for memory object sizes.
-typedef uint32_t size_t;
-// ssize_t is a signed version of ssize_t, used in case there might be an
-// error return.
-typedef int32_t ssize_t;
+// size_t is used for memory object sizes, and ssize_t is a signed analog.
+typedef uint32_t		size_t;
+typedef int32_t			ssize_t;
+
+// Floating-point types matching the size at which the compiler
+// actually evaluates floating-point expressions of a given type. (math.h)
+typedef	double			double_t;
+typedef	float			float_t;
 
 // off_t is used for file offsets and lengths.
 typedef int32_t off_t;
@@ -73,5 +76,14 @@ typedef int nlink_t;
 
 // Make the compiler think a value is getting used, even if it isn't.
 #define USED(x)		(void)(x)
+
+
+// A common way for portable to tell the endianness of a machine
+// (traditionally in endian.h)
+#define LITTLE_ENDIAN	1234
+#define BIG_ENDIAN	4321
+#define PDP_ENDIAN	3412
+#define BYTE_ORDER	LITTLE_ENDIAN	// x86 is little-endian
+
 
 #endif /* !PIOS_INC_TYPES_H */

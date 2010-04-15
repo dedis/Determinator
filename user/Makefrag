@@ -4,13 +4,24 @@ OBJDIRS += user
 $(OBJDIR)/user/%.o: user/%.c
 	@echo + cc[USER] $<
 	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(OBJDIR)/lib/entry.o \
-		$(OBJDIR)/lib/libpios.a
+		$(OBJDIR)/lib/libc.a
 	@echo + ld $@
 	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(OBJDIR)/lib/entry.o $@.o \
-		-L$(OBJDIR)/lib -lpios $(GCC_LIB)
+		-L$(OBJDIR)/lib -lc $(GCC_LIB)
 	$(V)$(OBJDUMP) -S $@ > $@.asm
 	$(V)$(NM) -n $@ > $@.sym
+
+
+#if SOL >= 4
+# Host versions of benchmark programs, for comparison purposes
+all: obj/host/matmult obj/host/microbench
+
+$(OBJDIR)/host/%: user/%.c lib/bench.c
+	@echo + ld $@
+	$(V)mkdir -p $(OBJDIR)/host
+	$(V)gcc -m32 -O2 -o $@ -I$(TOP) $^ -lpthread
+#endif
 endif

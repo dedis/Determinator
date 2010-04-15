@@ -17,7 +17,7 @@
 #ifndef PIOS_INC_FILE_H
 #define PIOS_INC_FILE_H 1
 
-#include <inc/types.h>
+#include <types.h>
 
 
 // These definitions should really be in limits.h according to POSIX
@@ -129,7 +129,8 @@ typedef struct filestate {
 	int		err;		// This process/thread's errno variable
 	int		cwd;		// Ref to inode for current directory
 	bool		exited;		// Set to true when this process exits
-	int		status;		// Exit status - set on exit
+	int		status;		// Process exit status - set on exit()
+	void *		thstat;		// Thread exit status - pthread_exit()
 	filedesc	fd[OPEN_MAX];	// File descriptor table
 	fileinode	fi[FILE_INODES]; // "Inodes" describing actual files
 	procinfo	child[256]; 	// Unix state of all child processes

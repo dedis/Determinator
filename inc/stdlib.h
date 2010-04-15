@@ -1,9 +1,9 @@
 #ifndef PIOS_INC_STDLIB_H
 #define PIOS_INC_STDLIB_H
 
-#include <inc/gcc.h>
-#include <inc/types.h>
-#include <inc/stdarg.h>
+#include <gcc.h>
+#include <types.h>
+
 
 #ifndef NULL
 #define NULL	((void *) 0)

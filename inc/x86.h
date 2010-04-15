@@ -1,8 +1,8 @@
 #ifndef PIOS_INC_X86_H
 #define PIOS_INC_X86_H
 
-#include <inc/types.h>
-#include <inc/gcc.h>
+#include <types.h>
+#include <gcc.h>
 
 
 // EFLAGS register

@@ -12,16 +12,16 @@ BOOT_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o
 $(OBJDIR)/boot/%.o: boot/%.c
 	@echo + cc -Os $<
 	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -Os -c -o $@ $<
+	$(V)$(CC) $(KERN_CFLAGS) -Os -c -o $@ $<
 
 $(OBJDIR)/boot/%.o: boot/%.S
 	@echo + as $<
 	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/boot/main.o: boot/main.c
 	@echo + cc -Os $<
-	$(V)$(CC) -nostdinc $(KERN_CFLAGS) -Os -c -o $(OBJDIR)/boot/main.o boot/main.c
+	$(V)$(CC) $(KERN_CFLAGS) -Os -c -o $(OBJDIR)/boot/main.o boot/main.c
 
 $(OBJDIR)/boot/bootblock: $(BOOT_OBJS)
 	@echo + ld boot/bootblock

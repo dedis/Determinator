@@ -3,7 +3,7 @@
 #ifndef PIOS_INC_STAT_H
 #define PIOS_INC_STAT_H 1
 
-#include <inc/types.h>
+#include <types.h>
 
 struct stat {
 	ino_t	st_ino;			/* File inode number */
@@ -24,7 +24,7 @@ struct stat {
 #endif
 };
 
-#if LAB >= 99
+#if SOL >= 4
 #define	S_ISUID	0004000			/* set user id on execution */
 #define	S_ISGID	0002000			/* set group id on execution */
 #define	S_ISVTX	0001000			/* save swapped text even after use */
@@ -49,7 +49,7 @@ struct stat {
 #define	S_IFREG	 0010000		/* regular */
 #define	S_IFDIR	 0020000		/* directory */
 #define	S_IFLNK	 0030000		/* symbolic link */
-#if LAB >= 99
+#if SOL >= 4
 #define	S_IFCHR	 0040000		/* character special */
 #define	S_IFBLK	 0050000		/* block special */
 #define	S_IFIFO	 0060000		/* named pipe (fifo) */
@@ -63,7 +63,7 @@ struct stat {
 #define	S_ISREG(m)	(((m) & S_IFMT) == S_IFREG)	/* regular file */
 #define	S_ISDIR(m)	(((m) & S_IFMT) == S_IFDIR)	/* directory */
 #define	S_ISLNK(m)	(((m) & S_IFMT) == S_IFLNK)	/* symbolic link */
-#if LAB >= 99
+#if SOL >= 4
 #define	S_ISCHR(m)	(((m) & S_IFMT) == S_IFCHR)	/* char special */
 #define	S_ISBLK(m)	(((m) & S_IFMT) == S_IFBLK)	/* block special */
 #define	S_ISFIFO(m)	(((m) & S_IFMT) == S_IFIFO)	/* fifo or socket */

@@ -63,4 +63,18 @@ sys_ret(void)
 		"a" (SYS_RET));
 }
 
+#if SOL >= 4
+uint64_t
+sys_time(void)
+{
+	uint32_t hi, lo;
+	asm volatile("int %2"
+		: "=d" (hi),
+		  "=a" (lo)
+		: "i" (T_SYSCALL),
+		  "a" (SYS_TIME));
+	return (uint64_t)hi << 32 | lo;
+}
+#endif
+
 #endif	// LAB >= 2

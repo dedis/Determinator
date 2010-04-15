@@ -5,7 +5,7 @@
 #ifndef PIOS_INC_ERRNO_H
 #define PIOS_INC_ERRNO_H
 
-#include <inc/file.h>
+#include <file.h>
 
 
 // A process/thread's errno variable is in the unixstate structure,

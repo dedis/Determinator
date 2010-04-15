@@ -30,8 +30,12 @@
 
 #if LAB >= 2
 #include <dev/pic.h>
+#include <dev/timer.h>
 #include <dev/lapic.h>
 #include <dev/ioapic.h>
+#if SOL >= 3	// XXX rdtsc calibration
+#include <dev/nvram.h>
+#endif
 #endif	// LAB >= 2
 #if LAB >= 5
 #include <dev/pci.h>
@@ -40,6 +44,8 @@
 
 // User-mode stack for user(), below, to run on.
 static char gcc_aligned(16) user_stack[PAGESIZE];
+
+#define ROOTEXE_START _binary_obj_user_sh_start
 
 // Lab 3: ELF executable containing root process, linked into the kernel
 #ifndef ROOTEXE_START
@@ -99,6 +105,7 @@ init(void)
 	// Find and start other processors in a multiprocessor system
 	mp_init();		// Find info about processors in system
 	pic_init();		// setup the legacy PIC (mainly to disable it)
+	timer_init();		// 8253 timer, used to calibrate LAPIC timers
 	ioapic_init();		// prepare to handle external device interrupts
 	lapic_init();		// setup this CPU's local APIC
 	cpu_bootothers();	// Get other processors started
@@ -152,6 +159,29 @@ init(void)
 #elif SOL >= 3
 	if (!cpu_onboot())
 		proc_sched();	// just jump right into the scheduler
+
+#if LAB >= 99
+	cprintf("Calibrating timer...\n");
+	while (nvram_read(0x0a) & 0x80); // wait until no update in progress
+	uint8_t s = nvram_read(0x00), s2;
+	do {
+		while (nvram_read(0x0a) & 0x80);
+	} while ((s2 = nvram_read(0x00)) == s);
+	s = s2;
+	do {
+		while (nvram_read(0x0a) & 0x80);
+	} while ((s2 = nvram_read(0x00)) == s);
+	s = s2;
+	while (1) {
+		uint64_t ts = rdtsc();
+		do {
+			while (nvram_read(0x0a) & 0x80);
+		} while ((s2 = nvram_read(0x00)) == s);
+		s = s2;
+		uint64_t td = rdtsc() - ts;
+		cprintf("  %lld CPU clocks per second\n", td);
+	}
+#endif
 
 	// Create our first actual user-mode process
 	proc *root = proc_root = proc_alloc(NULL, 0);

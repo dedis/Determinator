@@ -15,6 +15,10 @@
 #include <kern/net.h>
 #endif
 
+#if SOL >= 4
+#include <dev/timer.h>
+#endif
+
 
 #if SOL >= 3
 static void gcc_noreturn do_ret(trapframe *tf);
@@ -351,6 +355,18 @@ do_ret(trapframe *tf)
 #endif
 	proc_ret(tf);
 }
+
+#if SOL >= 4
+static void gcc_noreturn
+do_time(trapframe *tf)
+{
+	uint64_t t = timer_read();
+	t = t * 1000000000 / TIMER_FREQ;	// convert to nanoseconds
+	tf->tf_regs.reg_edx = t >> 32;
+	tf->tf_regs.reg_eax = t;
+	trap_return(tf);
+}
+#endif
 #endif	// SOL >= 2
 
 // Common function to handle all system calls -
@@ -367,6 +383,9 @@ syscall(trapframe *tf)
 	case SYS_PUT:	return do_put(tf, cmd);
 	case SYS_GET:	return do_get(tf, cmd);
 	case SYS_RET:	return do_ret(tf);
+#if SOL >= 4
+	case SYS_TIME:	return do_time(tf);
+#endif
 #else	// not SOL >= 2
 	// Your implementations of SYS_PUT, SYS_GET, SYS_RET here...
 #endif	// not SOL >= 2

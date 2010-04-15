@@ -8,7 +8,16 @@
 #include <inc/x86.h>
 #include <inc/assert.h>
 
+#include <kern/cpu.h>
+
+#include <dev/timer.h>
 #include <dev/lapic.h>
+
+
+// Frequency at which we want our local APICs to produce interrupts,
+// which are used for context switching.
+// Must be at least 19Hz in order to keep the system type up-to-date.
+#define HZ		25
 
 
 volatile uint32_t *lapic;  // Initialized in mp.c
@@ -32,11 +41,24 @@ lapic_init()
 
 	// The timer repeatedly counts down at bus frequency
 	// from lapic[TICR] and then issues an interrupt.  
-	// If we cared more about precise timekeeping,
-	// TICR would be calibrated using an external time source.
+	// First initialize it to the maximum value for calibration.
 	lapicw(TDCR, X1);
-	lapicw(TIMER, PERIODIC | (T_IRQ0 + IRQ_TIMER));
-	lapicw(TICR, 10000000); 
+	lapicw(TIMER, PERIODIC | T_LTIMER);
+	lapicw(TICR, ~(uint32_t)0); 
+
+	// Use the 8253 Programmable Interval Timer (PIT),
+	// which has a standard clock frequency,
+	// to determine this processor's exact bus frequency.
+	uint64_t tb = timer_read();
+	while (timer_read() == tb);	// wait until start of next tick
+	uint32_t lb = lapic[TCCR];	// read base count from lapic
+	while (timer_read() <= tb+(TIMER_FREQ+HZ/2)/HZ); // wait one tick
+	uint32_t le = lapic[TCCR];	// read final count from lapic
+	assert(le < lb);
+	uint32_t ltot = lb - le;	// total # lapic ticks per tick
+
+	cprintf("CPU%d: %lluHz\n", cpu_cur()->id, (long long)ltot * HZ);
+	lapicw(TICR, ltot);
 
 	// Disable logical interrupt lines.
 	lapicw(LINT0, MASKED);
@@ -47,8 +69,8 @@ lapic_init()
 	if (((lapic[VER]>>16) & 0xFF) >= 4)
 		lapicw(PCINT, MASKED);
 
-	// Map error interrupt to IRQ_ERROR.
-	lapicw(ERROR, T_IRQ0 + IRQ_ERROR);
+	// Map error interrupt to T_LERROR vector.
+	lapicw(ERROR, T_LERROR);
 
 	// Clear error status register (requires back-to-back writes).
 	lapicw(ESR, 0);

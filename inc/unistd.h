@@ -3,7 +3,7 @@
 #ifndef PIOS_INC_UNISTD_H
 #define PIOS_INC_UNISTD_H 1
 
-#include <inc/types.h>
+#include <types.h>
 
 
 #define STDIN_FILENO	0
