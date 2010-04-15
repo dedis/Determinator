@@ -51,7 +51,8 @@ KERN_INITFILES :=	sh \
 			echo \
 			cat \
 			wc \
-			testfs
+			testfs \
+			fun
 endif
 ifdef LAB5
 KERN_INITFILES +=	testmigr \

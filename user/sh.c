@@ -350,6 +350,10 @@ main(int argc, char **argv)
 			fprintf(stdout, "# %s\n", buf);
 		if (strcmp(buf, "exit") == 0)	// built-in command
 			exit(0);
+		if (strcmp(buf, "cwd") == 0) {
+			printf("%s\n", files->fi[files->cwd].de.d_name);
+			continue;
+		}
 		if (debug)
 			cprintf("BEFORE FORK\n");
 		if ((r = fork()) < 0)
