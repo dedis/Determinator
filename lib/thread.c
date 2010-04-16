@@ -6,13 +6,14 @@
 #include <inc/assert.h>
 #include <inc/syscall.h>
 #include <inc/vm.h>
-#include <inc/proc.h>  // For PROC_CHILDREN
 
 #define ALLVA		((void*) VM_USERLO)
 #define ALLSIZE		(VM_USERHI - VM_USERLO)
 
 #define SHAREVA		((void*) VM_SHARELO)
 #define SHARESIZE	(VM_SHAREHI - VM_SHARELO)
+
+#define PROC_CHILDREN 256
 
 
 // Fork a child process/thread, returning 0 in the child and 1 in the parent.

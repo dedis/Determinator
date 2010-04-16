@@ -10,6 +10,7 @@
 
 
 extern void tresume(int);
+extern void tbarrier_merge(uint16_t *, int);
 
 
 static int array[10];  
@@ -45,7 +46,8 @@ int main(int argc, char ** argv) {
 
 	print_array();
 
-	int r = tfork(2);
+	uint16_t children[] = {2};
+	int r = tfork(children[0]);
 
 	if (r == 0) {
 		array[0] = 3;
@@ -58,9 +60,10 @@ int main(int argc, char ** argv) {
 	else {
 		array[1] = 4;
 		sys_cputs("Parent\n");
-		tjoin(2);
-		tresume(2);
-		tjoin(2);
+		// tjoin(children[0]);
+		// tresume(children[0]);
+		tbarrier_merge(children, 1);
+		tjoin(children[0]);
 	}
 
 
