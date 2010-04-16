@@ -7,6 +7,7 @@
 #include <inc/assert.h>
 #include <inc/syscall.h>
 #include <inc/vm.h>
+#include <inc/pthread.h>
 
 
 extern void tresume(int);
@@ -25,9 +26,17 @@ void print_array() {
 }
 
 
+void * func(void * args_ptr) {
+
+	sys_cputs("In func\n");
+	return NULL;
+
+}
+
+
 int main(int argc, char ** argv) {
 
-	int fd, written, i;;
+	int fd, written, i;
 	char * filename;
 	char * text = "exegi monumentum aere perennius\n";
 
@@ -60,8 +69,6 @@ int main(int argc, char ** argv) {
 	else {
 		array[1] = 4;
 		sys_cputs("Parent\n");
-		// tjoin(children[0]);
-		// tresume(children[0]);
 		tbarrier_merge(children, 1);
 		tjoin(children[0]);
 	}
@@ -69,5 +76,20 @@ int main(int argc, char ** argv) {
 
 	print_array();
 
+	int ret;
+	pthread_t threads[2];
+
+	for (i = 0; i < 2; i++) {
+		ret = pthread_create(&threads[i], NULL, func, NULL);
+		if (ret != 0) {
+			sys_cputs("Thread failure.\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+	sys_cputs("Parent waiting for 2 children.\n");
+	for (i = 0; i < 2; i++) {
+		pthread_join(threads[i], NULL);
+	}
+		
 	return EXIT_SUCCESS;
 }

@@ -5,11 +5,13 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/assert.h>
+#include <inc/errno.h>
 #include <inc/syscall.h>
 #include <inc/x86.h>
 #include <inc/mmu.h>
 #include <inc/vm.h>
 #include <inc/file.h>
+#include <pthread.h>
 
 #define ALLVA		((void*) VM_USERLO)
 #define ALLSIZE		(VM_USERHI - VM_USERLO)
@@ -58,13 +60,13 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 		:
 		: "ebx", "ecx", "edx");
 	if (!isparent) {	// in the child
-		files->thstat = start_routine(arg);
+ 		files->thstat = start_routine(arg);
 		sys_ret();
 	}
 
 	// Fork the child, copying our entire user address space into it.
 	cs.tf.tf_regs.reg_eax = 0;	// isparent == 0 in the child
-	sys_put(SYS_START | SYS_SNAP | SYS_REGS | SYS_COPY, child,
+	sys_put(SYS_START | SYS_SNAP | SYS_REGS | SYS_COPY, th,
 		&cs, ALLVA, ALLVA, ALLSIZE);
 
 	*out_thread = th;
@@ -90,6 +92,8 @@ pthread_join(pthread_t child, void **out_exitval)
 		panic("join: unexpected trap %d, expecting %d\n",
 			cs.tf.tf_trapno, trapexpect);
 	}
+	// *out_exitval = (void *);
+	return 0;
 }
 
 #endif // SOL >= 4
