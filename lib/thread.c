@@ -6,6 +6,7 @@
 #include <inc/assert.h>
 #include <inc/syscall.h>
 #include <inc/vm.h>
+#include <inc/proc.h>  // For PROC_CHILDREN
 
 #define ALLVA		((void*) VM_USERLO)
 #define ALLSIZE		(VM_USERHI - VM_USERLO)
@@ -47,9 +48,19 @@ tfork(uint16_t child)
 	// Fork the child, copying our entire user address space into it.
 	cs.tf.tf_regs.reg_eax = 0;	// isparent == 0 in the child
 	sys_put(SYS_REGS | SYS_COPY | SYS_SNAP | SYS_START, child,
-		&cs, ALLVA, ALLVA, ALLSIZE);
+ 		&cs, ALLVA, ALLVA, ALLSIZE);
 
 	return 1;
+}
+
+
+void
+tresume(uint16_t child)
+{
+	// Restart a child after it has stopped.
+	// Refresh child's memory state to match parent's.
+	sys_put( SYS_COPY | SYS_SNAP | SYS_START, child,
+		 NULL, SHAREVA, SHAREVA, SHARESIZE);
 }
 
 void
@@ -69,5 +80,19 @@ tjoin(uint16_t child)
 			cs.tf.tf_trapno, T_SYSCALL);
 	}
 }
+
+
+void
+tbarrier_merge(uint16_t * children, int num_children) 
+{
+	assert(num_children > 0);
+	assert(num_children <= PROC_CHILDREN);
+	int i;
+	for (i = 0; i < num_children; i++)
+		tjoin(children[i]);
+	for (i = 0; i < num_children; i++)
+		tresume(children[i]);
+}
+
 
 #endif // LAB >= 4

@@ -9,9 +9,7 @@
 #include <inc/vm.h>
 
 
-#define ALLVA		((void*) VM_USERLO)
-#define ALLSIZE		(VM_USERHI - VM_USERLO)
-
+extern void tresume(int);
 
 
 static int array[10];  
@@ -53,10 +51,15 @@ int main(int argc, char ** argv) {
 		array[0] = 3;
 		sys_cputs("Child\n");
 		sys_ret();
+		array[3] = 42;
+		sys_cputs("Child again\n");
+		sys_ret();
 	}
 	else {
 		array[1] = 4;
 		sys_cputs("Parent\n");
+		tjoin(2);
+		tresume(2);
 		tjoin(2);
 	}
 
