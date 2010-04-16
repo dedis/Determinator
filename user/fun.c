@@ -28,8 +28,8 @@ void print_array() {
 
 void * func(void * args_ptr) {
 
-	sys_cputs("In func\n");
-	return NULL;
+	printf("In func\n");
+	return (void *)3;
 
 }
 
@@ -76,7 +76,7 @@ int main(int argc, char ** argv) {
 
 	print_array();
 
-	int ret;
+	int ret, status;
 	pthread_t threads[2];
 
 	for (i = 0; i < 2; i++) {
@@ -86,9 +86,10 @@ int main(int argc, char ** argv) {
 			exit(EXIT_FAILURE);
 		}
 	}
-	sys_cputs("Parent waiting for 2 children.\n");
+	printf("Parent waiting for 2 children.\n");
 	for (i = 0; i < 2; i++) {
-		pthread_join(threads[i], NULL);
+		pthread_join(threads[i], (void **)&status);
+		printf("Status %d\n", status);
 	}
 		
 	return EXIT_SUCCESS;

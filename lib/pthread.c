@@ -61,6 +61,7 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 		: "ebx", "ecx", "edx");
 	if (!isparent) {	// in the child
  		files->thstat = start_routine(arg);
+		asm volatile("	movl	%0, %%eax" : : "m" (files->thstat));
 		sys_ret();
 	}
 
@@ -89,10 +90,15 @@ pthread_join(pthread_t child, void **out_exitval)
 	if (cs.tf.tf_trapno != trapexpect) {
 		cprintf("  eip  0x%08x\n", cs.tf.tf_eip);
 		cprintf("  esp  0x%08x\n", cs.tf.tf_esp);
-		panic("join: unexpected trap %d, expecting %d\n",
+		cprintf("join: unexpected trap %d, expecting %d\n",
 			cs.tf.tf_trapno, trapexpect);
+		errno = EINVAL;
+		return -1;
 	}
-	// *out_exitval = (void *);
+	if (out_exitval != NULL) {
+		*out_exitval = (void *)cs.tf.tf_regs.reg_eax;
+	}
+	files->thstat = NULL;
 	return 0;
 }
 
