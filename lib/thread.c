@@ -101,13 +101,6 @@ tbarrier_merge(uint16_t * children, int num_children)
 }
 
 
-void
-tbarrier(void)
-{
-	asm volatile("	movl	%0, %%eax" : : "i" (EXIT_BARRIER));
-	sys_ret;
-}
-
 typedef struct internal_args_t {
 	int num_children;
 	void * start_routine;
@@ -153,7 +146,7 @@ tparallel_internal(void * args_ptr)
 
 
 void
-tparallel_begin(pthread_t * master, int num_children, void * (* start_routine)(void *), void * args) 
+tparallel_begin(int * master, int num_children, void * (* start_routine)(void *), void * args) 
 {
 
 	internal_args_t internal_args;
@@ -161,7 +154,7 @@ tparallel_begin(pthread_t * master, int num_children, void * (* start_routine)(v
 	internal_args.num_children = num_children;
 	internal_args.start_routine = start_routine;
 	internal_args.args = args;
-	ret = pthread_create(master, NULL, &tparallel_internal, &internal_args);
+	ret = pthread_create((pthread_t *)master, NULL, &tparallel_internal, &internal_args);
 	if (ret != 0) {
 		fprintf(stderr, "tparallel_begin: thread creation failure: %d\n", errno);
 		exit(EXIT_FAILURE);
@@ -169,10 +162,10 @@ tparallel_begin(pthread_t * master, int num_children, void * (* start_routine)(v
 }
 
 void
-tparallel_end(pthread_t master)
+tparallel_end(int master)
 {
 	int status;
-	int ret = pthread_join(master, (void **)&status);
+	int ret = pthread_join((pthread_t)master, (void **)&status);
 	if (ret != 0) {
 		fprintf(stderr, "tparallel_end: thread joining failure: %d\n", errno);
 		exit(EXIT_FAILURE);
@@ -183,6 +176,14 @@ tparallel_end(pthread_t master)
 	}
 }
 
+
+
+void
+tbarrier_wait(void)
+{
+	asm volatile("	movl	%0, %%eax" : : "i" (EXIT_BARRIER));
+	sys_ret;
+}
 
 
 #endif // LAB >= 4
