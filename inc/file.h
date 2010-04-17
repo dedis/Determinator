@@ -122,6 +122,7 @@ typedef struct procinfo {
 #define PROC_FREE	0		// Unused child, available for fork()
 #define PROC_RESERVED	(-1)		// Child reserved for special purpose
 #define PROC_FORKED	1		// This child forked and running
+#define PROC_CHILDREN	256		// Size of child array--shd agree w kern/proc.h.
 
 
 // User-space Unix process state.
@@ -133,7 +134,7 @@ typedef struct filestate {
 	void *		thstat;		// Thread exit status - pthread_exit()
 	filedesc	fd[OPEN_MAX];	// File descriptor table
 	fileinode	fi[FILE_INODES]; // "Inodes" describing actual files
-	procinfo	child[256]; 	// Unix state of all child processes
+	procinfo	child[PROC_CHILDREN]; 	// Unix state of all child processes
 } filestate;
 
 #define FILES		((filestate *) FILESVA)

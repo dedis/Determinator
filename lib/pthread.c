@@ -19,7 +19,6 @@
 #define SHAREVA		((void*) VM_SHARELO)
 #define SHARESIZE	(VM_SHAREHI - VM_SHARELO)
 
-
 // Fork a child process, returning 0 in the child and 1 in the parent.
 int
 pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
@@ -27,7 +26,7 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 {
 	// Find a free child thread/process slot.
 	pthread_t th;
-	for (th = 1; th < 256; th++)
+	for (th = 1; th < PROC_CHILDREN; th++)
 		if (files->child[th].state == PROC_FREE)
 			break;
 	if (th == 256) {
