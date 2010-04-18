@@ -123,7 +123,7 @@ tparallel_internal(void * args_ptr)
 	for (cn = 0; cn < args->num_children; cn++) {
 		ret = pthread_create(&threads[cn], NULL, args->start_routine, args->args);
 		if (ret != 0) {
-			fprintf(stderr, "tparallel_internal: Thread creation failure: %d\n", errno);
+			fprintf(stderr, "tparallel_internal: thread creation failure: %d\n", errno);
 			return (void *)EXIT_FAILURE;
 		}
 	}

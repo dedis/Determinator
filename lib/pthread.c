@@ -60,7 +60,7 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 		: "ebx", "ecx", "edx");
 	if (!isparent) {	// in the child
  		files->thstat = start_routine(arg);
-		asm volatile("	movl	%0, %%eax" : : "m" (files->thstat));
+		asm volatile("	movl	%0, %%edx" : : "m" (files->thstat));
 		sys_ret();
 	}
 
@@ -74,28 +74,25 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 }
 
 int
-pthread_join(pthread_t child, void **out_exitval)
+pthread_join(pthread_t th, void **out_exitval)
 {
-	int cmd = SYS_MERGE;
-	int trapexpect = T_SYSCALL;
-
 	// Wait for the child and retrieve its CPU state.
 	// If merging, leave the highest 4MB containing the stack unmerged,
 	// so that the stack acts as a "thread-private" memory area.
 	struct cpustate cs;
-	sys_get(cmd | SYS_REGS, child, &cs, SHAREVA, SHAREVA, SHARESIZE);
+	sys_get(SYS_MERGE | SYS_REGS, th, &cs, SHAREVA, SHAREVA, SHARESIZE);
 
 	// Make sure the child exited with the expected trap number
-	if (cs.tf.tf_trapno != trapexpect) {
+	if (cs.tf.tf_trapno != T_SYSCALL) {
 		cprintf("  eip  0x%08x\n", cs.tf.tf_eip);
 		cprintf("  esp  0x%08x\n", cs.tf.tf_esp);
 		cprintf("join: unexpected trap %d, expecting %d\n",
-			cs.tf.tf_trapno, trapexpect);
+			cs.tf.tf_trapno, T_SYSCALL);
 		errno = EINVAL;
 		return -1;
 	}
 	if (out_exitval != NULL) {
-		*out_exitval = (void *)cs.tf.tf_regs.reg_eax;
+		*out_exitval = (void *)cs.tf.tf_regs.reg_edx;
 	}
 	files->thstat = NULL;
 	return 0;
