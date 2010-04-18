@@ -61,7 +61,7 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 		: "ebx", "ecx", "edx");
 	if (!isparent) {	// in the child
  		files->thstat = start_routine(arg);
-		asm volatile("	movl	%0, %%eax" : : "m" (files->thstat));
+		asm volatile("	movl	%0, %%edx" : : "m" (files->thstat));
 		sys_ret();
 	}
 
@@ -96,7 +96,7 @@ pthread_join(pthread_t child, void **out_exitval)
 		return -1;
 	}
 	if (out_exitval != NULL) {
-		*out_exitval = (void *)cs.tf.tf_regs.reg_eax;
+		*out_exitval = (void *)cs.tf.tf_regs.reg_edx;
 	}
 	files->thstat = NULL;
 	return 0;
