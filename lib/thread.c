@@ -1,11 +1,15 @@
 #if LAB >= 4
 
 #include <inc/stdio.h>
+#include <inc/stdlib.h>
 #include <inc/string.h>
 #include <inc/unistd.h>
 #include <inc/assert.h>
 #include <inc/syscall.h>
 #include <inc/vm.h>
+#include <inc/pthread.h>
+#include <inc/file.h>
+#include <inc/errno.h>
 
 #define ALLVA		((void*) VM_USERLO)
 #define ALLSIZE		(VM_USERHI - VM_USERLO)
@@ -13,7 +17,10 @@
 #define SHAREVA		((void*) VM_SHARELO)
 #define SHARESIZE	(VM_SHAREHI - VM_SHARELO)
 
-#define PROC_CHILDREN 256
+
+#define EXIT_BARRIER 0x80000000 // Highest bit set to indicate sys_ret at barrier.
+
+static int thread_id;
 
 
 // Fork a child process/thread, returning 0 in the child and 1 in the parent.
@@ -83,17 +90,77 @@ tjoin(uint16_t child)
 }
 
 
-void
-tbarrier_merge(uint16_t * children, int num_children) 
+typedef struct internal_args_t {
+	int num_children;
+	void * start_routine;
+	void * args;
+	int * status_array;
+} internal_args_t;
+
+
+void *
+tparallel_internal(void * args_ptr)
 {
-	assert(num_children > 0);
-	assert(num_children <= PROC_CHILDREN);
-	int i;
-	for (i = 0; i < num_children; i++)
-		tjoin(children[i]);
-	for (i = 0; i < num_children; i++)
-		tresume(children[i]);
+
+	internal_args_t * args = (internal_args_t *)args_ptr;
+	pthread_t threads[PROC_CHILDREN];
+	int cn, ret;
+	assert(args->num_children > 0);
+	assert(args->num_children < PROC_CHILDREN);
+	for (cn = 1; cn < PROC_CHILDREN; cn++)
+		assert(files->child[cn].state == PROC_FREE);
+	for (cn = 0; cn < args->num_children; cn++) {
+		ret = pthread_create(&threads[cn], NULL, args->start_routine, args->args);
+		if (ret != 0) {
+			warn("tparallel_internal: thread creation failure");
+			return (void *)EXIT_FAILURE;
+		}
+	}
+	for (cn = 0; cn < args->num_children; cn++) {
+		ret = pthread_join(threads[cn], (void **)&args->status_array[cn]);
+		if (ret != 0) {
+			warn("tparallel_internal: thread joining failure");
+			return (void *)EXIT_FAILURE;
+		}
+
+	}
+	return (void *)EXIT_SUCCESS;
 }
+
+
+void
+tparallel_begin(int * master, int num_children, void * (* start_routine)(void *), void * args,
+		int status_array[]) 
+{
+
+	internal_args_t internal_args;
+	int ret;
+	internal_args.num_children = num_children;
+	internal_args.start_routine = start_routine;
+	internal_args.args = args;
+	internal_args.status_array = status_array;
+	ret = pthread_create((pthread_t *)master, NULL, &tparallel_internal, &internal_args);
+	if (ret != 0) {
+		fprintf(stderr, "tparallel_begin: thread creation failure: %d\n", errno);
+		exit(EXIT_FAILURE);
+	}
+}
+
+void
+tparallel_end(int master)
+{
+	int status;
+	int ret = pthread_join((pthread_t)master, (void **)&status);
+	if (ret != 0) {
+		fprintf(stderr, "tparallel_end: thread joining failure: %d\n", errno);
+		exit(EXIT_FAILURE);
+	}
+	if (status != EXIT_SUCCESS) {
+		fprintf(stderr, "tparallel_end: exit status %d\n", status);
+		exit(EXIT_FAILURE);
+	}
+}
+
 
 
 #endif // LAB >= 4

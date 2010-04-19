@@ -56,6 +56,9 @@ int	fsync(int fn);
 // PIOS-specific thread fork/join functions
 int	tfork(uint16_t child);
 void	tjoin(uint16_t child);
+void	tparallel_begin(int * master, int num_children, void * (* start_routine)(void *),
+			void * args, int status_array[]);
+void	tparallel_end(int master);
 
 
 #endif	// !PIOS_INC_UNISTD_H

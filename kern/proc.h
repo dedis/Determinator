@@ -13,9 +13,11 @@
 #if LAB >= 3
 #include <kern/pmap.h>
 #endif
-
-
+#if LAB >= 4
+#include <inc/file.h>
+#else
 #define PROC_CHILDREN	256	// Max # of children a process can have
+#endif
 
 typedef enum proc_state {
 	PROC_STOP	= 0,	// Passively waiting for parent to run it

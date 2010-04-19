@@ -18,4 +18,28 @@ int pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 int pthread_join(pthread_t th, void **out_exitval);
 
 
+// The "barrier" type is an integer holding the index
+// its index in the parent's global barriers array.
+// The array entry at the corresponding index holds
+// the barrier's count, i.e., the number of threads
+// to stop at that barrier.
+typedef int pthread_barrier_t;
+
+
+// We do not currently support pthread_barrierattrs.
+typedef void pthread_barrierattr_t;
+
+// Maximum number of barriers a process/thread may use
+#define BARRIER_MAX 256  
+
+int pthread_barrier_init(pthread_barrier_t * barrier, 
+			 const pthread_barrierattr_t * attr, 
+			 unsigned int count);
+
+int pthread_barrier_wait(pthread_barrier_t * barrier);
+
+int pthread_barrier_destroy(pthread_barrier_t * barrier);
+
+pthread_t pthread_self(void);
+
 #endif /* !PIOS_INC_PTHREAD_H */

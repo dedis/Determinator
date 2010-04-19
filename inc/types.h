@@ -7,6 +7,8 @@
 
 // Represents true-or-false values
 typedef int bool;
+#define false 0
+#define true 1
 
 // Explicitly-sized versions of integer types
 typedef signed char		int8_t;

@@ -10,11 +10,10 @@
 #include <inc/pthread.h>
 
 
-extern void tresume(int);
-extern void tbarrier_merge(uint16_t *, int);
-
+#define NUM_CHILDREN 4
 
 static int array[10];  
+static pthread_barrier_t barrier;
 
 
 void print_array() {
@@ -28,69 +27,40 @@ void print_array() {
 
 void * func(void * args_ptr) {
 
-	printf("In func\n");
-	return (void *)3;
-
+	int s = pthread_self();
+	array[s] = s;
+	cprintf("Thread %d in func before barrier.  array[4]: %d\n", s, array[4]);
+	pthread_barrier_wait(&barrier);
+       	array[s + NUM_CHILDREN] = s;
+	cprintf("Thread %d in func after barrier.  array[4]: %d\n", s, array[4]);
+	return (void *)EXIT_SUCCESS;
 }
-
 
 int main(int argc, char ** argv) {
 
-	int fd, written, i;
-	char * filename;
-	char * text = "exegi monumentum aere perennius\n";
+	int i, status, ret;
+	pthread_t threads[NUM_CHILDREN];
 
-	printf("This is a test.\n");
-	if (argc > 1)
-		filename = argv[1];
-	else filename = "boo.txt";
-	fd = open(filename, O_CREAT | O_WRONLY);
-	if (fd == -1)
-		panic("open: %s", strerror(errno));
-	written = write(fd, text, strlen(text) + 1);
-	if (written != strlen(text) + 1) 
-		printf("written: %d  text length: %d\n", written, strlen(text));
-	close(fd);
+	ret = pthread_barrier_init(&barrier, NULL, NUM_CHILDREN);
+	if (ret != 0)
+		fprintf(stderr, "*** pthread_barrier_init  %d\n", ret);
 
+
+	fprintf(stderr, "In parent.\n");
 
 	print_array();
 
-	uint16_t children[] = {2};
-	int r = tfork(children[0]);
-
-	if (r == 0) {
-		array[0] = 3;
-		sys_cputs("Child\n");
-		sys_ret();
-		array[3] = 42;
-		sys_cputs("Child again\n");
-		sys_ret();
-	}
-	else {
-		array[1] = 4;
-		sys_cputs("Parent\n");
-		tbarrier_merge(children, 1);
-		tjoin(children[0]);
-	}
-
-
-	print_array();
-
-	int ret, status;
-	pthread_t threads[2];
-
-	for (i = 0; i < 2; i++) {
-		ret = pthread_create(&threads[i], NULL, func, NULL);
-		if (ret != 0) {
-			sys_cputs("Thread failure.\n");
-			exit(EXIT_FAILURE);
-		}
-	}
-	printf("Parent waiting for 2 children.\n");
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < NUM_CHILDREN; i++)
+		pthread_create(&threads[i], NULL, &func, NULL);
+	fprintf(stderr, "In parent again.\n");
+	for (i = 0; i < NUM_CHILDREN; i++)
 		pthread_join(threads[i], (void **)&status);
-		printf("Status %d\n", status);
-	}
 		
+	ret = pthread_barrier_destroy(&barrier);
+	if (ret != 0)
+		fprintf(stderr, "*** pthread_barrier_destroy  %d\n", ret);
+
+	print_array();
+
 	return EXIT_SUCCESS;
 }
