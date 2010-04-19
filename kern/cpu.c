@@ -56,11 +56,38 @@ cpu cpu_boot = {
 };
 
 
+#if SOL >= 1
+void cpu_info()
+{
+	// Obtain and print some information about the CPU.
+	cpuinfo inf;
+
+	char str[12+1];
+	cpuid(0x00, &inf);
+	memcpy(str, &inf.ebx, 12);
+	str[12] = 0;
+	cpuid(0x01, &inf);
+
+	int family = (inf.eax >> 8) & 0xf;
+	int model = (inf.eax >> 4) & 0xf;
+	int stepping = (inf.eax >> 4) & 0xf;
+	if (family == 0xf)
+		family += (inf.eax >> 20) & 0xff;
+	if (family == 6 || family >= 0xf)
+		model |= ((inf.eax >> 16) & 0xf) << 4;
+
+	cprintf("CPUID: %s %x/%x/%x\n", str, family, model, stepping);
+}
+#endif
+
 void cpu_init()
 {
 	cpu *c = cpu_cur();
 
 #if SOL >= 1
+	if (cpu_onboot())
+		cpu_info();
+
 	// Setup the TSS for this cpu so that we get the right stack
 	// when we trap into the kernel from user mode.
 	c->tss.ts_esp0 = (uint32_t) c->kstackhi;

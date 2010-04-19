@@ -40,6 +40,9 @@
 #if LAB >= 5
 #include <dev/pci.h>
 #endif	// LAB >= 5
+#if SOL >= 4
+#include <dev/pmc.h>
+#endif
 
 
 // User-mode stack for user(), below, to run on.
@@ -122,6 +125,7 @@ init(void)
 
 #if SOL >= 4
 	cons_intenable();	// Let the console start producing interrupts
+	pmc_init();		// Init perf monitoring counters
 #else
 	// Lab 4: uncomment this when you can handle IRQ_SERIAL and IRQ_KBD.
 	//cons_intenable();	// Let the console start producing interrupts
