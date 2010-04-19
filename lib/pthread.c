@@ -35,7 +35,7 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 		void *(*start_routine)(void *), void *arg)
 {
 	// Find a free child thread/process slot.
-	pthread_t th, self;
+	pthread_t th;
 	for (th = 1; th < PROC_CHILDREN; th++)
 		if (files->child[th].state == PROC_FREE)
 			break;
@@ -69,9 +69,7 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 		:
 		: "ebx", "ecx", "edx");
 	if (!isparent) {	// in the child
-		asm volatile("	movl	%%edx, %0" : "=m" (self));
-		// cprintf("SELF %d\n", self);
-		files->thstat = (void *)self;
+		files->thstat = (void *)th; // for pthread_self
  		files->thstat = start_routine(arg);
 		asm volatile("	movl	%0, %%edx" : : "m" (files->thstat));
 		sys_ret();
@@ -79,7 +77,6 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 
 	// Fork the child, copying our entire user address space into it.
 	cs.tf.tf_regs.reg_eax = 0;	// isparent == 0 in the child
-	cs.tf.tf_regs.reg_edx = th;	// Use for pthread_self().
 	sys_put(SYS_START | SYS_SNAP | SYS_REGS | SYS_COPY, th,
 		&cs, ALLVA, ALLVA, ALLSIZE);
 

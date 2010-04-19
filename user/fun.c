@@ -10,9 +10,7 @@
 #include <inc/pthread.h>
 
 
-extern void tresume(int);
-extern void tbarrier_merge(uint16_t *, int);
-
+#define NUM_CHILDREN 4
 
 static int array[10];  
 static pthread_barrier_t barrier;
@@ -37,20 +35,19 @@ void * func(void * args_ptr) {
 	case 4: sys_cputs("4\n"); break;
 	default: sys_cputs("other\n"); break;
 	}
-	fprintf(stderr, "In func\n");
+	array[s] = s;
+	sys_cputs("In func before barrier.\n");
 	pthread_barrier_wait(&barrier);
-	fprintf(stderr, "In func after barrier\n");
+	sys_cputs("In func after barrier.\n");
+       	array[s + NUM_CHILDREN] = s;
+
 
 	return (void *)7;
 
 }
 
-#define NUM_CHILDREN 4
-
 int main(int argc, char ** argv) {
 
-	// int master;
-	// tparallel_begin(&master, 2, &func, NULL);
 	int i, status, ret;
 	pthread_t threads[NUM_CHILDREN];
 
@@ -60,7 +57,9 @@ int main(int argc, char ** argv) {
 
 
 	fprintf(stderr, "In parent.\n");
-	// tparallel_end(master);
+
+	print_array();
+
 	for (i = 0; i < NUM_CHILDREN; i++)
 		pthread_create(&threads[i], NULL, &func, NULL);
 	fprintf(stderr, "In parent again.\n");
@@ -70,6 +69,8 @@ int main(int argc, char ** argv) {
 	ret = pthread_barrier_destroy(&barrier);
 	if (ret != 0)
 		fprintf(stderr, "*** pthread_barrier_destroy  %d\n", ret);
+
+	print_array();
 
 	return EXIT_SUCCESS;
 }
