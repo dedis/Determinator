@@ -29,9 +29,17 @@ void print_array() {
 
 void * func(void * args_ptr) {
 
-	sys_cputs("In func\n");
+	int s = pthread_self();
+	switch(s) {
+	case 1: sys_cputs("1\n"); break;
+	case 2: sys_cputs("2\n"); break;
+	case 3: sys_cputs("3\n"); break;
+	case 4: sys_cputs("4\n"); break;
+	default: sys_cputs("other\n"); break;
+	}
+	fprintf(stderr, "In func\n");
 	pthread_barrier_wait(&barrier);
-	sys_cputs("In func after barrier\n");
+	fprintf(stderr, "In func after barrier\n");
 
 	return (void *)7;
 
@@ -51,11 +59,11 @@ int main(int argc, char ** argv) {
 		fprintf(stderr, "*** pthread_barrier_init  %d\n", ret);
 
 
-	sys_cputs("In parent.\n");
+	fprintf(stderr, "In parent.\n");
 	// tparallel_end(master);
 	for (i = 0; i < NUM_CHILDREN; i++)
 		pthread_create(&threads[i], NULL, &func, NULL);
-	sys_cputs("In parent again.\n");
+	fprintf(stderr, "In parent again.\n");
 	for (i = 0; i < NUM_CHILDREN; i++)
 		pthread_join(threads[i], (void **)&status);
 		

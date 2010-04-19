@@ -35,7 +35,7 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 		void *(*start_routine)(void *), void *arg)
 {
 	// Find a free child thread/process slot.
-	pthread_t th;
+	pthread_t th, self;
 	for (th = 1; th < PROC_CHILDREN; th++)
 		if (files->child[th].state == PROC_FREE)
 			break;
@@ -69,6 +69,9 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 		:
 		: "ebx", "ecx", "edx");
 	if (!isparent) {	// in the child
+		asm volatile("	movl	%%edx, %0" : "=m" (self));
+		// cprintf("SELF %d\n", self);
+		files->thstat = (void *)self;
  		files->thstat = start_routine(arg);
 		asm volatile("	movl	%0, %%edx" : : "m" (files->thstat));
 		sys_ret();
@@ -76,6 +79,7 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 
 	// Fork the child, copying our entire user address space into it.
 	cs.tf.tf_regs.reg_eax = 0;	// isparent == 0 in the child
+	cs.tf.tf_regs.reg_edx = th;	// Use for pthread_self().
 	sys_put(SYS_START | SYS_SNAP | SYS_REGS | SYS_COPY, th,
 		&cs, ALLVA, ALLVA, ALLSIZE);
 
@@ -150,11 +154,12 @@ int
 pthread_join(pthread_t th, void **out_exitval)
 {
 
-	// Repeatedly wait for the child and retrieve its CPU state.
+	// Wait for the child and retrieve its CPU state.
 	// Merge, leaving the highest 4MB containing the stack unmerged,
 	// so that the stack acts as a "thread-private" memory area.
-	// If this is a barrier, repeat until all children have gone through
-	// this point.  If this is not a barrier, free the child.
+	// If this is a barrier, wait until all children have arrived,
+	// then restart them all.
+	// If this is not a barrier, free the child.
 	int status, ret;
 	struct cpustate cs;
 	while(true) {
@@ -166,9 +171,12 @@ pthread_join(pthread_t th, void **out_exitval)
 			cprintf("  esp  0x%08x\n", cs.tf.tf_esp);
 			cprintf("join: unexpected trap %d, expecting %d\n",
 				cs.tf.tf_trapno, T_SYSCALL);
+			status = -1;
 			errno = EINVAL;
-			return -1;
+			ret = -1;
+			goto done;
 		}
+
 		status = cs.tf.tf_regs.reg_edx;
 
 		// At a barrier?
@@ -176,11 +184,12 @@ pthread_join(pthread_t th, void **out_exitval)
 			ret = wait_at_barrier(th, BARRIER_READ(status));
 			if (ret == -1) {
 				errno = EINVAL;
-				return -1;
+				goto done;
 			}
 			if (ret > 0) {
 				errno = EAGAIN;
-				return -1;
+				ret = -1;
+				goto done;
 			}
 		}
 
@@ -188,12 +197,15 @@ pthread_join(pthread_t th, void **out_exitval)
 		else
 			break;
 	}
-
+	ret = 0;
+ done:
 	if (out_exitval != NULL) {
 		*out_exitval = (void *)status;
 	}
 	files->thstat = NULL;
-	return 0;
+	// sys_put(SYS_ZERO, th, NULL, ALLVA, ALLVA, ALLSIZE);
+	// files->child[th].state = PROC_FREE;
+	return ret;
 }
 
 
@@ -248,6 +260,12 @@ pthread_barrier_wait(pthread_barrier_t * barrier)
 	asm volatile("	movl	%0, %%edx" : : "m" (b));
 	sys_ret();
 	return 0;
+}
+
+
+pthread_t pthread_self(void)
+{
+	return (int)files->thstat; 
 }
 
 

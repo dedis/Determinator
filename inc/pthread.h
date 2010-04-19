@@ -40,4 +40,6 @@ int pthread_barrier_wait(pthread_barrier_t * barrier);
 
 int pthread_barrier_destroy(pthread_barrier_t * barrier);
 
+pthread_t pthread_self(void);
+
 #endif /* !PIOS_INC_PTHREAD_H */
