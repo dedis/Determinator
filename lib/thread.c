@@ -90,23 +90,11 @@ tjoin(uint16_t child)
 }
 
 
-void
-tbarrier_merge(uint16_t * children, int num_children) 
-{
-	assert(num_children > 0);
-	assert(num_children <= PROC_CHILDREN);
-	int i;
-	for (i = 0; i < num_children; i++)
-		tjoin(children[i]);
-	for (i = 0; i < num_children; i++)
-		tresume(children[i]);
-}
-
-
 typedef struct internal_args_t {
 	int num_children;
 	void * start_routine;
 	void * args;
+	int * status_array;
 } internal_args_t;
 
 
@@ -116,8 +104,7 @@ tparallel_internal(void * args_ptr)
 
 	internal_args_t * args = (internal_args_t *)args_ptr;
 	pthread_t threads[PROC_CHILDREN];
-	int cn, ret, status;
-	bool at_end;
+	int cn, ret;
 	assert(args->num_children > 0);
 	assert(args->num_children < PROC_CHILDREN);
 	for (cn = 1; cn < PROC_CHILDREN; cn++)
@@ -125,22 +112,16 @@ tparallel_internal(void * args_ptr)
 	for (cn = 0; cn < args->num_children; cn++) {
 		ret = pthread_create(&threads[cn], NULL, args->start_routine, args->args);
 		if (ret != 0) {
-			fprintf(stderr, "tparallel_internal: thread creation failure: %d\n", errno);
+			warn("tparallel_internal: thread creation failure");
 			return (void *)EXIT_FAILURE;
 		}
 	}
-	at_end = 0;
-	while(1) {
-		for (cn = 0; cn < args->num_children; cn++) {
-			pthread_join(threads[cn], (void **)&status);
-			if (cn == 0 && status != EXIT_BARRIER)
-				at_end = 1;
-			else if (at_end)
-				assert(status != EXIT_BARRIER);
+	for (cn = 0; cn < args->num_children; cn++) {
+		ret = pthread_join(threads[cn], (void **)&args->status_array[cn]);
+		if (ret != 0) {
+			warn("tparallel_internal: thread joining failure");
+			return (void *)EXIT_FAILURE;
 		}
-		if (at_end) break;
-		for (cn = 0; cn < args->num_children; cn++)
-			tresume(threads[cn]);
 
 	}
 	return (void *)EXIT_SUCCESS;
@@ -148,7 +129,8 @@ tparallel_internal(void * args_ptr)
 
 
 void
-tparallel_begin(int * master, int num_children, void * (* start_routine)(void *), void * args) 
+tparallel_begin(int * master, int num_children, void * (* start_routine)(void *), void * args,
+		int status_array[]) 
 {
 
 	internal_args_t internal_args;
@@ -156,6 +138,7 @@ tparallel_begin(int * master, int num_children, void * (* start_routine)(void *)
 	internal_args.num_children = num_children;
 	internal_args.start_routine = start_routine;
 	internal_args.args = args;
+	internal_args.status_array = status_array;
 	ret = pthread_create((pthread_t *)master, NULL, &tparallel_internal, &internal_args);
 	if (ret != 0) {
 		fprintf(stderr, "tparallel_begin: thread creation failure: %d\n", errno);
@@ -178,14 +161,6 @@ tparallel_end(int master)
 	}
 }
 
-
-
-void
-tbarrier_wait(void)
-{
-	asm volatile("	movl	%0, %%edx" : : "i" (EXIT_BARRIER));
-	sys_ret;
-}
 
 
 #endif // LAB >= 4
