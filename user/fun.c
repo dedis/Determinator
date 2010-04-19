@@ -37,8 +37,11 @@ void * func(void * args_ptr) {
 	}
 	array[s] = s;
 	sys_cputs("In func before barrier.\n");
+	if (array[4] == 4)
+		sys_cputs("Found a 4 in array[4] before the barrier.\n");
 	pthread_barrier_wait(&barrier);
-	sys_cputs("In func after barrier.\n");
+	if (array[4] == 4)
+		sys_cputs("Found a 4 in array[4] after the barrier.\n");
        	array[s + NUM_CHILDREN] = s;
 
 
