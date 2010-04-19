@@ -28,25 +28,12 @@ void print_array() {
 void * func(void * args_ptr) {
 
 	int s = pthread_self();
-	switch(s) {
-	case 1: sys_cputs("1\n"); break;
-	case 2: sys_cputs("2\n"); break;
-	case 3: sys_cputs("3\n"); break;
-	case 4: sys_cputs("4\n"); break;
-	default: sys_cputs("other\n"); break;
-	}
 	array[s] = s;
-	sys_cputs("In func before barrier.\n");
-	if (array[4] == 4)
-		sys_cputs("Found a 4 in array[4] before the barrier.\n");
+	cprintf("Thread %d in func before barrier.  array[4]: %d\n", s, array[4]);
 	pthread_barrier_wait(&barrier);
-	if (array[4] == 4)
-		sys_cputs("Found a 4 in array[4] after the barrier.\n");
        	array[s + NUM_CHILDREN] = s;
-
-
-	return (void *)7;
-
+	cprintf("Thread %d in func after barrier.  array[4]: %d\n", s, array[4]);
+	return (void *)EXIT_SUCCESS;
 }
 
 int main(int argc, char ** argv) {

@@ -34,8 +34,10 @@ int
 pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 		void *(*start_routine)(void *), void *arg)
 {
-	// Find a free child thread/process slot.
 	pthread_t th;
+	int i;
+
+	// Find a free child thread/process slot.
 	for (th = 1; th < PROC_CHILDREN; th++)
 		if (files->child[th].state == PROC_FREE)
 			break;
@@ -69,6 +71,16 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 		:
 		: "ebx", "ecx", "edx");
 	if (!isparent) {	// in the child
+		// Clear our child state array, since we have no children yet.
+		memset(&files->child, 0, sizeof(files->child));
+		files->child[0].state = PROC_RESERVED;
+		for (i = 1; i < FILE_INODES; i++)
+			if (fileino_alloced(i)) {
+				files->fi[i].rino = i;	// 1-to-1 mapping
+				files->fi[i].rver = files->fi[i].ver;
+				files->fi[i].rlen = files->fi[i].size;
+			}
+
 		files->thstat = (void *)th; // for pthread_self
  		files->thstat = start_routine(arg);
 		asm volatile("	movl	%0, %%edx" : : "m" (files->thstat));
@@ -200,8 +212,8 @@ pthread_join(pthread_t th, void **out_exitval)
 		*out_exitval = (void *)status;
 	}
 	files->thstat = NULL;
-	// sys_put(SYS_ZERO, th, NULL, ALLVA, ALLVA, ALLSIZE);
-	// files->child[th].state = PROC_FREE;
+	sys_put(SYS_ZERO, th, NULL, ALLVA, ALLVA, ALLSIZE);
+	files->child[th].state = PROC_FREE;
 	return ret;
 }
 
