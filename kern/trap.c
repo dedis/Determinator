@@ -331,6 +331,14 @@ trap_check_user(void)
 	cprintf("trap_check_user() succeeded!\n");
 }
 
+void after_div0();
+void after_breakpoint();
+void after_overflow();
+void after_bound();
+void after_illegal();
+void after_gpfault();
+void after_priv();
+
 // Multi-purpose trap checking function.
 void
 trap_check(void **argsp)
@@ -343,10 +351,8 @@ trap_check(void **argsp)
 	// Be careful when using && to take the address of a label:
 	// some versions of GCC (4.4.2 at least) will incorrectly try to
 	// eliminate code it thinks is _only_ reachable via such a pointer.
-	args.reip = &&after_div0;
-	int zero = 0;
-	cookie = 1 / zero;
-after_div0:
+	args.reip = after_div0;
+	asm volatile("div %0,%0; after_div0:" : : "r" (0));
 	assert(args.trapno == T_DIVIDE);
 
 	// Make sure we got our correct stack back with us.
@@ -355,41 +361,35 @@ after_div0:
 	assert(cookie == 0xfeedface);
 
 	// Breakpoint trap
-	args.reip = &&after_breakpoint;
-	asm volatile("int3");
-after_breakpoint:
+	args.reip = after_breakpoint;
+	asm volatile("int3; after_breakpoint:");
 	assert(args.trapno == T_BRKPT);
 
 	// Overflow trap
-	args.reip = &&after_overflow;
-	asm volatile("addl %0,%0; into" : : "r" (0x70000000));
-after_overflow:
+	args.reip = after_overflow;
+	asm volatile("addl %0,%0; into; after_overflow:" : : "r" (0x70000000));
 	assert(args.trapno == T_OFLOW);
 
 	// Bounds trap
-	args.reip = &&after_bound;
+	args.reip = after_bound;
 	int bounds[2] = { 1, 3 };
-	asm volatile("boundl %0,%1" : : "r" (0), "m" (bounds[0]));
-after_bound:
+	asm volatile("boundl %0,%1; after_bound:" : : "r" (0), "m" (bounds[0]));
 	assert(args.trapno == T_BOUND);
 
 	// Illegal instruction trap
-	args.reip = &&after_illegal;
-	asm volatile("ud2");	// guaranteed to be undefined
-after_illegal:
+	args.reip = after_illegal;
+	asm volatile("ud2; after_illegal:");	// guaranteed to be undefined
 	assert(args.trapno == T_ILLOP);
 
 	// General protection fault due to invalid segment load
-	args.reip = &&after_gpfault;
-	asm volatile("movl %0,%%fs" : : "r" (-1));
-after_gpfault:
+	args.reip = after_gpfault;
+	asm volatile("movl %0,%%fs; after_gpfault:" : : "r" (-1));
 	assert(args.trapno == T_GPFLT);
 
 	// General protection fault due to privilege violation
 	if (read_cs() & 3) {
-		args.reip = &&after_priv;
-		asm volatile("lidt %0" : : "m" (idt_pd));
-	after_priv:
+		args.reip = after_priv;
+		asm volatile("lidt %0; after_priv:" : : "m" (idt_pd));
 		assert(args.trapno == T_GPFLT);
 	}
 
