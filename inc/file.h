@@ -52,7 +52,7 @@
 // Thus, this file system can have at most 255 files in existence at once,
 // each having a maximum size of PTSIZE bytes (4MB).
 
-#define FILE_INODES	256		// Max number of files or "inodes"
+#define FILE_INODES	OPEN_MAX		// Max number of files or "inodes"
 #define	FILE_MAXSIZE	(1<<22)		// Max size of a single file - 4MB
 
 #define FILESVA	0x80000000		// Virtual address of file state area
@@ -122,7 +122,7 @@ typedef struct procinfo {
 #define PROC_FREE	0		// Unused child, available for fork()
 #define PROC_RESERVED	(-1)		// Child reserved for special purpose
 #define PROC_FORKED	1		// This child forked and running
-#define PROC_CHILDREN	256		// Size of child array--shd agree w kern/proc.h.
+#define PROC_CHILDREN	FILE_INODES		// Size of child array
 
 
 // User-space Unix process state.

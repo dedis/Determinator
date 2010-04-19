@@ -3,6 +3,7 @@
 ////////// PIOS Deterministic Threads //////////
 
 #include <inc/stdio.h>
+#include <inc/stdlib.h>
 #include <inc/string.h>
 #include <inc/assert.h>
 #include <inc/errno.h>
@@ -18,6 +19,15 @@
 
 #define SHAREVA		((void*) VM_SHARELO)
 #define SHARESIZE	(VM_SHAREHI - VM_SHARELO)
+
+// Barrier constants.
+#define EXIT_BARRIER	0x80000000 // Highest bit set to indicate sys_ret at barrier.
+#define BARRIER_MASK	0xff
+#define BARRIER_READ(b)	((b) & BARRIER_MASK)
+#define BARRIER_WRITE(b) (EXIT_BARRIER | (b))
+
+
+static pthread_barrier_t barriers[BARRIER_MAX];
 
 // Fork a child process, returning 0 in the child and 1 in the parent.
 int
@@ -69,33 +79,176 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 	sys_put(SYS_START | SYS_SNAP | SYS_REGS | SYS_COPY, th,
 		&cs, ALLVA, ALLVA, ALLSIZE);
 
+	// Record the inode generation numbers of all inodes at fork time,
+	// so that we can reconcile them later when we synchronize with it.
+	memset(&files->child[th], 0, sizeof(files->child[th]));
+	files->child[th].state = PROC_FORKED;
+
 	*out_thread = th;
 	return 0;
 }
 
+
+int
+wait_at_barrier(pthread_t first_child, pthread_barrier_t barrier)
+{
+
+	// Get the number of threads to wait at this barrier.
+	// One has already arrived, so subtract 1.
+	int count = barriers[barrier];
+	int status, i;
+	struct cpustate cs;
+	pthread_t th;
+	pthread_t threads[PROC_CHILDREN];
+	i = 0;
+	threads[i++] = first_child;
+	for  (th = 1; th < PROC_CHILDREN && i < count; th++) {
+
+		if (th == first_child || files->child[th].state != PROC_FORKED)
+			continue;
+
+		sys_get(SYS_MERGE | SYS_REGS, th, &cs, SHAREVA, SHAREVA, SHARESIZE);
+
+		// Make sure the child exited with the expected trap number
+		if (cs.tf.tf_trapno != T_SYSCALL) {
+			cprintf("  eip  0x%08x\n", cs.tf.tf_eip);
+			cprintf("  esp  0x%08x\n", cs.tf.tf_esp);
+			cprintf("join: unexpected trap %d, expecting %d\n",
+				cs.tf.tf_trapno, T_SYSCALL);
+			errno = EINVAL;
+			return -1;
+		}
+		status = cs.tf.tf_regs.reg_edx;
+
+		// This should be the same barrier;
+		assert(barrier == BARRIER_READ(status));
+
+		threads[i++] = th;
+	}
+
+	int j;
+	cprintf("THREADS ");
+	for (j = 0; j < count; j++)
+		cprintf("%d ", threads[j]);
+	cprintf("\n");
+
+	// Wrong count or not enough forked threads: error.
+	if (i < count)
+		return i;
+
+	// Synchronize memory with all children.
+	// Restart all children.
+	count++;
+	for (i = 0; i < count; i++)
+		sys_put( SYS_COPY | SYS_SNAP | SYS_START, threads[i],
+			 NULL, SHAREVA, SHAREVA, SHARESIZE);
+	return 0;
+}
+
+
 int
 pthread_join(pthread_t th, void **out_exitval)
 {
-	// Wait for the child and retrieve its CPU state.
-	// If merging, leave the highest 4MB containing the stack unmerged,
-	// so that the stack acts as a "thread-private" memory area.
-	struct cpustate cs;
-	sys_get(SYS_MERGE | SYS_REGS, th, &cs, SHAREVA, SHAREVA, SHARESIZE);
 
-	// Make sure the child exited with the expected trap number
-	if (cs.tf.tf_trapno != T_SYSCALL) {
-		cprintf("  eip  0x%08x\n", cs.tf.tf_eip);
-		cprintf("  esp  0x%08x\n", cs.tf.tf_esp);
-		cprintf("join: unexpected trap %d, expecting %d\n",
-			cs.tf.tf_trapno, T_SYSCALL);
-		errno = EINVAL;
-		return -1;
+	// Repeatedly wait for the child and retrieve its CPU state.
+	// Merge, leaving the highest 4MB containing the stack unmerged,
+	// so that the stack acts as a "thread-private" memory area.
+	// If this is a barrier, repeat until all children have gone through
+	// this point.  If this is not a barrier, free the child.
+	int status, ret;
+	struct cpustate cs;
+	while(true) {
+		sys_get(SYS_MERGE | SYS_REGS, th, &cs, SHAREVA, SHAREVA, SHARESIZE);
+
+		// Make sure the child exited with the expected trap number
+		if (cs.tf.tf_trapno != T_SYSCALL) {
+			cprintf("  eip  0x%08x\n", cs.tf.tf_eip);
+			cprintf("  esp  0x%08x\n", cs.tf.tf_esp);
+			cprintf("join: unexpected trap %d, expecting %d\n",
+				cs.tf.tf_trapno, T_SYSCALL);
+			errno = EINVAL;
+			return -1;
+		}
+		status = cs.tf.tf_regs.reg_edx;
+
+		// At a barrier?
+		if (status & EXIT_BARRIER) {
+			ret = wait_at_barrier(th, BARRIER_READ(status));
+			if (ret == -1) {
+				errno = EINVAL;
+				return -1;
+			}
+			if (ret > 0) {
+				errno = EAGAIN;
+				return -1;
+			}
+		}
+
+		// If not, we're finished.
+		else
+			break;
 	}
+
 	if (out_exitval != NULL) {
-		*out_exitval = (void *)cs.tf.tf_regs.reg_edx;
+		*out_exitval = (void *)status;
 	}
 	files->thstat = NULL;
 	return 0;
 }
+
+
+int 
+pthread_barrier_init(pthread_barrier_t * barrier, 
+			 const pthread_barrierattr_t * attr,
+			 unsigned int count)
+{
+	int b;
+	if (count <= 0 || count >= PROC_CHILDREN) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	for (b = 0; b < BARRIER_MAX; b++)
+		if (barriers[b] == 0) 
+			break;
+
+	if (b == BARRIER_MAX) {
+		errno = EAGAIN;
+		return -1;
+	}
+
+	*barrier = b;
+	barriers[b] = count;
+	return 0;
+}
+
+int 
+pthread_barrier_destroy(pthread_barrier_t * barrier)
+{
+	if (*barrier < 0 || *barrier >= BARRIER_MAX) {
+		errno = EINVAL;
+		return -1;
+	}
+	barriers[*barrier] = 0;
+	return 0;
+}
+
+int
+pthread_barrier_wait(pthread_barrier_t * barrier)
+{
+	// Reject if null or presumably uninitialized.
+
+	if ((barrier == NULL) ||
+	    (barriers[*barrier] <= 0)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	uint32_t b = BARRIER_WRITE(*barrier);
+	asm volatile("	movl	%0, %%edx" : : "m" (b));
+	sys_ret();
+	return 0;
+}
+
 
 #endif // SOL >= 4

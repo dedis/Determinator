@@ -20,6 +20,8 @@
 
 #define EXIT_BARRIER 0x80000000 // Highest bit set to indicate sys_ret at barrier.
 
+static int thread_id;
+
 
 // Fork a child process/thread, returning 0 in the child and 1 in the parent.
 int
@@ -181,7 +183,7 @@ tparallel_end(int master)
 void
 tbarrier_wait(void)
 {
-	asm volatile("	movl	%0, %%eax" : : "i" (EXIT_BARRIER));
+	asm volatile("	movl	%0, %%edx" : : "i" (EXIT_BARRIER));
 	sys_ret;
 }
 
