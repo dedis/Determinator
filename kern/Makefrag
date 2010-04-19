@@ -36,6 +36,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			dev/ioapic.c \
 			dev/pci.c \
 			dev/e100.c \
+			dev/pmc.c \
 			lib/printfmt.c \
 			lib/cprintf.c \
 			lib/string.c \
@@ -58,7 +59,6 @@ KERN_INITFILES :=	sh \
 KERN_INITFILES +=	matmult \
 			microbench
 #endif
->>>>>>> 32c2dfe3be801ca9b35044629637b8c07322c0b6:kern/Makefrag
 endif
 
 ifdef LAB5
