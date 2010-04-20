@@ -27,8 +27,6 @@
 #define BARRIER_WRITE(b) (EXIT_BARRIER | (b))
 
 
-static pthread_barrier_t barriers[BARRIER_MAX];
-
 // Fork a child process, returning 0 in the child and 1 in the parent.
 int
 pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
@@ -108,7 +106,7 @@ wait_at_barrier(pthread_t first_child, pthread_barrier_t barrier)
 
 	// Get the number of threads to wait at this barrier.
 	// One has already arrived, so subtract 1.
-	int count = barriers[barrier];
+	int count = files->barriers[barrier];
 	int status, i;
 	struct cpustate cs;
 	pthread_t th;
@@ -229,7 +227,7 @@ pthread_barrier_init(pthread_barrier_t * barrier,
 	}
 
 	for (b = 0; b < BARRIER_MAX; b++)
-		if (barriers[b] == 0) 
+		if (files->barriers[b] == 0) 
 			break;
 
 	if (b == BARRIER_MAX) {
@@ -238,7 +236,7 @@ pthread_barrier_init(pthread_barrier_t * barrier,
 	}
 
 	*barrier = b;
-	barriers[b] = count;
+	files->barriers[b] = count;
 	return 0;
 }
 
@@ -249,7 +247,7 @@ pthread_barrier_destroy(pthread_barrier_t * barrier)
 		errno = EINVAL;
 		return -1;
 	}
-	barriers[*barrier] = 0;
+	files->barriers[*barrier] = 0;
 	return 0;
 }
 
@@ -259,7 +257,7 @@ pthread_barrier_wait(pthread_barrier_t * barrier)
 	// Reject if null or presumably uninitialized.
 
 	if ((barrier == NULL) ||
-	    (barriers[*barrier] <= 0)) {
+	    (files->barriers[*barrier] <= 0)) {
 		errno = EINVAL;
 		return -1;
 	}
