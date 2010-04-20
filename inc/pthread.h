@@ -5,8 +5,11 @@
 #include <types.h>
 
 
-// A "pthread" in PIOS is just a child process number.
-typedef int pthread_t;
+// Pthread type
+typedef struct pthread_t {
+	int tid;
+	void * start_routine;
+} pthread_t;
 
 // We don't support any pthread_attrs currently...
 typedef void pthread_attr_t;
