@@ -38,17 +38,29 @@
 #define PerfCtr2		0xc0010006
 #define PerfCtr3		0xc0010007
 
-#define RetiredInstructions	0xc0		// Retired instructions
+// AMD PerfEvtSel register fields
+#define PERF_EVENT_SELECT	0x000000ff	// Unit and Event Selection
+#define PERF_UNIT_MASK		0x0000ff00	// Event Qualification
+#define PERF_USR		0x00010000	// User mode
+#define PERF_OS			0x00020000	// Operating-System Mode
+#define PERF_E			0x00040000	// Edge Detect
+#define PERF_PC			0x00080000	// Pin Control
+#define PERF_INT		0x00100000	// Enable APIC Interrupt
+#define PERF_EN			0x00400000	// Enable Counter
+#define PERF_INV		0x00800000	// Invert Counter Mask
+#define PERF_CNT_MASK		0xff000000	// Counter Mask
 
+// AMD performance monitoring events
+#define RetiredInstructions	0xc0		// Retired instructions event
+
+
+bool pmc_avail;
+void (*pmc_set)(int64_t maxcnt);
+int64_t (*pmc_get)(int64_t maxcnt);
 
 void
-pmc_init()
+pmc_intelinit(void)
 {
-	if (!cpu_onboot())
-		return;
-
-	cprintf("pmc_init\n");
-
 	cpuinfo inf;
 	cpuid(0x0a, &inf);
 	int ver = inf.eax & 0xff;
@@ -63,6 +75,7 @@ pmc_init()
 	cprintf("raw %08x %08x %08x %08x\n",
 		inf.eax, inf.ebx, inf.edx, inf.ecx);
 
+#if 0
 	wrmsr(IA32_FIXED_CTR_CTRL, FIXED_CTR_EN_ALL);
 
 	uint32_t v = rdmsr(IA32_FIXED_CTR_CTRL);
@@ -70,5 +83,66 @@ pmc_init()
 
 	uint64_t ctr = rdmsr(IA32_FIXED_CTR0);
 	cprintf("ctr0 %016llx\n", (long long)ctr);
+#endif
+}
+
+void
+pmc_amdset(int64_t maxcnt)
+{
+	if (maxcnt == 0) {
+		wrmsr(PerfEvtSel0, 0);	// Disable counter and interrupt
+		return;
+	}
+
+	// Disable the counter, set it to the new value, and enable it
+	wrmsr(PerfEvtSel0, RetiredInstructions | PERF_USR);
+	wrmsr(PerfCtr0, -maxcnt & 0x00007fffffffffffLL);
+	wrmsr(PerfEvtSel0, RetiredInstructions | PERF_USR | PERF_EN | PERF_INT);
+}
+
+int64_t
+pmc_amdget(int64_t maxcnt)
+{
+	int64_t init = -maxcnt & 0x00007fffffffffffLL;
+	int64_t ctr = rdpmc(0) & 0x0000ffffffffffffLL;
+	if (ctr < init)
+		ctr += 0x0001000000000000LL;	// must have wrapped
+	return ctr - init;
+}
+
+void
+pmc_amdinit(void)
+{
+	cpuinfo inf;
+	cpuid(0x01, &inf);
+	int family = ((inf.eax >> 8) & 0xf) + ((inf.eax >> 20) & 0xff);
+	if (family < 0x0f || family > 0x10) {
+		warn("pmc_amdinit: unrecognized AMD family %x", family);
+		return;
+	}
+
+	pmc_avail = true;
+	pmc_set = pmc_amdset;
+	pmc_get = pmc_amdget;
+}
+
+void
+pmc_init(void)
+{
+	if (!cpu_onboot())
+		return;
+
+	cprintf("pmc_init\n");
+
+	cpuinfo inf;
+	cpuid(0, &inf);
+	if (memcmp(&inf.ebx, "GenuineIntel", 0) == 0)
+		pmc_intelinit();
+	else if (memcmp(&inf.ebx, "AuthenticAMD", 0) == 0)
+		pmc_amdinit();
+
+	if (!pmc_avail)
+		cprintf("Warning: PMC support not found - "
+			"instruction counting will be VERY slow!\n");
 }
 
