@@ -237,6 +237,18 @@ trap(trapframe *tf)
 #if SOL >= 5
 		net_tick();
 #endif
+#if LAB >= 99
+		{	static uint64_t lastt;
+			static int cnt;
+			if (cpu_onboot())
+				cnt++;
+			if (cpu_onboot() && t > lastt) {
+				lastt += TIMER_FREQ;
+				cprintf("tick - after %d\n", cnt);
+				cnt = 0;
+			}
+		}
+#endif
 		if (tf->tf_cs & 3)	// If in user mode, context switch
 			proc_yield(tf);
 		trap_return(tf);	// Otherwise, stay in idle loop

@@ -71,7 +71,7 @@ ioapic_init(void)
 		id = ioapicid;
 	}
 	if (id != ioapicid)
-		warn("ioapicinit: id %d != ioapicid %d\n", id, ioapicid);
+		warn("ioapicinit: id %d != ioapicid %d", id, ioapicid);
 
 	// Mark all interrupts edge-triggered, active high, disabled,
 	// and not routed to any CPUs.

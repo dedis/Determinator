@@ -99,17 +99,23 @@ cpu_setmtrr()
 //		return;
 	}
 
-	cprintf("CR0: %x cap %x deftype %x\n",
+	cprintf("CR0: %x cap %llx deftype %llx\n",
 		rcr0(), rdmsr(MTRRcap), rdmsr(MTRRdefType));
 	int i;
+	for (i = 0; i < 8; i++) {
+		uint64_t base = rdmsr(MTRRphysBase0+2*i);
+		uint64_t mask = rdmsr(MTRRphysMask0+2*i);
+		if (mask & 0x800)	// only show MTRRs in use
+			cprintf("MTRRvar%d: %llx %llx\n", i, base, mask);
+	}
+	cprintf("MTRRfix64K%d: %llx\n", 0, rdmsr(MTRRfix64K_00000));
+	cprintf("MTRRfix16K%d: %llx\n", 0, rdmsr(MTRRfix16K_80000));
+	cprintf("MTRRfix16K%d: %llx\n", 1, rdmsr(MTRRfix16K_A0000));
 	for (i = 0; i < 8; i++)
-		cprintf("MTRRvar%d: %x %x\n", i, rdmsr(MTRRphysBase0+2*i),
-			rdmsr(MTRRphysMask0+2*i));
-	cprintf("MTRRfix64K%d: %x\n", 0, rdmsr(MTRRfix64K_00000));
-	cprintf("MTRRfix16K%d: %x\n", 0, rdmsr(MTRRfix16K_80000));
-	cprintf("MTRRfix16K%d: %x\n", 1, rdmsr(MTRRfix16K_A0000));
-	for (i = 0; i < 8; i++)
-		cprintf("MTRRfix%d: %x\n", i, rdmsr(MTRRfix4K_C0000+i));
+		cprintf("MTRRfix%d: %llx\n", i, rdmsr(MTRRfix4K_C0000+i));
+//	cprintf("on CPU %d\n", cpu_cur()->id);
+//	if (!cpu_onboot())
+//		while(1);
 }
 #endif
 
@@ -151,9 +157,11 @@ void cpu_init()
 
 	// Load the TSS (from the GDT)
 	ltr(CPU_GDT_TSS);
+#if LAB >= 9
 
 	// Make sure memory is writeback cacheable
 	cpu_setmtrr();
+#endif
 #endif
 }
 
