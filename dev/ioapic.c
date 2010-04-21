@@ -25,10 +25,13 @@
 // The first (low) register in a pair contains configuration bits.
 // The second (high) register contains a bitmask telling which
 // CPUs can serve that interrupt.
-#define INT_DISABLED   0x00010000  // Interrupt disabled
-#define INT_LEVEL      0x00008000  // Level-triggered (vs edge-)
-#define INT_ACTIVELOW  0x00002000  // Active low (vs high)
-#define INT_LOGICAL    0x00000800  // Destination is CPU id (vs APIC ID)
+#define INT_DISABLED	0x00010000  // Interrupt disabled
+#define INT_LEVEL	0x00008000  // Level-triggered (vs edge-)
+#define INT_ACTIVELOW	0x00002000  // Active low (vs high)
+#define INT_LOGICAL	0x00000800  // Destination is CPU id (vs APIC ID)
+#define INT_DELMOD	0x00000700  // Delivery mode
+#define INT_FIXED	0x00000000	// Deliver to all matching processors
+#define INT_LOWEST	0x00000100	// to processor at lowest priority
 
 
 // IO APIC MMIO structure: write reg, then read or write data.
@@ -82,15 +85,16 @@ ioapic_init(void)
 }
 
 void
-ioapic_enable(int irq, int apicid)
+ioapic_enable(int irq)
 {
 	if (!ismp)
 		return;
 
 	// Mark interrupt edge-triggered, active high,
-	// enabled, and routed to the given APIC ID,
-	ioapic_write(REG_TABLE+2*irq, T_IRQ0 + irq);
-	ioapic_write(REG_TABLE+2*irq+1, apicid << 24);
+	// enabled, and routed to any CPU.
+	ioapic_write(REG_TABLE+2*irq,
+			INT_LOGICAL | INT_LOWEST | (T_IRQ0 + irq));
+	ioapic_write(REG_TABLE+2*irq+1, 0xff << 24);
 }
 
 #endif	// LAB >= 2

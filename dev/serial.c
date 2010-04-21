@@ -89,7 +89,7 @@ serial_intenable(void)
 	// Enable serial interrupts
 	if (serial_exists) {
 		pic_enable(IRQ_SERIAL);
-		ioapic_enable(IRQ_SERIAL, 0);
+		ioapic_enable(IRQ_SERIAL);
 	}
 }
 #endif

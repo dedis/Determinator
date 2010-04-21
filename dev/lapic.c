@@ -74,6 +74,11 @@ lapic_init()
 	// Map error interrupt to T_LERROR vector.
 	lapicw(ERROR, T_LERROR);
 
+	// Set up to lowest-priority, "anycast" interrupts
+	lapicw(LDR, 0xff << 24);	// Accept all interrupts
+	lapicw(DFR, 0xf << 28);		// Flat model
+	lapicw(TPR, 0x00);		// Task priority 0, no intrs masked
+
 	// Clear error status register (requires back-to-back writes).
 	lapicw(ESR, 0);
 	lapicw(ESR, 0);

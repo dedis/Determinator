@@ -230,8 +230,7 @@ trap(trapframe *tf)
 		assert(tf->tf_cs & 3);	// syscalls only come from user space
 		syscall(tf);
 		break;
-	case T_LTIMER:
-		lapic_eoi();
+	case T_LTIMER: ;
 		uint64_t t = timer_read(); // update PIT count high bits
 		//cprintf("LTIMER on %d: %lld\n", c->id, (long long)t);
 #if SOL >= 5
@@ -249,6 +248,7 @@ trap(trapframe *tf)
 			}
 		}
 #endif
+		lapic_eoi();
 		if (tf->tf_cs & 3)	// If in user mode, context switch
 			proc_yield(tf);
 		trap_return(tf);	// Otherwise, stay in idle loop
@@ -257,20 +257,20 @@ trap(trapframe *tf)
 		trap_return(tf);
 #if SOL >= 4
 	case T_IRQ0 + IRQ_KBD:
-		//cprintf("KBD\n");
-		lapic_eoi();
+		//cprintf("CPU%d: KBD\n", c->id);
 		kbd_intr();
+		lapic_eoi();
 		trap_return(tf);
 	case T_IRQ0 + IRQ_SERIAL:
-		//cprintf("SER\n");
+		//cprintf("CPU%d: SER\n", c->id);
 		lapic_eoi();
 		serial_intr();
 		trap_return(tf);
 #endif // SOL >= 4
 #if LAB >= 99
 	case T_IRQ0 + IRQ_IDE:
-		lapic_eoi();
 		ide_intr();
+		lapic_eoi();
 		trap_return(tf);
 #endif
 	case T_IRQ0 + IRQ_SPURIOUS:
@@ -281,8 +281,8 @@ trap(trapframe *tf)
 	}
 #if SOL >= 5
 	if (tf->tf_trapno == T_IRQ0 + e100_irq) {
-		lapic_eoi();
 		e100_intr();
+		lapic_eoi();
 		trap_return(tf);
 	}
 	if (tf->tf_cs & 3) {	// Unhandled trap from user mode

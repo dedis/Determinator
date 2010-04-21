@@ -49,7 +49,7 @@ ide_init(void)
 
 	// Enable the IDE interrupt
 	pic_enable(IRQ_IDE);
-	ioapic_enable(IRQ_IDE, ncpu - 1);
+	ioapic_enable(IRQ_IDE);
 
 	// wait for Device 0 to be ready
 	ide_wait();
