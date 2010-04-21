@@ -49,6 +49,9 @@ void lapic_init(void);
 // Acknowledge interrupt
 void lapic_eoi(void);
 
+// Handle local APIC error interrupt
+void lapic_errintr(void);
+
 // Send a message to start an Application Processor (AP) running at addr.
 void lapic_startcpu(uint8_t apicid, uint32_t addr);
 

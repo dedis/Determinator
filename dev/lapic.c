@@ -97,6 +97,12 @@ lapic_eoi(void)
 		lapicw(EOI, 0);
 }
 
+void lapic_errintr(void)
+{
+	lapic_eoi();	// XXX ???
+	warn("CPU%d LAPIC error: ESR %x", lapic[ESR]);
+}
+
 // Spin for a given number of microseconds.
 // On real hardware would want to tune this dynamically.
 void

@@ -8,12 +8,13 @@
 #include <inc/trap.h>
 #include <inc/assert.h>
 
+#include <kern/mem.h>
 #include <kern/mp.h>
 
 #include <dev/ioapic.h>
 
 
-//#define IOAPIC  0xFEC00000   // Default physical address of IO APIC
+#define IOAPIC  0xFEC00000   // Default physical address of IO APIC
 
 #define REG_ID     0x00  // Register index: ID
 #define REG_VER    0x01  // Register index: version
@@ -58,7 +59,9 @@ ioapic_init(void)
 
 	if(!ismp)
 		return;
-	assert(ioapic != NULL);
+
+	if (ioapic == NULL)
+		ioapic = mem_ptr(IOAPIC);	// assume default address
 
 	maxintr = (ioapic_read(REG_VER) >> 16) & 0xFF;
 	id = ioapic_read(REG_ID) >> 24;

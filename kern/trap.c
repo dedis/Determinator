@@ -240,6 +240,9 @@ trap(trapframe *tf)
 		if (tf->tf_cs & 3)	// If in user mode, context switch
 			proc_yield(tf);
 		trap_return(tf);	// Otherwise, stay in idle loop
+	case T_LERROR:
+		lapic_errintr();
+		trap_return(tf);
 #if SOL >= 4
 	case T_IRQ0 + IRQ_KBD:
 		//cprintf("KBD\n");
