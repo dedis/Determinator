@@ -136,9 +136,14 @@ proc_save(proc *p, trapframe *tf, int entry)
 		if (tf->tf_eflags & FL_TF) {	// single stepping
 			if (entry > 0)
 				p->sv.icnt++;	// executed the INT insn
-		} else {			// using performance counters
+			tf->tf_eflags &= ~FL_TF;
+		} else if (p->pmcmax > 0) {	// using performance counters
 			assert(pmc_get != NULL);
-			p->sv.icnt += pmc_get(p->sv.imax);
+			p->sv.icnt += pmc_get(p->pmcmax);
+			p->pmcmax = 0;
+			if (p->sv.icnt > p->sv.imax)
+				panic("oops, perf ctr overshoot by %d insns\n",
+					p->sv.icnt - p->sv.imax);
 		}
 		assert(p->sv.icnt <= p->sv.imax);
 	}
@@ -233,12 +238,20 @@ proc_run(proc *p)
 
 	if (p->sv.pff & PFF_ICNT) {	// Instruction counting/recovery
 		//cprintf("proc_run proc %x\n", &p->sv.tf);
-		p->sv.tf.tf_eflags |= FL_TF;
 		if (p->sv.icnt >= p->sv.imax) {
 			warn("proc_run: icnt expired");
 			p->sv.tf.tf_trapno = T_ICNT;
 			proc_ret(&p->sv.tf, -1);	// can't run any insns!
 		}
+		assert(p->pmcmax == 0);
+		int32_t pmax = p->sv.imax - p->sv.icnt - pmc_safety;
+		if (pmc_set != NULL && pmax > 0) {
+			assert(p->sv.tf.tf_eflags & FL_IF);
+			assert(!(p->sv.tf.tf_eflags & FL_TF));
+			pmc_set(pmax);
+			p->pmcmax = pmax;
+		} else
+			p->sv.tf.tf_eflags |= FL_TF;	// just single-step
 	}
 #if SOL >= 3
 	// Switch to the new process's address space.

@@ -54,7 +54,11 @@
 #define RetiredInstructions	0xc0		// Retired instructions event
 
 
-bool pmc_avail;
+bool pmc_avail;		// true if PMC instruction counting is available
+int pmc_safety;		// safety margin required to account for overshoot
+int pmc_overshoot;	// max overshoot we've observed so far
+int64_t pmc_ctrmask;	// mask of usable perf counter bits
+
 void (*pmc_set)(int64_t maxcnt);
 int64_t (*pmc_get)(int64_t maxcnt);
 
@@ -96,7 +100,7 @@ pmc_amdset(int64_t maxcnt)
 
 	// Disable the counter, set it to the new value, and enable it
 	wrmsr(PerfEvtSel0, RetiredInstructions | PERF_USR);
-	wrmsr(PerfCtr0, -maxcnt & 0x00007fffffffffffLL);
+	wrmsr(PerfCtr0, -maxcnt);
 	wrmsr(PerfEvtSel0, RetiredInstructions | PERF_USR | PERF_EN | PERF_INT);
 }
 
@@ -105,10 +109,10 @@ pmc_amdget(int64_t maxcnt)
 {
 	// Figure out how many instructions were actually executed,
 	// given that we initialized the counter based on maxcnt.
-	int64_t init = -maxcnt & 0x00007fffffffffffLL;
-	int64_t ctr = rdpmc(0) & 0x0000ffffffffffffLL;
+	int64_t init = -maxcnt & pmc_ctrmask;
+	int64_t ctr = rdpmc(0);
 	if (ctr < init)
-		ctr += 0x0001000000000000LL;	// must have wrapped
+		ctr += pmc_ctrmask+1;	// must have wrapped
 
 	// Now disable the counter again until the next pmc_set()
 	wrmsr(PerfEvtSel0, RetiredInstructions | PERF_USR);
@@ -127,9 +131,15 @@ pmc_amdinit(void)
 		return;
 	}
 
+	// See how wide the perf counter registers are
+	wrmsr(PerfEvtSel0, RetiredInstructions | PERF_USR);
+	wrmsr(PerfCtr0, -1);
+	pmc_ctrmask = rdmsr(PerfCtr0);
+
 	pmc_avail = true;
 	pmc_set = pmc_amdset;
 	pmc_get = pmc_amdget;
+	pmc_safety = 70;	// max observed 66
 }
 
 void
@@ -138,13 +148,11 @@ pmc_init(void)
 	if (!cpu_onboot())
 		return;
 
-	cprintf("pmc_init\n");
-
 	cpuinfo inf;
 	cpuid(0, &inf);
-	if (memcmp(&inf.ebx, "GenuineIntel", 0) == 0)
+	if (memcmp(&inf.ebx, "GenuineIntel", 12) == 0)
 		pmc_intelinit();
-	else if (memcmp(&inf.ebx, "AuthenticAMD", 0) == 0)
+	else if (memcmp(&inf.ebx, "AuthenticAMD", 12) == 0)
 		pmc_amdinit();
 
 	if (!pmc_avail)

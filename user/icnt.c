@@ -20,7 +20,8 @@ int main(int argc, char **argv)
 		}
 	}
 
-	while (1) {
+	int i;
+	for (i = 0; i < 10; i++) {
 		cpustate cs;
 		sys_get(SYS_REGS, 0, &cs, 0, 0, 0);
 		cprintf("@ %x: trap %d icnt %d imax %d\n",

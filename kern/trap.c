@@ -30,6 +30,9 @@
 #include <dev/e100.h>
 #endif
 #endif // LAB >= 2
+#if SOL >= 2
+#include <dev/pmc.h>
+#endif
 
 
 // Interrupt descriptor table.  Must be built at run time because
@@ -57,7 +60,7 @@ trap_init_idt(void)
 		Xirq0,Xirq1,Xirq2,Xirq3,Xirq4,Xirq5,
 		Xirq6,Xirq7,Xirq8,Xirq9,Xirq10,Xirq11,
 		Xirq12,Xirq13,Xirq14,Xirq15,
-		Xsyscall,Xltimer,Xlerror;
+		Xsyscall,Xltimer,Xlerror,Xperfctr;
 #endif	// SOL >= 2
 	int i;
 
@@ -115,6 +118,7 @@ trap_init_idt(void)
 	// Vectors we use for local APIC interrupts
 	SETGATE(idt[T_LTIMER], 0, CPU_GDT_KCODE, &Xltimer, 0);
 	SETGATE(idt[T_LERROR], 0, CPU_GDT_KCODE, &Xlerror, 0);
+	SETGATE(idt[T_PERFCTR], 0, CPU_GDT_KCODE, &Xperfctr, 0);
 
 #endif	// SOL >= 2
 #else	// not SOL >= 1
@@ -244,7 +248,25 @@ trap(trapframe *tf)
 			trap_return(tf);	// keep stepping
 		tf->tf_trapno = T_ICNT;
 		proc_ret(tf, -1);	// can't run any more insns!
-		}
+	    }
+	case T_PERFCTR: {
+		assert(tf->tf_cs & 3);
+		proc *p = proc_cur();
+		assert(p->sv.pff & PFF_ICNT);
+		assert(p->pmcmax > 0);
+		assert(pmc_get != NULL);
+		int32_t ninsn = pmc_get(p->pmcmax);
+		int32_t overshoot = ninsn - p->pmcmax;
+		if (overshoot > pmc_overshoot)
+			pmc_overshoot = overshoot;
+		//cprintf("T_PERFCTR: after %d tgt %d ovr %d max %d\n",
+		//	ninsn, p->pmcmax, overshoot, pmc_overshoot);
+		p->sv.icnt += ninsn;
+		p->pmcmax = 0;
+		if (p->sv.icnt > p->sv.imax)
+			panic("oops, perf ctr overshoot by %d insns\n",
+				p->sv.icnt - p->sv.imax);
+	    }
 	case T_LTIMER: ;
 		uint64_t t = timer_read(); // update PIT count high bits
 		//cprintf("LTIMER on %d: %lld\n", c->id, (long long)t);
