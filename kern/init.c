@@ -155,8 +155,8 @@ init(void)
 	// Create our first actual user-mode process
 	// (though it's still be sharing the kernel's address space for now).
 	proc *root = proc_alloc(NULL, 0);
-	root->tf.tf_eip = (uint32_t) user;
-	root->tf.tf_esp = (uint32_t) &user_stack[PAGESIZE];
+	root->sv.tf.tf_eip = (uint32_t) user;
+	root->sv.tf.tf_esp = (uint32_t) &user_stack[PAGESIZE];
 
 	proc_ready(root);	// make it ready
 	proc_sched();		// run it
@@ -224,8 +224,8 @@ init(void)
 	}
 
 	// Start the process at the entry indicated in the ELF header
-	root->tf.tf_eip = eh->e_entry;
-	root->tf.tf_eflags |= FL_IF;	// enable interrupts
+	root->sv.tf.tf_eip = eh->e_entry;
+	root->sv.tf.tf_eflags |= FL_IF;	// enable interrupts
 
 	// Give the process a 1-page stack in high memory
 	// (the process can then increase its own stack as desired)
@@ -233,7 +233,7 @@ init(void)
 	pte_t *pte = pmap_insert(root->pdir, pi, VM_STACKHI-PAGESIZE,
 				SYS_READ | SYS_WRITE | PTE_P | PTE_U | PTE_W);
 	assert(pte != NULL);
-	root->tf.tf_esp = VM_STACKHI;
+	root->sv.tf.tf_esp = VM_STACKHI;
 
 	// Give the root process an initial file system.
 	file_initroot(root);

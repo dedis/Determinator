@@ -103,10 +103,16 @@ pmc_amdset(int64_t maxcnt)
 int64_t
 pmc_amdget(int64_t maxcnt)
 {
+	// Figure out how many instructions were actually executed,
+	// given that we initialized the counter based on maxcnt.
 	int64_t init = -maxcnt & 0x00007fffffffffffLL;
 	int64_t ctr = rdpmc(0) & 0x0000ffffffffffffLL;
 	if (ctr < init)
 		ctr += 0x0001000000000000LL;	// must have wrapped
+
+	// Now disable the counter again until the next pmc_set()
+	wrmsr(PerfEvtSel0, RetiredInstructions | PERF_USR);
+
 	return ctr - init;
 }
 

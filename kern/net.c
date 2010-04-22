@@ -186,11 +186,13 @@ net_rrshare(void *page, uint8_t dstnode)
 
 // Called from syscall handlers to migrate to another node if we need to.
 // The 'node' argument is the node to migrate to.
+// The 'entry' argument is as for proc_save().
 void gcc_noinline
-net_migrate(trapframe *tf, uint8_t dstnode)
+net_migrate(trapframe *tf, uint8_t dstnode, int entry)
 {
+	assert(p == proc_cur());
 	proc *p = proc_cur();
-	p->tf = *tf;		// Save proc's CPU state
+	proc_save(p, tf, entry);	// save current process's state
 
 	assert(dstnode > 0 && dstnode <= NET_MAXNODES && dstnode != net_node);
 	//cprintf("proc %x at eip %x migrating to node %d\n",

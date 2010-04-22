@@ -39,6 +39,7 @@
 #define T_LERROR	50	// Local APIC error interrupt
 
 #define T_DEFAULT	500	// Unused trap vectors produce this value
+#define T_ICNT		501	// Child process instruction count expired
 
 // ISA hardware IRQ numbers. We receive these as (T_IRQ0 + IRQ_WHATEVER)
 #define IRQ_TIMER	0	// 8253 Programmable Interval Timer (PIT)

@@ -230,6 +230,21 @@ trap(trapframe *tf)
 		assert(tf->tf_cs & 3);	// syscalls only come from user space
 		syscall(tf);
 		break;
+	case T_BRKPT:	// other traps entered via explicit INT instructions
+	case T_OFLOW:
+		assert(tf->tf_cs & 3);	// only allowed from user space
+		proc_ret(tf, 1);	// reflect trap to parent process
+	case T_DEBUG: {	// count instructions by single-stepping
+		assert(tf->tf_cs & 3);
+		assert(tf->tf_eflags & FL_TF);
+		proc *p = proc_cur();
+		assert(p->sv.pff & PFF_ICNT);
+		//cprintf("T_DEBUG eip %x\n", tf->tf_eip);
+		if (++p->sv.icnt < p->sv.imax)
+			trap_return(tf);	// keep stepping
+		tf->tf_trapno = T_ICNT;
+		proc_ret(tf, -1);	// can't run any more insns!
+		}
 	case T_LTIMER: ;
 		uint64_t t = timer_read(); // update PIT count high bits
 		//cprintf("LTIMER on %d: %lld\n", c->id, (long long)t);
@@ -285,18 +300,11 @@ trap(trapframe *tf)
 		lapic_eoi();
 		trap_return(tf);
 	}
-	if (tf->tf_cs & 3) {	// Unhandled trap from user mode
-		// First migrate to our home node if we're not already there.
-		proc *p = proc_cur();
-		if (net_node != RRNODE(p->home))
-			net_migrate(tf, RRNODE(p->home));
-		proc_ret(tf);	// Reflect trap to parent process
-	}
-#else // ! SOL >= 5
-	if (tf->tf_cs & 3) {	// Unhandled trap from user mode
-		proc_ret(tf);	// Reflect trap to parent process
-	}
 #endif // ! SOL >= 5
+	if (tf->tf_cs & 3) {		// Unhandled trap from user mode
+		trap_print(tf);
+		proc_ret(tf, -1);	// Reflect trap to parent process
+	}
 
 #if SOL >= 2	// XXX just give out this code incl. the cons_lock!
 	// If we panic while holding the console lock,

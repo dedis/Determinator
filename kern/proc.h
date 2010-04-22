@@ -8,6 +8,7 @@
 #endif
 
 #include <inc/trap.h>
+#include <inc/syscall.h>
 
 #include <kern/spinlock.h>
 #if LAB >= 3
@@ -48,9 +49,8 @@ typedef struct proc {
 	struct cpu	*runcpu;	// cpu we're running on if running
 	struct proc	*waitchild;	// child proc if waiting for child
 
-	// Save area for user-mode register state when proc is not running.
-	trapframe	tf;		// general registers
-	fxsave		fx;		// FPU/MMX/XMM state
+	// Save area for user-visible state when process is not running.
+	cpustate	sv;
 #if LAB >= 3
 
 	// Virtual memory state for this process.
@@ -88,11 +88,12 @@ extern proc *proc_root;
 void proc_init(void);	// Initialize process management code
 proc *proc_alloc(proc *p, uint32_t cn);	// Allocate new child
 void proc_ready(proc *p);	// Make process p ready
+void proc_save(proc *p, trapframe *tf, int entry);	// save process state
 void proc_wait(proc *p, proc *cp, trapframe *tf) gcc_noreturn;
 void proc_sched(void) gcc_noreturn;	// Find and run some ready process
 void proc_run(proc *p) gcc_noreturn;	// Run a specific process
 void proc_yield(trapframe *tf) gcc_noreturn;	// Yield to another process
-void proc_ret(trapframe *tf) gcc_noreturn;	// Return to parent process
+void proc_ret(trapframe *tf, int entry) gcc_noreturn;	// Return to parent
 void proc_check(void);			// Check process code
 
 
