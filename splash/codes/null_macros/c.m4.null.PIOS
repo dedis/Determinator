@@ -83,22 +83,26 @@ define(MAIN_INITENV, `{;}')
 define(MAIN_END, `{exit(0);}')
 
 define(MAIN_ENV,`
-#include <pthread.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <malloc.h>
+#include <inc/stdio.h>
+#include <inc/math.h>
+#include <inc/pthread.h>
+#include <inc/time.h> // NOT IMPLEMENTED
+#include <inc/unistd.h>
+#include <inc/stdlib.h>
+#include <inc/malloc.h> // NOT IMPLEMENTED
 #define MAX_THREADS 32
 pthread_t PThreadTable[MAX_THREADS];
 ')
 
 define(ENV, ` ')
 define(EXTERN_ENV, `
-#include <pthread.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <malloc.h>
+#include <inc/stdio.h>
+#include <inc/math.h>
+#include <inc/pthread.h>
+#include <inc/time.h> // NOT IMPLEMENTED
+#include <inc/unistd.h>
+#include <inc/stdlib.h>
+#include <inc/malloc.h> // NOT IMPLEMENTED
 extern pthread_t PThreadTable[];
 ')
 
