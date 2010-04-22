@@ -112,8 +112,8 @@ init(void)
 	ioapic_init();		// prepare to handle external device interrupts
 	lapic_init();		// setup this CPU's local APIC
 	cpu_bootothers();	// Get other processors started
-	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
-		cpu_onboot() ? "BP" : "AP");
+//	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
+//		cpu_onboot() ? "BP" : "AP");
 
 #if LAB >= 4
 	// Initialize the I/O system.
@@ -125,7 +125,7 @@ init(void)
 
 #if SOL >= 4
 	cons_intenable();	// Let the console start producing interrupts
-	pmc_init();		// Init perf monitoring counters
+	//pmc_init();		// Init perf monitoring counters
 #else
 	// Lab 4: uncomment this when you can handle IRQ_SERIAL and IRQ_KBD.
 	//cons_intenable();	// Let the console start producing interrupts

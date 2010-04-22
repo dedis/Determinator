@@ -49,15 +49,17 @@ lapic_init()
 	// Use the 8253 Programmable Interval Timer (PIT),
 	// which has a standard clock frequency,
 	// to determine this processor's exact bus frequency.
-	uint64_t tb = timer_read();
-	while (timer_read() == tb);	// wait until start of next tick
+	uint64_t tb = timer_read() + 1;
+	while (timer_read() < tb);	// wait until start of a PIT tick
 	uint32_t lb = lapic[TCCR];	// read base count from lapic
-	while (timer_read() <= tb+(TIMER_FREQ+HZ/2)/HZ); // wait one tick
+	while (timer_read() < tb+(TIMER_FREQ+HZ/2)/HZ); // wait 1/HZ sec
 	uint32_t le = lapic[TCCR];	// read final count from lapic
 	assert(le < lb);
-	uint32_t ltot = lb - le;	// total # lapic ticks per tick
+	uint32_t ltot = lb - le;	// total # lapic ticks per 1/HZ tick
 
-	cprintf("CPU%d: %lluHz\n", cpu_cur()->id, (long long)ltot * HZ);
+	long long lhz = ltot * HZ;
+	cprintf("CPU%d: %llu.%09lluHz\n", cpu_cur()->id,
+		lhz / 1000000000, lhz % 1000000000);
 	lapicw(TICR, ltot);
 
 	// Disable logical interrupt lines.
@@ -71,6 +73,11 @@ lapic_init()
 
 	// Map error interrupt to T_LERROR vector.
 	lapicw(ERROR, T_LERROR);
+
+	// Set up to lowest-priority, "anycast" interrupts
+	lapicw(LDR, 0xff << 24);	// Accept all interrupts
+	lapicw(DFR, 0xf << 28);		// Flat model
+	lapicw(TPR, 0x00);		// Task priority 0, no intrs masked
 
 	// Clear error status register (requires back-to-back writes).
 	lapicw(ESR, 0);
@@ -95,6 +102,13 @@ lapic_eoi(void)
 {
 	if (lapic)
 		lapicw(EOI, 0);
+}
+
+void lapic_errintr(void)
+{
+	lapic_eoi();	// Acknowledge interrupt
+	lapicw(ESR, 0);	// Trigger update of ESR by writing anything
+	warn("CPU%d LAPIC error: ESR %x", cpu_cur()->id, lapic[ESR]);
 }
 
 // Spin for a given number of microseconds.

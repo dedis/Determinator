@@ -362,7 +362,7 @@ bswap(uint32_t v)
 #define ntohl(v)	bswap(v)
 
 // Read and write model-specific registers.
-static gcc_inline uint32_t
+static gcc_inline uint64_t
 rdmsr(int32_t msr)
 {
         uint64_t val;

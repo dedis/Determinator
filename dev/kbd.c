@@ -188,7 +188,7 @@ kbd_intenable(void)
 {
 	// Enable interrupt delivery via the PIC/APIC
 	pic_enable(IRQ_KBD);
-	ioapic_enable(IRQ_KBD, 0);
+	ioapic_enable(IRQ_KBD);
 
 	// Drain the kbd buffer so that the hardware generates interrupts.
 	kbd_intr();

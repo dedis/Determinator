@@ -77,6 +77,10 @@ matmult(int nbi, int nbj, int dim)
 
 int main(int argc, char **argv)
 {
+	int i;
+	for (i = 0; i < MAXDIM*MAXDIM; i++)
+		a[i] = b[i] = i;
+
 	int dim, nth, nbi, nbj, iter;
 	for (dim = MINDIM; dim <= MAXDIM; dim *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
@@ -93,8 +97,10 @@ int main(int argc, char **argv)
 				matmult(nbi, nbj, dim);
 			uint64_t td = (bench_time() - ts) / niter;
 
-			printf("blksize %dx%d threads %d iters %d: %lld\n",
-				dim/nbi, dim/nbj, nth, niter, (long long)td);
+			printf("blksize %dx%d thr %d itr %d: %lld.%09lld\n",
+				dim/nbi, dim/nbj, nth, niter,
+				(long long)td / 1000000000,
+				(long long)td % 1000000000);
 
 			if (nbi == nbj)
 				nbi *= 2;

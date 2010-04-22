@@ -57,7 +57,8 @@ cpu cpu_boot = {
 
 
 #if SOL >= 1
-void cpu_info()
+void
+cpu_info()
 {
 	// Obtain and print some information about the CPU.
 	cpuinfo inf;
@@ -77,6 +78,44 @@ void cpu_info()
 		model |= ((inf.eax >> 16) & 0xf) << 4;
 
 	cprintf("CPUID: %s %x/%x/%x\n", str, family, model, stepping);
+}
+
+#define MTRRcap			0x00fe
+#define MTRRphysBase0		0x0200
+#define MTRRphysMask0		0x0201
+#define MTRRfix64K_00000	0x0250
+#define MTRRfix16K_80000	0x0258
+#define MTRRfix16K_A0000	0x0259
+#define MTRRfix4K_C0000		0x0268
+#define MTRRdefType		0x02ff
+
+void
+cpu_setmtrr()
+{
+	cpuinfo inf;
+	cpuid(0x01, &inf);
+	if (!(inf.edx & (1 << 12))) {
+		warn("cpu_setmtrr: CPU has no MTRR support?");
+//		return;
+	}
+
+	cprintf("CR0: %x cap %llx deftype %llx\n",
+		rcr0(), rdmsr(MTRRcap), rdmsr(MTRRdefType));
+	int i;
+	for (i = 0; i < 8; i++) {
+		uint64_t base = rdmsr(MTRRphysBase0+2*i);
+		uint64_t mask = rdmsr(MTRRphysMask0+2*i);
+		if (mask & 0x800)	// only show MTRRs in use
+			cprintf("MTRRvar%d: %llx %llx\n", i, base, mask);
+	}
+	cprintf("MTRRfix64K%d: %llx\n", 0, rdmsr(MTRRfix64K_00000));
+	cprintf("MTRRfix16K%d: %llx\n", 0, rdmsr(MTRRfix16K_80000));
+	cprintf("MTRRfix16K%d: %llx\n", 1, rdmsr(MTRRfix16K_A0000));
+	for (i = 0; i < 8; i++)
+		cprintf("MTRRfix%d: %llx\n", i, rdmsr(MTRRfix4K_C0000+i));
+//	cprintf("on CPU %d\n", cpu_cur()->id);
+//	if (!cpu_onboot())
+//		while(1);
 }
 #endif
 
@@ -118,6 +157,11 @@ void cpu_init()
 
 	// Load the TSS (from the GDT)
 	ltr(CPU_GDT_TSS);
+#if LAB >= 9
+
+	// Make sure memory is writeback cacheable
+	cpu_setmtrr();
+#endif
 #endif
 }
 
