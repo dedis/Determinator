@@ -174,7 +174,7 @@ file_io(trapframe *tf)
 	spinlock_acquire(&file_lock);
 	cp->state = PROC_STOP;		// we're becoming stopped
 	cp->runcpu = NULL;		// no longer running
-	cp->tf = *tf;			// save our register state
+	proc_save(cp, tf, 1);		// save process's state
 	spinlock_release(&file_lock);
 
 	proc_sched();			// go do something else

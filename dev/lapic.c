@@ -71,8 +71,9 @@ lapic_init()
 	if (((lapic[VER]>>16) & 0xFF) >= 4)
 		lapicw(PCINT, MASKED);
 
-	// Map error interrupt to T_LERROR vector.
+	// Map other interrupts to appropriate vectors.
 	lapicw(ERROR, T_LERROR);
+	lapicw(PCINT, T_PERFCTR);
 
 	// Set up to lowest-priority, "anycast" interrupts
 	lapicw(LDR, 0xff << 24);	// Accept all interrupts

@@ -76,6 +76,9 @@ pmap_init(void)
 	// Enable 4MB pages and global pages.
 	uint32_t cr4 = rcr4();
 	cr4 |= CR4_PSE | CR4_PGE;
+#if SOL >= 2
+	cr4 |= CR4_OSFXSR | CR4_OSXMMEXCPT; // enable 128-bit XMM instructions
+#endif
 	lcr4(cr4);
 
 	// Install the bootstrap page directory into the PDBR.
@@ -83,8 +86,8 @@ pmap_init(void)
 
 	// Turn on paging.
 	uint32_t cr0 = rcr0();
-	cr0 |= CR0_PE|CR0_PG|CR0_AM|CR0_WP|CR0_NE|CR0_TS|CR0_MP;
-	cr0 &= ~(CR0_TS|CR0_EM);
+	cr0 |= CR0_PE|CR0_PG|CR0_AM|CR0_WP|CR0_NE|CR0_TS|CR0_MP|CR0_TS;
+	cr0 &= ~(CR0_EM);
 	lcr0(cr0);
 
 	// If we survived the lcr0, we're running with paging enabled.
@@ -397,6 +400,7 @@ pmap_pagefault(trapframe *tf)
 {
 	// Read processor's CR2 register to find the faulting linear address.
 	uint32_t fva = rcr2();
+	//cprintf("pmap_pagefault fva %x eip %x\n", fva, tf->tf_eip);
 
 #if SOL >= 3
 	// It can't be our problem unless it's a write fault in user space!
