@@ -33,7 +33,7 @@ void * func(void * args_ptr) {
 	pthread_barrier_wait(&barrier);
        	array[s + NUM_CHILDREN] = s;
 	cprintf("Thread %d in func after barrier.  array[4]: %d\n", s, array[4]);
-	return (void *)EXIT_SUCCESS;
+	return (void *)7; // EXIT_SUCCESS;
 }
 
 int main(int argc, char ** argv) {
