@@ -3,10 +3,12 @@
 #define PIOS_INC_PTHREAD_H
 
 #include <types.h>
+#include <file.h>
 
 
-// A "pthread" in PIOS is just a child process number.
+// Pthread type
 typedef int pthread_t;
+
 
 // We don't support any pthread_attrs currently...
 typedef void pthread_attr_t;
@@ -30,7 +32,7 @@ typedef int pthread_barrier_t;
 typedef void pthread_barrierattr_t;
 
 // Maximum number of barriers a process/thread may use
-#define BARRIER_MAX 256  
+#define BARRIER_MAX	PROC_CHILDREN  
 
 int pthread_barrier_init(pthread_barrier_t * barrier, 
 			 const pthread_barrierattr_t * attr, 

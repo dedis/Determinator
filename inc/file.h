@@ -135,6 +135,7 @@ typedef struct filestate {
 	filedesc	fd[OPEN_MAX];	// File descriptor table
 	fileinode	fi[FILE_INODES]; // "Inodes" describing actual files
 	procinfo	child[PROC_CHILDREN]; 	// Unix state of all child processes
+	int		barriers[PROC_CHILDREN];  // pthread barriers
 } filestate;
 
 #define FILES		((filestate *) FILESVA)
