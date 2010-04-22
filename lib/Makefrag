@@ -17,7 +17,8 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/fprintf.c \
 			lib/readline.c \
 			lib/thread.c \
-			lib/pthread.c
+			lib/pthread.c \
+			lib/malloc.c
 
 #if SOL >= 4
 LIB_SRCFILES +=		lib/bench.c

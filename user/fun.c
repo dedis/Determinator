@@ -8,6 +8,7 @@
 #include <inc/syscall.h>
 #include <inc/vm.h>
 #include <inc/pthread.h>
+#include <inc/malloc.h>
 
 
 #define NUM_CHILDREN 4
@@ -61,6 +62,8 @@ int main(int argc, char ** argv) {
 		fprintf(stderr, "*** pthread_barrier_destroy  %d\n", ret);
 
 	print_array();
+
+	char * b = (char *)malloc(16);
 
 	return EXIT_SUCCESS;
 }
