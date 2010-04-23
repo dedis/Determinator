@@ -46,7 +46,8 @@ int pthread_barrier_destroy(pthread_barrier_t * barrier);
 pthread_t pthread_self(void);
 
 
-#else	// PIOS_DSCHED	- "nondeterministic compatibility mode" pthreads API
+//////////////////// PIOS_DSCHED ////////////////////
+#else	// Nondeterministic compatibility mode pthreads API
 
 // Keep the two pthreads implementations disjoint at the linker level.
 #define pthread_create		dsthread_create
@@ -61,22 +62,22 @@ pthread_t pthread_self(void);
 #define pthread_cond_broadcast	dsthread_cond_broadcast
 #define pthread_cond_wait	dsthread_cond_wait
 
-typedef struct pthread {
-	int			child;	// child number in master process
-	struct pthread *	next;	// next on wait queue
-} *pthread_t;
+typedef struct pthread *pthread_t;
 typedef void pthread_attr_t;
+typedef int pthread_key_t;
 
 typedef struct pthread_mutex {
 	int		owner;		// which thread currently owns mutex
-	int		locked;		// true if mutex currently locked
+	bool		locked;		// true if mutex currently locked
 	pthread_t	waiting;	// list of waiting threads
 } pthread_mutex_t;
 typedef void pthread_mutexattr_t;
 
 typedef struct pthread_cond {
 	int		event;		// 0 = none, 1 = signal, 3 = broadcast
-	pthread_t	waiting;	// list of waiting threads
+	struct pthread_cond *evnext;	// chain on list of signaled conds
+	pthread_t	waithead;	// list of waiting threads
+	pthread_t	*waittail;	// list of waiting threads
 } pthread_cond_t;
 typedef void pthread_condattr_t;
 
@@ -94,6 +95,11 @@ int pthread_cond_destroy(pthread_cond_t *cond);
 int pthread_cond_signal(pthread_cond_t *cond);
 int pthread_cond_broadcast(pthread_cond_t *cond);
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+
+int pthread_key_create(pthread_key_t *key, void (*init)(void *));
+int pthread_key_delete(pthread_key_t key);
+void *pthread_getspecific(pthread_key_t key);
+int pthread_setspecific(pthread_key_t key, const void *val);
 
 #endif	// PIOS_DSCHED
 #endif /* !PIOS_INC_PTHREAD_H */

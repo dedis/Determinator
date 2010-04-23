@@ -63,8 +63,12 @@
 //
 //                     |                              |
 //    VM_USERHI, ----> +==============================+ 0xf0000000
+//    VM_PRIVHI        |                              |
+//                     |     Thread-private state     |
+//                     |                              |
+//    VM_PRIVLO,       +------------------------------+ 0xe0000000
 //    VM_STACKHI       |                              |
-//                     |     Per-thread user stack    |
+//                     |          User stack          |
 //                     |                              |
 //    VM_STACKLO,      +------------------------------+ 0xd0000000
 //    VM_SCRATCHHI     |                              |
@@ -85,8 +89,14 @@
 //    VM_SHARELO, ---> +==============================+ 0x40000000
 //    VM_USERLO        |                              |
 
-// Standard area for the user-space stack (thread-private)
-#define VM_STACKHI	0xf0000000
+// Standard area for state that is always thread-private,
+// regardless of the user-level threading model in use.
+#define VM_PRIVHI	0xf0000000
+#define VM_PRIVLO	0xe0000000
+
+// Standard area for the user-space stack:
+// may or may not be thread-private depending on threading model.
+#define VM_STACKHI	0xe0000000
 #define VM_STACKLO	0xd0000000
 
 // Scratch address space region for general use (e.g., by exec)

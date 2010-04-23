@@ -33,11 +33,18 @@ int	fgetc(FILE *fh);
 
 // lib/printfmt.c
 void	printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...);
-void	vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list);
+void	vprintfmt(void (*putch)(int, void*), void *putdat,
+		const char *fmt, va_list);
 int	sprintf(char *str, const char *fmt, ...);
-int	vsprintf(char *str, const char *fmt, va_list);
+int	vsprintf(char *str, const char *fmt, va_list args);
 int	snprintf(char *str, int size, const char *fmt, ...);
-int	vsnprintf(char *str, int size, const char *fmt, va_list);
+int	vsnprintf(char *str, int size, const char *fmt, va_list args);
+
+// lib/scanfmt.c
+int	vscanfmt(int (*lookch)(void *), void (*nextch)(void*), void *scandat,
+		const char *fmt, va_list);
+int	sscanf(const char *str, const char *fmt, ...);
+int	vsscanf(const char *str, const char *fmt, va_list arg);
 
 // lib/cputs.c (user space impl) or kern/console.c (kernel impl)
 void	cputs(const char *str);
@@ -48,8 +55,13 @@ int	vcprintf(const char *fmt, va_list);
 
 // lib/fprintf.c
 int	printf(const char *fmt, ...);
+int	vprintf(const char *fmt, va_list args);
 int	fprintf(FILE *f, const char *fmt, ...);
-int	vfprintf(FILE *f, const char *fmt, va_list);
+int	vfprintf(FILE *f, const char *fmt, va_list args);
+int	scanf(const char *fmt, ...);
+int	vscanf(const char *fmt, va_list args);
+int	fscanf(FILE *f, const char *fmt, ...);
+int	vfscanf(FILE *f, const char *fmt, va_list args);
 
 // lib/stdio.c
 FILE *	fopen(const char *filename, const char *mode);

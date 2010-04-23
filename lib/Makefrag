@@ -5,6 +5,7 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/cputs.c \
 			lib/cprintf.c \
 			lib/printfmt.c \
+			lib/scanfmt.c \
 			lib/string.c \
 			lib/syscall.c \
 			lib/file.c \
@@ -18,6 +19,7 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/readline.c \
 			lib/thread.c \
 			lib/pthread.c \
+			lib/dsthread.c \
 			lib/stdlib/strtol.c \
 			lib/stdlib/strtoll.c \
 			lib/stdlib/strtoul.c \
