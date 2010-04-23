@@ -310,6 +310,18 @@ strerror(int err)
 	sprintf(errbuf, "Unknown error code %d", err);
 	return errbuf;
 }
+
+int
+atoi(const char * nptr) {
+	return (int)strtol(nptr, NULL, 10);
+}
+
+long
+atoi(const char * nptr) {
+	return strtol(nptr, NULL, 10);
+}
+
+
 #endif
 
 #endif

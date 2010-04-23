@@ -17,4 +17,8 @@
 void	exit(int status) gcc_noreturn;
 void	abort(void) gcc_noreturn;
 
+// lib/string.c
+int	atoi(const char * nptr);
+long	atol(const char * nptr);
+
 #endif /* !PIOS_INC_STDLIB_H */

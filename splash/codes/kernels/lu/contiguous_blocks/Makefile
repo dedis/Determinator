@@ -1,6 +1,6 @@
 
 
-LOCALHOME := /home/afa9
+LOCALHOME := /home/afa9/pios
 BASEDIR := $(LOCALHOME)/splash/codes
 MACROS := $(BASEDIR)/null_macros/c.m4.null.PIOS
 M4 := m4 -s -Ulen -Uindex

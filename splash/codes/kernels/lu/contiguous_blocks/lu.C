@@ -39,9 +39,6 @@
 /*                                                                       */
 /*************************************************************************/
 
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
 MAIN_ENV
 
 #define MAXRAND                         32767.0
@@ -407,10 +404,12 @@ void SlaveStart()
 {
   long MyNum;
 
-  LOCK(Global->idlock)
+  IDLOCK(Global->idlock, Global->id, MyNum)
+	  /*
     MyNum = Global->id;
     Global->id ++;
   UNLOCK(Global->idlock)
+	  */
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might pin processes to
    processors to avoid migration */
