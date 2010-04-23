@@ -14,22 +14,24 @@ define(BARINIT, `{
 }')
 
 define(LOCKDEC, ` ');
-define(LOCKINIT, `{;}')
-define(LOCK, `{;}')
-define(UNLOCK, `{;}')
+define(LOCKINIT, ` ')
+define(LOCK, ` ')
+define(UNLOCK, ` ')
+
+define(IDLOCK, `$3 = pthread_self();')
 
 define(ALOCKDEC, ` ')
-define(ALOCKINIT, `{;}')
-define(ALOCK, `{;}')
-define(AULOCK, `{;}')
+define(ALOCKINIT, ` ')
+define(ALOCK, ` ')
+define(AULOCK, ` ')
 
 define(PAUSEDEC, ` ')
-define(PAUSEINIT, `{;}')
-define(CLEARPAUSE, `{;}')
-define(SETPAUSE, `{;}')
-define(EVENT, `{;}')
-define(WAITPAUSE, `{;}')
-define(PAUSE, `{;}')
+define(PAUSEINIT, ` ')
+define(CLEARPAUSE, ` ')
+define(SETPAUSE, ` ')
+define(EVENT, ` ')
+define(WAITPAUSE, ` ')
+define(PAUSE, ` ')
 
 define(AUG_ON, ` ')
 define(AUG_OFF, ` ')
@@ -37,22 +39,22 @@ define(TRACE_ON, ` ')
 define(TRACE_OFF, ` ')
 define(REF_TRACE_ON, ` ')
 define(REF_TRACE_OFF, ` ')
-define(DYN_TRACE_ON, `;')
-define(DYN_TRACE_OFF, `;')
-define(DYN_REF_TRACE_ON, `;')
-define(DYN_REF_TRACE_OFF, `;')
-define(DYN_SIM_ON, `;')
-define(DYN_SIM_OFF, `;')
-define(DYN_SCHED_ON, `;')
-define(DYN_SCHED_OFF, `;')
-define(AUG_SET_LOLIMIT, `;')
-define(AUG_SET_HILIMIT, `;')
+define(DYN_TRACE_ON, ` ')
+define(DYN_TRACE_OFF, ` ')
+define(DYN_REF_TRACE_ON, ` ')
+define(DYN_REF_TRACE_OFF, ` ')
+define(DYN_SIM_ON, ` ')
+define(DYN_SIM_OFF, ` ')
+define(DYN_SCHED_ON, ` ')
+define(DYN_SCHED_OFF, ` ')
+define(AUG_SET_LOLIMIT, ` ')
+define(AUG_SET_HILIMIT, ` ')
 
-define(MENTER, `{;}')
-define(DELAY, `{;}')
-define(CONTINUE, `{;}')
-define(MEXIT, `{;}')
-define(MONINIT, `{;}')
+define(MENTER, ` ')
+define(DELAY, ` ')
+define(CONTINUE, ` ')
+define(MEXIT, ` ')
+define(MONINIT, ` ')
 
 define(WAIT_FOR_END, `{
 	long	i, Error;
@@ -79,7 +81,7 @@ define(CREATE, `{
 	$1();
 }')
 
-define(MAIN_INITENV, `{;}')
+define(MAIN_INITENV, ` ')
 define(MAIN_END, `{exit(0);}')
 
 define(MAIN_ENV,`
@@ -107,14 +109,14 @@ extern pthread_t PThreadTable[];
 ')
 
 define(G_MALLOC, `malloc($1);')
-define(G_FREE, `;')
+define(G_FREE, ` ')
 define(G_MALLOC_F, `malloc($1)')
 
 define(GET_HOME, `{($1) = 0;}')
 define(GET_PID, `{($1) = 0;}')
 define(AUG_DELAY, `{sleep ($1);}')
-define(ST_LOG, `{;}')
-define(SET_HOME, `{;}')
+define(ST_LOG, ` ')
+define(SET_HOME, ` ')
 define(CLOCK, `{
 	struct timeval	FullTime;
 
