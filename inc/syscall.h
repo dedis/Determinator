@@ -9,7 +9,6 @@
 #define SYS_TYPE	0x0000000f	// Basic operation type
 #define SYS_CPUTS	0x00000000	// Write debugging string to console
 #define SYS_PUT		0x00000001	// Push data to child and start it
-#define SYS_PUT		0x00000001	// Push data to child and start it
 #define SYS_GET		0x00000002	// Pull results from child
 #define SYS_RET		0x00000003	// Return to parent
 #if SOL >= 4
@@ -23,7 +22,7 @@
 #endif
 
 #define SYS_REGS	0x00001000	// Get/put register state
-#define SYS_FPU		0x00002000	// Get/put FPU state
+#define SYS_FPU		0x00002000	// Get/put FPU state (with SYS_REGS)
 #if LAB >= 3                    
 #define SYS_MEM		0x00004000	// Get/put memory mappings
 #if LAB >= 99
@@ -78,10 +77,19 @@
 #ifndef __ASSEMBLER__
 
 // CPU state save area format for GET/PUT with SYS_REGS flags
+// XXX rename to 'procstate'?
 typedef struct cpustate {
+	uint32_t	pff;		// process feature flags - see below
+	uint32_t	icnt;		// insns executed so far
+	uint32_t	imax;		// max insns to execute before ret
 	trapframe	tf;		// general registers
 	fxsave		fx;		// x87/MMX/XMM registers
 } cpustate;
+
+// process feature enable/status flags
+#define PFF_USEFPU	0x0001		// process has used the FPU
+#define PFF_NONDET	0x0100		// enable nondeterministic features
+#define PFF_ICNT	0x0200		// enable instruction count/recovery
 
 
 // Prototypes for user-level syscalls stubs defined in lib/syscall.c

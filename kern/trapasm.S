@@ -79,6 +79,7 @@ TRAPHANDLER_NOEC(Xirq15,  T_IRQ0+15)
 TRAPHANDLER_NOEC(Xsyscall, T_SYSCALL)	// System call
 TRAPHANDLER_NOEC(Xltimer,  T_LTIMER)	// Local APIC timer
 TRAPHANDLER_NOEC(Xlerror,  T_LERROR)	// Local APIC error
+TRAPHANDLER_NOEC(Xperfctr,  T_PERFCTR)	// Performance counter interrupt
 
 #endif	// SOL >= 2
 /* default handler -- not for any specific trap */
