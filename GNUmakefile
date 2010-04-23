@@ -139,6 +139,10 @@ USER_LDFLAGS := $(LDFLAGS) -Ttext=0x40000000
 
 GCC_LIB := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
 
+USER_LDDEPS := $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libc.a
+USER_LDENTRY := $(OBJDIR)/lib/entry.o
+USER_LDLIBS := -L$(OBJDIR)/lib -lc $(GCC_LIB)
+
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
 
@@ -215,6 +219,7 @@ include lib/Makefrag
 #if LAB >= 3
 include user/Makefrag
 #endif
+include parsec/x264/Makefrag
 
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 # Find all potentially exportable files

@@ -29,10 +29,10 @@
 #define EAGAIN		13	/* Resource temporarily unavailable */
 #define ECHILD		14	/* No child processes */
 #define ECONFLICT	15	/* Conflict detected */
+#define EDOM		16	/* Argument out of domain */
+#define ERANGE		17	/* Result too large */
 
 #if LAB >= 99
-#define EDOM		X	/* Argument out of domain */
-#define ERANGE		X	/* Result too large */
 
 #define E2BIG		X	/* Argument list too long */
 #define EACCES		X	/* Permission denied */

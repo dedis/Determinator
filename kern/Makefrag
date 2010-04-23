@@ -54,7 +54,8 @@ KERN_INITFILES :=	sh \
 			wc \
 			testfs \
 			fun \
-			icnt
+			icnt \
+			x264
 #if SOL >= 4
 # Performance benchmarking programs
 KERN_INITFILES +=	matmult \
