@@ -52,6 +52,9 @@ int	isatty(int fn);
 int	remove(const char *path);
 int	fsync(int fn);
 
+// Program convenience functions
+int	getopt(int argc, char * argv[], const char * optstring);
+
 
 // PIOS-specific thread fork/join functions
 int	tfork(uint16_t child);

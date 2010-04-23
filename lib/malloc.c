@@ -24,3 +24,9 @@ void * sbrk(intptr_t increment) {
 void * malloc(size_t size) {
 	return sbrk(size);
 }
+
+
+// Not yet supported.
+void free(void * ptr) {
+
+}

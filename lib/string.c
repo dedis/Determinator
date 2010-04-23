@@ -317,7 +317,7 @@ atoi(const char * nptr) {
 }
 
 long
-atoi(const char * nptr) {
+atol(const char * nptr) {
 	return strtol(nptr, NULL, 10);
 }
 

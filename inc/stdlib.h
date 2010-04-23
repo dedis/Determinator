@@ -3,7 +3,7 @@
 
 #include <gcc.h>
 #include <types.h>
-
+#include <malloc.h>
 
 #ifndef NULL
 #define NULL	((void *) 0)
