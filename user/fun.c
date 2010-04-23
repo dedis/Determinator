@@ -64,6 +64,9 @@ int main(int argc, char ** argv) {
 	print_array();
 
 	char * b = (char *)malloc(16);
+	strcpy(b, "HELLO!");
+	fprintf(stderr, "Value: %s\n", b);
+
 
 	return EXIT_SUCCESS;
 }
