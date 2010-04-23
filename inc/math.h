@@ -41,8 +41,8 @@ extern const union __nan_un {
 #define	HUGE_VAL	(__infinity.__ud)
 #endif
 
-#define	FP_ILOGB0	(-__INT_MAX)
-#define	FP_ILOGBNAN	__INT_MAX
+#define	FP_ILOGB0	(-INT_MAX)
+#define	FP_ILOGBNAN	INT_MAX
 
 #ifdef __MATH_BUILTIN_CONSTANTS
 #define	HUGE_VALF	__builtin_huge_valf()
@@ -249,11 +249,11 @@ double	trunc(double);
 /*
  * BSD math library entry points
  */
-#if __BSD_VISIBLE
+//#if __BSD_VISIBLE
 double	drem(double, double);
 int	finite(double) gcc_pure2;
 int	isnanf(float) gcc_pure2;
-#endif
+//#endif
 
 /*
  * Reentrant version of gamma & lgamma; passes signgam back by reference

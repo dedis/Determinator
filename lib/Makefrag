@@ -23,7 +23,7 @@ LIB_SRCFILES :=		lib/console.c \
 LIB_SRCFILES +=		lib/bench.c
 
 # Sun math library (snatched from FreeBSD 8.0.0)
-#include lib/math/Makefrag
+include lib/math/Makefrag
 #endif
 
 # Build files only if they exist.

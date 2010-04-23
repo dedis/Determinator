@@ -1,6 +1,5 @@
 /*-
- * Copyright (c) 2003 Mike Barcroft <mike@FreeBSD.org>
- * Copyright (c) 2002 David Schultz <das@FreeBSD.ORG>
+ * Copyright (c) 2001-2008 The FreeBSD Project.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,56 +23,49 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef MATH_FPMATH_H_
-#define MATH_FPMATH_H_
 
-#include <types.h>
+#ifndef _COMPLEX_H
+#define	_COMPLEX_H
 
-#include "x87/fpmath.h"
-
-
-#ifndef IEEE_WORD_ORDER
-#define	IEEE_WORD_ORDER	BYTE_ORDER
+#ifdef __GNUC__
+#if __STDC_VERSION__ < 199901
+#define	_Complex	__complex__
+#endif
+#define	_Complex_I	1.0fi
 #endif
 
-union IEEEf2bits {
-	float	f;
-	struct {
-#if BYTE_ORDER == LITTLE_ENDIAN
-		unsigned int	man	:23;
-		unsigned int	exp	:8;
-		unsigned int	sign	:1;
-#else /* BIG_ENDIAN */
-		unsigned int	sign	:1;
-		unsigned int	exp	:8;
-		unsigned int	man	:23;
-#endif
-	} bits;
-};
+#define	complex		_Complex
+#define	I		_Complex_I
 
-#define	DBL_MANH_SIZE	20
-#define	DBL_MANL_SIZE	32
+#include <gcc.h>
 
-union IEEEd2bits {
-	double	d;
-	struct {
-#if BYTE_ORDER == LITTLE_ENDIAN
-#if IEEE_WORD_ORDER == LITTLE_ENDIAN
-		unsigned int	manl	:32;
-#endif
-		unsigned int	manh	:20;
-		unsigned int	exp	:11;
-		unsigned int	sign	:1;
-#if IEEE_WORD_ORDER == BIG_ENDIAN
-		unsigned int	manl	:32;
-#endif
-#else /* BIG_ENDIAN */
-		unsigned int	sign	:1;
-		unsigned int	exp	:11;
-		unsigned int	manh	:20;
-		unsigned int	manl	:32;
-#endif
-	} bits;
-};
+__BEGIN_DECLS
 
-#endif	/* MATH_FPMATH_H_ */
+double		cabs(double complex);
+float		cabsf(float complex);
+long double	cabsl(long double complex);
+double		carg(double complex);
+float		cargf(float complex);
+long double	cargl(long double complex);
+double		cimag(double complex) gcc_pure2;
+float		cimagf(float complex) gcc_pure2;
+long double	cimagl(long double complex) gcc_pure2;
+double complex	conj(double complex) gcc_pure2;
+float complex	conjf(float complex) gcc_pure2;
+long double complex
+		conjl(long double complex) gcc_pure2;
+float complex	cprojf(float complex) gcc_pure2;
+double complex	cproj(double complex) gcc_pure2;
+long double complex
+		cprojl(long double complex) gcc_pure2;
+double		creal(double complex) gcc_pure2;
+float		crealf(float complex) gcc_pure2;
+long double	creall(long double complex) gcc_pure2;
+double complex	csqrt(double complex);
+float complex	csqrtf(float complex);
+long double complex
+		csqrtl(long double complex);
+
+__END_DECLS
+
+#endif /* _COMPLEX_H */

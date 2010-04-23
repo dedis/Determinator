@@ -164,6 +164,7 @@ do {								\
   (d) = sf_u.value;						\
 } while (0)
 
+#define FLT_EVAL_METHOD __FLT_EVAL_METHOD__	// XXX gcc-ism
 #ifdef FLT_EVAL_METHOD
 /*
  * Attempt to get strict C99 semantics for assignment with non-C99 compilers.

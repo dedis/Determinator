@@ -17,7 +17,7 @@
  */
 
 #include "math.h"
-#include "math_private.h"
+#include "../math_private.h"
 
 /*
  * Domain [-0.67434, 0.67434], range ~[-2.25e-22, 1.921e-22]

@@ -3,8 +3,7 @@
  * Public domain.
  */
 
-#include <machine/asm.h>
-__FBSDID("$FreeBSD$")
+#include "asm.h"
 
 ENTRY(trunc)
 	pushl	%ebp

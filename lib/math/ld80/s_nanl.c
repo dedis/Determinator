@@ -27,8 +27,8 @@
 
 #include <math.h>
 
-#include "fpmath.h"
-#include "../src/math_private.h"
+#include "../fpmath.h"
+#include "../math_private.h"
 
 long double
 nanl(const char *s)
