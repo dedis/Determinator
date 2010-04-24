@@ -15,7 +15,8 @@
 
 
 // Tunable scheduling policy parameters (could be made variables).
-#define P_QUANTUM	100	// Number of instructions per thread quantum
+#define P_QUANTUM	0	// Number of instructions per thread quantum
+//#define P_QUANTUM	100	// Number of instructions per thread quantum
 #define P_MUTEXFAIR	0	// Mutex transfer in strict round-robin order
 #define P_MUTEXIMMED	0	// Pass on mutex immediately on unlock
 
@@ -113,7 +114,7 @@ static destructor dtors[MAXKEYS];
 
 
 static void tinit(pthread_t t);
-static void tpinit(void);
+static void tpinit(pthread_t t);
 static void mret(void);
 static void mutexreqs(pthread_t t);
 static void condwakeups(void);
@@ -162,7 +163,7 @@ init(void)
 	assert(t == self());
 	tinit(t);	// initialize thread 0
 	mret();		// drop into thread 0
-	tpinit();	// initialize thread-private state
+	tpinit(t);	// initialize thread-private state
 }
 
 ////////// Scheduling //////////
@@ -238,6 +239,12 @@ pthread_sched(void)
 			break;	// if so, resume thread in master below.
 		assert(olock == 0);
 
+		// Pass on any traps/returns other than quantum expiration.
+		if (cs.tf.tf_trapno != T_ICNT) {
+			panic("sched: thread %d trap %d eip %x",
+				t->tno, cs.tf.tf_trapno, cs.tf.tf_eip);
+		}
+
 		// We preempted the thread while running normal user code.
 		// Process events and return it to the tail of the run queue.
 		trun(t);
@@ -306,7 +313,7 @@ tblock(pthread_t t, int newstate)
 		"	jmp	pthread_sched;"	// invoke the scheduler
 		"	.p2align 4,0x90;"
 		"1:	popl	%%edi;"
-		"	popl	%%edi;"
+		"	popl	%%esi;"
 		: "=m" (t->ebp),
 		  "=m" (t->esp),
 		  "=m" (t->eip)
@@ -348,7 +355,7 @@ mlock(void)
 static gcc_inline char
 munlock(void)
 {
-	assert(tlock != 0);
+	assert(tlock > 0);
 
 	// We need an "atomic" fetch-and-op here
 	// to guard against a race with preemption,
@@ -457,11 +464,14 @@ tinit(pthread_t t)
 // Initialize a thread's thread-private state area,
 // which can be done only from within the thread itself.
 static void
-tpinit(void)
+tpinit(pthread_t t)
 {
+	assert(t == self());
+
 	// Set up our thread-private storage page.
 	assert(sizeof(threadpriv) <= PAGESIZE);
 	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, THREADPRIV, PAGESIZE);
+	THREADPRIV->brk = (void*) THEAPLO(t->tno);
 
 	// Set up our child version of the mcall-page.
 	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, MCALLPAGE, PAGESIZE);
@@ -474,9 +484,9 @@ static gcc_noreturn void
 tstart(void *(*start_routine)(void *), void *arg)
 {
 	assert(tlock == 2);
-	mret();			// return to normal execution
-
-	pthread_exit(start_routine(arg));
+	tpinit(self());				// init thread-private state
+	mret();					// return to normal execution
+	pthread_exit(start_routine(arg));	// run the user start function
 }
 
 int
@@ -823,10 +833,15 @@ int pthread_setspecific(pthread_key_t key, const void *val)
 void *
 malloc(size_t size)
 {
+	if (tlock < 0)
+		init();
+
+	pthread_t t = self();
+cprintf("tno %d cur break %x limit %x\n", selfno(), THREADPRIV->brk, t->tno);
 	void *ptr = THREADPRIV->brk;
 	void *nbrk = ptr + ROUNDUP(size, 8);
-	if (nbrk > (void*)THEAPHI(self()->tno))
-		panic("malloc: out of memory");
+	if (nbrk > (void*)THEAPHI(t->tno))
+		panic("malloc: can't alloc chunk of size %d", size);
 	THREADPRIV->brk = nbrk;
 	return ptr;
 }

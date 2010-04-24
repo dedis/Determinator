@@ -54,12 +54,13 @@ KERN_INITFILES :=	sh \
 			wc \
 			testfs \
 			fun \
-			icnt \
-			x264
 #if SOL >= 4
 # Performance benchmarking programs
 KERN_INITFILES +=	matmult \
-			microbench
+			microbench \
+			icnt \
+			x264 \
+			eledream_640x360_8.y4m
 #endif
 endif
 
@@ -117,7 +118,8 @@ $(OBJDIR)/kern/kernel.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/bootblock
 
 ifdef LAB4
 $(OBJDIR)/kern/initfiles.h: kern/Makefrag
-	echo >$@ "$(subst /,_,$(patsubst %,INITFILE(%),$(KERN_INITFILES)))"
+	echo >$@ "$(subst /,_,$(subst .,_, \
+			$(patsubst %,INITFILE(%),$(KERN_INITFILES))))"
 $(OBJDIR)/kern/file.o: $(OBJDIR)/kern/initfiles.h
 endif
 
