@@ -46,6 +46,9 @@ int main(int argc, char ** argv) {
 	while ((ch = getopt(argc, argv, "a:b:")) != -1)
 		printf("%c %s\n", ch, optarg);
 
+	srand48(42);
+	printf("Random number: %d\n", lrand48());
+
 	ret = pthread_barrier_init(&barrier, NULL, NUM_CHILDREN);
 	if (ret != 0)
 		fprintf(stderr, "*** pthread_barrier_init  %d\n", ret);

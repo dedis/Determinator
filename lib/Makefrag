@@ -19,7 +19,8 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/thread.c \
 			lib/pthread.c \
 			lib/malloc.c \
-			lib/getopt.c
+			lib/getopt.c \
+			lib/lrand48.c
 
 #if SOL >= 4
 LIB_SRCFILES +=		lib/bench.c
