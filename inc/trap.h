@@ -2,7 +2,7 @@
 #ifndef PIOS_INC_TRAP_H
 #define PIOS_INC_TRAP_H
 
-#include <gcc.h>
+#include <cdefs.h>
 
 
 // Trap numbers

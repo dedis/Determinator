@@ -3,7 +3,7 @@
 
 #include <inc/x86.h>
 #include <inc/mmu.h>
-#include <inc/gcc.h>
+#include <inc/cdefs.h>
 #include <inc/string.h>
 #include <inc/assert.h>
 #include <inc/syscall.h>

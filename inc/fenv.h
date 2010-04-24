@@ -27,7 +27,7 @@
 #ifndef	PIOS_INC_FENV_H_
 #define	PIOS_INC_FENV_H_
 
-#include <gcc.h>
+#include <cdefs.h>
 #include <types.h>
 
 /*                   

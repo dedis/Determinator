@@ -4,7 +4,7 @@
 // sections.  Now we gave them the entire shell in the last lab so
 // they would have more time to focus on the final project.
 #endif
-#include <inc/gcc.h>
+#include <inc/cdefs.h>
 #include <inc/stdio.h>
 #include <inc/stdlib.h>
 #include <inc/unistd.h>

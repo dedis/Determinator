@@ -984,15 +984,12 @@ getopt (argc, argv, optstring)
 			   0);
 }
 
-#ifdef _MSC_VER
-
 int
-getopt_long (argc, argv, optstring, long_options, opt_index)
+getopt_long (int argc, char *const *argv, const char *optstring,
+		        const struct option *long_options, int *opt_index)
 {
   return _getopt_internal (argc, argv, optstring, long_options, opt_index, 0);
 }
-
-#endif
 
 #endif	/* Not ELIDE_CODE.  */
 

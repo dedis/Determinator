@@ -79,6 +79,8 @@ int	fileno(FILE *fd);
 #endif
 int	fflush(FILE *fd);
 
+// lib/dir.c
+int	rename(const char *oldname, const char *newname);
 
 // lib/readline.c
 char*	readline(const char *prompt);

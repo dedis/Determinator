@@ -1,7 +1,7 @@
 #ifndef PIOS_INC_STDLIB_H
 #define PIOS_INC_STDLIB_H
 
-#include <gcc.h>
+#include <cdefs.h>
 #include <types.h>
 
 
@@ -13,6 +13,7 @@
 #define EXIT_FAILURE	1	// Failure status for exit()
 
 
+// Absolute value
 static gcc_inline gcc_pure2 int abs(int x)
 	{ return x >= 0 ? x : -x; }
 static gcc_inline gcc_pure2 long labs(long x)
@@ -20,6 +21,7 @@ static gcc_inline gcc_pure2 long labs(long x)
 static gcc_inline gcc_pure2 long long llabs(long long x)
 	{ return x >= 0 ? x : -x; }
 
+// Number conversions
 long strtol(const char *ptr, char **endptr, int base);
 unsigned long strtoul(const char *ptr, char **endptr, int base);
 long long strtoll(const char *ptr, char **endptr, int base);
@@ -43,12 +45,20 @@ static gcc_inline long long atoll(const char *str)
 static gcc_inline double atof(const char *str)
 	{ return strtod(str, NULL); }
 
+// Memory allocation
 void *	malloc(size_t size);
 void *	calloc(size_t nelt, size_t eltsize);
 void *	realloc(void *ptr, size_t newsize);
 void	free(void *ptr);
 
+// Process exit
 void	exit(int status) gcc_noreturn;
 void	abort(void) gcc_noreturn;
+
+// Environment variables
+char *	getenv(const char *name);
+int	putenv(char *string);
+int	setenv(const char *name, const char *val, int overwrite);
+int	unsetenv(const char *name);
 
 #endif /* !PIOS_INC_STDLIB_H */
