@@ -53,7 +53,8 @@ KERN_INITFILES :=	sh \
 			cat \
 			wc \
 			testfs \
-			fun 
+			fun \
+			lu
 #if SOL >= 4
 # Performance benchmarking programs
 KERN_INITFILES +=	matmult \
