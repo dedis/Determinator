@@ -67,17 +67,21 @@ typedef void pthread_attr_t;
 typedef int pthread_key_t;
 
 typedef struct pthread_mutex {
-	int		owner;		// which thread currently owns mutex
+	pthread_t	owner;		// which thread currently owns mutex
 	bool		locked;		// true if mutex currently locked
-	pthread_t	waiting;	// list of waiting threads
+	pthread_t	waithead;	// list of waiting threads - head
+	pthread_t	*waittail;	// list of waiting threads - tail
+	bool		requested;	// true if on current owner's reqs list
+	struct pthread_mutex *reqnext;	// chain on current owner's reqs list
+	struct pthread_mutex *wakenext;	// chain on list of mutexes to pass on
 } pthread_mutex_t;
 typedef void pthread_mutexattr_t;
 
 typedef struct pthread_cond {
 	int		event;		// 0 = none, 1 = signal, 3 = broadcast
-	struct pthread_cond *evnext;	// chain on list of signaled conds
-	pthread_t	waithead;	// list of waiting threads
-	pthread_t	*waittail;	// list of waiting threads
+	struct pthread_cond *wakenext;	// chain on list of signaled conds
+	pthread_t	waithead;	// list of waiting threads - head
+	pthread_t	*waittail;	// list of waiting threads - tail
 } pthread_cond_t;
 typedef void pthread_condattr_t;
 
