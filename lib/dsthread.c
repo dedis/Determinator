@@ -48,7 +48,7 @@ typedef struct pthread {
 
 // Per-thread state page, starting at VM_PRIVLO
 typedef struct threadpriv {
-	void *		brk;		// heap allocation pointer
+	//void *		brk;		// heap allocation pointer
 	void *		tspec[MAXKEYS];	// thread-specific value for each key
 } threadpriv;
 #define THREADPRIV	((threadpriv*)VM_PRIVLO)
@@ -70,6 +70,7 @@ typedef struct threadpriv {
 #define TSTACKHI(tno)	(VM_STACKHI - (tno) * TSTACKSIZE)
 #define TSTACKLO(tno)	(TSTACKHI(tno) - TSTACKSIZE)
 
+#if 0
 // Use half of the general-purpose "shared" address space area as heap,
 // and divide this heap space into equal-size per-thread chunks.
 #define HEAPSIZE	((VM_SHAREHI - VM_SHARELO) / 2)
@@ -78,6 +79,7 @@ typedef struct threadpriv {
 #define THEAPSIZE	(HEAPSIZE / MAXTHREADS)
 #define THEAPLO(tno)	(HEAPLO + (tno) * THEAPSIZE)
 #define THEAPHI(tno)	(HEAPLO + (tno) * THEAPSIZE + THEAPSIZE)
+#endif
 
 
 static pthread th[MAXTHREADS];
@@ -372,7 +374,7 @@ munlock(void)
 static gcc_inline void
 mcall(void)
 {
-	if (tlock == 0)
+	if (tlock <= 0)
 		mlock();
 
 	// Now actually invoking the master is a bit tricky.
@@ -453,8 +455,8 @@ tinit(pthread_t t)
 
 	// Set up the new thread's stack and heap.
 	// Leave a 1-page redzone at the bottom of each stack.
-	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL,
-		(void*)THEAPLO(tno), THEAPSIZE);
+//	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL,
+//		(void*)THEAPLO(tno), THEAPSIZE);
 	sys_get(SYS_PERM, 0, NULL, NULL,		// 1-page red zone
 		(void*)TSTACKLO(tno), PAGESIZE);
 	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL,
@@ -467,11 +469,12 @@ static void
 tpinit(pthread_t t)
 {
 	assert(t == self());
+	assert(tlock == 0);
 
 	// Set up our thread-private storage page.
 	assert(sizeof(threadpriv) <= PAGESIZE);
 	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, THREADPRIV, PAGESIZE);
-	THREADPRIV->brk = (void*) THEAPLO(t->tno);
+//	THREADPRIV->brk = (void*) THEAPLO(t->tno);
 
 	// Set up our child version of the mcall-page.
 	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, MCALLPAGE, PAGESIZE);
@@ -484,8 +487,8 @@ static gcc_noreturn void
 tstart(void *(*start_routine)(void *), void *arg)
 {
 	assert(tlock == 2);
-	tpinit(self());				// init thread-private state
 	mret();					// return to normal execution
+	tpinit(self());				// init thread-private state
 	pthread_exit(start_routine(arg));	// run the user start function
 }
 
@@ -830,19 +833,30 @@ int pthread_setspecific(pthread_key_t key, const void *val)
 
 ////////// Memory allocation //////////
 
+extern char end[];
+static void *brk = end;
+
 void *
 malloc(size_t size)
 {
-	if (tlock < 0)
-		init();
+	mcall();
 
-	pthread_t t = self();
-cprintf("tno %d cur break %x limit %x\n", selfno(), THREADPRIV->brk, t->tno);
-	void *ptr = THREADPRIV->brk;
+cprintf("tno %d cur break %x limit %x\n", selfno(), brk, VM_SHAREHI);
+
+	// Allocate the requested memory
+	void *ptr = brk;
 	void *nbrk = ptr + ROUNDUP(size, 8);
-	if (nbrk > (void*)THEAPHI(t->tno))
+	if (nbrk > (void*) VM_SHAREHI)
 		panic("malloc: can't alloc chunk of size %d", size);
-	THREADPRIV->brk = nbrk;
+	brk = nbrk;
+
+	// Make sure the new memory is accessible
+	void *pgold = ROUNDUP(ptr, PAGESIZE);
+	void *pgnew = ROUNDUP(nbrk, PAGESIZE);
+	if (pgnew > pgold)
+		sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, pgold, pgnew - pgold);
+
+	mret();
 	return ptr;
 }
 
