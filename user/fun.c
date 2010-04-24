@@ -41,6 +41,10 @@ int main(int argc, char ** argv) {
 
 	int i, status, ret;
 	pthread_t threads[NUM_CHILDREN];
+	int ch;
+	extern char * optarg;
+	while ((ch = getopt(argc, argv, "a:b:")) != -1)
+		printf("%c %s\n", ch, optarg);
 
 	ret = pthread_barrier_init(&barrier, NULL, NUM_CHILDREN);
 	if (ret != 0)
