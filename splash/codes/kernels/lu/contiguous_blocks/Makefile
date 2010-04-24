@@ -17,5 +17,5 @@ clean:
 	$(M4) $(MACROS) $*.H > $*.h
 
 .C.c:
-	$(M4) $(MACROS) $*.C > $*.c
+	$(M4) $(MACROS) $*.C > $(LOCALHOME)/user/$*.c
 

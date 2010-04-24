@@ -1,4 +1,4 @@
-#line 125 "/home/afa9/splash/codes/null_macros/c.m4.null.PIOS"
+#line 125 "/home/afa9/pios/splash/codes/null_macros/c.m4.null.PIOS"
 
 #line 1 "lu.C"
 /*************************************************************************/
@@ -50,6 +50,7 @@
 #line 42
 #include <inc/pthread.h>
 #line 42
+// #include <inc/time.h> NOT IMPLEMENTED
 #line 42
 #include <inc/unistd.h>
 #line 42
@@ -143,7 +144,7 @@ int main(int argc, char *argv[])
   long size;
   unsigned long start;
 
-  { start = 0; }
+  {(start) = 0;}
 
   mint = maxt = avgt = 0.0;
   min_fac = min_solve = min_mod = min_bar = 0.0;
@@ -534,13 +535,13 @@ void OneSolve(long n, long block_size, long MyNum, long dostats)
    statistics that one is measuring about the parallel execution */
 
   if ((MyNum == 0) || (dostats)) {
-    { myrs = 0; };
+    {(myrs) = 0;};
   }
 
   lu(n, block_size, MyNum, lc, dostats);
 
   if ((MyNum == 0) || (dostats)) {
-    { mydone = 0; };
+    {(mydone) = 0;};
   }
 
   {
@@ -557,7 +558,7 @@ void OneSolve(long n, long block_size, long MyNum, long dostats)
     Global->completion[MyNum] = mydone-myrs;
   }
   if (MyNum == 0) {
-    { myrf = 0; };
+    {(myrf) = 0;};
     Global->rs = myrs;
     Global->done = mydone;
     Global->rf = myrf;
@@ -679,7 +680,7 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
     }
 
     if ((MyNum == 0) || (dostats)) {
-      { t1 = 0; };
+      {(t1) = 0;};
     }
 
     /* factor diagonal block */
@@ -689,7 +690,7 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
     }
 
     if ((MyNum == 0) || (dostats)) {
-      { t11 = 0; };
+      {(t11) = 0;};
     }
 
     {
@@ -699,7 +700,7 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
 };
 
     if ((MyNum == 0) || (dostats)) {
-      { t2 = 0; };
+      {(t2) = 0;};
     }
 
     /* divide column k by diagonal block */
@@ -733,7 +734,7 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
     }
 
     if ((MyNum == 0) || (dostats)) {
-      { t22 = 0; };
+      {(t22) = 0;};
     }   
 
     {
@@ -743,7 +744,7 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
 };
 
     if ((MyNum == 0) || (dostats)) {
-      { t3 = 0; };
+      {(t3) = 0;};
     }
 
     /* modify subsequent block columns */
@@ -773,7 +774,7 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
     }
 
     if ((MyNum == 0) || (dostats)) {
-      { t4 = 0; };
+      {(t4) = 0;};
       lc->t_in_fac += (t11-t1);
       lc->t_in_solve += (t22-t2);
       lc->t_in_mod += (t4-t3);
