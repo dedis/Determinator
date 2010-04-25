@@ -88,6 +88,11 @@ QEMU := $(shell \
 	echo "***" 1>&2; exit 1)
 endif
 
+# get the libgcc directory prefix
+ifndef LIBGCCPREFIX
+LIBGCCPREFIX := $(shell $(GCCPREFIX)gcc -print-libgcc-file-name | sed s/\\/libgcc.a//)
+endif
+
 # try to generate unique GDB and network port numbers
 GDBPORT	:= $(shell expr `id -u` % 5000 + 25000)
 NETPORT := $(shell expr `id -u` % 5000 + 30000)
@@ -132,7 +137,7 @@ CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 &
 
 # Kernel versus user compiler flags
 KERN_CFLAGS := $(CFLAGS) -DPIOS_KERNEL
-USER_CFLAGS := $(CFLAGS) -DPIOS_USER
+USER_CFLAGS := $(CFLAGS) -DPIOS_USER -I$(LIBGCCPREFIX)/include
 
 KERN_LDFLAGS := $(LDFLAGS) -Ttext=0x00100000
 USER_LDFLAGS := $(LDFLAGS) -Ttext=0x40000000

@@ -16,7 +16,7 @@ void * sbrk(intptr_t increment) {
 	m = mem_brk;
 	increment = ROUNDUP(increment, PAGESIZE);
 	mem_brk += increment;
-	fprintf(stderr, "%p %p %d\n", m, mem_brk, increment);
+	// fprintf(stderr, "%p %p %d\n", m, mem_brk, increment);
 	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, m, increment);
 	return m;
 }
