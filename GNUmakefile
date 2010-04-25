@@ -123,7 +123,7 @@ endif
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
 # XXX modified to -O2 for benchmarking
-CFLAGS += $(DEFS) $(LABDEFS) -O2 -fno-builtin \
+CFLAGS += $(DEFS) $(LABDEFS) -O1 -fno-builtin \
 		-I$(TOP) -I$(TOP)/inc -MD  \
 		-Wall -Wno-unused -Werror -gstabs
 

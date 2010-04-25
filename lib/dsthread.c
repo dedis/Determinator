@@ -56,7 +56,7 @@ typedef struct threadpriv {
 // Special "thread-private" page that mcall() uses to call the master process.
 // In the master process, this page just contains a RET instruction;
 // in all child processes representing threads, it does a sys_ret().
-#define MCALLPAGE	((void*)VM_PRIVLO + PAGESIZE)
+#define MCALLPAGE	((char*)VM_PRIVLO + PAGESIZE)
 
 // Another special "thread-private" page,
 // which contains the scheduler stack in the master process,
@@ -229,6 +229,9 @@ pthread_sched(void)
 			runqtail = &runqhead;		// for good measure
 		t->qnext = NULL;
 
+//{ int i; cprintf("%s:%d:", __FILE__, __LINE__);
+//  for (i = 0; i < 16; i++) cprintf(" %08x\n", *(int*)(0xdffff8ec+4*i));
+//  cprintf("\n"); }
 		// Merge the thread's memory changes and get its register state.
 		tlock = 0;	// default state for user procs
 		sys_get(SYS_REGS | SYS_MERGE, t->tno, &cs,
@@ -236,16 +239,22 @@ pthread_sched(void)
 			VM_PRIVLO - VM_USERLO);
 		int olock = tlock;
 		tlock = 2;
+//{ int i; cprintf("%s:%d:", __FILE__, __LINE__);
+//  for (i = 0; i < 16; i++) cprintf(" %08x\n", *(int*)(0xdffff8ec+4*i));
+//  cprintf("\n"); }
 
 		if (olock == 1)	// Was the thread running pthread code?
 			break;	// if so, resume thread in master below.
 		assert(olock == 0);
 
 		// Pass on any traps/returns other than quantum expiration.
-		if (cs.tf.tf_trapno != T_ICNT) {
+		if (cs.tf.tf_trapno == T_SYSCALL) {
+			sys_ret();	// pass I/O on to our parent
+		} else if (cs.tf.tf_trapno != T_ICNT) {
 			panic("sched: thread %d trap %d eip %x",
 				t->tno, cs.tf.tf_trapno, cs.tf.tf_eip);
 		}
+cprintf("sched: thread %d preempted eip %x\n", t->tno, cs.tf.tf_eip);
 
 		// We preempted the thread while running normal user code.
 		// Process events and return it to the tail of the run queue.
@@ -261,6 +270,7 @@ pthread_sched(void)
 			VM_PRIVLO - VM_USERLO);
 		tlock = 2;	// tlock state for master process
 	}
+cprintf("sched: thread %d returned %d eip %x\n", t->tno, cs.tf.tf_trapno, cs.tf.tf_eip);
 
 	// Unexpected trap in pthreads code?
 	if (cs.tf.tf_trapno != T_SYSCALL && cs.tf.tf_trapno != T_ICNT)
@@ -341,7 +351,7 @@ tready(pthread_t t)
 ////////// Master entry/exit and preemption control //////////
 
 // Disable preemption.
-static gcc_inline void
+static /*gcc_inline*/ void
 mlock(void)
 {
 	if (tlock < 0)
@@ -354,7 +364,7 @@ mlock(void)
 // Re-enable preemption.
 // If our timeslice hasn't ended, sets tlock = 0 and returns nonzero.
 // Otherwise, we're in the master process (tlock == 2), and returns false.
-static gcc_inline char
+static /*gcc_inline*/ char
 munlock(void)
 {
 	assert(tlock > 0);
@@ -371,9 +381,10 @@ munlock(void)
 
 // Disable preemption and synchronize with the master immediately,
 // giving up the rest of our current execution quantum.
-static gcc_inline void
+static /*gcc_inline*/ void
 mcall(void)
 {
+cprintf("mcall entry tlock=%d\n", tlock);
 	if (tlock <= 0)
 		mlock();
 
@@ -385,9 +396,14 @@ mcall(void)
 	// which contains an INT $48 in the child and a RET in the master;
 	// that way we'll do the correct thing even if we get preempted
 	// just the moment before that instruction is executed.
+//{ int i; cprintf("%s:%d:", __FILE__, __LINE__);
+//  for (i = 0; i < 16; i++) cprintf(" %08x\n", *(int*)(0xdffff8ec+4*i));
+//  cprintf("\n"); }
 	asm volatile("call %1" : : "a" (SYS_RET), "m" (*(char*)MCALLPAGE));
 
 	assert(tlock == 2);
+	assert(MCALLPAGE[0] == mmcalls[0]);
+cprintf("mcall exit tlock=2\n");
 }
 
 // Return a thread running as master to its proper child process,
@@ -395,6 +411,7 @@ mcall(void)
 static void
 mret(void)
 {
+cprintf("mret entry tlock=%d\n", tlock);
 	assert(tlock > 0);
 	if (munlock())
 		return;		// dropped back from tlock == 1 to tlock == 0
@@ -440,6 +457,7 @@ mret(void)
 		: "cc", "memory");
 
 	assert(tlock == 0);
+cprintf("mret exit tlock=0\n");
 }
 
 ////////// Threads //////////
@@ -839,6 +857,7 @@ static void *brk = end;
 void *
 malloc(size_t size)
 {
+cprintf("malloc size=%d\n", size);
 	mcall();
 
 cprintf("tno %d cur break %x limit %x\n", selfno(), brk, VM_SHAREHI);
@@ -857,6 +876,11 @@ cprintf("tno %d cur break %x limit %x\n", selfno(), brk, VM_SHAREHI);
 		sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, pgold, pgnew - pgold);
 
 	mret();
+mcall();
+mret();
+mcall();
+mret();
+cprintf("malloc returning %x\n", ptr);
 	return ptr;
 }
 
