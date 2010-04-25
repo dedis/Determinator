@@ -3,7 +3,7 @@
 
 #include <inc/x86.h>
 #include <inc/mmu.h>
-#include <inc/gcc.h>
+#include <inc/cdefs.h>
 #include <inc/string.h>
 #include <inc/assert.h>
 #include <inc/syscall.h>
@@ -404,19 +404,25 @@ pmap_pagefault(trapframe *tf)
 
 #if SOL >= 3
 	// It can't be our problem unless it's a write fault in user space!
-	if (fva < VM_USERLO || fva >= VM_USERHI || !(tf->tf_err & PFE_WR))
+	if (fva < VM_USERLO || fva >= VM_USERHI || !(tf->tf_err & PFE_WR)) {
+		cprintf("pmap_pagefault: fva %x err %x\n", fva, tf->tf_err);
 		return;
+	}
 
 	proc *p = proc_cur();
 	pde_t *pde = &p->pdir[PDX(fva)];
-	if (!(*pde & PTE_P))
+	if (!(*pde & PTE_P)) {
+		cprintf("pmap_pagefault: pde for fva %x doesn't exist\n", fva);
 		return;		// ptab doesn't exist at all - blame user
+	}
 
 	// Find the page table entry, copying the page table if it's shared.
 	pte_t *pte = pmap_walk(p->pdir, fva, 1);
 	if ((*pte & (SYS_READ | SYS_WRITE | PTE_P)) !=
-			(SYS_READ | SYS_WRITE | PTE_P))
+			(SYS_READ | SYS_WRITE | PTE_P)) {
+		cprintf("pmap_pagefault: page for fva %x doesn't exist\n", fva);
 		return;		// page doesn't exist at all - blame user
+	}
 	assert(!(*pte & PTE_W));
 
 	// Find the "shared" page.  If refcount is 1, we have the only ref!

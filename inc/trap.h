@@ -2,7 +2,7 @@
 #ifndef PIOS_INC_TRAP_H
 #define PIOS_INC_TRAP_H
 
-#include <gcc.h>
+#include <cdefs.h>
 
 
 // Trap numbers
@@ -110,7 +110,7 @@ typedef struct trapframe {
 // Floating-point/MMX/XMM register save area format,
 // in the layout defined by the processor's FXSAVE/FXRSTOR instructions.
 typedef gcc_aligned(16) struct fxsave {
-	uint16_t fcw;	// byte 0
+	uint16_t	fcw;			// byte 0
 	uint16_t	fsw;
 	uint16_t	ftw;
 	uint16_t	fop;

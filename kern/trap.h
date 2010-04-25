@@ -9,7 +9,7 @@
 
 #include <inc/trap.h>
 #include <inc/mmu.h>
-#include <inc/gcc.h>
+#include <inc/cdefs.h>
 
 
 // Arguments that trap_check() passes to trap recovery code,

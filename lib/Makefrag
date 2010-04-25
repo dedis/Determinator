@@ -5,6 +5,7 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/cputs.c \
 			lib/cprintf.c \
 			lib/printfmt.c \
+			lib/scanfmt.c \
 			lib/string.c \
 			lib/syscall.c \
 			lib/file.c \
@@ -17,7 +18,23 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/fprintf.c \
 			lib/readline.c \
 			lib/thread.c \
-			lib/pthread.c
+			lib/pthread.c \
+			lib/dsthread.c \
+			lib/time.c \
+			lib/stdlib/strtol.c \
+			lib/stdlib/strtoll.c \
+			lib/stdlib/strtoul.c \
+			lib/stdlib/strtoull.c \
+			lib/stdlib/strtod.c \
+			lib/stdlib/getenv.c \
+			lib/string/strcasecmp.c \
+			lib/string/strcat.c \
+			lib/string/strdup.c \
+			lib/string/strpbrk.c \
+			lib/string/strstr.c \
+			lib/string/strtok.c \
+			lib/string/strspn.c \
+			lib/string/strcspn.c
 
 #if SOL >= 4
 LIB_SRCFILES +=		lib/bench.c

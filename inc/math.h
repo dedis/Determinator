@@ -16,7 +16,7 @@
 #ifndef _MATH_H_
 #define	_MATH_H_
 
-#include <gcc.h>
+#include <cdefs.h>
 #include <types.h>
 
 /*

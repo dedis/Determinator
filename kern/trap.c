@@ -229,29 +229,39 @@ trap(trapframe *tf)
 		c->recover(tf, c->recoverdata);
 
 #if SOL >= 2
+	proc *p = proc_cur();
 	switch (tf->tf_trapno) {
 	case T_SYSCALL:
 		assert(tf->tf_cs & 3);	// syscalls only come from user space
 		syscall(tf);
 		break;
+
 	case T_BRKPT:	// other traps entered via explicit INT instructions
 	case T_OFLOW:
 		assert(tf->tf_cs & 3);	// only allowed from user space
 		proc_ret(tf, 1);	// reflect trap to parent process
-	case T_DEBUG: {	// count instructions by single-stepping
+
+#if SOL >= 2
+	case T_DEVICE:	// attempted to access FPU while TS flag set
+		cprintf("trap: enabling FPU\n");
+		p->sv.pff |= PFF_USEFPU;
+		assert(sizeof(p->sv.fx) == 512);
+		lcr0(rcr0() & ~CR0_TS);			// enable FPU
+		asm volatile("fxrstor %0" : : "m" (p->sv.fx));
+		trap_return(tf);
+
+	case T_DEBUG:	// count instructions by single-stepping
 		assert(tf->tf_cs & 3);
 		assert(tf->tf_eflags & FL_TF);
-		proc *p = proc_cur();
 		assert(p->sv.pff & PFF_ICNT);
 		//cprintf("T_DEBUG eip %x\n", tf->tf_eip);
 		if (++p->sv.icnt < p->sv.imax)
 			trap_return(tf);	// keep stepping
 		tf->tf_trapno = T_ICNT;
 		proc_ret(tf, -1);	// can't run any more insns!
-	    }
-	case T_PERFCTR: {
+
+	case T_PERFCTR:
 		assert(tf->tf_cs & 3);
-		proc *p = proc_cur();
 		assert(p->sv.pff & PFF_ICNT);
 		assert(p->pmcmax > 0);
 		assert(pmc_get != NULL);
@@ -266,7 +276,8 @@ trap(trapframe *tf)
 		if (p->sv.icnt > p->sv.imax)
 			panic("oops, perf ctr overshoot by %d insns\n",
 				p->sv.icnt - p->sv.imax);
-	    }
+
+#endif // SOL >= 2
 	case T_LTIMER: ;
 		uint64_t t = timer_read(); // update PIT count high bits
 		//cprintf("LTIMER on %d: %lld\n", c->id, (long long)t);

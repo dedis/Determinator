@@ -7,7 +7,7 @@
 # error "This is a kernel header; user programs should not #include it"
 #endif
 
-#include <inc/gcc.h>
+#include <inc/cdefs.h>
 #include <inc/trap.h>
 #include <inc/syscall.h>
 

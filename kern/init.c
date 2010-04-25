@@ -3,7 +3,7 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/assert.h>
-#include <inc/gcc.h>
+#include <inc/cdefs.h>
 #include <inc/syscall.h>
 #if LAB >= 3
 #include <inc/elf.h>

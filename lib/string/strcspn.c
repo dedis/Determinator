@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2001-2008 The FreeBSD Project.
+ * Copyright (c) 2005 David Schultz <das@FreeBSD.ORG>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,48 +24,46 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _COMPLEX_H
-#define	_COMPLEX_H
+#include <sys/types.h>
+#include <limits.h>
+#include <string.h>
 
-#ifdef __GNUC__
-#if __STDC_VERSION__ < 199901
-#define	_Complex	__complex__
+#define	IDX(c)	((unsigned char)(c) / LONG_BIT)
+#define	BIT(c)	((unsigned long)1 << ((unsigned char)(c) % LONG_BIT))
+
+size_t
+strcspn(const char *s, const char *charset)
+{
+	/*
+	 * NB: idx and bit are temporaries whose use causes gcc 3.4.2 to
+	 * generate better code.  Without them, gcc gets a little confused.
+	 */
+	const char *s1;
+	unsigned long bit;
+	unsigned long tbl[(UCHAR_MAX + 1) / LONG_BIT];
+	int idx;
+
+	if(*s == '\0')
+		return (0);
+
+#if LONG_BIT == 64	/* always better to unroll on 64-bit architectures */
+	tbl[0] = 1;
+	tbl[3] = tbl[2] = tbl[1] = 0;
+#else
+	for (tbl[0] = idx = 1; idx < sizeof(tbl) / sizeof(tbl[0]); idx++)
+		tbl[idx] = 0;
 #endif
-#define	_Complex_I	1.0fi
-#endif
+	for (; *charset != '\0'; charset++) {
+		idx = IDX(*charset);
+		bit = BIT(*charset);
+		tbl[idx] |= bit;
+	}
 
-#define	complex		_Complex
-#define	I		_Complex_I
-
-#include <cdefs.h>
-
-__BEGIN_DECLS
-
-double		cabs(double complex);
-float		cabsf(float complex);
-long double	cabsl(long double complex);
-double		carg(double complex);
-float		cargf(float complex);
-long double	cargl(long double complex);
-double		cimag(double complex) gcc_pure2;
-float		cimagf(float complex) gcc_pure2;
-long double	cimagl(long double complex) gcc_pure2;
-double complex	conj(double complex) gcc_pure2;
-float complex	conjf(float complex) gcc_pure2;
-long double complex
-		conjl(long double complex) gcc_pure2;
-float complex	cprojf(float complex) gcc_pure2;
-double complex	cproj(double complex) gcc_pure2;
-long double complex
-		cprojl(long double complex) gcc_pure2;
-double		creal(double complex) gcc_pure2;
-float		crealf(float complex) gcc_pure2;
-long double	creall(long double complex) gcc_pure2;
-double complex	csqrt(double complex);
-float complex	csqrtf(float complex);
-long double complex
-		csqrtl(long double complex);
-
-__END_DECLS
-
-#endif /* _COMPLEX_H */
+	for(s1 = s; ; s1++) {
+		idx = IDX(*s1);
+		bit = BIT(*s1);
+		if ((tbl[idx] & bit) != 0)
+			break;
+	}
+	return (s1 - s);
+}

@@ -68,11 +68,17 @@ proc_alloc(proc *p, uint32_t cn)
 	cp->home = RRCONS(net_node, mem_phys(cp), 0);
 #endif	// LAB >= 5
 
-	// register state
+	// Integer register state
 	cp->sv.tf.tf_ds = CPU_GDT_UDATA | 3;
 	cp->sv.tf.tf_es = CPU_GDT_UDATA | 3;
 	cp->sv.tf.tf_cs = CPU_GDT_UCODE | 3;
 	cp->sv.tf.tf_ss = CPU_GDT_UDATA | 3;
+#if SOL >= 2
+
+	// Floating-point register state
+	cp->sv.fx.fcw = 0x037f;	// round-to-nearest, 80-bit prec, mask excepts
+	cp->sv.fx.mxcsr = 0x000001f8;	// all MMX exceptions masked
+#endif
 
 #if SOL >= 3
 	// Allocate a page directory for this process
@@ -232,8 +238,8 @@ proc_run(proc *p)
 
 	if (p->sv.pff & PFF_USEFPU) {	// FPU state
 		assert(sizeof(p->sv.fx) == 512);
-		asm volatile("fxrstor %0" : : "m" (p->sv.fx));
 		lcr0(rcr0() & ~CR0_TS);	// enable FPU
+		asm volatile("fxrstor %0" : : "m" (p->sv.fx));
 	}
 
 	if (p->sv.pff & PFF_ICNT) {	// Instruction counting/recovery

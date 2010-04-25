@@ -1,7 +1,7 @@
 // Convenience macros for using GCC-specific compiler features
 // that tend to be very useful in OS programming.
-#ifndef PIOS_INC_GCC_H
-#define PIOS_INC_GCC_H
+#ifndef PIOS_INC_CDEFS_H
+#define PIOS_INC_CDEFS_H
 
 
 // Use this to align a variable or struct member at a given boundary.
@@ -46,4 +46,4 @@
 
 #endif	// SOL >= 4
 
-#endif	// PIOS_INC_GCC_H
+#endif	// PIOS_INC_CDEFS_H

@@ -301,6 +301,8 @@ strerror(int err)
 		"Resource temporarily unavailable",
 		"No child processes",
 		"Conflict detected",
+		"Argument out of domain",
+		"Result too large",
 	};
 	static char errbuf[64];
 
@@ -312,4 +314,4 @@ strerror(int err)
 }
 #endif
 
-#endif
+#endif	// LAB >= 1

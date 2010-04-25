@@ -2,7 +2,7 @@
 #define PIOS_INC_X86_H
 
 #include <types.h>
-#include <gcc.h>
+#include <cdefs.h>
 
 
 // EFLAGS register
