@@ -23,8 +23,9 @@ typedef unsigned long long	uint64_t;
 // Pointers and addresses are 32 bits long.
 // We use pointer types to represent virtual addresses,
 // and [u]intptr_t to represent the numerical values of virtual addresses.
-typedef int32_t			intptr_t;
-typedef uint32_t		uintptr_t;
+typedef int32_t			intptr_t;	// pointer-size signed integer
+typedef uint32_t		uintptr_t;	// pointer-size unsigned integer
+typedef int32_t			ptrdiff_t;	// difference between two pointers
 
 // size_t is used for memory object sizes, and ssize_t is a signed analog.
 typedef uint32_t		size_t;
@@ -98,6 +99,7 @@ typedef int32_t suseconds_t;
 // For interoperability with GCC's compiler header files
 #define _SIZE_T
 #define _STDINT_H
+#define _PTRDIFF_T
 
 
 #endif /* !PIOS_INC_TYPES_H */

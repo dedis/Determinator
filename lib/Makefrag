@@ -7,7 +7,6 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/printfmt.c \
 			lib/scanfmt.c \
 			lib/string.c \
-			lib/syscall.c \
 			lib/file.c \
 			lib/dir.c \
 			lib/stdio.c \
@@ -79,7 +78,7 @@ $(XCDIR)/include $(XCDIR)/lib:
 	mkdir -p $@
 
 $(XCDIR)/include/%.h: inc/%.h $(XCDIR)/include
-	cp $< $@
+	unifdef -DLAB=9 -DSOL=9 $< >$@
 
 $(XCDIR)/include/sys: $(XCDIR)/include
 	ln -s . $@
