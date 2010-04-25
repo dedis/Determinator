@@ -1,6 +1,6 @@
 #if LAB >= 4
 
-#include <inc/gcc.h>
+#include <inc/cdefs.h>
 #include <inc/file.h>
 #include <inc/stdlib.h>
 #include <inc/syscall.h>

@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
+#if 0	// XXX fix ieeefp.h dependency
 
 #include <float.h>
 #include <stdint.h>
@@ -32,7 +32,7 @@
 #include <ieeefp.h>
 #endif
 
-#include "fpmath.h"
+#include "../fpmath.h"
 #include "math.h"
 
 #define	TBLBITS	7
@@ -290,3 +290,4 @@ exp2l(long double x)
 		return (r * twopkp10000 * twom10000);
 	}
 }
+#endif

@@ -30,6 +30,10 @@ typedef uint32_t		uintptr_t;
 typedef uint32_t		size_t;
 typedef int32_t			ssize_t;
 
+// intmax_t and uintmax_t represent the maximum-size integers supported.
+typedef long long		intmax_t;
+typedef unsigned long long	uintmax_t;
+
 // Floating-point types matching the size at which the compiler
 // actually evaluates floating-point expressions of a given type. (math.h)
 typedef	double			double_t;
@@ -44,6 +48,9 @@ typedef int dev_t;
 typedef int ino_t;
 typedef int mode_t;
 typedef int nlink_t;
+
+typedef int64_t time_t;
+typedef int32_t suseconds_t;
 
 // Efficient min and max operations
 #define MIN(_a, _b)						\
@@ -86,6 +93,11 @@ typedef int nlink_t;
 #define BIG_ENDIAN	4321
 #define PDP_ENDIAN	3412
 #define BYTE_ORDER	LITTLE_ENDIAN	// x86 is little-endian
+
+
+// For interoperability with GCC's compiler header files
+#define _SIZE_T
+#define _STDINT_H
 
 
 #endif /* !PIOS_INC_TYPES_H */

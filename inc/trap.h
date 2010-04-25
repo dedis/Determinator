@@ -2,7 +2,7 @@
 #ifndef PIOS_INC_TRAP_H
 #define PIOS_INC_TRAP_H
 
-#include <gcc.h>
+#include <cdefs.h>
 
 
 // Trap numbers
@@ -34,11 +34,13 @@
 // processor defined exceptions or ISA hardware interrupt vectors.
 #define T_SYSCALL	48	// System call
 
-// We use these vectors to receive interrupts from the per-CPU local APIC.
+// We use these vectors to receive local per-CPU interrupts
 #define T_LTIMER	49	// Local APIC timer interrupt
 #define T_LERROR	50	// Local APIC error interrupt
+#define T_PERFCTR	51	// Performance counter overflow interrupt
 
 #define T_DEFAULT	500	// Unused trap vectors produce this value
+#define T_ICNT		501	// Child process instruction count expired
 
 // ISA hardware IRQ numbers. We receive these as (T_IRQ0 + IRQ_WHATEVER)
 #define IRQ_TIMER	0	// 8253 Programmable Interval Timer (PIT)
@@ -108,7 +110,7 @@ typedef struct trapframe {
 // Floating-point/MMX/XMM register save area format,
 // in the layout defined by the processor's FXSAVE/FXRSTOR instructions.
 typedef gcc_aligned(16) struct fxsave {
-	uint16_t fcw;	// byte 0
+	uint16_t	fcw;			// byte 0
 	uint16_t	fsw;
 	uint16_t	ftw;
 	uint16_t	fop;

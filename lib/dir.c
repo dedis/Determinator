@@ -176,4 +176,9 @@ long telldir(DIR *dir)
 	return dir->ofs;
 }
 
+int rename(const char *oldpath, const char *newpath)
+{
+	panic("rename not implemented");
+}
+
 #endif	// LAB >= 4

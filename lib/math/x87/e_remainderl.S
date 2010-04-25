@@ -33,9 +33,7 @@
  *	J.T. Conklin (jtc@wimsey.com), Winning Strategies, Inc.
  */
 
-#include <machine/asm.h>
-
-__FBSDID("$FreeBSD$")
+#include "asm.h"
 
 ENTRY(remainderl)
 	fldt	16(%esp)

@@ -2,7 +2,7 @@
 #ifndef PIOS_INC_MMU_H
 #define PIOS_INC_MMU_H
 
-#include <gcc.h>
+#include <cdefs.h>
 
 /*
  * This file contains definitions for the x86 memory management unit (MMU),

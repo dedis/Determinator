@@ -4,7 +4,7 @@
 // sections.  Now we gave them the entire shell in the last lab so
 // they would have more time to focus on the final project.
 #endif
-#include <inc/gcc.h>
+#include <inc/cdefs.h>
 #include <inc/stdio.h>
 #include <inc/stdlib.h>
 #include <inc/unistd.h>
@@ -30,7 +30,7 @@ int gettoken(char *s, char **token);
 // Do not return until the shell command is finished.
 // runcmd() is called in a forked child,
 // so it's OK to manipulate file descriptor state.
-#define MAXARGS 16
+#define MAXARGS 256
 void gcc_noreturn
 runcmd(char* s)
 {
@@ -47,7 +47,7 @@ again:
 
 		case 'w':	// Add an argument
 			if (argc == MAXARGS) {
-				cprintf("too many arguments\n");
+				cprintf("sh: too many arguments\n");
 				exit(EXIT_FAILURE);
 			}
 			argv[argc++] = t;

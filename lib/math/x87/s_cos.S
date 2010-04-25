@@ -33,9 +33,7 @@
  *	J.T. Conklin (jtc@wimsey.com), Winning Strategies, Inc.
  */
 
-#include <machine/asm.h>
-
-RCSID("$FreeBSD$")
+#include "asm.h"
 
 ENTRY(cos)
 	fldl	4(%esp)

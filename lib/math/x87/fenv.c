@@ -26,11 +26,11 @@
  * $FreeBSD$
  */
 
-#include <sys/cdefs.h>
-#include <sys/types.h>
-#include <machine/npx.h>
+#include <types.h>
+//#include <machine/npx.h>
 #include "fenv.h"
 
+#if 0	// XXX
 const fenv_t __fe_dfl_env = {
 	__INITIAL_NPXCW__,
 	0x0000,
@@ -40,6 +40,7 @@ const fenv_t __fe_dfl_env = {
 	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff }
 };
+#endif
 
 enum __sse_support __has_sse =
 #ifdef __SSE__
@@ -152,7 +153,8 @@ feholdexcept(fenv_t *envp)
 int
 feupdateenv(const fenv_t *envp)
 {
-	int mxcsr, status;
+	uint32_t mxcsr;
+	uint16_t status;
 
 	__fnstsw(&status);
 	if (__HAS_SSE())

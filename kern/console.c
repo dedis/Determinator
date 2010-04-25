@@ -141,7 +141,10 @@ cputs(const char *str)
 #if SOL >= 2
 	// Hold the console spinlock while printing the entire string,
 	// so that the output of different cputs calls won't get mixed.
-	spinlock_acquire(&cons_lock);
+	// Implement ad hoc recursive locking for debugging convenience.
+	bool already = spinlock_holding(&cons_lock);
+	if (!already)
+		spinlock_acquire(&cons_lock);
 
 #endif
 	char ch;
@@ -149,7 +152,8 @@ cputs(const char *str)
 		cons_putc(*str++);
 #if SOL >= 2
 
-	spinlock_release(&cons_lock);
+	if (!already)
+		spinlock_release(&cons_lock);
 #endif
 }
 

@@ -8,7 +8,7 @@
 #endif
 
 #include <inc/types.h>
-#include <inc/gcc.h>
+#include <inc/cdefs.h>
 
 
 #define DEBUG_TRACEFRAMES	10

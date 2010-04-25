@@ -1,6 +1,6 @@
 #if LAB >= 4
 
-#include <inc/gcc.h>
+#include <inc/cdefs.h>
 #include <inc/mmu.h>
 #include <inc/assert.h>
 #include <inc/stdarg.h>

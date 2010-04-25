@@ -25,12 +25,11 @@
  *
  */
 
-#include <sys/endian.h>
+#include <types.h>
 #include <ctype.h>
 #include <float.h>
 #include <math.h>
 #include <types.h>
-#include <strings.h>
 
 #include "math_private.h"
 

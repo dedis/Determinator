@@ -24,9 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#include <machine/asm.h>
-__FBSDID("$FreeBSD$")
-	
+#include "asm.h"
+
 ENTRY(lrintf)
 	flds	4(%esp)
 	subl	$4,%esp

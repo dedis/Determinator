@@ -24,13 +24,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-__FBSDID("$FreeBSD$");
-
 #include <stdint.h>
 
 #define STRUCT_DECLS
-#include "invtrig.h"
+#include "../invtrig.h"
 
 /*
  * asinl() and acosl()
