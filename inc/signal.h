@@ -1,3 +1,4 @@
+#if LAB >= 9
 #ifndef PIOS_INC_SIGNAL_H
 #define PIOS_INC_SIGNAL_H
 
@@ -13,9 +14,11 @@
 #define SIGKILL		9
 #define SIGBUS		10
 #define SIGSEGV		11
+#define	SIGTERM		15
 
 typedef void (*sighandler_t)(int);
 
 sighandler_t signal(int sig, sighandler_t newhandler);
 
-#endif /* not PIOS_INC_SIGNAL_H */
+#endif /* ! PIOS_INC_SIGNAL_H */
+#endif // LAB >= 9

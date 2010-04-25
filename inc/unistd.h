@@ -4,6 +4,7 @@
 #define PIOS_INC_UNISTD_H 1
 
 #include <types.h>
+#include <cdefs.h>
 
 
 #define STDIN_FILENO	0
@@ -33,8 +34,24 @@ pid_t	wait(int *status);				// trad. in sys/wait.h
 pid_t	waitpid(pid_t pid, int *status, int options);	// trad. in sys/wait.h
 int	execl(const char *path, const char *arg0, ...);
 int	execv(const char *path, char *const argv[]);
-#if LAB >= 99
+#if LAB >= 9
 void	_exit(int status) gcc_noreturn;
+uid_t	getuid(void);
+gid_t	getgid(void);
+uid_t	geteuid(void);
+gid_t	getegid(void);
+pid_t	getpid(void);
+pid_t	getppid(void);
+pid_t	getpgid(pid_t);
+pid_t	getpgrp(void);
+int	setuid(uid_t uid);
+int	setgid(gid_t gid);
+int	seteuid(uid_t uid);
+int	setegid(gid_t gid);
+int	setreuid(uid_t ruid, uid_t euid);
+int	setregid(gid_t rgid, gid_t egid);
+int	setpgid(gid_t, gid_t);
+pid_t	setpgrp(void);
 #endif
 
 // File management functions
@@ -46,11 +63,28 @@ ssize_t	write(int fn, const void *buf, size_t nbytes);
 off_t	lseek(int fn, off_t offset, int whence);
 int	dup(int oldfn);
 int	dup2(int oldfn, int newfn);
-int	ftruncate(int fn, off_t newlength);
 int	truncate(const char *path, off_t newlength);
+int	ftruncate(int fn, off_t newlength);
 int	isatty(int fn);
 int	remove(const char *path);
 int	fsync(int fn);
+
+#if LAB >= 9
+int	access(const char *path, int accessmode);
+int	chdir(const char *path);
+int	fchdir(int fn);
+int	rmdir(const char *path);
+char *	getcwd(char *buf, size_t bufsize);
+int	chown(const char *path, uid_t uid, gid_t gid);
+int	lchown(const char *path, uid_t uid, gid_t gid);
+int	fchown(int fn, uid_t uid, gid_t gid);
+int	fdatasync(int fn);
+int	link(const char *oldpath, const char *newpath);
+int	symlink(const char *oldpath, const char *newpath);
+ssize_t	readlink(const char *path, char *buf, size_t bufsize);
+int	unlink(const char *path);
+int	pipe(int fds[2]);
+#endif
 
 
 // PIOS-specific thread fork/join functions

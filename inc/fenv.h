@@ -1,3 +1,4 @@
+#if LAB >= 9
 /*-
  * Copyright (c) 2004-2005 David Schultz <das@FreeBSD.ORG>
  * All rights reserved.
@@ -249,3 +250,4 @@ fegetexcept(void)
 __END_DECLS
 
 #endif	/* !PIOS_INC_FENV_H_ */
+#endif	// LAB >= 9

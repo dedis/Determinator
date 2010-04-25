@@ -3,8 +3,8 @@
 #ifndef PIOS_INC_ASSERT_H
 #define PIOS_INC_ASSERT_H
 
-#include <inc/stdio.h>
-#include <inc/cdefs.h>
+#include <stdio.h>
+#include <cdefs.h>
 
 void debug_warn(const char*, int, const char*, ...);
 void debug_panic(const char*, int, const char*, ...) gcc_noreturn;

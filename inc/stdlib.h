@@ -12,6 +12,16 @@
 #define EXIT_SUCCESS	0	// Success status for exit()
 #define EXIT_FAILURE	1	// Failure status for exit()
 
+typedef struct {
+	int	quot;		// quotient
+	int	rem;		// remainder
+} div_t;
+
+typedef struct {
+	long	quot;		// quotient
+	long	rem;		// remainder
+} ldiv_t;
+
 
 // Absolute value
 static gcc_inline gcc_pure2 int abs(int x)
@@ -20,6 +30,24 @@ static gcc_inline gcc_pure2 long labs(long x)
 	{ return x >= 0 ? x : -x; }
 static gcc_inline gcc_pure2 long long llabs(long long x)
 	{ return x >= 0 ? x : -x; }
+
+// Integer division returning both quotient and remainder
+static gcc_inline gcc_pure2 div_t div(int numer, int denom) {
+	div_t d;
+	asm("cdq; idiv %1"
+		: "=a" (d.quot), "=d" (d.rem)
+		: "a" (numer), "r" (denom)
+		: "cc");
+	return d;
+}
+static gcc_inline gcc_pure2 ldiv_t ldiv(int numer, int denom) {
+	ldiv_t d;
+	asm("cdq; idiv %1"
+		: "=a" (d.quot), "=d" (d.rem)
+		: "a" (numer), "r" (denom)
+		: "cc");
+	return d;
+}
 
 // Number conversions
 long strtol(const char *ptr, char **endptr, int base);

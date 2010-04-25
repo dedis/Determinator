@@ -335,6 +335,8 @@ trap(trapframe *tf)
 	}
 #endif // ! SOL >= 5
 	if (tf->tf_cs & 3) {		// Unhandled trap from user mode
+		cprintf("trap in proc %x, reflecting to proc %x\n",
+			proc_cur(), proc_cur()->parent);
 		trap_print(tf);
 		proc_ret(tf, -1);	// Reflect trap to parent process
 	}
