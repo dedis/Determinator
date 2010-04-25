@@ -1,12 +1,13 @@
 OBJDIRS += lib
 
+# Source files comprising the minimal PIOS C library.
 LIB_SRCFILES :=		lib/console.c \
 			lib/debug.c \
 			lib/cputs.c \
 			lib/cprintf.c \
 			lib/printfmt.c \
+			lib/scanfmt.c \
 			lib/string.c \
-			lib/syscall.c \
 			lib/file.c \
 			lib/dir.c \
 			lib/stdio.c \
@@ -17,13 +18,36 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/fprintf.c \
 			lib/readline.c \
 			lib/thread.c \
-			lib/pthread.c
+			lib/pthread.c \
+			lib/dsthread.c \
+			lib/time.c
+
+#if LAB >= 9
+ifdef LAB9
+# Additional C library files not needed by PIOS itself
+# but needed in many applications we may wish to run on PIOS.
+LIB_SRCFILES +=		lib/stdlib/strtol.c \
+			lib/stdlib/strtoll.c \
+			lib/stdlib/strtoul.c \
+			lib/stdlib/strtoull.c \
+			lib/stdlib/strtod.c \
+			lib/stdlib/getenv.c \
+			lib/string/strcasecmp.c \
+			lib/string/strcat.c \
+			lib/string/strdup.c \
+			lib/string/strpbrk.c \
+			lib/string/strstr.c \
+			lib/string/strtok.c \
+			lib/string/strspn.c \
+			lib/string/strcspn.c
+endif
+#endif
 
 #if SOL >= 4
 LIB_SRCFILES +=		lib/bench.c
 
 # Sun math library (snatched from FreeBSD 8.0.0)
-#include lib/math/Makefrag
+include lib/math/Makefrag
 #endif
 
 # Build files only if they exist.
@@ -55,6 +79,7 @@ XC_INCFILES := $(patsubst inc/%,%,$(wildcard inc/*.h))
 all:	$(addprefix $(XCDIR)/include/,$(XC_INCFILES)) \
 	$(XCDIR)/include/sys \
 	$(XCDIR)/lib/libc.a \
+	$(XCDIR)/lib/libm.a \
 	$(XCDIR)/lib/libg.a \
 	$(XCDIR)/lib/crt0.o
 
@@ -62,7 +87,7 @@ $(XCDIR)/include $(XCDIR)/lib:
 	mkdir -p $@
 
 $(XCDIR)/include/%.h: inc/%.h $(XCDIR)/include
-	cp $< $@
+	unifdef -n -DLAB=9 -DSOL=9 $< >$@ || true
 
 $(XCDIR)/include/sys: $(XCDIR)/include
 	ln -s . $@
@@ -70,6 +95,8 @@ $(XCDIR)/include/sys: $(XCDIR)/include
 $(XCDIR)/lib/libc.a: $(OBJDIR)/lib/libc.a $(XCDIR)/lib
 	cp $< $@
 $(XCDIR)/lib/libg.a: $(OBJDIR)/lib/libc.a $(XCDIR)/lib
+	cp $< $@
+$(XCDIR)/lib/libm.a: $(OBJDIR)/lib/libc.a $(XCDIR)/lib
 	cp $< $@
 
 # XXX maybe just rename entry.S to crt0.S?

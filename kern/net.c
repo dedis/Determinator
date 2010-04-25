@@ -39,11 +39,16 @@ net_init(void)
 	if (!cpu_onboot())
 		return;
 
+	spinlock_init(&net_lock);
+
+	if (!e100_present) {
+		cprintf("No network card found; networking disabled\n");
+		return;
+	}
+
 	// Ethernet card should already have been initialized
 	assert(net_mac[0] != 0 && net_mac[5] != 0);
 	net_node = net_mac[5];	// Last byte in MAC addr is our node number
-
-	spinlock_init(&net_lock);
 }
 
 // Setup the Ethernet header in a packet to be sent.
@@ -186,11 +191,12 @@ net_rrshare(void *page, uint8_t dstnode)
 
 // Called from syscall handlers to migrate to another node if we need to.
 // The 'node' argument is the node to migrate to.
+// The 'entry' argument is as for proc_save().
 void gcc_noinline
-net_migrate(trapframe *tf, uint8_t dstnode)
+net_migrate(trapframe *tf, uint8_t dstnode, int entry)
 {
 	proc *p = proc_cur();
-	p->tf = *tf;		// Save proc's CPU state
+	proc_save(p, tf, entry);	// save current process's state
 
 	assert(dstnode > 0 && dstnode <= NET_MAXNODES && dstnode != net_node);
 	//cprintf("proc %x at eip %x migrating to node %d\n",
@@ -244,8 +250,7 @@ net_txmigrq(proc *p)
 	rq.type = NET_MIGRQ;
 	rq.home = p->home;
 	rq.pdir = RRCONS(net_node, mem_phys(p->pdir), 0);
-	rq.cpu.tf = p->tf;
-	rq.cpu.fx = p->fx;
+	rq.cpu = p->sv;
 	net_tx(&rq, sizeof(rq), NULL, 0);
 #else	// ! SOL >= 5
 	// Lab 5: insert code to create and send out a migrate request
@@ -284,8 +289,7 @@ void net_rxmigrq(net_migrq *migrq)
 	}
 
 	// Copy the CPU state and pdir RR into our proc struct
-	p->tf = migrq->cpu.tf;
-	p->fx = migrq->cpu.fx;
+	p->sv = migrq->cpu;
 	p->rrpdir = migrq->pdir;
 	p->pullva = VM_USERLO;	// pull all user space from USERLO to USERHI
 

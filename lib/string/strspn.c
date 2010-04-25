@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2007 David Schultz
+ * Copyright (c) 2005 David Schultz <das@FreeBSD.ORG>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -11,10 +11,10 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL AUTHOR OR CONTRIBUTORS BE LIABLE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
  * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
@@ -22,24 +22,47 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
  */
 
-#include <math.h>
+#include <sys/types.h>
+#include <limits.h>
+#include <string.h>
 
-#include "fpmath.h"
-#include "../src/math_private.h"
+#define	IDX(c)	((unsigned char)(c) / LONG_BIT)
+#define	BIT(c)	((unsigned long)1 << ((unsigned char)(c) % LONG_BIT))
 
-long double
-nanl(const char *s)
+size_t
+strspn(const char *s, const char *charset)
 {
-	union {
-		union IEEEl2bits ieee;
-		uint32_t bits[3];
-	} u;
+	/*
+	 * NB: idx and bit are temporaries whose use causes gcc 3.4.2 to
+	 * generate better code.  Without them, gcc gets a little confused.
+	 */
+	const char *s1;
+	unsigned long bit;
+	unsigned long tbl[(UCHAR_MAX + 1) / LONG_BIT];
+	int idx;
 
-	_scan_nan(u.bits, 3, s);
-	u.ieee.bits.exp = 0x7fff;
-	u.ieee.bits.manh |= 0xc0000000;	/* make it a quiet NaN */
-	return (u.ieee.e);
+	if(*s == '\0')
+		return (0);
+
+#if LONG_BIT == 64	/* always better to unroll on 64-bit architectures */
+	tbl[3] = tbl[2] = tbl[1] = tbl[0] = 0;
+#else
+	for (idx = 0; idx < sizeof(tbl) / sizeof(tbl[0]); idx++)
+		tbl[idx] = 0;
+#endif
+	for (; *charset != '\0'; charset++) {
+		idx = IDX(*charset);
+		bit = BIT(*charset);
+		tbl[idx] |= bit;
+	}
+
+	for(s1 = s; ; s1++) {
+		idx = IDX(*s1);
+		bit = BIT(*s1);
+		if ((tbl[idx] & bit) == 0)
+			break;
+	}
+	return (s1 - s);
 }

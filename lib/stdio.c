@@ -143,10 +143,17 @@ fileno(FILE *fd)
 #endif
 
 int
-fflush(FILE *fd)
+fflush(FILE *f)
 {
-	assert(filedesc_isopen(fd));
-	return fileino_flush(fd->ino);
+	if (f == NULL) {	// flush all open streams
+		for (f = &files->fd[0]; f < &files->fd[OPEN_MAX]; f++)
+			if (filedesc_isopen(f))
+				fflush(f);
+		return 0;
+	}
+
+	assert(filedesc_isopen(f));
+	return fileino_flush(f->ino);
 }
 
 #endif /* LAB >= 4 */

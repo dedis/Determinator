@@ -25,6 +25,10 @@ static void gcc_noreturn do_ret(trapframe *tf);
 #endif
 
 
+// This bit mask defines the eflags bits user code is allowed to set.
+#define FL_USER		(FL_CF|FL_PF|FL_AF|FL_ZF|FL_SF|FL_DF|FL_OF)
+
+
 // During a system call, generate a specific processor trap -
 // as if the user code's INT 0x30 instruction had caused it -
 // and reflect the trap to the parent process as with other traps.
@@ -35,8 +39,7 @@ systrap(trapframe *utf, int trapno, int err)
 	//cprintf("systrap: reflect trap %d to parent process\n", trapno);
 	utf->tf_trapno = trapno;
 	utf->tf_err = err;
-	utf->tf_eip -= 2;	// back up before int 0x30 syscall instruction
-	proc_ret(utf);
+	proc_ret(utf, 0);	// abort syscall insn and return to parent
 #else
 	panic("systrap() not implemented.");
 #endif
@@ -147,10 +150,8 @@ do_put(trapframe *tf, uint32_t cmd)
 	// First migrate if we need to.
 	uint8_t node = (tf->tf_regs.reg_edx >> 8) & 0xff;
 	if (node == 0) node = RRNODE(p->home);		// Goin' home
-	if (node != net_node) {
-		tf->tf_eip -= 2;	// Restart syscall after we arrive
-		net_migrate(tf, node);
-	}
+	if (node != net_node)
+		net_migrate(tf, node, 0);	// abort syscall and migrate
 
 #endif // SOL >= 5
 	spinlock_acquire(&p->lock);
@@ -175,24 +176,28 @@ do_put(trapframe *tf, uint32_t cmd)
 
 	// Put child's general register state
 	if (cmd & SYS_REGS) {
+		int len = offsetof(cpustate, fx);	// just integer regs
+		if (cmd & SYS_FPU) len = sizeof(cpustate); // whole shebang
 
 		// Copy user's trapframe into child process
 #if SOL >= 3
-		usercopy(tf, 0, &cp->tf, tf->tf_regs.reg_ebx,
-				sizeof(trapframe));
+		usercopy(tf, 0, &cp->sv, tf->tf_regs.reg_ebx, len);
 #else
 		cpustate *cs = (cpustate*) tf->tf_regs.reg_ebx;
-		cp->tf = cs->tf;
+		memcpy(cp->sv, cs, len);
 #endif
 
 		// Make sure process uses user-mode segments and eflag settings
-		cp->tf.tf_ds = CPU_GDT_UDATA | 3;
-		cp->tf.tf_es = CPU_GDT_UDATA | 3;
-		cp->tf.tf_cs = CPU_GDT_UCODE | 3;
-		cp->tf.tf_ss = CPU_GDT_UDATA | 3;
-		cp->tf.tf_eflags &=
-			FL_CF|FL_PF|FL_AF|FL_ZF|FL_SF|FL_TF|FL_DF|FL_OF;
-		cp->tf.tf_eflags |= FL_IF;	// enable interrupts
+		cp->sv.tf.tf_ds = CPU_GDT_UDATA | 3;
+		cp->sv.tf.tf_es = CPU_GDT_UDATA | 3;
+		cp->sv.tf.tf_cs = CPU_GDT_UCODE | 3;
+		cp->sv.tf.tf_ss = CPU_GDT_UDATA | 3;
+		cp->sv.tf.tf_eflags &= FL_USER;
+		cp->sv.tf.tf_eflags |= FL_IF;	// enable interrupts
+
+		// Child gets to be nondeterministic only if parent is
+		if (!(p->sv.pff & PFF_NONDET))
+			cp->sv.pff &= ~PFF_NONDET;
 	}
 
 #if SOL >= 3
@@ -255,10 +260,8 @@ do_get(trapframe *tf, uint32_t cmd)
 	// First migrate if we need to.
 	uint8_t node = (tf->tf_regs.reg_edx >> 8) & 0xff;
 	if (node == 0) node = RRNODE(p->home);		// Goin' home
-	if (node != net_node) {
-		tf->tf_eip -= 2;	// Restart syscall after we arrive
-		net_migrate(tf, node);
-	}
+	if (node != net_node)
+		net_migrate(tf, node, 0);	// abort syscall and migrate
 
 #endif // SOL >= 5
 	spinlock_acquire(&p->lock);
@@ -280,14 +283,15 @@ do_get(trapframe *tf, uint32_t cmd)
 
 	// Get child's general register state
 	if (cmd & SYS_REGS) {
+		int len = offsetof(cpustate, fx);	// just integer regs
+		if (cmd & SYS_FPU) len = sizeof(cpustate); // whole shebang
 
 		// Copy child process's trapframe into user space
 #if SOL >= 3
-		usercopy(tf, 1, &cp->tf, tf->tf_regs.reg_ebx,
-				sizeof(trapframe));
+		usercopy(tf, 1, &cp->sv, tf->tf_regs.reg_ebx, len);
 #else
 		cpustate *cs = (cpustate*) tf->tf_regs.reg_ebx;
-		cs->tf = cp->tf;
+		memcpy(&cs, &cp->sv, len);
 #endif
 	}
 
@@ -344,16 +348,7 @@ do_get(trapframe *tf, uint32_t cmd)
 static void gcc_noreturn
 do_ret(trapframe *tf)
 {
-#if SOL >= 5
-	// First migrate to our home node if we're not already there.
-	proc *p = proc_cur();
-	if (net_node != RRNODE(p->home)) {
-		tf->tf_eip -= 2;	// Restart syscall when we arrive
-		net_migrate(tf, RRNODE(p->home));
-	}
-
-#endif
-	proc_ret(tf);
+	proc_ret(tf, 1);	// Complete syscall insn and return to parent
 }
 
 #if SOL >= 4

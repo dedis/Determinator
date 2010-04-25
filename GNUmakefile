@@ -139,6 +139,10 @@ USER_LDFLAGS := $(LDFLAGS) -Ttext=0x40000000
 
 GCC_LIB := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
 
+USER_LDDEPS := $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libc.a
+USER_LDENTRY := $(OBJDIR)/lib/entry.o
+USER_LDLIBS := -L$(OBJDIR)/lib -lc $(GCC_LIB)
+
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
 
@@ -184,11 +188,8 @@ ifneq ($(LAB), 3)
 ifneq ($(LAB), 4)
 	echo >>conf/lab.mk "LAB5=true"
 ifneq ($(LAB), 5)
-	echo >>conf/lab.mk "LAB6=true"
-ifneq ($(LAB), 6)
-	echo >>conf/lab.mk "LAB7=true"
-endif	# LAB != 6
-endif	# LAB != 5
+	echo >>conf/lab.mk "LAB9=true"
+endif	# LAB != 4
 endif	# LAB != 4
 endif	# LAB != 3
 endif	# LAB != 2
@@ -310,7 +311,7 @@ QEMUNET2 = -net nic,model=i82559er,macaddr=52:54:00:12:34:02 \
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
-ifdef LAB5
+ifeq ($(LAB),5)
 qemu: $(IMAGES)
 	@rm -f node?.dump
 	$(QEMU) $(QEMUOPTS) $(QEMUNET2) </dev/null | sed -e 's/^/2: /g' &
@@ -325,7 +326,7 @@ qemu-nox: $(IMAGES)
 	echo "*** Use Ctrl-a x to exit"
 	$(QEMU) -nographic $(QEMUOPTS)
 
-ifdef LAB5
+ifeq ($(LAB),5)
 qemu-gdb: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
 	@rm -f node?.dump

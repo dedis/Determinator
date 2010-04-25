@@ -1,5 +1,6 @@
 /*-
- * Copyright (c) 2002, 2003 David Schultz <das@FreeBSD.ORG>
+ * Copyright (c) 2003 Mike Barcroft <mike@FreeBSD.org>
+ * Copyright (c) 2002 David Schultz <das@FreeBSD.ORG>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,36 +23,57 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
  */
-#ifndef _MATH_FPMATH_H_
-#define _MATH_FPMATH_H_
+#ifndef MATH_FPMATH_H_
+#define MATH_FPMATH_H_
 
-union IEEEl2bits {
-	long double	e;
+#include <types.h>
+
+#include "x87/fpmath.h"
+
+
+#ifndef IEEE_WORD_ORDER
+#define	IEEE_WORD_ORDER	BYTE_ORDER
+#endif
+
+union IEEEf2bits {
+	float	f;
 	struct {
-		unsigned int	manl	:32;
-		unsigned int	manh	:32;
-		unsigned int	exp	:15;
+#if BYTE_ORDER == LITTLE_ENDIAN
+		unsigned int	man	:23;
+		unsigned int	exp	:8;
 		unsigned int	sign	:1;
-		unsigned int	junk	:16;
+#else /* BIG_ENDIAN */
+		unsigned int	sign	:1;
+		unsigned int	exp	:8;
+		unsigned int	man	:23;
+#endif
 	} bits;
-	struct {
-		unsigned long long man	:64;
-		unsigned int 	expsign	:16;
-		unsigned int	junk	:16;
-	} xbits;
 };
 
-#define	LDBL_NBIT	0x80000000
-#define	mask_nbit_l(u)	((u).bits.manh &= ~LDBL_NBIT)
+#define	DBL_MANH_SIZE	20
+#define	DBL_MANL_SIZE	32
 
-#define	LDBL_MANH_SIZE	32
-#define	LDBL_MANL_SIZE	32
+union IEEEd2bits {
+	double	d;
+	struct {
+#if BYTE_ORDER == LITTLE_ENDIAN
+#if IEEE_WORD_ORDER == LITTLE_ENDIAN
+		unsigned int	manl	:32;
+#endif
+		unsigned int	manh	:20;
+		unsigned int	exp	:11;
+		unsigned int	sign	:1;
+#if IEEE_WORD_ORDER == BIG_ENDIAN
+		unsigned int	manl	:32;
+#endif
+#else /* BIG_ENDIAN */
+		unsigned int	sign	:1;
+		unsigned int	exp	:11;
+		unsigned int	manh	:20;
+		unsigned int	manl	:32;
+#endif
+	} bits;
+};
 
-#define	LDBL_TO_ARRAY32(u, a) do {			\
-	(a)[0] = (uint32_t)(u).bits.manl;		\
-	(a)[1] = (uint32_t)(u).bits.manh;		\
-} while (0)
-
-#endif	// _MATH_FPMATH_H_
+#endif	/* MATH_FPMATH_H_ */

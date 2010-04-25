@@ -3,10 +3,7 @@
  * Public domain.
  */
 
-#include <machine/asm.h>
-
-__FBSDID("$FreeBSD$");
-/* RCSID("$NetBSD: e_logf.S,v 1.2 1996/07/06 00:15:45 jtc Exp $") */
+#include "asm.h"
 
 ENTRY(logf)
 	fldln2

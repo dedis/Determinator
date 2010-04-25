@@ -3,7 +3,7 @@
 
 #include <inc/x86.h>
 #include <inc/mmu.h>
-#include <inc/gcc.h>
+#include <inc/cdefs.h>
 #include <inc/string.h>
 #include <inc/assert.h>
 #include <inc/syscall.h>
@@ -76,6 +76,9 @@ pmap_init(void)
 	// Enable 4MB pages and global pages.
 	uint32_t cr4 = rcr4();
 	cr4 |= CR4_PSE | CR4_PGE;
+#if SOL >= 2
+	cr4 |= CR4_OSFXSR | CR4_OSXMMEXCPT; // enable 128-bit XMM instructions
+#endif
 	lcr4(cr4);
 
 	// Install the bootstrap page directory into the PDBR.
@@ -83,8 +86,8 @@ pmap_init(void)
 
 	// Turn on paging.
 	uint32_t cr0 = rcr0();
-	cr0 |= CR0_PE|CR0_PG|CR0_AM|CR0_WP|CR0_NE|CR0_TS|CR0_MP;
-	cr0 &= ~(CR0_TS|CR0_EM);
+	cr0 |= CR0_PE|CR0_PG|CR0_AM|CR0_WP|CR0_NE|CR0_TS|CR0_MP|CR0_TS;
+	cr0 &= ~(CR0_EM);
 	lcr0(cr0);
 
 	// If we survived the lcr0, we're running with paging enabled.
@@ -397,22 +400,29 @@ pmap_pagefault(trapframe *tf)
 {
 	// Read processor's CR2 register to find the faulting linear address.
 	uint32_t fva = rcr2();
+	//cprintf("pmap_pagefault fva %x eip %x\n", fva, tf->tf_eip);
 
 #if SOL >= 3
 	// It can't be our problem unless it's a write fault in user space!
-	if (fva < VM_USERLO || fva >= VM_USERHI || !(tf->tf_err & PFE_WR))
+	if (fva < VM_USERLO || fva >= VM_USERHI || !(tf->tf_err & PFE_WR)) {
+		cprintf("pmap_pagefault: fva %x err %x\n", fva, tf->tf_err);
 		return;
+	}
 
 	proc *p = proc_cur();
 	pde_t *pde = &p->pdir[PDX(fva)];
-	if (!(*pde & PTE_P))
+	if (!(*pde & PTE_P)) {
+		cprintf("pmap_pagefault: pde for fva %x doesn't exist\n", fva);
 		return;		// ptab doesn't exist at all - blame user
+	}
 
 	// Find the page table entry, copying the page table if it's shared.
 	pte_t *pte = pmap_walk(p->pdir, fva, 1);
 	if ((*pte & (SYS_READ | SYS_WRITE | PTE_P)) !=
-			(SYS_READ | SYS_WRITE | PTE_P))
+			(SYS_READ | SYS_WRITE | PTE_P)) {
+		cprintf("pmap_pagefault: page for fva %x doesn't exist\n", fva);
 		return;		// page doesn't exist at all - blame user
+	}
 	assert(!(*pte & PTE_W));
 
 	// Find the "shared" page.  If refcount is 1, we have the only ref!

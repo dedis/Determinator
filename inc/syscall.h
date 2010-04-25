@@ -9,7 +9,6 @@
 #define SYS_TYPE	0x0000000f	// Basic operation type
 #define SYS_CPUTS	0x00000000	// Write debugging string to console
 #define SYS_PUT		0x00000001	// Push data to child and start it
-#define SYS_PUT		0x00000001	// Push data to child and start it
 #define SYS_GET		0x00000002	// Pull results from child
 #define SYS_RET		0x00000003	// Return to parent
 #if SOL >= 4
@@ -23,7 +22,7 @@
 #endif
 
 #define SYS_REGS	0x00001000	// Get/put register state
-#define SYS_FPU		0x00002000	// Get/put FPU state
+#define SYS_FPU		0x00002000	// Get/put FPU state (with SYS_REGS)
 #if LAB >= 3                    
 #define SYS_MEM		0x00004000	// Get/put memory mappings
 #if LAB >= 99
@@ -78,22 +77,94 @@
 #ifndef __ASSEMBLER__
 
 // CPU state save area format for GET/PUT with SYS_REGS flags
+// XXX rename to 'procstate'?
 typedef struct cpustate {
+	uint32_t	pff;		// process feature flags - see below
+	uint32_t	icnt;		// insns executed so far
+	uint32_t	imax;		// max insns to execute before ret
 	trapframe	tf;		// general registers
 	fxsave		fx;		// x87/MMX/XMM registers
 } cpustate;
 
+// process feature enable/status flags
+#define PFF_USEFPU	0x0001		// process has used the FPU
+#define PFF_NONDET	0x0100		// enable nondeterministic features
+#define PFF_ICNT	0x0200		// enable instruction count/recovery
 
-// Prototypes for user-level syscalls stubs defined in lib/syscall.c
-void sys_cputs(const char *s);
-void sys_put(uint32_t flags, uint16_t child, cpustate *cpu,
-		void *localsrc, void *childdest, size_t size);
-void sys_get(uint32_t flags, uint16_t child, cpustate *cpu,
-		void *childsrc, void *localdest, size_t size);
-void sys_ret(void);
+
+static void gcc_inline
+sys_cputs(const char *s)
+{
+	// Pass system call number and flags in EAX,
+	// parameters in other registers.
+	// Interrupt kernel with vector T_SYSCALL.
+	//
+	// The "volatile" tells the assembler not to optimize
+	// this instruction away just because it doesn't
+	// look to the compiler like it computes useful values.
+	// 
+	// The last clause tells the assembler that this can
+	// potentially change the condition codes and arbitrary
+	// memory locations.
+
+	asm volatile("int %0" :
+		: "i" (T_SYSCALL),
+		  "a" (SYS_CPUTS),
+		  "b" (s)
+		: "cc", "memory");
+}
+
+static void gcc_inline
+sys_put(uint32_t flags, uint16_t child, cpustate *cpu,
+		void *localsrc, void *childdest, size_t size)
+{
+	asm volatile("int %0" :
+		: "i" (T_SYSCALL),
+		  "a" (SYS_PUT | flags),
+		  "b" (cpu),
+		  "d" (child),
+		  "S" (localsrc),
+		  "D" (childdest),
+		  "c" (size)
+		: "cc", "memory");
+}
+
+static void gcc_inline
+sys_get(uint32_t flags, uint16_t child, cpustate *cpu,
+		void *childsrc, void *localdest, size_t size)
+{
+	asm volatile("int %0" :
+		: "i" (T_SYSCALL),
+		  "a" (SYS_GET | flags),
+		  "b" (cpu),
+		  "d" (child),
+		  "S" (childsrc),
+		  "D" (localdest),
+		  "c" (size)
+		: "cc", "memory");
+}
+
+static void gcc_inline
+sys_ret(void)
+{
+	asm volatile("int %0" : :
+		"i" (T_SYSCALL),
+		"a" (SYS_RET));
+}
+
 #if SOL >= 4
-uint64_t sys_time(void);	// returns nanoseconds since kernel boot
-#endif
+static uint64_t gcc_inline
+sys_time(void)
+{
+	uint32_t hi, lo;
+	asm volatile("int %2"
+		: "=d" (hi),
+		  "=a" (lo)
+		: "i" (T_SYSCALL),
+		  "a" (SYS_TIME));
+	return (uint64_t)hi << 32 | lo;
+}
+#endif	// SOL >= 4
 
 #endif /* !__ASSEMBLER__ */
 

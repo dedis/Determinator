@@ -28,9 +28,8 @@
  * Based on public-domain remainder routine by J.T. Conklin <jtc@NetBSD.org>.
  */
 
-#include <machine/asm.h>
-__FBSDID("$FreeBSD$"); 
-	
+#include "asm.h"
+
 ENTRY(remquo)
 	fldl	12(%esp)
 	fldl	4(%esp)
