@@ -163,6 +163,9 @@ init(void)
 	// We should have been started in thread 0's stack area.
 	pthread_t t = &th[0];
 	assert(t == self());
+	memset(t, 0, sizeof(*t));
+	t->state = TH_RUN;
+
 	tinit(t);	// initialize thread 0
 	mret();		// drop into thread 0
 	tpinit(t);	// initialize thread-private state
@@ -170,17 +173,26 @@ init(void)
 
 ////////// Scheduling //////////
 
-// Place a thread we're about to run on the run queue.
-// This can be called on either the scheduler's or a thread's stack,
-// though always in the context of the master thread.
-static void
-trun(pthread_t t)
+// Handle any events relevant to a thread
+// before it either starts running again or blocks.
+static gcc_inline void
+tevents(pthread_t t)
 {
 	// Handle any wakeup/transfer events for this thread.
 	if (evconds != NULL)
 		condwakeups();	// process any queued condition var events
 	if (t->reqs != NULL)
 		mutexreqs(t);
+}
+
+// Place a thread we're about to run on the run queue.
+// This can be called on either the scheduler's or a thread's stack,
+// though always in the context of the master thread.
+static void
+trun(pthread_t t)
+{
+	// Handle any outstanding events first
+	tevents(t);
 
 	// Place this thread on the run queue,
 	// so the scheduler will collect its results sometime later.
@@ -229,9 +241,6 @@ pthread_sched(void)
 			runqtail = &runqhead;		// for good measure
 		t->qnext = NULL;
 
-//{ int i; cprintf("%s:%d:", __FILE__, __LINE__);
-//  for (i = 0; i < 16; i++) cprintf(" %08x\n", *(int*)(0xdffff8ec+4*i));
-//  cprintf("\n"); }
 		// Merge the thread's memory changes and get its register state.
 		tlock = 0;	// default state for user procs
 		sys_get(SYS_REGS | SYS_MERGE, t->tno, &cs,
@@ -239,9 +248,6 @@ pthread_sched(void)
 			VM_PRIVLO - VM_USERLO);
 		int olock = tlock;
 		tlock = 2;
-//{ int i; cprintf("%s:%d:", __FILE__, __LINE__);
-//  for (i = 0; i < 16; i++) cprintf(" %08x\n", *(int*)(0xdffff8ec+4*i));
-//  cprintf("\n"); }
 
 		if (olock == 1)	// Was the thread running pthread code?
 			break;	// if so, resume thread in master below.
@@ -270,7 +276,6 @@ cprintf("sched: thread %d preempted eip %x\n", t->tno, cs.tf.tf_eip);
 			VM_PRIVLO - VM_USERLO);
 		tlock = 2;	// tlock state for master process
 	}
-cprintf("sched: thread %d returned %d eip %x\n", t->tno, cs.tf.tf_trapno, cs.tf.tf_eip);
 
 	// Unexpected trap in pthreads code?
 	if (cs.tf.tf_trapno != T_SYSCALL && cs.tf.tf_trapno != T_ICNT)
@@ -307,6 +312,9 @@ tblock(pthread_t t, int newstate)
 	assert(tlock == 2);
 	assert(t == self());
 	assert(t->state == TH_RUN);
+
+	// Handle any outstanding events first
+	tevents(t);
 
 	// Set new thread state
 	assert(newstate != TH_RUN);
@@ -384,7 +392,6 @@ munlock(void)
 static /*gcc_inline*/ void
 mcall(void)
 {
-cprintf("mcall entry tlock=%d\n", tlock);
 	if (tlock <= 0)
 		mlock();
 
@@ -396,14 +403,12 @@ cprintf("mcall entry tlock=%d\n", tlock);
 	// which contains an INT $48 in the child and a RET in the master;
 	// that way we'll do the correct thing even if we get preempted
 	// just the moment before that instruction is executed.
-//{ int i; cprintf("%s:%d:", __FILE__, __LINE__);
-//  for (i = 0; i < 16; i++) cprintf(" %08x\n", *(int*)(0xdffff8ec+4*i));
-//  cprintf("\n"); }
-	asm volatile("call %1" : : "a" (SYS_RET), "m" (*(char*)MCALLPAGE));
+	asm volatile("call %1"
+			: : "a" (SYS_RET), "m" (*(char*)MCALLPAGE)
+			: "memory");
 
 	assert(tlock == 2);
 	assert(MCALLPAGE[0] == mmcalls[0]);
-cprintf("mcall exit tlock=2\n");
 }
 
 // Return a thread running as master to its proper child process,
@@ -411,7 +416,6 @@ cprintf("mcall exit tlock=2\n");
 static void
 mret(void)
 {
-cprintf("mret entry tlock=%d\n", tlock);
 	assert(tlock > 0);
 	if (munlock())
 		return;		// dropped back from tlock == 1 to tlock == 0
@@ -457,7 +461,6 @@ cprintf("mret entry tlock=%d\n", tlock);
 		: "cc", "memory");
 
 	assert(tlock == 0);
-cprintf("mret exit tlock=0\n");
 }
 
 ////////// Threads //////////
@@ -555,9 +558,9 @@ pthread_join(pthread_t tj, void **out_exitval)
 
 	// Wait for target thread to exit
 	assert(tj == &th[tj->tno]);
+	if (tj->state != TH_EXIT)	// hasn't exited as of last check -
+		mcall();		// give up timeslice and check for sure
 	if (tj->state != TH_EXIT) {	// hasn't yet exited - must wait for it
-		mcall();
-
 		assert(tj->state > TH_FREE);
 		assert(tj->joiner == NULL);	// only one joiner allowed
 		pthread_t t = self();
@@ -601,6 +604,7 @@ pthread_mutex_init(pthread_mutex_t *m, const pthread_mutexattr_t *attr)
 {
 	memset(m, 0, sizeof(*m));
 	m->owner = self();
+	m->qtail = &m->qhead;
 	return 0;
 }
 
@@ -613,15 +617,25 @@ pthread_mutex_destroy(pthread_mutex_t *m)
 	return 0;
 }
 
-int
-pthread_mutex_lock(pthread_mutex_t *m)
+static void
+mutexlock(pthread_t t, pthread_mutex_t *m)
 {
-	mlock();
+	assert(tlock > 0);
+	assert(t == self());
 
 	// XX can we make 'owner' just a flag in the mutex and avoid self()?
-	pthread *t = self();
 	if (m->owner != t || (P_MUTEXFAIR && m->qhead != NULL)) {
 		mcall();	// give up timeslice, synchronize with master
+
+		// If the current owner is blocked, steal the mutex.
+		if (!m->locked && m->owner->state != TH_RUN) {
+			assert(m->qhead == NULL); // else would have xfer'd
+			assert(m->qtail == &m->qhead);
+			assert(m->reqnext == NULL);
+			m->owner = t;
+		}
+	}
+	if (m->owner != t || (P_MUTEXFAIR && m->qhead != NULL)) {
 
 		// Request mutex from its current owner
 		if (m->qhead == NULL) {
@@ -634,8 +648,8 @@ pthread_mutex_lock(pthread_mutex_t *m)
 		// Enqueue us on mutex's thread queue
 		assert(t->qnext == NULL); assert(*m->qtail == NULL);
 		*m->qtail = t;
-		m->qtail = &t;
-		assert(m->qhead != NULL);
+		m->qtail = &t->qnext;
+		assert(m->qhead != NULL); assert(*m->qtail == NULL);
 
 		tblock(t, TH_MUTEX);	// block until we obtain the mutex
 	}
@@ -645,7 +659,14 @@ pthread_mutex_lock(pthread_mutex_t *m)
 	if (m->locked)
 		panic("pthread_mutex_lock: mutex %x already locked", m);
 	m->locked = 1;
+}
 
+int
+pthread_mutex_lock(pthread_mutex_t *m)
+{
+	pthread *t = self();
+	mlock();
+	mutexlock(t, m);
 	mret();
 	return 0;
 }
@@ -695,15 +716,16 @@ mutexreqs(pthread_t t)
 		// Transfer the mutex to its new owner
 		pthread_t tn = m->qhead;
 		assert(tn != NULL); assert(tn->state == TH_MUTEX);
-		m->qhead = tn->qnext;
-		if (m->qhead != NULL) {
+		m->owner = tn;		// change ownership
+		m->qhead = tn->qnext;	// remove new owner from mutex's queue
+		if (m->qhead != NULL) {	// queue still not empty?
 			// other threads are waiting,
 			// so add mutex to new owner's reqs list.
 			m->reqnext = tn->reqs;
 			tn->reqs = m;
-		} else {
+		} else {		// mutex's queue now empty
 			m->reqnext = NULL;
-			m->qtail = &m->qhead;	// reset now-empty list
+			m->qtail = &m->qhead;	// reset empty list
 		}
 
 		// Let the new owner thread run
@@ -717,6 +739,7 @@ int
 pthread_cond_init(pthread_cond_t *c, const pthread_condattr_t *attr)
 {
 	memset(c, 0, sizeof(*c));
+	c->qtail = &c->qhead;
 	return 0;
 }
 
@@ -777,6 +800,7 @@ pthread_cond_wait(pthread_cond_t *c, pthread_mutex_t *m)
 
 	mutexunlock(t, m);	// unlock mutex (while nonpreemptible)
 	tblock(t, TH_COND);	// block until signaled
+	mutexlock(t, m);	// re-lock the mutex
 	mret();			// resume normal execution
 	return 0;
 }
@@ -857,10 +881,7 @@ static void *brk = end;
 void *
 malloc(size_t size)
 {
-cprintf("malloc size=%d\n", size);
 	mcall();
-
-cprintf("tno %d cur break %x limit %x\n", selfno(), brk, VM_SHAREHI);
 
 	// Allocate the requested memory
 	void *ptr = brk;
@@ -875,12 +896,6 @@ cprintf("tno %d cur break %x limit %x\n", selfno(), brk, VM_SHAREHI);
 	if (pgnew > pgold)
 		sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, pgold, pgnew - pgold);
 
-	mret();
-mcall();
-mret();
-mcall();
-mret();
-cprintf("malloc returning %x\n", ptr);
 	return ptr;
 }
 

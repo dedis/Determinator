@@ -6,11 +6,9 @@ $(OBJDIR)/user/%.o: user/%.c
 	@mkdir -p $(@D)
 	$(V)$(CC) $(USER_CFLAGS) -c -o $@ $<
 
-$(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(OBJDIR)/lib/entry.o \
-		$(OBJDIR)/lib/libc.a
+$(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(USER_LDDEPS)
 	@echo + ld $@
-	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(OBJDIR)/lib/entry.o $@.o \
-		-L$(OBJDIR)/lib -lc $(GCC_LIB)
+	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(USER_LDENTRY) $@.o $(USER_LDLIBS)
 	$(V)$(OBJDUMP) -S $@ > $@.asm
 	$(V)$(NM) -n $@ > $@.sym
 

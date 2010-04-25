@@ -46,3 +46,7 @@ $(OBJDIR)/user/x264: $(X264_OBJS) $(USER_LDDEPS)
 	$(V)$(OBJDUMP) -S $@ > $@.asm
 	$(V)$(NM) -n $@ > $@.sym
 
+# XXX horrible hack - don't check big datasets into the repository
+$(OBJDIR)/user/eledream_640x360_8.y4m:
+	cat ../parsec/pkgs/apps/x264/inputs/input_simsmall.tar | \
+		(cd $(OBJDIR)/user; tar xf -)

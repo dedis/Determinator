@@ -76,10 +76,10 @@ pmc_intelinit(void)
 
 	cprintf("PMC ver %d npmc %d width %d nfix %d fixwidth %d\n",
 		ver, npmc, width, nfix, fixwidth);
+#if 0
 	cprintf("raw %08x %08x %08x %08x\n",
 		inf.eax, inf.ebx, inf.edx, inf.ecx);
 
-#if 0
 	wrmsr(IA32_FIXED_CTR_CTRL, FIXED_CTR_EN_ALL);
 
 	uint32_t v = rdmsr(IA32_FIXED_CTR_CTRL);

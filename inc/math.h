@@ -1,3 +1,4 @@
+#if LAB >= 9
 /*
  * ====================================================
  * Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved.
@@ -458,3 +459,4 @@ long double	truncl(long double);
 __END_DECLS
 
 #endif /* !_MATH_H_ */
+#endif // LAB >= 9

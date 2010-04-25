@@ -54,6 +54,7 @@ KERN_INITFILES :=	sh \
 			wc \
 			testfs \
 			fun \
+			testds
 #if SOL >= 4
 # Performance benchmarking programs
 KERN_INITFILES +=	matmult \
