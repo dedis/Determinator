@@ -184,9 +184,9 @@ net_rrshare(void *page, uint8_t dstnode)
 	pi->shared |= 1 << (dstnode-1);		// XXX lock_or?
 }
 
-// Called from syscall handlers to migrate to another node if we need to.
+// Called from syscall handlers to migrate to another node.
 // The 'node' argument is the node to migrate to.
-void gcc_noinline
+void gcc_noreturn
 net_migrate(trapframe *tf, uint8_t dstnode)
 {
 	proc *p = proc_cur();
