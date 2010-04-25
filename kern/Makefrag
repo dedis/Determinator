@@ -40,7 +40,8 @@ KERN_SRCFILES :=	kern/entry.S \
 			lib/printfmt.c \
 			lib/cprintf.c \
 			lib/string.c \
-			lib/syscall.c
+			lib/syscall.c \
+			lib/rngs.c
 
 # Build files only if they exist.
 KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
