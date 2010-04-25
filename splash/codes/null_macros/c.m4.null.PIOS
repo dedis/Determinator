@@ -92,7 +92,7 @@ define(MAIN_ENV,`
 #include <inc/stdio.h>
 #include <inc/math.h>
 #include <inc/pthread.h>
-// #include <inc/time.h> NOT IMPLEMENTED
+#include <inc/time.h>
 #include <inc/unistd.h>
 #include <inc/stdlib.h>
 #include <inc/malloc.h>
@@ -105,7 +105,7 @@ define(EXTERN_ENV, `
 #include <inc/stdio.h>
 #include <inc/math.h>
 #include <inc/pthread.h>
-// #include <inc/time.h> NOT IMPLEMENTED
+#include <inc/time.h>
 #include <inc/unistd.h>
 #include <inc/stdlib.h>
 #include <inc/malloc.h> // NOT IMPLEMENTED
@@ -121,5 +121,10 @@ define(GET_PID, `{($1) = 0;}')
 define(AUG_DELAY, `{sleep ($1);}')
 define(ST_LOG, ` ')
 define(SET_HOME, ` ')
-define(CLOCK, `{($1) = 0;}')
+define(CLOCK, `{
+	struct timeval	FullTime;
+
+	gettimeofday(&FullTime, NULL);
+	($1) = (unsigned long)(FullTime.tv_usec + FullTime.tv_sec * 1000000);
+}')
 divert(0)
