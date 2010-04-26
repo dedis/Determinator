@@ -3,14 +3,16 @@
 #include <inc/syscall.h>
 #include <inc/vm.h>
 
-	.text
+
+// The linker places the .init section first in any executable.
+// We have to use this section so the following code is at a fixed position.
+	.section ".init"
+
 
 // Start entrypoint - this is where the kernel (or our parent process)
 // starts us running when we are initially loaded into a new process.
-start:	.globl start
-#if SOL >= 4
-_start:	.globl _start		# for GCC's i386-elf target
-#endif
+	.globl start
+start:
 #if LAB >= 4
 	// See if we were started with arguments on the stack.
 	// If not, our esp will start on a nice big power-of-two boundary.
@@ -25,13 +27,20 @@ _start:	.globl _start		# for GCC's i386-elf target
 
 args_exist:
 #endif
+#if LAB >= 9
+	call	init	// run initialization code
 	call	main	// run the program
+	call	fini	// run finalization code
+#else
+	call	main	// run the program
+#endif
 
 	pushl	%eax	// use with main's return value as exit status
 	call	exit
 1:	jmp 1b
 
 
+#if LAB >= 4
 // Start entrypoint for exec.  When our exec code replaces an existing process
 // with a new one, it loads the new program image into child process 0,
 // then calls this "function" with the new program's initial stack pointer
@@ -61,5 +70,19 @@ exec_start:
 
 	jmp	start
 
+#endif	// LAB >= 4
+
+
+#if LAB >= 9
+// Initializer/finalizer code section headers
+	.p2align 4
+init:
+	// All other .init section code gets linked in at this point,
+	// and the 'ret' in lib/crtn.S caps off the initializer function.
+
+	.section ".fini"
+fini:
+	// All .fini section code goes here...
+#endif
 
 #endif // LAB >= 3
