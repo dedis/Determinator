@@ -455,26 +455,26 @@ void OneSolve(long n, long block_size, long MyNum, long dostats)
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
 
-  if ((MyNum == 1) || (dostats)) {
+  if ((MyNum == 0) || (dostats)) {
     CLOCK(myrs);
   }
 
   lu(n, block_size, MyNum, lc, dostats);
 
-  if ((MyNum == 1) || (dostats)) {
+  if ((MyNum == 0) || (dostats)) {
     CLOCK(mydone);
   }
 
   BARRIER(Global->start, P);
 
-  if ((MyNum == 1) || (dostats)) {
+  if ((MyNum == 0) || (dostats)) {
     Global->t_in_fac[MyNum] = lc->t_in_fac;
     Global->t_in_solve[MyNum] = lc->t_in_solve;
     Global->t_in_mod[MyNum] = lc->t_in_mod;
     Global->t_in_bar[MyNum] = lc->t_in_bar;
     Global->completion[MyNum] = mydone-myrs;
   }
-  if (MyNum == 1) {
+  if (MyNum == 0) {
     CLOCK(myrf);
     Global->rs = myrs;
     Global->done = mydone;
@@ -596,7 +596,7 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
       strK = bs;
     }
 
-    if ((MyNum == 1) || (dostats)) {
+    if ((MyNum == 0) || (dostats)) {
       CLOCK(t1);
     }
 
@@ -606,13 +606,13 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
       lu0(A, strK, strK);
     }
 
-    if ((MyNum == 1) || (dostats)) {
+    if ((MyNum == 0) || (dostats)) {
       CLOCK(t11);
     }
 
     BARRIER(Global->start, P);
 
-    if ((MyNum == 1) || (dostats)) {
+    if ((MyNum == 0) || (dostats)) {
       CLOCK(t2);
     }
 
@@ -646,13 +646,13 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
       }
     }
 
-    if ((MyNum == 1) || (dostats)) {
+    if ((MyNum == 0) || (dostats)) {
       CLOCK(t22);
     }   
 
     BARRIER(Global->start, P);
 
-    if ((MyNum == 1) || (dostats)) {
+    if ((MyNum == 0) || (dostats)) {
       CLOCK(t3);
     }
 
@@ -682,7 +682,7 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
       }
     }
 
-    if ((MyNum == 1) || (dostats)) {
+    if ((MyNum == 0) || (dostats)) {
       CLOCK(t4);
       lc->t_in_fac += (t11-t1);
       lc->t_in_solve += (t22-t2);
