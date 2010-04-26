@@ -55,6 +55,7 @@ KERN_INITFILES :=	sh \
 			testfs \
 			fun \
 			lu_cont \
+			lu_noncont \
 			icnt
 
 #if SOL >= 4

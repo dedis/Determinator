@@ -112,6 +112,11 @@ int main(int argc, char *argv[])
 
   CLOCK(start);
 
+  mint = maxt = avgt = 0.0;
+  min_fac = min_solve = min_mod = min_bar = 0.0;
+  max_fac = max_solve = max_mod = max_bar = 0.0;
+  avg_fac = avg_solve = avg_mod = avg_bar = 0.0;
+
   while ((ch = getopt(argc, argv, "n:p:b:cstoh")) != -1) {
     switch(ch) {
     case 'n': n = atoi(optarg); break;
@@ -478,6 +483,8 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
   double *A, *B, *C, *D;
   long strI;
   unsigned long t1, t2, t3, t4, t11, t22;
+
+  t1 = t2 = t3 = t4 = t11 = t22 = 0;
 
   strI = n;
   for (k=0, K=0; k<n; k+=bs, K++) {
