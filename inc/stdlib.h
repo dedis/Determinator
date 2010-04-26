@@ -3,7 +3,7 @@
 
 #include <cdefs.h>
 #include <types.h>
-
+#include <malloc.h>
 
 #ifndef NULL
 #define NULL	((void *) 0)
@@ -21,6 +21,9 @@ typedef struct {
 	long	quot;		// quotient
 	long	rem;		// remainder
 } ldiv_t;
+
+#define RAND_MAX	0x7fffffff	// Maximum value returned from lrand48()
+
 
 
 // Absolute value
@@ -83,10 +86,19 @@ void	free(void *ptr);
 void	exit(int status) gcc_noreturn;
 void	abort(void) gcc_noreturn;
 
+// lib/string.c
+int	atoi(const char * nptr);
+long	atol(const char * nptr);
+
+// lib/lrand48.c
+void	srand48(long seedval);
+long	lrand48(void);
+
 // Environment variables
 char *	getenv(const char *name);
 int	putenv(char *string);
 int	setenv(const char *name, const char *val, int overwrite);
 int	unsetenv(const char *name);
+
 
 #endif /* !PIOS_INC_STDLIB_H */

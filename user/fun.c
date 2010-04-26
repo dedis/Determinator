@@ -8,6 +8,7 @@
 #include <inc/syscall.h>
 #include <inc/vm.h>
 #include <inc/pthread.h>
+#include <inc/malloc.h>
 
 
 #define NUM_CHILDREN 4
@@ -40,6 +41,14 @@ int main(int argc, char ** argv) {
 
 	int i, status, ret;
 	pthread_t threads[NUM_CHILDREN];
+	int ch;
+
+	extern char * optarg;
+	while ((ch = getopt(argc, argv, "a:b:")) != -1)
+		printf("%c %s\n", ch, optarg);
+
+	srand48(42);
+	printf("Random number: %d\n", lrand48());
 
 	ret = pthread_barrier_init(&barrier, NULL, NUM_CHILDREN);
 	if (ret != 0)
@@ -61,6 +70,13 @@ int main(int argc, char ** argv) {
 		fprintf(stderr, "*** pthread_barrier_destroy  %d\n", ret);
 
 	print_array();
+
+
+	char * b = (char *)malloc(16);
+	strcpy(b, "HELLO!");
+	fprintf(stderr, "Value: %s\n", b);
+
+
 
 	return EXIT_SUCCESS;
 }
