@@ -288,6 +288,11 @@ do_get(trapframe *tf, uint32_t cmd)
 		int len = offsetof(cpustate, fx);	// just integer regs
 		if (cmd & SYS_FPU) len = sizeof(cpustate); // whole shebang
 
+		// Hide our instruction counting from user code.
+		// (XXX maintain a virtual TF for the user.)
+		//cp->sv.tf.tf_eflags &= ~FL_TF;
+		assert(!(cp->sv.tf.tf_eflags & FL_TF));
+
 		// Copy child process's trapframe into user space
 #if SOL >= 3
 		usercopy(tf, 1, &cp->sv, tf->tf_regs.reg_ebx, len);

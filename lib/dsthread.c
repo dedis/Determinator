@@ -16,7 +16,7 @@
 
 // Tunable scheduling policy parameters (could be made variables).
 #define P_QUANTUM	0	// Number of instructions per thread quantum
-//#define P_QUANTUM	100	// Number of instructions per thread quantum
+//#define P_QUANTUM	1000	// Number of instructions per thread quantum
 #define P_MUTEXFAIR	0	// Mutex transfer in strict round-robin order
 #define P_MUTEXIMMED	0	// Pass on mutex immediately on unlock
 
@@ -706,7 +706,6 @@ pthread_mutex_unlock(pthread_mutex_t *m)
 static void
 mutexreqs(pthread_t t)
 {
-	assert(t == self());
 	assert(tlock == 2);
 
 	pthread_mutex_t *m, **mp = &t->reqs;
