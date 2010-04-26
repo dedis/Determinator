@@ -261,7 +261,7 @@ get_time(void)
 }
 
 void
-pqsort(int *lo, int *hi, int nthread)
+pqsort(uint32_t *lo, uint32_t *hi, int nthread)
 {
 	if (lo >= hi)
 		return;
@@ -272,7 +272,7 @@ pqsort(int *lo, int *hi, int nthread)
 	}
 
 	int pivot = *lo;	// yeah, bad way to choose pivot...
-	int *l = lo+1, *h = hi;
+	uint32_t *l = lo+1, *h = hi;
 	while (l <= h) {
 		if (*l < pivot)
 			l++;
@@ -323,7 +323,7 @@ testpqsort(int array_size, int nthread)
 	for(; iter < niter; ++iter) {
 		gen_randints(randints, array_size, 1);
 		uint64_t ts = get_time();
-		pqsort(testints, testints + array_size - 1, nthread);
+		pqsort(randints, randints + array_size - 1, nthread);
 		uint64_t td = get_time();
 		cprintf("test %d uses time: %lld\n", iter, td-ts);
 		tt += td;
@@ -333,7 +333,6 @@ testpqsort(int array_size, int nthread)
 	}
 	
 	cprintf("array_size: %d\tave. time: %lld\n", array_size, tt/niter);
-	fclose(fp);
 }
 
 int

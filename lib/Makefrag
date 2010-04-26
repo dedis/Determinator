@@ -20,7 +20,10 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/thread.c \
 			lib/pthread.c \
 			lib/dsthread.c \
-			lib/time.c
+			lib/time.c \
+			lib/rngs.c \
+			lib/dlmalloc.c \
+			lib/mman.c
 
 #if LAB >= 9
 ifdef LAB9

@@ -40,8 +40,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			lib/printfmt.c \
 			lib/cprintf.c \
 			lib/string.c \
-			lib/syscall.c \
-			lib/rngs.c
+			lib/syscall.c
 
 # Build files only if they exist.
 KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
@@ -55,7 +54,9 @@ KERN_INITFILES :=	sh \
 			wc \
 			testfs \
 			fun \
-			icnt
+			icnt \
+			pqsort \
+			xh
 #if SOL >= 4
 # Performance benchmarking programs
 KERN_INITFILES +=	matmult \
