@@ -29,7 +29,10 @@ LIB_SRCFILES :=		lib/console.c \
 ifdef LAB9
 # Additional C library files not needed by PIOS itself
 # but needed in many applications we may wish to run on PIOS.
-LIB_SRCFILES +=		lib/stdlib/strtol.c \
+LIB_SRCFILES +=		lib/stdio/putc.c \
+			lib/stdio/getc.c \
+			lib/stdio/puts.c \
+			lib/stdlib/strtol.c \
 			lib/stdlib/strtoll.c \
 			lib/stdlib/strtoul.c \
 			lib/stdlib/strtoull.c \
