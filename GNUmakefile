@@ -220,7 +220,6 @@ include lib/Makefrag
 #if LAB >= 3
 include user/Makefrag
 #endif
-include parsec/x264/Makefrag
 
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 # Find all potentially exportable files

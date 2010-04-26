@@ -53,16 +53,18 @@ KERN_INITFILES :=	sh \
 			cat \
 			wc \
 			testfs
-#if SOL >= 4
+#if LAB >= 9
 # Performance benchmarking programs
 KERN_INITFILES +=	matmult \
 			microbench \
 			fun \
 			icnt \
 			testds \
-			pqsort \
-			x264 \
-			eledream_640x360_8.y4m
+			pqsort
+
+# Anything we find in the 'fs' subdirectory also becomes a file.
+KERN_FSFILES :=		$(patsubst fs/%,%,$(wildcard fs/*))
+KERN_INITFILES +=	$(KERN_FSFILES)
 #endif
 endif
 
@@ -124,6 +126,11 @@ $(OBJDIR)/kern/initfiles.h: kern/Makefrag
 	echo >$@ "$(subst /,_,$(subst .,_, \
 			$(patsubst %,INITFILE(%),$(KERN_INITFILES))))"
 $(OBJDIR)/kern/file.o: $(OBJDIR)/kern/initfiles.h
+
+#if LAB >= 9
+$(OBJDIR)/user/%: fs/%
+	cp $< $@
+#endif
 endif
 
 all: $(OBJDIR)/kern/kernel.img
