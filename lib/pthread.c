@@ -137,19 +137,14 @@ wait_at_barrier(pthread_t first_child, pthread_barrier_t barrier)
 		threads[i++] = th;
 	}
 
-	int j;
-	cprintf("THREADS ");
-	for (j = 0; j < count; j++)
-		cprintf("%d ", threads[j]);
-	cprintf("\n");
-
 	// Wrong count or not enough forked threads: error.
-	if (i < count)
+	if (i < count) {
+		errno = EINVAL;
 		return i;
+	}
 
 	// Synchronize memory with all children.
 	// Restart all children.
-	count++;
 	for (i = 0; i < count; i++)
 		sys_put( SYS_COPY | SYS_SNAP | SYS_START, threads[i],
 			 NULL, SHAREVA, SHAREVA, SHARESIZE);

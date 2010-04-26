@@ -86,6 +86,10 @@ int	unlink(const char *path);
 int	pipe(int fds[2]);
 #endif
 
+// Program convenience functions
+int	getopt(int argc, char * argv[], const char * optstring);
+
+
 
 // PIOS-specific thread fork/join functions
 int	tfork(uint16_t child);
