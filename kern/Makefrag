@@ -56,7 +56,8 @@ KERN_INITFILES :=	sh \
 			fun \
 			icnt \
 			pqsort \
-			xh
+			lu_cont \
+			lu_noncont 
 
 #if SOL >= 4
 # Performance benchmarking programs

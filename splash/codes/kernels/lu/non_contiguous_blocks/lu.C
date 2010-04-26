@@ -112,6 +112,11 @@ int main(int argc, char *argv[])
 
   CLOCK(start);
 
+  mint = maxt = avgt = 0.0;
+  min_fac = min_solve = min_mod = min_bar = 0.0;
+  max_fac = max_solve = max_mod = max_bar = 0.0;
+  avg_fac = avg_solve = avg_mod = avg_bar = 0.0;
+
   while ((ch = getopt(argc, argv, "n:p:b:cstoh")) != -1) {
     switch(ch) {
     case 'n': n = atoi(optarg); break;
@@ -316,10 +321,12 @@ void SlaveStart()
 {
   long MyNum;
 
-  LOCK(Global->idlock)
+  IDLOCK(Global->idlock, Global->id, MyNum)
+  /*
     MyNum = Global->id;
     Global->id ++;
   UNLOCK(Global->idlock)
+  */
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might pin processes to
    processors to avoid migration */
@@ -332,9 +339,10 @@ void SlaveStart()
 void OneSolve(long n, long block_size, long MyNum, long dostats)
 {
   unsigned long myrs, myrf, mydone;
-  struct LocalCopies *lc;
+  struct LocalCopies _lc, *lc;
 
-  lc = (struct LocalCopies *) malloc(sizeof(struct LocalCopies));
+  // lc = (struct LocalCopies *) malloc(sizeof(struct LocalCopies));
+  lc = &_lc;
   if (lc == NULL) {
     fprintf(stderr,"Proc %ld could not malloc memory for lc\n",MyNum);
     exit(-1);
@@ -475,6 +483,8 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
   double *A, *B, *C, *D;
   long strI;
   unsigned long t1, t2, t3, t4, t11, t22;
+
+  t1 = t2 = t3 = t4 = t11 = t22 = 0;
 
   strI = n;
   for (k=0, K=0; k<n; k+=bs, K++) {
@@ -631,9 +641,9 @@ void PrintA()
 void CheckResult(long n, double *a, double *rhs)
 {
   long i, j, bogus = 0;
-  double *y, diff, max_diff;
+  double y[n], diff, max_diff;
 
-  y = (double *) malloc(n*sizeof(double));
+  // y = (double *) malloc(n*sizeof(double));
   if (y == NULL) {
     printerr("Could not malloc memory for y\n");
     exit(-1);
@@ -667,7 +677,7 @@ void CheckResult(long n, double *a, double *rhs)
   } else {
     printf("TEST PASSED\n");
   }
-  free(y);
+  // free(y);
 }
 
 
