@@ -62,7 +62,7 @@ define(MONINIT, ` ')
 
 define(WAIT_FOR_END, `{
 	long	i, Error;
-	for (i = 0; i < ($1) - 1; i++) {
+	for (i = 0; i < ($1); i++) {
 		Error = pthread_join(PThreadTable[i], NULL);
 		if (Error != 0) {
 			printf("Error in pthread_join().\n");
@@ -74,7 +74,7 @@ define(WAIT_FOR_END, `{
 define(CREATE, `{
 	long	i, Error;
 
-	for (i = 0; i < ($2) - 1; i++) {
+	for (i = 0; i < ($2); i++) {
 		Error = pthread_create(&PThreadTable[i], NULL, (void * (*)(void *))($1), NULL);
 		if (Error != 0) {
 			printf("Error in pthread_create().\n");
@@ -82,7 +82,6 @@ define(CREATE, `{
 		}
 	}
 
-	$1();
 }')
 
 define(MAIN_INITENV, ` ')

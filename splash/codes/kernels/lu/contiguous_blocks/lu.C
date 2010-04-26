@@ -417,8 +417,6 @@ void SlaveStart()
     Global->id ++;
   UNLOCK(Global->idlock)
 	  */
-	  printf("HIT %d\n");
-
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might pin processes to
    processors to avoid migration */
@@ -433,9 +431,10 @@ void OneSolve(long n, long block_size, long MyNum, long dostats)
   unsigned long myrs; 
   unsigned long myrf; 
   unsigned long mydone;
-  struct LocalCopies *lc;
+  struct LocalCopies _lc, *lc;
 
-  lc = (struct LocalCopies *) malloc(sizeof(struct LocalCopies));
+  // lc = (struct LocalCopies *) malloc(sizeof(struct LocalCopies));
+  lc = &_lc;
   if (lc == NULL) {
     fprintf(stderr,"Proc %ld could not malloc memory for lc\n",MyNum);
     exit(-1);
@@ -456,26 +455,26 @@ void OneSolve(long n, long block_size, long MyNum, long dostats)
 /* POSSIBLE ENHANCEMENT:  Here is where one might reset the
    statistics that one is measuring about the parallel execution */
 
-  if ((MyNum == 0) || (dostats)) {
+  if ((MyNum == 1) || (dostats)) {
     CLOCK(myrs);
   }
 
   lu(n, block_size, MyNum, lc, dostats);
 
-  if ((MyNum == 0) || (dostats)) {
+  if ((MyNum == 1) || (dostats)) {
     CLOCK(mydone);
   }
 
   BARRIER(Global->start, P);
 
-  if ((MyNum == 0) || (dostats)) {
+  if ((MyNum == 1) || (dostats)) {
     Global->t_in_fac[MyNum] = lc->t_in_fac;
     Global->t_in_solve[MyNum] = lc->t_in_solve;
     Global->t_in_mod[MyNum] = lc->t_in_mod;
     Global->t_in_bar[MyNum] = lc->t_in_bar;
     Global->completion[MyNum] = mydone-myrs;
   }
-  if (MyNum == 0) {
+  if (MyNum == 1) {
     CLOCK(myrf);
     Global->rs = myrs;
     Global->done = mydone;
@@ -597,7 +596,7 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
       strK = bs;
     }
 
-    if ((MyNum == 0) || (dostats)) {
+    if ((MyNum == 1) || (dostats)) {
       CLOCK(t1);
     }
 
@@ -607,13 +606,13 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
       lu0(A, strK, strK);
     }
 
-    if ((MyNum == 0) || (dostats)) {
+    if ((MyNum == 1) || (dostats)) {
       CLOCK(t11);
     }
 
     BARRIER(Global->start, P);
 
-    if ((MyNum == 0) || (dostats)) {
+    if ((MyNum == 1) || (dostats)) {
       CLOCK(t2);
     }
 
@@ -647,13 +646,13 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
       }
     }
 
-    if ((MyNum == 0) || (dostats)) {
+    if ((MyNum == 1) || (dostats)) {
       CLOCK(t22);
     }   
 
     BARRIER(Global->start, P);
 
-    if ((MyNum == 0) || (dostats)) {
+    if ((MyNum == 1) || (dostats)) {
       CLOCK(t3);
     }
 
@@ -683,7 +682,7 @@ void lu(long n, long bs, long MyNum, struct LocalCopies *lc, long dostats)
       }
     }
 
-    if ((MyNum == 0) || (dostats)) {
+    if ((MyNum == 1) || (dostats)) {
       CLOCK(t4);
       lc->t_in_fac += (t11-t1);
       lc->t_in_solve += (t22-t2);
@@ -833,13 +832,13 @@ void PrintA()
 void CheckResult(long n, double **a, double *rhs)
 {
   long i, j, bogus = 0;
-  double *y, diff, max_diff;
+  double y[n], diff, max_diff;
   long ii, jj;
   long edge;
   long ibs, jbs, skip;
 
   edge = n%block_size;
-  y = (double *) malloc(n*sizeof(double));  
+  // y = (double *) malloc(n*sizeof(double));  
   if (y == NULL) {
     printerr("Could not malloc memory for y\n");
     exit(-1);
@@ -911,7 +910,7 @@ void CheckResult(long n, double **a, double *rhs)
   } else {
     printf("TEST PASSED\n");
   }
-  free(y);
+  // free(y);
 }
 
 
