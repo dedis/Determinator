@@ -18,11 +18,14 @@ MATH_SRCFILES :=	$(filter-out $(patsubst lib/math/x87/%.S,lib/math/%.c,\
 # Merge them into libc's complete list of sources
 LIB_SRCFILES +=		$(MATH_SRCFILES)
 
+# The math library needs float.h from libgcc.
+# Also, the BSD math library generates lots of warnings; quiet them.
+MATH_CFLAGS := $(USER_CFLAGS) -I$(GCC_INC) \
+	-Wno-uninitialized -Wno-implicit -Wno-error
 
-# The BSD math library generates lots of warnings; quiet them...
+
 $(OBJDIR)/lib/math/%.o: lib/math/%.c
 	@echo + cc[USER] $<
 	@mkdir -p $(@D)
-	$(V)$(CC) $(USER_CFLAGS) -c -o $@ -Wno-uninitialized -Wno-implicit \
-		-Wno-error $<
+	$(V)$(CC) $(MATH_CFLAGS) -c -o $@ $<
 

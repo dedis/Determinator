@@ -261,7 +261,7 @@ get_time(void)
 }
 
 void
-pqsort(int *lo, int *hi, int nthread)
+pqsort(uint32_t *lo, uint32_t *hi, int nthread)
 {
 	if (lo >= hi)
 		return;
@@ -272,7 +272,7 @@ pqsort(int *lo, int *hi, int nthread)
 	}
 
 	int pivot = *lo;	// yeah, bad way to choose pivot...
-	int *l = lo+1, *h = hi;
+	uint32_t *l = lo+1, *h = hi;
 	while (l <= h) {
 		if (*l < pivot)
 			l++;
@@ -300,30 +300,30 @@ pqsort(int *lo, int *hi, int nthread)
 int niter = 10;
 #define MAX_ARRAY_SIZE 1000000
 #define MAX_THREAD 8
-int randints[MAX_ARRAY_SIZE], testints[MAX_ARRAY_SIZE];
+uint32_t randints[MAX_ARRAY_SIZE];
+
+#include <inc/rngs.h>
+#define MAXINT (0xffffffff)
 
 void
-readints() {
-	FILE *fp = fopen("randbin", "rb");
-	fread(randints, 4, MAX_ARRAY_SIZE, fp);
-	fclose(fp);
+gen_randints(uint32_t *randints, size_t n, int seed) {
+	SelectStream(0);
+	PutSeed(seed); //use a negative seed to activate sys_time dependent seed!
+	int i;
+	for(i = 0; i < n; ++i)
+		randints[i] = (uint32_t)(MAXINT * Random());
 }
 
 void
 testpqsort(int array_size, int nthread)
 {
-	//assert(array_size * niter <= RAND_INT_NUM);
 	assert(nthread <= MAX_THREAD);
-	//printf("reach here!\n");
-	FILE *fp = fopen("randbin", "rb");
-	//printf("reach here!\n");	
 	int iter = 0;
 	uint64_t tt = 0ull;
 	for(; iter < niter; ++iter) {
-		fread(testints, 4, array_size, fp);
-		//memcpy(testints, randints + array_size*iter, array_size*4);		
+		gen_randints(randints, array_size, 1);
 		uint64_t ts = get_time();
-		pqsort(testints, testints + array_size - 1, nthread);
+		pqsort(randints, randints + array_size - 1, nthread);
 		uint64_t td = get_time();
 		cprintf("test %d uses time: %lld\n", iter, td-ts);
 		tt += td;
@@ -333,16 +333,13 @@ testpqsort(int array_size, int nthread)
 	}
 	
 	cprintf("array_size: %d\tave. time: %lld\n", array_size, tt/niter);
-	fclose(fp);
 }
 
 int
 main()
 {
 	cprintf("start...\n");
-	//readints();
-	//cprintf("reach here!\n");
-	testpqsort(1000000, MAX_THREAD);
+	testpqsort(MAX_ARRAY_SIZE, MAX_THREAD);
 	return 0;
 }
 

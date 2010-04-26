@@ -111,12 +111,15 @@ NCC	:= gcc $(CC_VER) -pipe
 TAR	:= gtar
 PERL	:= perl
 
+# Where does GCC have its libgcc.a and libgcc's include directory?
+GCCDIR := $(dir $(shell $(CC) $(CFLAGS) -print-libgcc-file-name))
 
 # If we're not using the special "PIOS edition" of GCC,
 # reconfigure the host OS's compiler for our purposes.
 ifneq ($(GCCPREFIX),pios-)
 CFLAGS += -nostdinc -m32
-LDFLAGS += -nostdlib -m elf_i386 -e start
+LDFLAGS += -nostdlib -m elf_i386
+USER_LDFLAGS += -e start -Ttext=0x40000100
 endif
 
 # Compiler flags
@@ -124,24 +127,25 @@ endif
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
 # XXX modified to -O2 for benchmarking
 CFLAGS += $(DEFS) $(LABDEFS) -O1 -fno-builtin \
-		-I$(TOP) -I$(TOP)/inc -MD  \
+		-I$(TOP) -I$(TOP)/inc -I$(GCCDIR)/include -MD  \
 		-Wall -Wno-unused -Werror -gstabs
 
 # Add -fno-stack-protector if the option exists.
-CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
+CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 \
+		&& echo -fno-stack-protector)
+
+LDFLAGS += -L$(OBJDIR)/lib -L$(GCCDIR)
 
 # Kernel versus user compiler flags
-KERN_CFLAGS := $(CFLAGS) -DPIOS_KERNEL
-USER_CFLAGS := $(CFLAGS) -DPIOS_USER
+KERN_CFLAGS += $(CFLAGS) -DPIOS_KERNEL
+KERN_LDFLAGS += $(LDFLAGS) -nostdlib -Ttext=0x00100000 -L$(GCCDIR)
+KERN_LDLIBS += $(LDLIBS) -lgcc
 
-KERN_LDFLAGS := $(LDFLAGS) -Ttext=0x00100000
-USER_LDFLAGS := $(LDFLAGS) -Ttext=0x40000000
-
-GCC_LIB := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
-
-USER_LDDEPS := $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libc.a
-USER_LDENTRY := $(OBJDIR)/lib/entry.o
-USER_LDLIBS := -L$(OBJDIR)/lib -lc $(GCC_LIB)
+USER_CFLAGS += $(CFLAGS) -DPIOS_USER
+USER_LDFLAGS += $(LDFLAGS)
+USER_LDDEPS += $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libc.a
+USER_LDENTRY += $(OBJDIR)/lib/entry.o
+USER_LDLIBS += $(LDLIBS) -lc -lgcc
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=

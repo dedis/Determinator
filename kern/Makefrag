@@ -52,14 +52,15 @@ KERN_INITFILES :=	sh \
 			echo \
 			cat \
 			wc \
-			testfs \
-			fun \
-			testds
+			testfs
 #if SOL >= 4
 # Performance benchmarking programs
 KERN_INITFILES +=	matmult \
 			microbench \
+			fun \
 			icnt \
+			testds \
+			pqsort \
 			x264 \
 			eledream_640x360_8.y4m
 #endif
@@ -105,7 +106,8 @@ $(OBJDIR)/dev/%.o: dev/%.c
 # How to build the kernel itself
 $(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
 	@echo + ld $@
-	$(V)$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) -b binary $(KERN_BINFILES)
+	$(V)$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(KERN_LDLIBS) \
+		-b binary $(KERN_BINFILES)
 	$(V)$(OBJDUMP) -S $@ > $@.asm
 	$(V)$(NM) -n $@ > $@.sym
 
