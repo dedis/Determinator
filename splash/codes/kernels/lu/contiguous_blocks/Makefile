@@ -18,5 +18,5 @@ clean:
 
 .C.c:
 	rm -f $(LOCALHOME)/user/$*.c
-	$(M4) $(MACROS) $*.C > $(LOCALHOME)/user/$*.c
+	$(M4) $(MACROS) $*.C > $(LOCALHOME)/user/$*_cont.c
 
