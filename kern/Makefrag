@@ -59,9 +59,6 @@ KERN_INITFILES +=	matmult \
 			microbench \
 			fun \
 			icnt \
-			pqsort \
-			lu_cont \
-			lu_noncont \
 			testds \
 			pqsort
 
