@@ -145,6 +145,7 @@ do_put(trapframe *tf, uint32_t cmd)
 {
 	proc *p = proc_cur();
 	assert(p->state == PROC_RUN && p->runcpu == cpu_cur());
+//cprintf("PUT proc %x eip %x esp %x cmd %x\n", p, tf->tf_eip, tf->tf_esp, cmd);
 
 #if SOL >= 5
 	// First migrate if we need to.
@@ -255,6 +256,7 @@ do_get(trapframe *tf, uint32_t cmd)
 {
 	proc *p = proc_cur();
 	assert(p->state == PROC_RUN && p->runcpu == cpu_cur());
+//cprintf("GET proc %x eip %x esp %x cmd %x\n", p, tf->tf_eip, tf->tf_esp, cmd);
 
 #if SOL >= 5
 	// First migrate if we need to.
@@ -348,6 +350,7 @@ do_get(trapframe *tf, uint32_t cmd)
 static void gcc_noreturn
 do_ret(trapframe *tf)
 {
+//cprintf("RET proc %x eip %x esp %x\n", proc_cur(), tf->tf_eip, tf->tf_esp);
 	proc_ret(tf, 1);	// Complete syscall insn and return to parent
 }
 

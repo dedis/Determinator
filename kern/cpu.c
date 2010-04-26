@@ -56,7 +56,7 @@ cpu cpu_boot = {
 };
 
 
-#if SOL >= 1
+#if SOL >= 9
 void
 cpu_info()
 {
@@ -124,8 +124,10 @@ void cpu_init()
 	cpu *c = cpu_cur();
 
 #if SOL >= 1
+#if SOL >= 9
 	if (cpu_onboot())
 		cpu_info();
+#endif
 
 	// Setup the TSS for this cpu so that we get the right stack
 	// when we trap into the kernel from user mode.
@@ -157,11 +159,6 @@ void cpu_init()
 
 	// Load the TSS (from the GDT)
 	ltr(CPU_GDT_TSS);
-#if LAB >= 9
-
-	// Make sure memory is writeback cacheable
-	cpu_setmtrr();
-#endif
 #endif
 }
 

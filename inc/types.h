@@ -25,7 +25,7 @@ typedef unsigned long long	uint64_t;
 // and [u]intptr_t to represent the numerical values of virtual addresses.
 typedef int			intptr_t;	// pointer-size signed integer
 typedef unsigned		uintptr_t;	// pointer-size unsigned integer
-typedef int			ptrdiff_t;	// difference between two pointers
+typedef int			ptrdiff_t;	// difference between pointers
 
 // size_t is used for memory object sizes, and ssize_t is a signed analog.
 typedef unsigned		size_t;

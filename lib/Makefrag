@@ -32,7 +32,10 @@ LIB_SRCFILES :=		lib/console.c \
 ifdef LAB9
 # Additional C library files not needed by PIOS itself
 # but needed in many applications we may wish to run on PIOS.
-LIB_SRCFILES +=		lib/stdlib/strtol.c \
+LIB_SRCFILES +=		lib/stdio/putc.c \
+			lib/stdio/getc.c \
+			lib/stdio/puts.c \
+			lib/stdlib/strtol.c \
 			lib/stdlib/strtoll.c \
 			lib/stdlib/strtoul.c \
 			lib/stdlib/strtoull.c \
@@ -98,15 +101,9 @@ $(XCDIR)/include/%.h: inc/%.h $(XCDIR)/include
 $(XCDIR)/include/sys: $(XCDIR)/include
 	ln -s . $@
 
-$(XCDIR)/lib/libc.a: $(OBJDIR)/lib/libc.a $(XCDIR)/lib
+$(XCDIR)/lib/lib%.a: $(OBJDIR)/lib/libc.a $(XCDIR)/lib
 	cp $< $@
-$(XCDIR)/lib/libg.a: $(OBJDIR)/lib/libc.a $(XCDIR)/lib
-	cp $< $@
-$(XCDIR)/lib/libm.a: $(OBJDIR)/lib/libc.a $(XCDIR)/lib
-	cp $< $@
-
-# XXX maybe just rename entry.S to crt0.S?
-$(XCDIR)/lib/crt0.o: $(OBJDIR)/lib/entry.o
+$(XCDIR)/lib/crt%.o: $(OBJDIR)/lib/crt%.o
 	cp $< $@
 
 #endif

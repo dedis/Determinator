@@ -522,16 +522,20 @@ pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 	pde_t *spde = &spdir[PDX(sva)];
 	pde_t *dpde = &dpdir[PDX(dva)];
 	uint32_t svahi = sva + size;
-	for (; sva < svahi; rpde++, spde++, dpde++,
-				sva += PTSIZE, dva += PTSIZE) {
+	for (; sva < svahi; rpde++, spde++, dpde++) {
 
-		if (*spde == *rpde)	// unchanged in source - do nothing
+		if (*spde == *rpde) {	// unchanged in source - do nothing
+			sva += PTSIZE, dva += PTSIZE;
 			continue;
+		}
 		if (*dpde == *rpde) {	// unchanged in dest - copy from source
 			if (!pmap_copy(spdir, sva, dpdir, dva, PTSIZE))
 				return 0;
+			sva += PTSIZE, dva += PTSIZE;
 			continue;
 		}
+		//cprintf("pmap_merge: merging page table %x-%x\n",
+		//	sva, sva+PTSIZE);
 
 		// Find each of the page tables from the corresponding PDEs
 		pte_t *rpte = mem_ptr(PGADDR(*rpde));	// OK if PTE_ZERO
@@ -556,6 +560,8 @@ pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 				mem_incref(mem_phys2pi(PGADDR(*spte)));
 				continue;
 			}
+			//cprintf("pmap_merge: merging page %x-%x\n",
+			//	sva, sva+PAGESIZE);
 
 			// changed in both spaces - must merge word-by-word
 			pmap_mergepage(rpte, spte, dpte, dva);
@@ -844,7 +850,10 @@ pmap_check(void)
 	mem_free(pi2);
 	mem_free(pi3);
 
+#if LAB >= 9
+#else
 	cprintf("pmap_check() succeeded!\n");
+#endif
 #if LAB >= 99
 	// More things we should test:
 	// - does trap() call pmap_fault() before recovery?

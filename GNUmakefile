@@ -88,11 +88,6 @@ QEMU := $(shell \
 	echo "***" 1>&2; exit 1)
 endif
 
-# get the libgcc directory prefix
-ifndef LIBGCCPREFIX
-LIBGCCPREFIX := $(shell $(GCCPREFIX)gcc -print-libgcc-file-name | sed s/\\/libgcc.a//)
-endif
-
 # try to generate unique GDB and network port numbers
 GDBPORT	:= $(shell expr `id -u` % 5000 + 25000)
 NETPORT := $(shell expr `id -u` % 5000 + 30000)
@@ -116,37 +111,41 @@ NCC	:= gcc $(CC_VER) -pipe
 TAR	:= gtar
 PERL	:= perl
 
+# Where does GCC have its libgcc.a and libgcc's include directory?
+GCCDIR := $(dir $(shell $(CC) $(CFLAGS) -print-libgcc-file-name))
 
 # If we're not using the special "PIOS edition" of GCC,
 # reconfigure the host OS's compiler for our purposes.
 ifneq ($(GCCPREFIX),pios-)
 CFLAGS += -nostdinc -m32
-LDFLAGS += -nostdlib -m elf_i386 -e start
+LDFLAGS += -nostdlib -m elf_i386
+USER_LDFLAGS += -e start -Ttext=0x40000100
 endif
 
 # Compiler flags
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
 # XXX modified to -O2 for benchmarking
-CFLAGS += $(DEFS) $(LABDEFS) -O2 -fno-builtin \
-		-I$(TOP) -I$(TOP)/inc -MD  \
+CFLAGS += $(DEFS) $(LABDEFS) -O1 -fno-builtin \
+		-I$(TOP) -I$(TOP)/inc -I$(GCCDIR)/include -MD  \
 		-Wall -Wno-unused -Werror -gstabs
 
 # Add -fno-stack-protector if the option exists.
-CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
+CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 \
+		&& echo -fno-stack-protector)
+
+LDFLAGS += -L$(OBJDIR)/lib -L$(GCCDIR)
 
 # Kernel versus user compiler flags
-KERN_CFLAGS := $(CFLAGS) -DPIOS_KERNEL
-USER_CFLAGS := $(CFLAGS) -DPIOS_USER -I$(LIBGCCPREFIX)/include
+KERN_CFLAGS += $(CFLAGS) -DPIOS_KERNEL
+KERN_LDFLAGS += $(LDFLAGS) -nostdlib -Ttext=0x00100000 -L$(GCCDIR)
+KERN_LDLIBS += $(LDLIBS) -lgcc
 
-KERN_LDFLAGS := $(LDFLAGS) -Ttext=0x00100000
-USER_LDFLAGS := $(LDFLAGS) -Ttext=0x40000000
-
-GCC_LIB := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
-
-USER_LDDEPS := $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libc.a
-USER_LDENTRY := $(OBJDIR)/lib/entry.o
-USER_LDLIBS := -L$(OBJDIR)/lib -lc $(GCC_LIB)
+USER_CFLAGS += $(CFLAGS) -DPIOS_USER
+USER_LDFLAGS += $(LDFLAGS)
+USER_LDINIT += $(OBJDIR)/lib/crt0.o
+USER_LDDEPS += $(USER_LDINIT) $(OBJDIR)/lib/libc.a
+USER_LDLIBS += $(LDLIBS) -lc -lgcc
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=

@@ -52,17 +52,22 @@ KERN_INITFILES :=	sh \
 			echo \
 			cat \
 			wc \
-			testfs \
+			testfs
+#if LAB >= 9
+# Performance benchmarking programs
+KERN_INITFILES +=	matmult \
+			microbench \
 			fun \
 			icnt \
 			pqsort \
 			lu_cont \
-			lu_noncont 
+			lu_noncont \
+			testds \
+			pqsort
 
-#if SOL >= 4
-# Performance benchmarking programs
-KERN_INITFILES +=	matmult \
-			microbench
+# Anything we find in the 'fs' subdirectory also becomes a file.
+KERN_FSFILES :=		$(patsubst fs/%,%,$(wildcard fs/*))
+KERN_INITFILES +=	$(KERN_FSFILES)
 #endif
 endif
 
@@ -106,7 +111,8 @@ $(OBJDIR)/dev/%.o: dev/%.c
 # How to build the kernel itself
 $(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
 	@echo + ld $@
-	$(V)$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(GCC_LIB) -b binary $(KERN_BINFILES)
+	$(V)$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(KERN_LDLIBS) \
+		-b binary $(KERN_BINFILES)
 	$(V)$(OBJDUMP) -S $@ > $@.asm
 	$(V)$(NM) -n $@ > $@.sym
 
@@ -120,8 +126,14 @@ $(OBJDIR)/kern/kernel.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/bootblock
 
 ifdef LAB4
 $(OBJDIR)/kern/initfiles.h: kern/Makefrag
-	echo >$@ "$(subst /,_,$(patsubst %,INITFILE(%),$(KERN_INITFILES)))"
+	echo >$@ "$(subst /,_,$(subst .,_, \
+			$(patsubst %,INITFILE(%),$(KERN_INITFILES))))"
 $(OBJDIR)/kern/file.o: $(OBJDIR)/kern/initfiles.h
+
+#if LAB >= 9
+$(OBJDIR)/user/%: fs/%
+	cp $< $@
+#endif
 endif
 
 all: $(OBJDIR)/kern/kernel.img
