@@ -41,6 +41,7 @@ typedef struct pthread {
 	void *		exitval;	// value thread returned on exit
 
 	// state save area for blocked (but not preempted) threads
+	uint32_t	pff;		// process feature flags
 	uint32_t	ebp;		// frame pointer
 	uint32_t	esp;		// stack pointer
 	uint32_t	eip;		// instruction pointer
@@ -282,6 +283,9 @@ cprintf("sched: thread %d preempted eip %x\n", t->tno, cs.tf.tf_eip);
 		panic("sched: thread %d trap %d while mlocked, eip %x",
 			t->tno, cs.tf.tf_trapno, cs.tf.tf_eip);
 
+	// If the thread started using the FPU, remember that.
+	t->pff = cs.pff;
+
 	// OK, just resume the thread from where it left off,
 	// with tlock == 2 so it knows it's the master process.
 	asm volatile(
@@ -428,10 +432,10 @@ mret(void)
 	// Making this cpustate static is safe since only the master uses it,
 	// and means we don't have to clear it on each use.
 	static cpustate cs = {
-		.pff = P_QUANTUM ? PFF_ICNT : 0,
 		.icnt = 0,
 		.imax = P_QUANTUM,
 	};
+	cs.pff = t->pff | (P_QUANTUM ? PFF_ICNT : 0);
 
 	// Copy our register state and address space to the child,
 	// (re)start the child, and invoke the scheduler in the master process.
@@ -570,7 +574,8 @@ pthread_join(pthread_t tj, void **out_exitval)
 	assert(tj->state == TH_EXIT);
 
 	// Retrieve the thread's exit value
-	*out_exitval = tj->exitval;
+	if (out_exitval != NULL)
+		*out_exitval = tj->exitval;
 
 	// Free the thread for subsequent reuse
 	tj->state = TH_FREE;
@@ -895,6 +900,8 @@ malloc(size_t size)
 	void *pgnew = ROUNDUP(nbrk, PAGESIZE);
 	if (pgnew > pgold)
 		sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, pgold, pgnew - pgold);
+
+	mret();
 
 	return ptr;
 }
