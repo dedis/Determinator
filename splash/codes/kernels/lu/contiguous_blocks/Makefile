@@ -17,5 +17,6 @@ clean:
 	$(M4) $(MACROS) $*.H > $*.h
 
 .C.c:
-	$(M4) $(MACROS) $*.C > $(LOCALHOME)/user/$*.c
+	rm -f $(LOCALHOME)/user/$*.c
+	$(M4) $(MACROS) $*.C > $(LOCALHOME)/user/$*_cont.c
 

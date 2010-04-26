@@ -2,8 +2,11 @@ ifdef LAB3
 OBJDIRS += user
 
 
-user/lu.c: splash/codes/kernels/lu/contiguous_blocks/lu.C
+user/lu_cont.c: splash/codes/kernels/lu/contiguous_blocks/lu.C
 	    make -C splash/codes/kernels/lu/contiguous_blocks/
+
+user/lu_noncont.c: splash/codes/kernels/lu/non_contiguous_blocks/lu.C
+	    make -C splash/codes/kernels/lu/non_contiguous_blocks/
 
 $(OBJDIR)/user/%.o: user/%.c
 	@echo + cc[USER] $<

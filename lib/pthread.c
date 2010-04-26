@@ -266,7 +266,9 @@ pthread_barrier_wait(pthread_barrier_t * barrier)
 
 pthread_t pthread_self(void)
 {
-	return (int)files->thstat; 
+	// Conforms to common expectations of the
+	// first thread having ID 0.
+	return (int)files->thstat - 1; 
 }
 
 
