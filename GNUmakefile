@@ -99,8 +99,8 @@ NETPORT := $(shell expr `id -u` % 5000 + 30000)
 
 # Correct option to enable the GDB stub and specify its port number to qemu.
 # First is for qemu versions <= 0.10, second is for later qemu versions.
-#QEMUPORT := -s -p $(GDBPORT)
-QEMUPORT := -gdb tcp::$(GDBPORT)
+QEMUPORT := -s -p $(GDBPORT)
+# QEMUPORT := -gdb tcp::$(GDBPORT)
 
 CC	:= $(GCCPREFIX)gcc -pipe
 AS	:= $(GCCPREFIX)as
@@ -306,6 +306,7 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 NCPUS = 2
 #if SOL >= 1
 NCPUS := $(shell if test `uname -n` = "korz"; then echo 8; else echo 2; fi)
+# NCPUS := 1
 #endif
 IMAGES = $(OBJDIR)/kern/kernel.img
 QEMUOPTS = -smp $(NCPUS) -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio \

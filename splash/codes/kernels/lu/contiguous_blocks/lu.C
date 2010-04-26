@@ -168,6 +168,7 @@ int main(int argc, char *argv[])
       break;
     num_rows--;
   }
+
   nblocks = n/block_size;
   if (block_size * nblocks != n) {
     nblocks++;
@@ -416,6 +417,8 @@ void SlaveStart()
     Global->id ++;
   UNLOCK(Global->idlock)
 	  */
+	  printf("HIT %d\n");
+
 
 /* POSSIBLE ENHANCEMENT:  Here is where one might pin processes to
    processors to avoid migration */

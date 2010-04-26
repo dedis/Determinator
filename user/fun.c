@@ -42,6 +42,7 @@ int main(int argc, char ** argv) {
 	int i, status, ret;
 	pthread_t threads[NUM_CHILDREN];
 	int ch;
+
 	extern char * optarg;
 	while ((ch = getopt(argc, argv, "a:b:")) != -1)
 		printf("%c %s\n", ch, optarg);
@@ -70,9 +71,11 @@ int main(int argc, char ** argv) {
 
 	print_array();
 
+
 	char * b = (char *)malloc(16);
 	strcpy(b, "HELLO!");
 	fprintf(stderr, "Value: %s\n", b);
+
 
 
 	return EXIT_SUCCESS;
