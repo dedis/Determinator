@@ -42,7 +42,7 @@ $(OBJDIR)/parsec/x264/%.o: parsec/x264/%.asm
 $(OBJDIR)/user/x264: $(X264_OBJS) $(USER_LDDEPS)
 	@echo + ld $@
 	$(V)$(LD) -o $@ $(USER_LDFLAGS) \
-		$(USER_LDINIT) $(X264_OBJS) $(USER_LDFINI) $(USER_LDLIBS)
+		$(USER_LDINIT) $(X264_OBJS) $(USER_LDLIBS)
 	$(V)$(OBJDUMP) -S $@ > $@.asm
 	$(V)$(NM) -n $@ > $@.sym
 

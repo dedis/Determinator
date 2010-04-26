@@ -4,10 +4,7 @@
 #include <inc/vm.h>
 
 
-// The linker places the .init section first in any executable.
-// We have to use this section so the following code is at a fixed position.
-	.section ".init"
-
+	.text
 
 // Start entrypoint - this is where the kernel (or our parent process)
 // starts us running when we are initially loaded into a new process.
@@ -27,15 +24,29 @@ start:
 
 args_exist:
 #endif
-#if LAB >= 9
-	call	init	// run initialization code
-	call	main	// run the program
-	call	fini	// run finalization code
-#else
-	call	main	// run the program
+#if LAB >= 9		// run initialization functions
+	movl	$__init_array_start,%esi
+1:	cmpl	$__init_array_end,%esi
+	je	2f
+	movl	(%esi),%eax
+	addl	$4,%esi
+	call	*%eax
+	jmp	1b
+2:
 #endif
 
+	call	main	// run the program
 	pushl	%eax	// use with main's return value as exit status
+#if LAB >= 9		// run finalization functions
+	movl	$__fini_array_start,%esi
+1:	cmpl	$__fini_array_end,%esi
+	je	2f
+	movl	(%esi),%eax
+	addl	$4,%esi
+	call	*%eax
+	jmp	1b
+2:
+#endif
 	call	exit
 1:	jmp 1b
 
@@ -71,18 +82,4 @@ exec_start:
 	jmp	start
 
 #endif	// LAB >= 4
-
-
-#if LAB >= 9
-// Initializer/finalizer code section headers
-	.p2align 4
-init:
-	// All other .init section code gets linked in at this point,
-	// and the 'ret' in lib/crtn.S caps off the initializer function.
-
-	.section ".fini"
-fini:
-	// All .fini section code goes here...
-#endif
-
 #endif // LAB >= 3

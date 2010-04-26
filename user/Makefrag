@@ -8,8 +8,7 @@ $(OBJDIR)/user/%.o: user/%.c
 
 $(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(USER_LDDEPS)
 	@echo + ld $@
-	$(V)$(LD) -o $@ $(USER_LDFLAGS) \
-		$(USER_LDINIT) $@.o $(USER_LDFINI) $(USER_LDLIBS)
+	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(USER_LDINIT) $@.o $(USER_LDLIBS)
 	$(V)$(OBJDUMP) -S $@ > $@.asm
 	$(V)$(NM) -n $@ > $@.sym
 

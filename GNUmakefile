@@ -119,7 +119,7 @@ GCCDIR := $(dir $(shell $(CC) $(CFLAGS) -print-libgcc-file-name))
 ifneq ($(GCCPREFIX),pios-)
 CFLAGS += -nostdinc -m32
 LDFLAGS += -nostdlib -m elf_i386
-USER_LDFLAGS += -e start -Tinit=0x40000100
+USER_LDFLAGS += -e start -Ttext=0x40000100
 endif
 
 # Compiler flags
@@ -144,8 +144,7 @@ KERN_LDLIBS += $(LDLIBS) -lgcc
 USER_CFLAGS += $(CFLAGS) -DPIOS_USER
 USER_LDFLAGS += $(LDFLAGS)
 USER_LDINIT += $(OBJDIR)/lib/crt0.o
-USER_LDFINI += $(OBJDIR)/lib/crtn.o
-USER_LDDEPS += $(USER_LDINIT) $(USER_LDFINI) $(OBJDIR)/lib/libc.a
+USER_LDDEPS += $(USER_LDINIT) $(OBJDIR)/lib/libc.a
 USER_LDLIBS += $(LDLIBS) -lc -lgcc
 
 # Lists that the */Makefrag makefile fragments will add to

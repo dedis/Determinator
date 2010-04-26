@@ -87,8 +87,7 @@ all:	$(addprefix $(XCDIR)/include/,$(XC_INCFILES)) \
 	$(XCDIR)/lib/libc.a \
 	$(XCDIR)/lib/libm.a \
 	$(XCDIR)/lib/libg.a \
-	$(XCDIR)/lib/crt0.o \
-	$(XCDIR)/lib/crtn.o
+	$(XCDIR)/lib/crt0.o
 
 $(XCDIR)/include $(XCDIR)/lib:
 	mkdir -p $@
