@@ -737,6 +737,17 @@ mutexreqs(pthread_t t)
 	}
 }
 
+int pthread_mutexattr_init(pthread_mutexattr_t *attr)
+{
+	*attr = 0;
+	return 0;
+}
+
+int pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
+{
+	return 0;
+}
+
 ////////// Condition variables //////////
 
 int
@@ -838,6 +849,18 @@ condwakeups(void)
 		c->evnext = NULL;
 	}
 }
+
+int pthread_condattr_init(pthread_condattr_t *attr)
+{
+	*attr = 0;
+	return 0;
+}
+
+int pthread_condattr_destroy(pthread_condattr_t *attr)
+{
+	return 0;
+}
+
 
 ////////// Thread-specific data //////////
 

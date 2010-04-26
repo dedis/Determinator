@@ -63,8 +63,8 @@ KERN_INITFILES +=	matmult \
 			pqsort
 
 # Anything we find in the 'fs' subdirectory also becomes a file.
-KERN_FSFILES :=		$(patsubst fs/%,%,$(wildcard fs/*))
-KERN_INITFILES +=	$(KERN_FSFILES)
+KERN_FSFILES :=		$(wildcard fs/*)
+KERN_INITFILES +=	$(patsubst fs/%,%,$(KERN_FSFILES))
 #endif
 endif
 
@@ -122,7 +122,7 @@ $(OBJDIR)/kern/kernel.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/bootblock
 	$(V)mv $(OBJDIR)/kern/kernel.img~ $(OBJDIR)/kern/kernel.img
 
 ifdef LAB4
-$(OBJDIR)/kern/initfiles.h: kern/Makefrag
+$(OBJDIR)/kern/initfiles.h: kern/Makefrag $(KERN_FSFILES)
 	echo >$@ "$(subst /,_,$(subst .,_, \
 			$(patsubst %,INITFILE(%),$(KERN_INITFILES))))"
 $(OBJDIR)/kern/file.o: $(OBJDIR)/kern/initfiles.h
