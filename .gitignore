@@ -7,4 +7,6 @@ lab?-handin.tar.gz
 lab?/
 sol?/
 grade-out
+xc
 node?.dump
+*/_*.[ch]

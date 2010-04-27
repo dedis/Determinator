@@ -1,6 +1,4 @@
 #if LAB >= 1
-/*	$NetBSD: stdarg.h,v 1.12 1995/12/25 23:15:31 mycroft Exp $	*/
-
 #ifndef PIOS_INC_STDARG_H
 #define	PIOS_INC_STDARG_H
 

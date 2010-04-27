@@ -1,10 +1,11 @@
 #if LAB >= 4
 
-#include <inc/gcc.h>
+#include <inc/cdefs.h>
 #include <inc/file.h>
 #include <inc/stdlib.h>
 #include <inc/syscall.h>
 #include <inc/assert.h>
+#include <inc/string.h>
 
 void gcc_noreturn
 exit(int status)
@@ -23,5 +24,6 @@ abort(void)
 {
 	exit(EXIT_FAILURE);
 }
+
 
 #endif	// LAB >= 4

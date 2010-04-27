@@ -1,12 +1,13 @@
 OBJDIRS += lib
 
+# Source files comprising the minimal PIOS C library.
 LIB_SRCFILES :=		lib/console.c \
 			lib/debug.c \
 			lib/cputs.c \
 			lib/cprintf.c \
 			lib/printfmt.c \
+			lib/scanfmt.c \
 			lib/string.c \
-			lib/syscall.c \
 			lib/file.c \
 			lib/dir.c \
 			lib/stdio.c \
@@ -16,7 +17,47 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/exec.c \
 			lib/fprintf.c \
 			lib/readline.c \
-			lib/thread.c
+			lib/thread.c \
+			lib/pthread.c \
+			lib/malloc.c \
+			lib/getopt.c \
+			lib/lrand48.c \
+			lib/dsthread.c \
+			lib/time.c \
+			lib/rngs.c \
+			lib/dlmalloc.c \
+			lib/mman.c
+
+#if LAB >= 9
+ifdef LAB9
+# Additional C library files not needed by PIOS itself
+# but needed in many applications we may wish to run on PIOS.
+LIB_SRCFILES +=		lib/stdio/putc.c \
+			lib/stdio/getc.c \
+			lib/stdio/puts.c \
+			lib/stdlib/strtol.c \
+			lib/stdlib/strtoll.c \
+			lib/stdlib/strtoul.c \
+			lib/stdlib/strtoull.c \
+			lib/stdlib/strtod.c \
+			lib/stdlib/getenv.c \
+			lib/string/strcasecmp.c \
+			lib/string/strcat.c \
+			lib/string/strdup.c \
+			lib/string/strpbrk.c \
+			lib/string/strstr.c \
+			lib/string/strtok.c \
+			lib/string/strspn.c \
+			lib/string/strcspn.c
+endif
+#endif
+
+#if SOL >= 4
+LIB_SRCFILES +=		lib/bench.c
+
+# Sun math library (snatched from FreeBSD 8.0.0)
+include lib/math/Makefrag
+#endif
 
 # Build files only if they exist.
 LIB_SRCFILES := $(wildcard $(LIB_SRCFILES))
@@ -27,14 +68,42 @@ LIB_OBJFILES := $(patsubst lib/%.S, $(OBJDIR)/lib/%.o, $(LIB_OBJFILES))
 $(OBJDIR)/lib/%.o: lib/%.c
 	@echo + cc[USER] $<
 	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(USER_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/lib/%.o: lib/%.S
 	@echo + as[USER] $<
 	@mkdir -p $(@D)
-	$(V)$(CC) -nostdinc $(USER_CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(USER_CFLAGS) -c -o $@ $<
 
-$(OBJDIR)/lib/libpios.a: $(LIB_OBJFILES)
+$(OBJDIR)/lib/libc.a: $(LIB_OBJFILES)
 	@echo + ar $@
 	$(V)$(AR) r $@ $(LIB_OBJFILES)
 
+#if SOL >= 4
+# Rules for building a target install tree for a GCC (cross-)compiler
+
+XCDIR := xc/pios
+XC_INCFILES := $(patsubst inc/%,%,$(wildcard inc/*.h))
+
+all:	$(addprefix $(XCDIR)/include/,$(XC_INCFILES)) \
+	$(XCDIR)/include/sys \
+	$(XCDIR)/lib/libc.a \
+	$(XCDIR)/lib/libm.a \
+	$(XCDIR)/lib/libg.a \
+	$(XCDIR)/lib/crt0.o
+
+$(XCDIR)/include $(XCDIR)/lib:
+	mkdir -p $@
+
+$(XCDIR)/include/%.h: inc/%.h $(XCDIR)/include
+	unifdef -n -DLAB=9 -DSOL=9 $< >$@ || true
+
+$(XCDIR)/include/sys: $(XCDIR)/include
+	ln -s . $@
+
+$(XCDIR)/lib/lib%.a: $(OBJDIR)/lib/libc.a $(XCDIR)/lib
+	cp $< $@
+$(XCDIR)/lib/crt%.o: $(OBJDIR)/lib/crt%.o
+	cp $< $@
+
+#endif

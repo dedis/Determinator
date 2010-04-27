@@ -3,7 +3,7 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/assert.h>
-#include <inc/gcc.h>
+#include <inc/cdefs.h>
 #include <inc/syscall.h>
 #if LAB >= 3
 #include <inc/elf.h>
@@ -30,16 +30,25 @@
 
 #if LAB >= 2
 #include <dev/pic.h>
+#include <dev/timer.h>
 #include <dev/lapic.h>
 #include <dev/ioapic.h>
+#if SOL >= 3	// XXX rdtsc calibration
+#include <dev/nvram.h>
+#endif
 #endif	// LAB >= 2
 #if LAB >= 5
 #include <dev/pci.h>
 #endif	// LAB >= 5
+#if SOL >= 4
+#include <dev/pmc.h>
+#endif
 
 
 // User-mode stack for user(), below, to run on.
 static char gcc_aligned(16) user_stack[PAGESIZE];
+
+#define ROOTEXE_START _binary_obj_user_sh_start
 
 // Lab 3: ELF executable containing root process, linked into the kernel
 #ifndef ROOTEXE_START
@@ -99,11 +108,12 @@ init(void)
 	// Find and start other processors in a multiprocessor system
 	mp_init();		// Find info about processors in system
 	pic_init();		// setup the legacy PIC (mainly to disable it)
+	timer_init();		// 8253 timer, used to calibrate LAPIC timers
 	ioapic_init();		// prepare to handle external device interrupts
 	lapic_init();		// setup this CPU's local APIC
 	cpu_bootothers();	// Get other processors started
-	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
-		cpu_onboot() ? "BP" : "AP");
+//	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
+//		cpu_onboot() ? "BP" : "AP");
 
 #if LAB >= 4
 	// Initialize the I/O system.
@@ -115,6 +125,7 @@ init(void)
 
 #if SOL >= 4
 	cons_intenable();	// Let the console start producing interrupts
+	pmc_init();		// Init perf monitoring counters
 #else
 	// Lab 4: uncomment this when you can handle IRQ_SERIAL and IRQ_KBD.
 	//cons_intenable();	// Let the console start producing interrupts
@@ -144,14 +155,37 @@ init(void)
 	// Create our first actual user-mode process
 	// (though it's still be sharing the kernel's address space for now).
 	proc *root = proc_alloc(NULL, 0);
-	root->tf.tf_eip = (uint32_t) user;
-	root->tf.tf_esp = (uint32_t) &user_stack[PAGESIZE];
+	root->sv.tf.tf_eip = (uint32_t) user;
+	root->sv.tf.tf_esp = (uint32_t) &user_stack[PAGESIZE];
 
 	proc_ready(root);	// make it ready
 	proc_sched();		// run it
 #elif SOL >= 3
 	if (!cpu_onboot())
 		proc_sched();	// just jump right into the scheduler
+
+#if LAB >= 99
+	cprintf("Calibrating timer...\n");
+	while (nvram_read(0x0a) & 0x80); // wait until no update in progress
+	uint8_t s = nvram_read(0x00), s2;
+	do {
+		while (nvram_read(0x0a) & 0x80);
+	} while ((s2 = nvram_read(0x00)) == s);
+	s = s2;
+	do {
+		while (nvram_read(0x0a) & 0x80);
+	} while ((s2 = nvram_read(0x00)) == s);
+	s = s2;
+	while (1) {
+		uint64_t ts = rdtsc();
+		do {
+			while (nvram_read(0x0a) & 0x80);
+		} while ((s2 = nvram_read(0x00)) == s);
+		s = s2;
+		uint64_t td = rdtsc() - ts;
+		cprintf("  %lld CPU clocks per second\n", td);
+	}
+#endif
 
 	// Create our first actual user-mode process
 	proc *root = proc_root = proc_alloc(NULL, 0);
@@ -190,8 +224,8 @@ init(void)
 	}
 
 	// Start the process at the entry indicated in the ELF header
-	root->tf.tf_eip = eh->e_entry;
-	root->tf.tf_eflags |= FL_IF;	// enable interrupts
+	root->sv.tf.tf_eip = eh->e_entry;
+	root->sv.tf.tf_eflags |= FL_IF;	// enable interrupts
 
 	// Give the process a 1-page stack in high memory
 	// (the process can then increase its own stack as desired)
@@ -199,7 +233,7 @@ init(void)
 	pte_t *pte = pmap_insert(root->pdir, pi, VM_STACKHI-PAGESIZE,
 				SYS_READ | SYS_WRITE | PTE_P | PTE_U | PTE_W);
 	assert(pte != NULL);
-	root->tf.tf_esp = VM_STACKHI;
+	root->sv.tf.tf_esp = VM_STACKHI;
 
 	// Give the root process an initial file system.
 	file_initroot(root);

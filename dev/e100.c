@@ -15,6 +15,7 @@
 #include <dev/e100.h>
 
 
+bool e100_present;
 uint8_t e100_irq;
 
 #define E100_TX_SLOTS			64
@@ -453,13 +454,14 @@ int e100_attach(struct pci_func *pcif)
 
 	// Enable network card interrupts
 	pic_enable(e100_irq);
-	ioapic_enable(e100_irq, 0);
+	ioapic_enable(e100_irq);
 
 	// Start receiving packets
 	spinlock_acquire(&e100.lock);
 	e100_rx_start();
 	spinlock_release(&e100.lock);
 
+	e100_present = 1;
 	return 1;
 }
 

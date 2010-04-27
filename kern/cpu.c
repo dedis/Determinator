@@ -31,20 +31,20 @@ cpu cpu_boot = {
 		[0] = SEGDESC_NULL,
 
 		// 0x08 - kernel code segment
-		[CPU_GDT_KCODE >> 3] = SEGDESC32(STA_X | STA_R, 0x0,
+		[CPU_GDT_KCODE >> 3] = SEGDESC32(1, STA_X | STA_R, 0x0,
 					0xffffffff, 0),
 
 		// 0x10 - kernel data segment
-		[CPU_GDT_KDATA >> 3] = SEGDESC32(STA_W, 0x0,
+		[CPU_GDT_KDATA >> 3] = SEGDESC32(1, STA_W, 0x0,
 					0xffffffff, 0),
 #if SOL >= 1
 
 		// 0x18 - user code segment
-		[CPU_GDT_UCODE >> 3] = SEGDESC32(STA_X | STA_R,
+		[CPU_GDT_UCODE >> 3] = SEGDESC32(1, STA_X | STA_R,
 					0x00000000, 0xffffffff, 3),
 
 		// 0x20 - user data segment
-		[CPU_GDT_UDATA >> 3] = SEGDESC32(STA_W,
+		[CPU_GDT_UDATA >> 3] = SEGDESC32(1, STA_W,
 					0x00000000, 0xffffffff, 3),
 
 		// 0x28 - tss, initialized in cpu_init()
@@ -56,11 +56,79 @@ cpu cpu_boot = {
 };
 
 
+#if SOL >= 9
+void
+cpu_info()
+{
+	// Obtain and print some information about the CPU.
+	cpuinfo inf;
+
+	char str[12+1];
+	cpuid(0x00, &inf);
+	memcpy(str, &inf.ebx, 12);
+	str[12] = 0;
+	cpuid(0x01, &inf);
+
+	int family = (inf.eax >> 8) & 0xf;
+	int model = (inf.eax >> 4) & 0xf;
+	int stepping = (inf.eax >> 4) & 0xf;
+	if (family == 0xf)
+		family += (inf.eax >> 20) & 0xff;
+	if (family == 6 || family >= 0xf)
+		model |= ((inf.eax >> 16) & 0xf) << 4;
+
+	cprintf("CPUID: %s %x/%x/%x\n", str, family, model, stepping);
+}
+
+#define MTRRcap			0x00fe
+#define MTRRphysBase0		0x0200
+#define MTRRphysMask0		0x0201
+#define MTRRfix64K_00000	0x0250
+#define MTRRfix16K_80000	0x0258
+#define MTRRfix16K_A0000	0x0259
+#define MTRRfix4K_C0000		0x0268
+#define MTRRdefType		0x02ff
+
+void
+cpu_setmtrr()
+{
+	cpuinfo inf;
+	cpuid(0x01, &inf);
+	if (!(inf.edx & (1 << 12))) {
+		warn("cpu_setmtrr: CPU has no MTRR support?");
+//		return;
+	}
+
+	cprintf("CR0: %x cap %llx deftype %llx\n",
+		rcr0(), rdmsr(MTRRcap), rdmsr(MTRRdefType));
+	int i;
+	for (i = 0; i < 8; i++) {
+		uint64_t base = rdmsr(MTRRphysBase0+2*i);
+		uint64_t mask = rdmsr(MTRRphysMask0+2*i);
+		if (mask & 0x800)	// only show MTRRs in use
+			cprintf("MTRRvar%d: %llx %llx\n", i, base, mask);
+	}
+	cprintf("MTRRfix64K%d: %llx\n", 0, rdmsr(MTRRfix64K_00000));
+	cprintf("MTRRfix16K%d: %llx\n", 0, rdmsr(MTRRfix16K_80000));
+	cprintf("MTRRfix16K%d: %llx\n", 1, rdmsr(MTRRfix16K_A0000));
+	for (i = 0; i < 8; i++)
+		cprintf("MTRRfix%d: %llx\n", i, rdmsr(MTRRfix4K_C0000+i));
+//	cprintf("on CPU %d\n", cpu_cur()->id);
+//	if (!cpu_onboot())
+//		while(1);
+}
+#endif
+
 void cpu_init()
 {
 	cpu *c = cpu_cur();
 
 #if SOL >= 1
+#if SOL >= 9
+	if (cpu_onboot())
+		cpu_info();
+#endif
+
 	// Setup the TSS for this cpu so that we get the right stack
 	// when we trap into the kernel from user mode.
 	c->tss.ts_esp0 = (uint32_t) c->kstackhi;
@@ -68,9 +136,8 @@ void cpu_init()
 
 	// Initialize the non-constant part of the cpu's GDT:
 	// the TSS descriptor is different for each cpu.
-	c->gdt[CPU_GDT_TSS >> 3] = SEGDESC16(STS_T32A, (uint32_t) (&c->tss),
+	c->gdt[CPU_GDT_TSS >> 3] = SEGDESC16(0, STS_T32A, (uint32_t) (&c->tss),
 					sizeof(taskstate)-1, 0);
-	c->gdt[CPU_GDT_TSS >> 3].sd_s = 0;
 
 #endif	// SOL >= 1
 	// Load the GDT

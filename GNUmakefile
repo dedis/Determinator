@@ -54,7 +54,10 @@ TOP = .
 
 # try to infer the correct GCCPREFIX
 ifndef GCCPREFIX
-GCCPREFIX := $(shell if i386-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
+GCCPREFIX := $(shell \
+	if pios-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
+	then echo 'pios-'; \
+	elif i386-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
 	then echo 'i386-elf-'; \
 	elif objdump -i 2>&1 | grep 'elf32-i386' >/dev/null 2>&1; \
 	then echo ''; \
@@ -91,7 +94,7 @@ NETPORT := $(shell expr `id -u` % 5000 + 30000)
 
 # Correct option to enable the GDB stub and specify its port number to qemu.
 # First is for qemu versions <= 0.10, second is for later qemu versions.
-#QEMUPORT := -s -p $(GDBPORT)
+# QEMUPORT := -s -p $(GDBPORT)
 QEMUPORT := -gdb tcp::$(GDBPORT)
 
 CC	:= $(GCCPREFIX)gcc -pipe
@@ -108,26 +111,41 @@ NCC	:= gcc $(CC_VER) -pipe
 TAR	:= gtar
 PERL	:= perl
 
+# Where does GCC have its libgcc.a and libgcc's include directory?
+GCCDIR := $(dir $(shell $(CC) $(CFLAGS) -print-libgcc-file-name))
+
+# If we're not using the special "PIOS edition" of GCC,
+# reconfigure the host OS's compiler for our purposes.
+ifneq ($(GCCPREFIX),pios-)
+CFLAGS += -nostdinc -m32
+LDFLAGS += -nostdlib -m elf_i386
+USER_LDFLAGS += -e start -Ttext=0x40000100
+endif
+
 # Compiler flags
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
-CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -O1 -fno-builtin -I$(TOP) -MD 
-CFLAGS += -Wall -Wno-unused -Werror -gstabs -m32
+# XXX modified to -O2 for benchmarking
+CFLAGS += $(DEFS) $(LABDEFS) -O1 -fno-builtin \
+		-I$(TOP) -I$(TOP)/inc -I$(GCCDIR)/include -MD  \
+		-Wall -Wno-unused -Werror -gstabs
 
 # Add -fno-stack-protector if the option exists.
-CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
+CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 \
+		&& echo -fno-stack-protector)
+
+LDFLAGS += -L$(OBJDIR)/lib -L$(GCCDIR)
 
 # Kernel versus user compiler flags
-KERN_CFLAGS := $(CFLAGS) -DPIOS_KERNEL
-USER_CFLAGS := $(CFLAGS) -DPIOS_USER
+KERN_CFLAGS += $(CFLAGS) -DPIOS_KERNEL
+KERN_LDFLAGS += $(LDFLAGS) -nostdlib -Ttext=0x00100000 -L$(GCCDIR)
+KERN_LDLIBS += $(LDLIBS) -lgcc
 
-# Linker flags
-LDFLAGS := -m elf_i386 -e start -nostdlib
-
-KERN_LDFLAGS := $(LDFLAGS) -Ttext=0x00100000
-USER_LDFLAGS := $(LDFLAGS) -Ttext=0x40000000
-
-GCC_LIB := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
+USER_CFLAGS += $(CFLAGS) -DPIOS_USER
+USER_LDFLAGS += $(LDFLAGS)
+USER_LDINIT += $(OBJDIR)/lib/crt0.o
+USER_LDDEPS += $(USER_LDINIT) $(OBJDIR)/lib/libc.a
+USER_LDLIBS += $(LDLIBS) -lc -lgcc
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
@@ -174,11 +192,8 @@ ifneq ($(LAB), 3)
 ifneq ($(LAB), 4)
 	echo >>conf/lab.mk "LAB5=true"
 ifneq ($(LAB), 5)
-	echo >>conf/lab.mk "LAB6=true"
-ifneq ($(LAB), 6)
-	echo >>conf/lab.mk "LAB7=true"
-endif	# LAB != 6
-endif	# LAB != 5
+	echo >>conf/lab.mk "LAB9=true"
+endif	# LAB != 4
 endif	# LAB != 4
 endif	# LAB != 3
 endif	# LAB != 2
@@ -284,8 +299,13 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
+NCPUS = 2
+#if SOL >= 1
+NCPUS := $(shell if test `uname -n` = "korz"; then echo 8; else echo 2; fi)
+#endif
 IMAGES = $(OBJDIR)/kern/kernel.img
-QEMUOPTS = -smp 2 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio
+QEMUOPTS = -smp $(NCPUS) -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio \
+		-k en-us -m 1100M
 #QEMUNET = -net socket,mcast=230.0.0.1:$(NETPORT) -net nic,model=i82559er
 QEMUNET1 = -net nic,model=i82559er,macaddr=52:54:00:12:34:01 \
 		-net socket,connect=:$(NETPORT) -net dump,file=node1.dump
@@ -295,7 +315,7 @@ QEMUNET2 = -net nic,model=i82559er,macaddr=52:54:00:12:34:02 \
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
-ifdef LAB5
+ifeq ($(LAB),5)
 qemu: $(IMAGES)
 	@rm -f node?.dump
 	$(QEMU) $(QEMUOPTS) $(QEMUNET2) </dev/null | sed -e 's/^/2: /g' &
@@ -310,7 +330,7 @@ qemu-nox: $(IMAGES)
 	echo "*** Use Ctrl-a x to exit"
 	$(QEMU) -nographic $(QEMUOPTS)
 
-ifdef LAB5
+ifeq ($(LAB),5)
 qemu-gdb: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
 	@rm -f node?.dump

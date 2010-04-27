@@ -82,6 +82,22 @@ fputc(int c, FILE *fd)
 	return ch;
 }
 
+int
+ungetc(int c, FILE *fd)
+{
+	// We only support the most common use of ungetc(),
+	// to back up the read position after "peeking" a character.
+	assert(filedesc_isreadable(fd));
+	fileinode *fi = &files->fi[fd->ino];
+	if (c == EOF || fd->ofs <= 0 || fd->ofs > fi->size) {
+		errno = EINVAL;
+		return EOF;
+	}
+	if (((uint8_t*)FILEDATA(fd->ino))[--fd->ofs] != c)
+		panic("ungetc: unsupported usage, ungetting the wrong char");
+	return c;
+}
+
 size_t
 fread(void *buf, size_t eltsize, size_t count, FILE *fd)
 {
@@ -143,10 +159,17 @@ fileno(FILE *fd)
 #endif
 
 int
-fflush(FILE *fd)
+fflush(FILE *f)
 {
-	assert(filedesc_isopen(fd));
-	return fileino_flush(fd->ino);
+	if (f == NULL) {	// flush all open streams
+		for (f = &files->fd[0]; f < &files->fd[OPEN_MAX]; f++)
+			if (filedesc_isopen(f))
+				fflush(f);
+		return 0;
+	}
+
+	assert(filedesc_isopen(f));
+	return fileino_flush(f->ino);
 }
 
 #endif /* LAB >= 4 */

@@ -11,7 +11,7 @@
 
 void ioapic_init(void);
 
-void ioapic_enable(int irq, int apicid);
+void ioapic_enable(int irq);
 
 
 #endif /* !PIOS_DEV_IOAPIC_H */

@@ -1,8 +1,8 @@
 #ifndef PIOS_INC_X86_H
 #define PIOS_INC_X86_H
 
-#include <inc/types.h>
-#include <inc/gcc.h>
+#include <types.h>
+#include <cdefs.h>
 
 
 // EFLAGS register
@@ -27,6 +27,16 @@
 #define FL_VIF		0x00080000	// Virtual Interrupt Flag
 #define FL_VIP		0x00100000	// Virtual Interrupt Pending
 #define FL_ID		0x00200000	// ID flag
+
+
+// Struct containing information returned by the CPUID instruction
+typedef struct cpuinfo {
+	uint32_t	eax;
+	uint32_t	ebx;
+	uint32_t	edx;
+	uint32_t	ecx;
+} cpuinfo;
+
 
 
 static gcc_inline void
@@ -305,20 +315,12 @@ pause(void)
 }
 
 static gcc_inline void
-cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp, uint32_t *ecxp, uint32_t *edxp)
+cpuid(uint32_t idx, cpuinfo *info)
 {
-	uint32_t eax, ebx, ecx, edx;
 	asm volatile("cpuid" 
-		: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
-		: "a" (info));
-	if (eaxp)
-		*eaxp = eax;
-	if (ebxp)
-		*ebxp = ebx;
-	if (ecxp)
-		*ecxp = ecx;
-	if (edxp)
-		*edxp = edx;
+		: "=a" (info->eax), "=b" (info->ebx),
+		  "=c" (info->ecx), "=d" (info->edx)
+		: "a" (idx));
 }
 
 static gcc_inline uint64_t
@@ -358,6 +360,30 @@ bswap(uint32_t v)
 #define ntohs(v)	(((uint16_t)(v) >> 8) | (uint16_t)((v) << 8))
 #define htonl(v)	bswap(v)
 #define ntohl(v)	bswap(v)
+
+// Read and write model-specific registers.
+static gcc_inline uint64_t
+rdmsr(int32_t msr)
+{
+        uint64_t val;
+        asm volatile("rdmsr" : "=A" (val) : "c" (msr));
+        return val;
+}
+
+static gcc_inline void
+wrmsr(int32_t msr, uint64_t val)
+{
+        asm volatile("wrmsr" : : "c" (msr), "A" (val));
+}
+
+// Read performanc-monitoring counters.
+static gcc_inline uint32_t
+rdpmc(int32_t ctr)
+{
+        uint64_t v;
+        asm volatile("rdpmc" : "=A" (v) : "c" (ctr));
+        return v;
+}
 
 
 #endif /* !PIOS_INC_X86_H */

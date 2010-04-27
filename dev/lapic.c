@@ -8,7 +8,16 @@
 #include <inc/x86.h>
 #include <inc/assert.h>
 
+#include <kern/cpu.h>
+
+#include <dev/timer.h>
 #include <dev/lapic.h>
+
+
+// Frequency at which we want our local APICs to produce interrupts,
+// which are used for context switching.
+// Must be at least 19Hz in order to keep the system type up-to-date.
+#define HZ		25
 
 
 volatile uint32_t *lapic;  // Initialized in mp.c
@@ -32,11 +41,26 @@ lapic_init()
 
 	// The timer repeatedly counts down at bus frequency
 	// from lapic[TICR] and then issues an interrupt.  
-	// If we cared more about precise timekeeping,
-	// TICR would be calibrated using an external time source.
+	// First initialize it to the maximum value for calibration.
 	lapicw(TDCR, X1);
-	lapicw(TIMER, PERIODIC | (T_IRQ0 + IRQ_TIMER));
-	lapicw(TICR, 10000000); 
+	lapicw(TIMER, PERIODIC | T_LTIMER);
+	lapicw(TICR, ~(uint32_t)0); 
+
+	// Use the 8253 Programmable Interval Timer (PIT),
+	// which has a standard clock frequency,
+	// to determine this processor's exact bus frequency.
+	uint64_t tb = timer_read() + 1;
+	while (timer_read() < tb);	// wait until start of a PIT tick
+	uint32_t lb = lapic[TCCR];	// read base count from lapic
+	while (timer_read() < tb+(TIMER_FREQ+HZ/2)/HZ); // wait 1/HZ sec
+	uint32_t le = lapic[TCCR];	// read final count from lapic
+	assert(le < lb);
+	uint32_t ltot = lb - le;	// total # lapic ticks per 1/HZ tick
+
+	long long lhz = ltot * HZ;
+	cprintf("CPU%d: %llu.%09lluHz\n", cpu_cur()->id,
+		lhz / 1000000000, lhz % 1000000000);
+	lapicw(TICR, ltot);
 
 	// Disable logical interrupt lines.
 	lapicw(LINT0, MASKED);
@@ -47,8 +71,14 @@ lapic_init()
 	if (((lapic[VER]>>16) & 0xFF) >= 4)
 		lapicw(PCINT, MASKED);
 
-	// Map error interrupt to IRQ_ERROR.
-	lapicw(ERROR, T_IRQ0 + IRQ_ERROR);
+	// Map other interrupts to appropriate vectors.
+	lapicw(ERROR, T_LERROR);
+	lapicw(PCINT, T_PERFCTR);
+
+	// Set up to lowest-priority, "anycast" interrupts
+	lapicw(LDR, 0xff << 24);	// Accept all interrupts
+	lapicw(DFR, 0xf << 28);		// Flat model
+	lapicw(TPR, 0x00);		// Task priority 0, no intrs masked
 
 	// Clear error status register (requires back-to-back writes).
 	lapicw(ESR, 0);
@@ -73,6 +103,13 @@ lapic_eoi(void)
 {
 	if (lapic)
 		lapicw(EOI, 0);
+}
+
+void lapic_errintr(void)
+{
+	lapic_eoi();	// Acknowledge interrupt
+	lapicw(ESR, 0);	// Trigger update of ESR by writing anything
+	warn("CPU%d LAPIC error: ESR %x", cpu_cur()->id, lapic[ESR]);
 }
 
 // Spin for a given number of microseconds.

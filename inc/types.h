@@ -7,38 +7,57 @@
 
 // Represents true-or-false values
 typedef int bool;
+#define false 0
+#define true 1
 
 // Explicitly-sized versions of integer types
-typedef __signed char int8_t;
-typedef unsigned char uint8_t;
-typedef short int16_t;
-typedef unsigned short uint16_t;
-typedef int int32_t;
-typedef unsigned int uint32_t;
-typedef long long int64_t;
-typedef unsigned long long uint64_t;
+typedef signed char		int8_t;
+typedef unsigned char		uint8_t;
+typedef short			int16_t;
+typedef unsigned short		uint16_t;
+typedef int			int32_t;
+typedef unsigned int		uint32_t;
+typedef long long		int64_t;
+typedef unsigned long long	uint64_t;
 
 // Pointers and addresses are 32 bits long.
 // We use pointer types to represent virtual addresses,
 // and [u]intptr_t to represent the numerical values of virtual addresses.
-typedef int32_t intptr_t;
-typedef uint32_t uintptr_t;
+typedef int			intptr_t;	// pointer-size signed integer
+typedef unsigned		uintptr_t;	// pointer-size unsigned integer
+typedef int			ptrdiff_t;	// difference between pointers
 
-// size_t is used for memory object sizes.
-typedef uint32_t size_t;
-// ssize_t is a signed version of ssize_t, used in case there might be an
-// error return.
-typedef int32_t ssize_t;
+// size_t is used for memory object sizes, and ssize_t is a signed analog.
+typedef unsigned		size_t;
+typedef int			ssize_t;
 
-// off_t is used for file offsets and lengths.
-typedef int32_t off_t;
+// intmax_t and uintmax_t represent the maximum-size integers supported.
+typedef long long		intmax_t;
+typedef unsigned long long	uintmax_t;
 
-// Random Unix API compatibility types
-typedef int pid_t;
-typedef int dev_t;
-typedef int ino_t;
-typedef int mode_t;
-typedef int nlink_t;
+// Floating-point types matching the size at which the compiler
+// actually evaluates floating-point expressions of a given type. (math.h)
+typedef	double			double_t;
+typedef	float			float_t;
+
+// Unix API compatibility types
+typedef int			off_t;		// file offsets and lengths
+typedef int			pid_t;		// process IDs
+typedef int			ino_t;		// file inode numbers
+typedef int			mode_t;		// file mode flags
+#if LAB >= 9
+
+// Types not needed in PIOS, only by legacy applications
+typedef int			uid_t;
+typedef int			gid_t;
+typedef int			dev_t;
+typedef int			nlink_t;
+typedef int			blksize_t;
+typedef int			blkcnt_t;
+
+typedef int64_t			time_t;
+typedef int32_t			suseconds_t;
+#endif
 
 // Efficient min and max operations
 #define MIN(_a, _b)						\
@@ -73,5 +92,20 @@ typedef int nlink_t;
 
 // Make the compiler think a value is getting used, even if it isn't.
 #define USED(x)		(void)(x)
+
+
+// A common way for portable to tell the endianness of a machine
+// (traditionally in endian.h)
+#define LITTLE_ENDIAN	1234
+#define BIG_ENDIAN	4321
+#define PDP_ENDIAN	3412
+#define BYTE_ORDER	LITTLE_ENDIAN	// x86 is little-endian
+
+
+// For interoperability with GCC's compiler header files
+#define _SIZE_T
+#define _STDINT_H
+#define _PTRDIFF_T
+
 
 #endif /* !PIOS_INC_TYPES_H */

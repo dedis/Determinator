@@ -17,6 +17,10 @@
 #include <kern/net.h>
 #endif
 
+#if SOL >= 2
+#include <dev/pmc.h>
+#endif
+
 
 proc proc_null;		// null process - just leave it initialized to 0
 
@@ -64,11 +68,17 @@ proc_alloc(proc *p, uint32_t cn)
 	cp->home = RRCONS(net_node, mem_phys(cp), 0);
 #endif	// LAB >= 5
 
-	// register state
-	cp->tf.tf_ds = CPU_GDT_UDATA | 3;
-	cp->tf.tf_es = CPU_GDT_UDATA | 3;
-	cp->tf.tf_cs = CPU_GDT_UCODE | 3;
-	cp->tf.tf_ss = CPU_GDT_UDATA | 3;
+	// Integer register state
+	cp->sv.tf.tf_ds = CPU_GDT_UDATA | 3;
+	cp->sv.tf.tf_es = CPU_GDT_UDATA | 3;
+	cp->sv.tf.tf_cs = CPU_GDT_UCODE | 3;
+	cp->sv.tf.tf_ss = CPU_GDT_UDATA | 3;
+#if SOL >= 2
+
+	// Floating-point register state
+	cp->sv.fx.fcw = 0x037f;	// round-to-nearest, 80-bit prec, mask excepts
+	cp->sv.fx.mxcsr = 0x000001f8;	// all MMX exceptions masked
+#endif
 
 #if SOL >= 3
 	// Allocate a page directory for this process
@@ -103,6 +113,51 @@ proc_ready(proc *p)
 #endif	// SOL >= 2
 }
 
+// Save the current process's state before switching to another process.
+// Copies trapframe 'tf' into the proc struct,
+// and saves any other relevant state such as FPU state.
+// The 'entry' parameter is one of:
+//	-1	if we entered the kernel via a trap before executing an insn
+//	0	if we entered via a syscall and must abort/rollback the syscall
+//	1	if we entered via a syscall and are completing the syscall
+void
+proc_save(proc *p, trapframe *tf, int entry)
+{
+#if SOL >= 2
+	assert(p == proc_cur());
+
+	if (tf != &p->sv.tf)
+		p->sv.tf = *tf;		// integer register state
+	if (entry == 0)
+		p->sv.tf.tf_eip -= 2;	// back up to replay INT instruction
+
+	if (p->sv.pff & PFF_USEFPU) {	// FPU state
+		assert(sizeof(p->sv.fx) == 512);
+		asm volatile("fxsave %0" : "=m" (p->sv.fx));
+		lcr0(rcr0() | CR0_TS);	// re-disable FPU
+	}
+
+	if (p->sv.pff & PFF_ICNT) {	// Instruction counting/recovery
+		//cprintf("proc_save tf %x -> proc %x\n", tf, &p->sv.tf);
+		if (p->sv.tf.tf_eflags & FL_TF) {	// single stepping
+			if (entry > 0)
+				p->sv.icnt++;	// executed the INT insn
+			p->sv.tf.tf_eflags &= ~FL_TF;
+		} else if (p->pmcmax > 0) {	// using performance counters
+			assert(pmc_get != NULL);
+			p->sv.icnt += pmc_get(p->pmcmax);
+			p->pmcmax = 0;
+			if (p->sv.icnt > p->sv.imax)
+				panic("oops, perf ctr overshoot by %d insns\n",
+					p->sv.icnt - p->sv.imax);
+		}
+		assert(p->sv.icnt <= p->sv.imax);
+	}
+	assert(!(p->sv.tf.tf_eflags & FL_TF));
+	assert(p->pmcmax == 0);
+#endif
+}
+
 // Go to sleep waiting for a given child process to finish running.
 // Parent process 'p' must be running and locked on entry.
 // The supplied trapframe represents p's register state on syscall entry.
@@ -117,8 +172,7 @@ proc_wait(proc *p, proc *cp, trapframe *tf)
 	p->state = PROC_WAIT;
 	p->runcpu = NULL;
 	p->waitchild = cp;	// remember what child we're waiting on
-	p->tf = *tf;		// save our register state
-	p->tf.tf_eip -= 2;	// back up to replay int instruction
+	proc_save(p, tf, 0);	// save process state before INT instruction
 
 	spinlock_release(&p->lock);
 
@@ -184,18 +238,47 @@ proc_run(proc *p)
 
 	spinlock_release(&p->lock);
 
+	if (p->sv.pff & PFF_USEFPU) {	// FPU state
+		assert(sizeof(p->sv.fx) == 512);
+		lcr0(rcr0() & ~CR0_TS);	// enable FPU
+		asm volatile("fxrstor %0" : : "m" (p->sv.fx));
+	}
+
+	assert(!(p->sv.tf.tf_eflags & FL_TF));
+	assert(p->pmcmax == 0);
+	if (p->sv.pff & PFF_ICNT) {	// Instruction counting/recovery
+		//cprintf("proc_run proc %x\n", &p->sv.tf);
+		if (p->sv.icnt >= p->sv.imax) {
+			warn("proc_run: icnt expired");
+			p->sv.tf.tf_trapno = T_ICNT;
+			proc_ret(&p->sv.tf, -1);	// can't run any insns!
+		}
+		assert(p->pmcmax == 0);
+		int32_t pmax = p->sv.imax - p->sv.icnt - pmc_safety;
+		if (pmc_set != NULL && pmax > 0) {
+			assert(p->sv.tf.tf_eflags & FL_IF);
+			assert(!(p->sv.tf.tf_eflags & FL_TF));
+			pmc_set(pmax);
+			p->pmcmax = pmax;
+		} else
+			p->sv.tf.tf_eflags |= FL_TF;	// just single-step
+	} else {
+		assert(!(p->sv.tf.tf_eflags & FL_TF));
+		assert(p->pmcmax == 0);
+	}
 #if SOL >= 3
 	// Switch to the new process's address space.
 	lcr3(mem_phys(p->pdir));
 
 #endif
-	trap_return(&p->tf);
+	trap_return(&p->sv.tf);
 #else	// SOL >= 2
 	panic("proc_run not implemented");
 #endif	// SOL >= 2
 }
 
 // Yield the current CPU to another ready process.
+// Called while handling a timer interrupt.
 void gcc_noreturn
 proc_yield(trapframe *tf)
 {
@@ -203,8 +286,7 @@ proc_yield(trapframe *tf)
 	proc *p = proc_cur();
 	assert(p->runcpu == cpu_cur());
 	p->runcpu = NULL;	// this process no longer running
-	p->tf = *tf;		// save this process's register state
-
+	proc_save(p, tf, -1);	// save this process's state
 	proc_ready(p);		// put it on tail of ready queue
 
 	proc_sched();		// schedule a process from head of ready queue
@@ -216,14 +298,23 @@ proc_yield(trapframe *tf)
 // Put the current process to sleep by "returning" to its parent process.
 // Used both when a process calls the SYS_RET system call explicitly,
 // and when a process causes an unhandled trap in user mode.
+// The 'entry' parameter is as in proc_save().
 void gcc_noreturn
-proc_ret(trapframe *tf)
+proc_ret(trapframe *tf, int entry)
 {
 #if SOL >= 2
 	proc *cp = proc_cur();		// we're the child
 	assert(cp->state == PROC_RUN && cp->runcpu == cpu_cur());
-	proc *p = cp->parent;		// find our parent
 
+#if SOL >= 5
+	// First migrate to our home node if we're not already there.
+	if (net_node != RRNODE(cp->home)) {
+		if (entry > 0) entry = 0;	// abort syscall
+		net_migrate(tf, RRNODE(cp->home), entry);
+	}
+
+#endif
+	proc *p = cp->parent;		// find our parent
 	if (p == NULL) {		// "return" from root process!
 		if (tf->tf_trapno != T_SYSCALL) {
 			trap_print(tf);
@@ -232,6 +323,7 @@ proc_ret(trapframe *tf)
 #if LAB >= 4
 		// Allow the root process to do I/O via its special files.
 		// May put the root process to sleep waiting for input.
+		assert(entry == 1);
 		file_io(tf);
 #else	// LAB < 4
 		cprintf("root process terminated\n");
@@ -243,7 +335,7 @@ proc_ret(trapframe *tf)
 
 	cp->state = PROC_STOP;		// we're becoming stopped
 	cp->runcpu = NULL;		// no longer running
-	cp->tf = *tf;			// save our register state
+	proc_save(cp, tf, entry);	// save process state after INT insn
 
 	// If parent is waiting to sync with us, wake it up.
 	if (p->state == PROC_WAIT && p->waitchild == cp) {

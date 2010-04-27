@@ -57,6 +57,9 @@ mem_init(void)
 	size_t basemem = ROUNDDOWN(nvram_read16(NVRAM_BASELO)*1024, PAGESIZE);
 	size_t extmem = ROUNDDOWN(nvram_read16(NVRAM_EXTLO)*1024, PAGESIZE);
 
+	warn("Assuming we have 1GB of memory!");
+	extmem = 1024*1024*1024 - MEM_EXT;	// assume 1GB total memory
+
 	// The maximum physical address is the top of extended memory.
 	mem_max = MEM_EXT + extmem;
 
@@ -133,7 +136,8 @@ mem_init(void)
 	//  5) Then extended memory [MEM_EXT, ...).
 	//     Some of it is in use, some is free.
 	//     Which pages hold the kernel and the pageinfo array?
-	//     (See the comment on the start[] and end[] symbols above.)
+	//     Hint: the linker places the kernel (see start and end above),
+	//     but YOU decide where to place the pageinfo array.
 	// Change the code to reflect this.
 	pageinfo **freetail = &mem_freelist;
 	int i;
@@ -392,7 +396,10 @@ mem_check()
 	mem_free(pp1);
 	mem_free(pp2);
 
+#if LAB >= 9
+#else
 	cprintf("mem_check() succeeded!\n");
+#endif
 }
 
 #endif /* LAB >= 1 */

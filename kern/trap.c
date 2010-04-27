@@ -20,6 +20,7 @@
 #include <kern/net.h>
 #endif
 
+#include <dev/timer.h>
 #include <dev/lapic.h>
 #if LAB >= 4
 #include <dev/kbd.h>
@@ -29,6 +30,9 @@
 #include <dev/e100.h>
 #endif
 #endif // LAB >= 2
+#if SOL >= 2
+#include <dev/pmc.h>
+#endif
 
 
 // Interrupt descriptor table.  Must be built at run time because
@@ -50,12 +54,13 @@ trap_init_idt(void)
 	extern char
 		Xdivide,Xdebug,Xnmi,Xbrkpt,Xoflow,Xbound,
 		Xillop,Xdevice,Xdblflt,Xtss,Xsegnp,Xstack,
-		Xgpflt,Xpgflt,Xfperr,Xalign,Xmchk,Xdefault,Xsyscall;
+		Xgpflt,Xpgflt,Xfperr,Xalign,Xmchk,Xdefault;
 #if SOL >= 2
 	extern char
 		Xirq0,Xirq1,Xirq2,Xirq3,Xirq4,Xirq5,
 		Xirq6,Xirq7,Xirq8,Xirq9,Xirq10,Xirq11,
-		Xirq12,Xirq13,Xirq14,Xirq15;
+		Xirq12,Xirq13,Xirq14,Xirq15,
+		Xsyscall,Xltimer,Xlerror,Xperfctr;
 #endif	// SOL >= 2
 	int i;
 
@@ -89,10 +94,6 @@ trap_init_idt(void)
 	SETGATE(idt[T_MCHK],   0, CPU_GDT_KCODE, &Xmchk,   0);
 
 #if SOL >= 2
-	// Use DPL=3 here because system calls are explicitly invoked
-	// by the user process (with "int $T_SYSCALL").
-	SETGATE(idt[T_SYSCALL], 0, CPU_GDT_KCODE, &Xsyscall, 3);
-
 	SETGATE(idt[T_IRQ0 + 0], 0, CPU_GDT_KCODE, &Xirq0, 0);
 	SETGATE(idt[T_IRQ0 + 1], 0, CPU_GDT_KCODE, &Xirq1, 0);
 	SETGATE(idt[T_IRQ0 + 2], 0, CPU_GDT_KCODE, &Xirq2, 0);
@@ -109,6 +110,16 @@ trap_init_idt(void)
 	SETGATE(idt[T_IRQ0 + 13], 0, CPU_GDT_KCODE, &Xirq13, 0);
 	SETGATE(idt[T_IRQ0 + 14], 0, CPU_GDT_KCODE, &Xirq14, 0);
 	SETGATE(idt[T_IRQ0 + 15], 0, CPU_GDT_KCODE, &Xirq15, 0);
+
+	// Use DPL=3 here because system calls are explicitly invoked
+	// by the user process (with "int $T_SYSCALL").
+	SETGATE(idt[T_SYSCALL], 0, CPU_GDT_KCODE, &Xsyscall, 3);
+
+	// Vectors we use for local APIC interrupts
+	SETGATE(idt[T_LTIMER], 0, CPU_GDT_KCODE, &Xltimer, 0);
+	SETGATE(idt[T_LERROR], 0, CPU_GDT_KCODE, &Xlerror, 0);
+	SETGATE(idt[T_PERFCTR], 0, CPU_GDT_KCODE, &Xperfctr, 0);
+
 #endif	// SOL >= 2
 #else	// not SOL >= 1
 	
@@ -218,36 +229,100 @@ trap(trapframe *tf)
 		c->recover(tf, c->recoverdata);
 
 #if SOL >= 2
+	proc *p = proc_cur();
 	switch (tf->tf_trapno) {
 	case T_SYSCALL:
 		assert(tf->tf_cs & 3);	// syscalls only come from user space
 		syscall(tf);
 		break;
-	case T_IRQ0 + IRQ_TIMER:
-		//cprintf("TIMER on %d\n", c->id);
-		lapic_eoi();
+
+	case T_BRKPT:	// other traps entered via explicit INT instructions
+	case T_OFLOW:
+		assert(tf->tf_cs & 3);	// only allowed from user space
+		proc_ret(tf, 1);	// reflect trap to parent process
+
+#if SOL >= 2
+	case T_DEVICE:	// attempted to access FPU while TS flag set
+		cprintf("trap: enabling FPU\n");
+		p->sv.pff |= PFF_USEFPU;
+		assert(sizeof(p->sv.fx) == 512);
+		lcr0(rcr0() & ~CR0_TS);			// enable FPU
+		asm volatile("fxrstor %0" : : "m" (p->sv.fx));
+		trap_return(tf);
+
+	case T_DEBUG:	// count instructions by single-stepping
+		// XXX user code can set the trace flag itself;
+		// need to manage a virtual trace flag on behalf of it
+		// instead of just panicking if we see a debug trap
+		// that we didn't cause.
+		assert(tf->tf_cs & 3);
+		assert(tf->tf_eflags & FL_TF);
+		assert(p->sv.pff & PFF_ICNT);
+		//cprintf("T_DEBUG eip %x\n", tf->tf_eip);
+		if (++p->sv.icnt < p->sv.imax)
+			trap_return(tf);	// keep stepping
+		tf->tf_trapno = T_ICNT;
+		proc_ret(tf, -1);	// can't run any more insns!
+
+	case T_PERFCTR:
+		assert(tf->tf_cs & 3);
+		assert(p->sv.pff & PFF_ICNT);
+		assert(p->pmcmax > 0);
+		assert(pmc_get != NULL);
+		int32_t ninsn = pmc_get(p->pmcmax);
+		int32_t overshoot = ninsn - p->pmcmax;
+		if (overshoot > pmc_overshoot)
+			pmc_overshoot = overshoot;
+		//cprintf("T_PERFCTR: after %d tgt %d ovr %d max %d\n",
+		//	ninsn, p->pmcmax, overshoot, pmc_overshoot);
+		p->sv.icnt += ninsn;
+		p->pmcmax = 0;
+		if (p->sv.icnt > p->sv.imax)
+			panic("oops, perf ctr overshoot by %d insns\n",
+				p->sv.icnt - p->sv.imax);
+
+#endif // SOL >= 2
+	case T_LTIMER: ;
+		uint64_t t = timer_read(); // update PIT count high bits
+		//cprintf("LTIMER on %d: %lld\n", c->id, (long long)t);
 #if SOL >= 5
 		net_tick();
 #endif
+#if LAB >= 99
+		{	static uint64_t lastt;
+			static int cnt;
+			if (cpu_onboot())
+				cnt++;
+			if (cpu_onboot() && t > lastt) {
+				lastt += TIMER_FREQ;
+				cprintf("tick - after %d\n", cnt);
+				cnt = 0;
+			}
+		}
+#endif
+		lapic_eoi();
 		if (tf->tf_cs & 3)	// If in user mode, context switch
 			proc_yield(tf);
 		trap_return(tf);	// Otherwise, stay in idle loop
+	case T_LERROR:
+		lapic_errintr();
+		trap_return(tf);
 #if SOL >= 4
 	case T_IRQ0 + IRQ_KBD:
-		//cprintf("KBD\n");
-		lapic_eoi();
+		//cprintf("CPU%d: KBD\n", c->id);
 		kbd_intr();
+		lapic_eoi();
 		trap_return(tf);
 	case T_IRQ0 + IRQ_SERIAL:
-		//cprintf("SER\n");
+		//cprintf("CPU%d: SER\n", c->id);
 		lapic_eoi();
 		serial_intr();
 		trap_return(tf);
 #endif // SOL >= 4
 #if LAB >= 99
 	case T_IRQ0 + IRQ_IDE:
-		lapic_eoi();
 		ide_intr();
+		lapic_eoi();
 		trap_return(tf);
 #endif
 	case T_IRQ0 + IRQ_SPURIOUS:
@@ -258,22 +333,17 @@ trap(trapframe *tf)
 	}
 #if SOL >= 5
 	if (tf->tf_trapno == T_IRQ0 + e100_irq) {
-		lapic_eoi();
 		e100_intr();
+		lapic_eoi();
 		trap_return(tf);
 	}
-	if (tf->tf_cs & 3) {	// Unhandled trap from user mode
-		// First migrate to our home node if we're not already there.
-		proc *p = proc_cur();
-		if (net_node != RRNODE(p->home))
-			net_migrate(tf, RRNODE(p->home));
-		proc_ret(tf);	// Reflect trap to parent process
-	}
-#else // ! SOL >= 5
-	if (tf->tf_cs & 3) {	// Unhandled trap from user mode
-		proc_ret(tf);	// Reflect trap to parent process
-	}
 #endif // ! SOL >= 5
+	if (tf->tf_cs & 3) {		// Unhandled trap from user mode
+		cprintf("trap in proc %x, reflecting to proc %x\n",
+			proc_cur(), proc_cur()->parent);
+		trap_print(tf);
+		proc_ret(tf, -1);	// Reflect trap to parent process
+	}
 
 #if SOL >= 2	// XXX just give out this code incl. the cons_lock!
 	// If we panic while holding the console lock,
@@ -311,7 +381,10 @@ trap_check_kernel(void)
 	trap_check(&c->recoverdata);
 	c->recover = NULL;	// No more mr. nice-guy; traps are real again
 
+#if LAB >= 9
+#else
 	cprintf("trap_check_kernel() succeeded!\n");
+#endif
 }
 
 // Check for correct handling of traps from user mode.
@@ -328,7 +401,10 @@ trap_check_user(void)
 	trap_check(&c->recoverdata);
 	c->recover = NULL;	// No more mr. nice-guy; traps are real again
 
+#if LAB >= 9
+#else
 	cprintf("trap_check_user() succeeded!\n");
+#endif
 }
 
 void after_div0();
