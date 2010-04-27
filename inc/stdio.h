@@ -31,6 +31,7 @@ int	putc(int c, FILE *f);
 int	putchar(int c);
 int	getc(FILE *f);
 int	getchar(void);
+int	ungetc(int c, FILE *f);
 int	puts(const char *str);
 int	fputs(const char *str, FILE *f);
 #endif

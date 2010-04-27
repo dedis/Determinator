@@ -60,6 +60,7 @@ KERN_INITFILES +=	matmult \
 			fun \
 			icnt \
 			testds \
+			testfloat \
 			pqsort
 
 # Anything we find in the 'fs' subdirectory also becomes a file.
@@ -86,6 +87,7 @@ endif
 
 KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))
 KERN_OBJFILES := $(patsubst %.S, $(OBJDIR)/%.o, $(KERN_OBJFILES))
+KERN_OBJFILES := $(patsubst $(OBJDIR)/lib/%, $(OBJDIR)/kern/%, $(KERN_OBJFILES))
 
 KERN_BINFILES := $(patsubst %, $(OBJDIR)/%, $(KERN_BINFILES))
 
@@ -101,6 +103,11 @@ $(OBJDIR)/kern/%.o: kern/%.S
 	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/dev/%.o: dev/%.c
+	@echo + cc $<
+	@mkdir -p $(@D)
+	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/kern/%.o: lib/%.c
 	@echo + cc $<
 	@mkdir -p $(@D)
 	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
@@ -122,7 +129,7 @@ $(OBJDIR)/kern/kernel.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/bootblock
 	$(V)mv $(OBJDIR)/kern/kernel.img~ $(OBJDIR)/kern/kernel.img
 
 ifdef LAB4
-$(OBJDIR)/kern/initfiles.h: kern/Makefrag $(KERN_FSFILES)
+$(OBJDIR)/kern/initfiles.h: kern/Makefrag $(KERN_FSFILES) $(TOP)/fs
 	echo >$@ "$(subst /,_,$(subst .,_, \
 			$(patsubst %,INITFILE(%),$(KERN_INITFILES))))"
 $(OBJDIR)/kern/file.o: $(OBJDIR)/kern/initfiles.h

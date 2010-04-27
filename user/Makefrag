@@ -20,7 +20,7 @@ $(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(USER_LDDEPS)
 	$(V)$(NM) -n $@ > $@.sym
 
 
-#if SOL >= 4
+#if LAB >= 9
 # Host versions of benchmark programs, for comparison purposes
 all: obj/host/matmult obj/host/microbench
 
@@ -29,4 +29,23 @@ $(OBJDIR)/host/%: user/%.c lib/bench.c
 	$(V)mkdir -p $(OBJDIR)/host
 	$(V)gcc -m32 -O2 -o $@ -I$(TOP) $^ -lpthread
 #endif
+
+
+# Special target to set up PARSEC benchmark programs and data
+# in the 'fs' subdirectory, to get included in the initial file system.
+# Assumes the parsec source tree is checked out next to the pios tree.
+PARSEC_CONFIG := $(sort $(notdir $(wildcard \
+			$(TOP)/../parsec/pkgs/*/*/obj/*.pios)))
+PARSEC_PROGS := blackscholes x264
+parsec:
+	@mkdir -p fs
+	cd fs; for prog in $(PARSEC_PROGS); do \
+		file="../../parsec/pkgs/apps/$$prog/obj/$(PARSEC_CONFIG)/$$prog"; \
+		echo "$$file"; \
+		if test -x "$$file"; then \
+			ln -sf "$$file" "$$prog"; \
+			tar xvf "../../parsec/pkgs/apps/$$prog/inputs/input_simsmall.tar"; \
+		fi \
+	done
+
 endif
