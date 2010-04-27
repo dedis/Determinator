@@ -752,7 +752,6 @@ extern "C" {
 #if !ONLY_MSPACES
 
 /* ------------------- Declarations of public routines ------------------- */
-
 #ifndef USE_DL_PREFIX
 #define dlcalloc               calloc
 #define dlfree                 free
@@ -772,6 +771,16 @@ extern "C" {
 #define dlindependent_comalloc independent_comalloc
 #endif /* USE_DL_PREFIX */
 
+/* -------------------- Declarations of per-thread routines ---------------*/
+/* -------------------- for PIOS ---------------*/
+/*
+#define thcalloc				calloc
+#define thfree					free
+#define thmalloc				malloc */
+
+void *thmalloc(size_t bytes);
+void thfree(void *mem);
+void *thcalloc(size_t num, size_t bytes);
 
 /*
   malloc(size_t n)
