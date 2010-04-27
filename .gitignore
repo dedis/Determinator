@@ -8,5 +8,6 @@ lab?/
 sol?/
 grade-out
 xc
+fs
 node?.dump
 */_*.[ch]

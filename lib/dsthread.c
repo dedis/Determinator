@@ -8,6 +8,7 @@
 #include <inc/pthread.h>
 #include <inc/signal.h>
 #include <inc/assert.h>
+#include <inc/errno.h>
 #include <inc/file.h>
 #include <inc/x86.h>
 #include <inc/mmu.h>
@@ -35,6 +36,7 @@
 typedef struct pthread {
 	int		tno;		// thread number in master process
 	int		state;		// thread's current state
+	int		detached;	// true if thread can never join
 	struct pthread *qnext;		// next on scheduler or wait queue
 	pthread_mutex_t*reqs;		// mutexes req'd by other threads
 	struct pthread *joiner;		// thread blocked joining this thread
@@ -534,6 +536,7 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 	pthread_t t = &th[tno];
 	memset(t, 0, sizeof(*t));
 	t->tno = tno;
+	t->detached = *attr & PTHREAD_CREATE_DETACHED;
 
 	tinit(t);	// initialize the thread's stack
 
@@ -562,6 +565,7 @@ pthread_join(pthread_t tj, void **out_exitval)
 
 	// Wait for target thread to exit
 	assert(tj == &th[tj->tno]);
+	assert(!tj->detached);		// can't join with detached threads!
 	if (tj->state != TH_EXIT)	// hasn't exited as of last check -
 		mcall();		// give up timeslice and check for sure
 	if (tj->state != TH_EXIT) {	// hasn't yet exited - must wait for it
@@ -596,10 +600,47 @@ pthread_exit(void *exitval)
 	if (t->joiner != NULL)
 		tready(t->joiner);
 
-	// save our exit status and block until joiner collects it
+	// save our exit status and block until joiner collects it,
+	// or just go to TH_FREE immediately if we're detached.
 	t->exitval = exitval;
-	tblock(t, TH_EXIT);
+	tblock(t, t->detached ? TH_FREE : TH_EXIT);
 	panic("exited thread should not have unblocked");
+}
+
+int pthread_attr_init(pthread_attr_t *attr)
+{
+	*attr = PTHREAD_CREATE_JOINABLE;
+	return 0;
+}
+
+int pthread_attr_destroy(pthread_attr_t *attr)
+{
+	return 0;
+}
+
+int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate)
+{
+	*detachstate = *attr;
+	return 0;
+}
+
+int pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate)
+{
+	*attr = detachstate;
+	return 0;
+}
+
+int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize)
+{
+	*stacksize = TSTACKSIZE;
+	return 0;
+}
+
+int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
+{
+	warn("pthread_attr_setstacksize: ignoring request for stack size %d",
+		stacksize);
+	return 0;
 }
 
 ////////// Mutexes //////////
@@ -674,6 +715,23 @@ pthread_mutex_lock(pthread_mutex_t *m)
 	mutexlock(t, m);
 	mret();
 	return 0;
+}
+
+int
+pthread_mutex_trylock(pthread_mutex_t *m)
+{
+	pthread *t = self();
+	mlock();
+	int rc;
+	if (m->owner != t || (P_MUTEXFAIR && m->qhead != NULL)) {
+		rc = EBUSY;	// already locked
+	} else {
+		assert(!m->locked);	// shouldn't already be locked
+		m->locked = 1;
+		rc = 0;
+	}
+	mret();
+	return rc;
 }
 
 static gcc_inline void

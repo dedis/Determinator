@@ -9,6 +9,12 @@
 #endif
 
 
+// Frequency at which we want our local APICs to produce interrupts,
+// which are used for context switching.
+// Must be at least 19Hz in order to keep the system type up-to-date.
+#define HZ		25
+
+
 // Local APIC registers, divided by 4 for use as uint32_t[] indices.
 #define ID      (0x0020/4)	// ID
 #define VER     (0x0030/4)	// Version
