@@ -1,4 +1,4 @@
-//minimal 
+//minimal mmap/sbrk
 
 #include <inc/mman.h>
 
