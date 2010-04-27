@@ -7,6 +7,9 @@
 #include <inc/dirent.h>
 #include <inc/assert.h>
 #include <inc/stdarg.h>
+#if LAB >= 9
+#include <inc/select.h>
+#endif
 
 int
 creat(const char *path, mode_t mode)
@@ -128,5 +131,13 @@ fsync(int fn)
 	assert(filedesc_isopen(&files->fd[fn]));
 	return fileino_flush(files->fd[fn].ino);
 }
+
+#if LAB >= 9
+int select(int nfds, fd_set *rs, fd_set *ws, fd_set *xs,
+		struct timeval *timeout)
+{
+	panic("select() not implemented");
+}
+#endif
 
 #endif /* LAB >= 4 */

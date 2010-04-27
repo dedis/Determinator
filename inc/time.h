@@ -27,10 +27,12 @@ struct timezone {
 };
 
 // System time
+time_t	time(time_t *tloc);
 int	gettimeofday(struct timeval *tv, struct timezone *tzp);
 int	settimeofday(const struct timeval *tv, const struct timezone *tzp);
 
 // Time conversion functions
+char *		ctime(const time_t *);
 struct tm *	gmtime(const time_t *);
 struct tm *	localtime(const time_t *);
 time_t		mktime(struct tm *);

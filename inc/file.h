@@ -35,8 +35,9 @@
 #define	O_CREAT		0x0020		// create if nonexistent
 #define	O_TRUNC		0x0040		// truncate to zero length
 #define	O_EXCL		0x0080		// error if already exists
-#if LAB >= 99
-#define O_MKDIR		0x0100		// create directory, not regular file
+#if LAB >= 9
+#define O_NONBLOCK	0x0100		// open in non-blocking mode
+#define O_SYNC		0x0200		// use synchronous writes
 #endif
 
 // Each process contains its own copy of all file system state,

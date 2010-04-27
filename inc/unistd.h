@@ -5,6 +5,9 @@
 
 #include <types.h>
 #include <cdefs.h>
+#if LAB >= 9
+#include <sysconf.h>
+#endif
 
 
 #define STDIN_FILENO	0
@@ -19,13 +22,31 @@
 
 // Exit status codes from wait() and waitpid().
 // These are traditionally in <sys/wait.h>.
-#define WEXITED			0x100	// Process exited via exit()
-#define WSIGNALED		0x200	// Process exited via uncaught signal
+#define WEXITED			0x0100	// Process exited via exit()
+#define WSIGNALED		0x0200	// Process exited via uncaught signal
+#if LAB >= 9
+#define WSTOPPED		0x0400	// Process stopped due to a signal
+#define WCONTINUED		0x0800	// Process continued due after stopping
+#define WNOHANG			0x1000	// Do not hang if no status available
+#define WNOWAIT			0x2000	// Peek status without collecting it
+#define WUNTRACED		0x4000	// Report status of stopped child
+#endif
 
-#define WEXITSTATUS(x)		((x) & 0xff)
-#define WTERMSIG(x)		((x) & 0xff)
 #define WIFEXITED(x)		(((x) & 0xf00) == WEXITED)
+#define WEXITSTATUS(x)		((x) & 0xff)
 #define WIFSIGNALED(x)		(((x) & 0xf00) == WSIGNALED)
+#define WTERMSIG(x)		((x) & 0xff)
+#if LAB >= 9
+#define WIFSTOPPED(x)		(((x) & 0xf00) == WSTOPPED)
+#define WIFCONTINUED(x)		(((x) & 0xf00) == WCONTINUED)
+#define WSTOPSIG(x)		((x) & 0xff)
+
+// Constants for the access() function
+#define F_OK		0	// test for file existence
+#define R_OK		4	// test for read permission
+#define W_OK		2	// test for write permission
+#define X_OK		1	// test for execute/search permission
+#endif	// LAB >= 9
 
 
 // Process management functions
@@ -88,8 +109,6 @@ int	pipe(int fds[2]);
 
 // Program convenience functions
 int	getopt(int argc, char * argv[], const char * optstring);
-
-
 
 // PIOS-specific thread fork/join functions
 int	tfork(uint16_t child);

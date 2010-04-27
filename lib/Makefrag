@@ -41,6 +41,7 @@ LIB_SRCFILES +=		lib/stdio/putc.c \
 			lib/stdlib/strtoull.c \
 			lib/stdlib/strtod.c \
 			lib/stdlib/getenv.c \
+			lib/stdlib/sysconf.c \
 			lib/string/strcasecmp.c \
 			lib/string/strcat.c \
 			lib/string/strdup.c \
@@ -48,7 +49,9 @@ LIB_SRCFILES +=		lib/stdio/putc.c \
 			lib/string/strstr.c \
 			lib/string/strtok.c \
 			lib/string/strspn.c \
-			lib/string/strcspn.c
+			lib/string/strcspn.c \
+			lib/intl/iconv.c \
+			lib/intl/gettext.c
 endif
 #endif
 
