@@ -138,6 +138,9 @@ $(OBJDIR)/kern/file.o: $(OBJDIR)/kern/initfiles.h
 $(OBJDIR)/user/%: fs/%
 	cp $< $@
 #endif
+
+$(TOP)/fs:
+	-mkdir -p $@
 endif
 
 all: $(OBJDIR)/kern/kernel.img
