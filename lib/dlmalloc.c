@@ -96,7 +96,9 @@ thcalloc(size_t num, size_t bytes)
 /* On some versions of linux, mremap decl in mman.h needs __USE_GNU set */
 #if (defined(linux) && !defined(__USE_GNU))
 #define __USE_GNU 1
+#define _GNU_SOURCE
 #include <inc/mman.h>    /* for mmap */
+#undef _GNU_SOURCE
 #undef __USE_GNU
 #else
 #include <inc/mman.h>    /* for mmap */
