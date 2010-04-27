@@ -130,8 +130,8 @@ $(OBJDIR)/kern/kernel.img: $(OBJDIR)/kern/kernel $(OBJDIR)/boot/bootblock
 
 ifdef LAB4
 $(OBJDIR)/kern/initfiles.h: kern/Makefrag $(KERN_FSFILES) $(TOP)/fs
-	echo >$@ "$(subst /,_,$(subst .,_, \
-			$(patsubst %,INITFILE(%),$(KERN_INITFILES))))"
+	echo >$@ "$(subst /,_,$(subst .,_,$(subst -,_, \
+			$(patsubst %,INITFILE(%),$(KERN_INITFILES)))))"
 $(OBJDIR)/kern/file.o: $(OBJDIR)/kern/initfiles.h
 
 #if LAB >= 9

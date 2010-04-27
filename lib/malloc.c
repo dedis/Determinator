@@ -1,3 +1,4 @@
+#if 0	// XXX need to decide on how to use the right malloc.  -baf
 #include <inc/malloc.h>
 #include <inc/stdio.h>
 #include <inc/mmu.h>
@@ -30,3 +31,4 @@ void * malloc(size_t size) {
 void free(void * ptr) {
 
 }
+#endif

@@ -536,7 +536,8 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 	pthread_t t = &th[tno];
 	memset(t, 0, sizeof(*t));
 	t->tno = tno;
-	t->detached = *attr & PTHREAD_CREATE_DETACHED;
+	if (attr != NULL)
+		t->detached = *attr & PTHREAD_CREATE_DETACHED;
 
 	tinit(t);	// initialize the thread's stack
 
@@ -785,6 +786,7 @@ mutexreqs(pthread_t t)
 			// so add mutex to new owner's reqs list.
 			m->reqnext = tn->reqs;
 			tn->reqs = m;
+			tn->qnext = NULL;
 		} else {		// mutex's queue now empty
 			m->reqnext = NULL;
 			m->qtail = &m->qhead;	// reset empty list

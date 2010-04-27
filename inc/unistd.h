@@ -105,6 +105,8 @@ int	symlink(const char *oldpath, const char *newpath);
 ssize_t	readlink(const char *path, char *buf, size_t bufsize);
 int	unlink(const char *path);
 int	pipe(int fds[2]);
+char *	mktemp(char *template);
+int	mkstemp(char *template);
 #endif
 
 // Program convenience functions

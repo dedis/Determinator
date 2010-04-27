@@ -72,6 +72,8 @@ int	vscanf(const char *fmt, va_list args);
 int	fscanf(FILE *f, const char *fmt, ...);
 int	vfscanf(FILE *f, const char *fmt, va_list args);
 
+void	perror(const char *s);
+
 // lib/stdio.c
 FILE *	fopen(const char *filename, const char *mode);
 FILE *	freopen(const char *filename, const char *mode, FILE *fh);
