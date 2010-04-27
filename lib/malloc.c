@@ -26,7 +26,3 @@ void * malloc(size_t size) {
 }
 
 
-// Not yet supported.
-void free(void * ptr) {
-
-}

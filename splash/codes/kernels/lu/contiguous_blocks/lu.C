@@ -433,6 +433,8 @@ void OneSolve(long n, long block_size, long MyNum, long dostats)
   unsigned long mydone;
   struct LocalCopies _lc, *lc;
 
+  myrs = myrf = mydone = 0;
+
   // lc = (struct LocalCopies *) malloc(sizeof(struct LocalCopies));
   lc = &_lc;
   if (lc == NULL) {
