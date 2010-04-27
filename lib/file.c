@@ -182,6 +182,9 @@ fileino_stat(int ino, struct stat *st)
 
 	fileinode *fi = &files->fi[ino];
 	assert(fileino_isdir(fi->dino));	// Should be in a directory!
+#if LAB >= 9
+	memset(st, 0, sizeof(*st));		// Clear unused parts of struct
+#endif
 	st->st_ino = ino;
 	st->st_mode = fi->mode;
 	st->st_size = fi->size;

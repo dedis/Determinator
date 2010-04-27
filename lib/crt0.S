@@ -3,14 +3,13 @@
 #include <inc/syscall.h>
 #include <inc/vm.h>
 
+
 	.text
 
 // Start entrypoint - this is where the kernel (or our parent process)
 // starts us running when we are initially loaded into a new process.
-start:	.globl start
-#if SOL >= 4
-_start:	.globl _start		# for GCC's i386-elf target
-#endif
+	.globl start
+start:
 #if LAB >= 4
 	// See if we were started with arguments on the stack.
 	// If not, our esp will start on a nice big power-of-two boundary.
@@ -25,13 +24,34 @@ _start:	.globl _start		# for GCC's i386-elf target
 
 args_exist:
 #endif
-	call	main	// run the program
+#if LAB >= 9		// run initialization functions
+	movl	$__init_array_start,%esi
+1:	cmpl	$__init_array_end,%esi
+	je	2f
+	movl	(%esi),%eax
+	addl	$4,%esi
+	call	*%eax
+	jmp	1b
+2:
+#endif
 
+	call	main	// run the program
 	pushl	%eax	// use with main's return value as exit status
+#if LAB >= 9		// run finalization functions
+	movl	$__fini_array_start,%esi
+1:	cmpl	$__fini_array_end,%esi
+	je	2f
+	movl	(%esi),%eax
+	addl	$4,%esi
+	call	*%eax
+	jmp	1b
+2:
+#endif
 	call	exit
 1:	jmp 1b
 
 
+#if LAB >= 4
 // Start entrypoint for exec.  When our exec code replaces an existing process
 // with a new one, it loads the new program image into child process 0,
 // then calls this "function" with the new program's initial stack pointer
@@ -61,5 +81,5 @@ exec_start:
 
 	jmp	start
 
-
+#endif	// LAB >= 4
 #endif // LAB >= 3

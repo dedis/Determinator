@@ -396,7 +396,10 @@ mem_check()
 	mem_free(pp1);
 	mem_free(pp2);
 
+#if LAB >= 9
+#else
 	cprintf("mem_check() succeeded!\n");
+#endif
 }
 
 #endif /* LAB >= 1 */

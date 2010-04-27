@@ -335,6 +335,8 @@ trap(trapframe *tf)
 	}
 #endif // ! SOL >= 5
 	if (tf->tf_cs & 3) {		// Unhandled trap from user mode
+		cprintf("trap in proc %x, reflecting to proc %x\n",
+			proc_cur(), proc_cur()->parent);
 		trap_print(tf);
 		proc_ret(tf, -1);	// Reflect trap to parent process
 	}
@@ -375,7 +377,10 @@ trap_check_kernel(void)
 	trap_check(&c->recoverdata);
 	c->recover = NULL;	// No more mr. nice-guy; traps are real again
 
+#if LAB >= 9
+#else
 	cprintf("trap_check_kernel() succeeded!\n");
+#endif
 }
 
 // Check for correct handling of traps from user mode.
@@ -392,7 +397,10 @@ trap_check_user(void)
 	trap_check(&c->recoverdata);
 	c->recover = NULL;	// No more mr. nice-guy; traps are real again
 
+#if LAB >= 9
+#else
 	cprintf("trap_check_user() succeeded!\n");
+#endif
 }
 
 void after_div0();

@@ -136,7 +136,10 @@ void spinlock_check()
 		// Make sure that all locks have holding correctly implemented.
 		for(i=0;i<NUMLOCKS;i++) assert(spinlock_holding(&locks[i]) == 0);
 	}
+#if LAB >= 9
+#else
 	cprintf("spinlock_check() succeeded!\n");
+#endif
 }
 
 #endif // LAB >= 2

@@ -3,14 +3,16 @@
 #ifndef PIOS_INC_ASSERT_H
 #define PIOS_INC_ASSERT_H
 
-#include <inc/stdio.h>
-#include <inc/cdefs.h>
+#include <stdio.h>
+#include <cdefs.h>
 
 void debug_warn(const char*, int, const char*, ...);
 void debug_panic(const char*, int, const char*, ...) gcc_noreturn;
+void debug_dump(const char*, int, const void *ptr, int size);
 
 #define warn(...)	debug_warn(__FILE__, __LINE__, __VA_ARGS__)
 #define panic(...)	debug_panic(__FILE__, __LINE__, __VA_ARGS__)
+#define dump(...)	debug_dump(__FILE__, __LINE__, __VA_ARGS__)
 
 #ifndef NDEBUG
 #define assert(x)		\

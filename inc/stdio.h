@@ -26,6 +26,14 @@ extern FILE *const stderr;
 // lib/stdio.c
 int	fputc(int c, FILE *fh);
 int	fgetc(FILE *fh);
+#if LAB >= 9			// "Real function" versions
+int	putc(int c, FILE *f);
+int	putchar(int c);
+int	getc(FILE *f);
+int	getchar(void);
+int	puts(const char *str);
+int	fputs(const char *str, FILE *f);
+#endif
 #define putchar(c)	fputc(c, stdout)
 #define putc(c,fh)	fputc(c, fh)
 #define getchar()	fgetc(stdin)

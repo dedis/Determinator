@@ -88,19 +88,14 @@ QEMU := $(shell \
 	echo "***" 1>&2; exit 1)
 endif
 
-# get the libgcc directory prefix
-ifndef LIBGCCPREFIX
-LIBGCCPREFIX := $(shell $(GCCPREFIX)gcc -print-libgcc-file-name | sed s/\\/libgcc.a//)
-endif
-
 # try to generate unique GDB and network port numbers
 GDBPORT	:= $(shell expr `id -u` % 5000 + 25000)
 NETPORT := $(shell expr `id -u` % 5000 + 30000)
 
 # Correct option to enable the GDB stub and specify its port number to qemu.
 # First is for qemu versions <= 0.10, second is for later qemu versions.
-QEMUPORT := -s -p $(GDBPORT)
-# QEMUPORT := -gdb tcp::$(GDBPORT)
+# QEMUPORT := -s -p $(GDBPORT)
+QEMUPORT := -gdb tcp::$(GDBPORT)
 
 CC	:= $(GCCPREFIX)gcc -pipe
 AS	:= $(GCCPREFIX)as
@@ -116,37 +111,41 @@ NCC	:= gcc $(CC_VER) -pipe
 TAR	:= gtar
 PERL	:= perl
 
+# Where does GCC have its libgcc.a and libgcc's include directory?
+GCCDIR := $(dir $(shell $(CC) $(CFLAGS) -print-libgcc-file-name))
 
 # If we're not using the special "PIOS edition" of GCC,
 # reconfigure the host OS's compiler for our purposes.
 ifneq ($(GCCPREFIX),pios-)
 CFLAGS += -nostdinc -m32
-LDFLAGS += -nostdlib -m elf_i386 -e start
+LDFLAGS += -nostdlib -m elf_i386
+USER_LDFLAGS += -e start -Ttext=0x40000100
 endif
 
 # Compiler flags
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
 # XXX modified to -O2 for benchmarking
-CFLAGS += $(DEFS) $(LABDEFS) -O2 -fno-builtin \
-		-I$(TOP) -I$(TOP)/inc -MD  \
+CFLAGS += $(DEFS) $(LABDEFS) -O1 -fno-builtin \
+		-I$(TOP) -I$(TOP)/inc -I$(GCCDIR)/include -MD  \
 		-Wall -Wno-unused -Werror -gstabs
 
 # Add -fno-stack-protector if the option exists.
-CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
+CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 \
+		&& echo -fno-stack-protector)
+
+LDFLAGS += -L$(OBJDIR)/lib -L$(GCCDIR)
 
 # Kernel versus user compiler flags
-KERN_CFLAGS := $(CFLAGS) -DPIOS_KERNEL
-USER_CFLAGS := $(CFLAGS) -DPIOS_USER -I$(LIBGCCPREFIX)/include
+KERN_CFLAGS += $(CFLAGS) -DPIOS_KERNEL
+KERN_LDFLAGS += $(LDFLAGS) -nostdlib -Ttext=0x00100000 -L$(GCCDIR)
+KERN_LDLIBS += $(LDLIBS) -lgcc
 
-KERN_LDFLAGS := $(LDFLAGS) -Ttext=0x00100000
-USER_LDFLAGS := $(LDFLAGS) -Ttext=0x40000000
-
-GCC_LIB := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
-
-USER_LDDEPS := $(OBJDIR)/lib/entry.o $(OBJDIR)/lib/libc.a
-USER_LDENTRY := $(OBJDIR)/lib/entry.o
-USER_LDLIBS := -L$(OBJDIR)/lib -lc $(GCC_LIB)
+USER_CFLAGS += $(CFLAGS) -DPIOS_USER
+USER_LDFLAGS += $(LDFLAGS)
+USER_LDINIT += $(OBJDIR)/lib/crt0.o
+USER_LDDEPS += $(USER_LDINIT) $(OBJDIR)/lib/libc.a
+USER_LDLIBS += $(LDLIBS) -lc -lgcc
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
@@ -193,11 +192,8 @@ ifneq ($(LAB), 3)
 ifneq ($(LAB), 4)
 	echo >>conf/lab.mk "LAB5=true"
 ifneq ($(LAB), 5)
-	echo >>conf/lab.mk "LAB6=true"
-ifneq ($(LAB), 6)
-	echo >>conf/lab.mk "LAB7=true"
-endif	# LAB != 6
-endif	# LAB != 5
+	echo >>conf/lab.mk "LAB9=true"
+endif	# LAB != 4
 endif	# LAB != 4
 endif	# LAB != 3
 endif	# LAB != 2
@@ -306,7 +302,6 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 NCPUS = 2
 #if SOL >= 1
 NCPUS := $(shell if test `uname -n` = "korz"; then echo 8; else echo 2; fi)
-# NCPUS := 1
 #endif
 IMAGES = $(OBJDIR)/kern/kernel.img
 QEMUOPTS = -smp $(NCPUS) -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio \
@@ -320,7 +315,7 @@ QEMUNET2 = -net nic,model=i82559er,macaddr=52:54:00:12:34:02 \
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
-ifdef LAB5
+ifeq ($(LAB),5)
 qemu: $(IMAGES)
 	@rm -f node?.dump
 	$(QEMU) $(QEMUOPTS) $(QEMUNET2) </dev/null | sed -e 's/^/2: /g' &
@@ -335,7 +330,7 @@ qemu-nox: $(IMAGES)
 	echo "*** Use Ctrl-a x to exit"
 	$(QEMU) -nographic $(QEMUOPTS)
 
-ifdef LAB5
+ifeq ($(LAB),5)
 qemu-gdb: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
 	@rm -f node?.dump

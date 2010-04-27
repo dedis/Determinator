@@ -1,15 +1,15 @@
 
 #include <inc/stdio.h>
+#include <inc/stdlib.h>
 #include <inc/unistd.h>
 #include <inc/syscall.h>
 #include <inc/trap.h>
 
-#undef LAB
-#define LAB 5	// XXX
 #include "md5.c"
 
 int main(int argc, char **argv)
 {
+	// test raw instruction counting mechanism
 	if (tfork(0) == 0) {
 		sys_ret();
 
