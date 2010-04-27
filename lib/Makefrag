@@ -19,11 +19,13 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/readline.c \
 			lib/thread.c \
 			lib/pthread.c \
+			lib/malloc.c \
 			lib/getopt.c \
 			lib/lrand48.c \
 			lib/dsthread.c \
 			lib/time.c \
 			lib/rngs.c \
+			lib/dlmalloc.c \
 			lib/mman.c
 
 #if LAB >= 9
