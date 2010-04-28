@@ -207,6 +207,19 @@ init(void)
 
 ////////// Scheduling //////////
 
+// List all active threads and their current states, for deadlock debugging.
+static void
+tdump(void)
+{
+	int i;
+	for (i = 0; i < MAXTHREADS; i++) {
+		if (th[i].state == TH_FREE)
+			continue;
+		cprintf("thread %d: state %d eip %x esp %x\n",
+			i, th[i].state, th[i].eip, th[i].esp);
+	}
+}
+
 // Handle any events relevant to a thread
 // before it either starts running again or blocks.
 static gcc_inline void
@@ -268,8 +281,10 @@ pthread_sched(void)
 	static cpustate cs;
 	pthread_t t;
 	while (1) {
-		if (runqhead == NULL)
+		if (runqhead == NULL) {
+			tdump();
 			panic("sched: no running threads - deadlock?");
+		}
 		t = runqhead;
 		if ((runqhead = t->qnext) == NULL)	// dequeue first thread
 			runqtail = &runqhead;		// for good measure
@@ -358,7 +373,7 @@ tblock(pthread_t t, int newstate)
 	t->state = newstate;
 
 	// Save critical registers and invoke scheduler;
-	// this thread will continue when it gets unblocked.
+	// this thread will continue if/when it gets unblocked.
 	asm volatile(
 		"	pushl	%%esi;"		// save a few registers
 		"	pushl	%%edi;"
@@ -625,7 +640,8 @@ pthread_exit(void *exitval)
 	mcall();
 
 	pthread_t t = self();
-	assert(t->state > TH_FREE && t->state < TH_EXIT);
+cprintf("pthread_exit %d detached %d\n", t->tno, t->detached);
+	assert(t->state == TH_RUN);
 
 	// wake up any thread trying to join with us
 	if (t->joiner != NULL)
@@ -851,12 +867,12 @@ pthread_cond_init(pthread_cond_t *c, const pthread_condattr_t *attr)
 int
 pthread_cond_destroy(pthread_cond_t *c)
 {
-	assert(c->event == 0);
+	assert(c->nwake == 0);
 	assert(c->qhead == NULL);
 	return 0;
 }
 
-static int condevent(pthread_cond_t *c, int ev)
+static int condevent(pthread_cond_t *c, bool broadcast)
 {
 	if (c->qhead == NULL)
 		return 0;	// no one waiting, nothing to do
@@ -864,12 +880,16 @@ static int condevent(pthread_cond_t *c, int ev)
 	mlock();
 
 	pthread *t = self();
-	if (c->event == 0) {	// add cond to our thread's signal chain
+	if (c->nwake == 0) {	// add cond to our thread's signal chain
 		assert(c->evnext == NULL);
 		c->evnext = evconds;
 		evconds = c;
 	}
-	c->event |= ev;
+	if (broadcast)
+		c->nwake = INT_MAX;
+	else
+		c->nwake++;
+cprintf("cond_event thread %d %x ev %d nwake %d\n", t->tno, c, broadcast, c->nwake);
 
 	// Now return to nonpreemptible execution.
 	// If our timeslice ended and we've become the master by now,
@@ -881,13 +901,13 @@ static int condevent(pthread_cond_t *c, int ev)
 int
 pthread_cond_signal(pthread_cond_t *c)
 {
-	return condevent(c, 1);
+	return condevent(c, 0);
 }
 
 int
 pthread_cond_broadcast(pthread_cond_t *c)
 {
-	return condevent(c, 3);
+	return condevent(c, 1);
 }
 
 int
@@ -903,6 +923,7 @@ pthread_cond_wait(pthread_cond_t *c, pthread_mutex_t *m)
 	*c->qtail = t;
 	c->qtail = &t->qnext;
 
+cprintf("cond_wait thread %d cond %x\n", t->tno, c);
 	mutexunlock(t, m);	// unlock mutex (while nonpreemptible)
 	tblock(t, TH_COND);	// block until signaled
 	mutexlock(t, m);	// re-lock the mutex
@@ -918,11 +939,13 @@ condwakeups(void)
 	assert(tlock == 2);
 	while (evconds != NULL) {
 		pthread_cond_t *c = evconds;
-		assert(c->event != 0);
+		assert(c->nwake > 0);
 
+cprintf("condwakeup %x nwake %d\n", c, c->nwake);
 		// Wake up one or all waiting threads, depending on c->event
 		do {
 			pthread *tw = c->qhead;
+cprintf("condwakeup tw %d\n", tw->tno);
 			if (tw == NULL)
 				break;
 			c->qhead = tw->qnext;	// unlink thread from queue
@@ -930,12 +953,12 @@ condwakeups(void)
 			tw->qnext = NULL;
 			tready(tw);		// let it run again
 
-		} while (c->event > 1);
+		} while (--c->nwake > 0);
 		if (c->qhead == NULL)	// reset tail if queue is now empty
 			c->qtail = &c->qhead;
 
 		evconds = c->evnext;
-		c->event = 0;
+		c->nwake = 0;
 		c->evnext = NULL;
 	}
 }
