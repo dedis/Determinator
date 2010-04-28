@@ -13,23 +13,23 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 
-#define TID ((int)files->thstat)
-static void *mem_brk;
-static mspace child_mspace[256];
-#define HTOP (0xa0000000)
+#define TID ((int)files->thself)
+
+static mspace child_mspace[MAXTHREADS];
+static inline void *
+mspace_alloc_pages()
+{
+	void *mem = (void*)(HEAP_LO + HEAP_SZ * TID);
+	sys_get(SYS_ZERO | SYS_PERM | SYS_RW, 0, NULL, NULL, mem, HEAP_SZ);
+	return mem;
+}
+	
 void *
 thmalloc(size_t bytes)
 {
 	cprintf("allocating %d bytes for thread %d...\n", bytes, TID);
-	if(!mem_brk) {
-		mem_brk = sbrk(0);
-		cprintf("current brk is %x\n", mem_brk);
-	}
-	
 	if(child_mspace[TID] == 0) {
-		uint32_t mspace_size = ((HTOP - (int)mem_brk) >> 8);
-		cprintf("per thread quota is %x\n", mspace_size);
-		child_mspace[TID] = create_mspace_with_base(mem_brk + mspace_size * TID, mspace_size, 0);
+		child_mspace[TID] = create_mspace_with_base(mspace_alloc_pages(),HEAP_SZ, 0);
 		if(child_mspace[TID] == 0) {
 			cprintf("per thread memory space too small!\n");
 			return 0;
@@ -53,6 +53,14 @@ thcalloc(size_t num, size_t bytes)
 	memset(ret, 0, num*bytes);
 	return ret;
 }
+
+void *
+threalloc(void *mem, size_t bytes)
+{
+	assert(child_mspace[TID] != 0);
+	return mspace_realloc(child_mspace[TID], mem, bytes);
+}
+
 /*------------------------------ internal #includes ---------------------- */
 
 #ifdef WIN32
@@ -96,9 +104,7 @@ thcalloc(size_t num, size_t bytes)
 /* On some versions of linux, mremap decl in mman.h needs __USE_GNU set */
 #if (defined(linux) && !defined(__USE_GNU))
 #define __USE_GNU 1
-#define _GNU_SOURCE
 #include <inc/mman.h>    /* for mmap */
-#undef _GNU_SOURCE
 #undef __USE_GNU
 #else
 #include <inc/mman.h>    /* for mmap */
@@ -1726,7 +1732,6 @@ static size_t traverse_and_check(mstate m);
 
 /* Initialize mparams */
 static int init_mparams(void) {
-    printf("init_mparams() is called!\n");
 #ifdef NEED_GLOBAL_LOCK_INIT
   if (malloc_global_mutex_status <= 0)
     init_malloc_global_mutex();
@@ -3729,31 +3734,22 @@ static mstate init_user_mstate(char* tbase, size_t tsize) {
   size_t msize = pad_request(sizeof(struct malloc_state));
   mchunkptr mn;
   mchunkptr msp = align_as_chunk(tbase);
-  cprintf("m1\n");
   mstate m = (mstate)(chunk2mem(msp));
-  cprintf("m12\n");
   memset(m, 0, msize);
-  cprintf("m13\n");
   INITIAL_LOCK(&m->mutex);
-  cprintf("m2\n");
   msp->head = (msize|INUSE_BITS);
   m->seg.base = m->least_addr = tbase;
   m->seg.size = m->footprint = m->max_footprint = tsize;
   m->magic = mparams.magic;
   m->release_checks = MAX_RELEASE_CHECK_RATE;
-  cprintf("m3\n");
   m->mflags = mparams.default_mflags;
   m->extp = 0;
   m->exts = 0;
   disable_contiguous(m);
-  cprintf("m4\n");
   init_bins(m);
-  cprintf("m5\n");
   mn = next_chunk(mem2chunk(m));
   init_top(m, mn, (size_t)((tbase + tsize) - (char*)mn) - TOP_FOOT_SIZE);
-  cprintf("m6\n");
   check_top_chunk(m, m->top);
-  cprintf("m7\n");
   return m;
 }
 
@@ -3937,8 +3933,9 @@ void* mspace_malloc(mspace msp, size_t bytes) {
       goto postaction;
     }
 
-    mem = sys_alloc(ms, nb);
-
+    //mem = sys_alloc(ms, nb);
+	printf("heap overflow for thread %d\n", TID);
+	return 0; //Sen: even if pre-allocated mspace is not large enough, that's it.
   postaction:
     POSTACTION(ms);
     return mem;

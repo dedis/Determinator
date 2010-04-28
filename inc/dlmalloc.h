@@ -1,3 +1,29 @@
+/* --------------- for PIOS ---------------*/
+#ifndef PIOS_THREAD_MALLOC_H
+#define PIOS_THREAD_MALLOC_H
+
+#include <inc/vm.h>
+
+#define MAXTHREADS	(32)
+#define HEAP_HI		VM_SHAREHI
+#define HEAP_LO		(VM_SHARELO + (VM_SHAREHI - VM_SHARELO)/2)
+#define HEAP_SZ		((HEAP_HI - HEAP_LO)/MAXTHREADS)
+
+#define USE_DL_PREFIX //to override all DL functions.
+#define thcalloc				calloc
+#define thfree					free
+#define thmalloc				malloc
+#define threalloc				realloc
+
+void *thmalloc(size_t bytes);
+void thfree(void *mem);
+void *thcalloc(size_t num, size_t bytes);
+void *threalloc(void *mem, size_t bytes);
+
+#endif /* PIOS_THREAD_MALLOC_H */
+/* --------------- PIOS header finishes ---------------*/
+
+
 /*
   This is a version (aka dlmalloc) of malloc/free/realloc written by
   Doug Lea and released to the public domain, as explained at
@@ -752,12 +778,13 @@ extern "C" {
 #if !ONLY_MSPACES
 
 /* ------------------- Declarations of public routines ------------------- */
+
 #ifndef USE_DL_PREFIX
 #define dlcalloc               calloc
 #define dlfree                 free
 #define dlmalloc               malloc
 #define dlmemalign             memalign
-#define dlrealloc              realloc
+#define drealloc              realloc
 #define dlvalloc               valloc
 #define dlpvalloc              pvalloc
 #define dlmallinfo             mallinfo
@@ -770,17 +797,6 @@ extern "C" {
 #define dlindependent_calloc   independent_calloc
 #define dlindependent_comalloc independent_comalloc
 #endif /* USE_DL_PREFIX */
-
-/* -------------------- Declarations of per-thread routines ---------------*/
-/* -------------------- for PIOS ---------------*/
-/*
-#define thcalloc				calloc
-#define thfree					free
-#define thmalloc				malloc */
-
-void *thmalloc(size_t bytes);
-void thfree(void *mem);
-void *thcalloc(size_t num, size_t bytes);
 
 /*
   malloc(size_t n)

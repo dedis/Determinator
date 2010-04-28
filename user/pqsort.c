@@ -1,5 +1,6 @@
 #if LAB >= 3
 
+#include <inc/file.h>
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/assert.h>
@@ -7,8 +8,11 @@
 #include <inc/x86.h>
 #include <inc/mmu.h>
 #include <inc/vm.h>
+#include <inc/errno.h>
 
 typedef int	KEY_T;
+
+//#define USE_MALLOC
 
 /*
  * These are the COMPARISON macros
@@ -116,8 +120,6 @@ register int    lower, upper;
 	partial_quickersort (array, i, upper);
     }
 }
-
-
 /*
  |  void  sedgesort (array, len)
  |  KEY_T  array[];
@@ -160,15 +162,28 @@ register int    len;
 #define ALLVA		((void*) VM_USERLO)
 #define ALLSIZE		(VM_USERHI - VM_USERLO)
 
+#define SHAREVA		((void*) VM_SHARELO)
+#define SHARESIZE		(VM_SHAREHI - VM_SHARELO)
+
 extern uint8_t start[], etext[], edata[], end[];
 
 uint8_t stack[2][STACKSIZE];
 
 
-// Fork a child process, returning 0 in the child and 1 in the parent.
+// Fork a child process/thread, returning 0 in the child and tid in the parent.
 int
-fork(int cmd, uint8_t child)
-{
+tfork()
+{	
+	//find a free slot for child thread
+	uint8_t tid;
+	for (tid = 1; tid < 256; tid++)
+		if (files->child[tid].state == PROC_FREE)
+			break;
+	if (tid == 256) {
+		warn("tfork: no child thread available");
+		errno = EAGAIN;
+		return -1;
+	}
 	// Set up the register state for the child
 	struct cpustate cs;
 	memset(&cs, 0, sizeof(cs));
@@ -192,67 +207,44 @@ fork(int cmd, uint8_t child)
 		  "=a" (isparent)
 		:
 		: "ebx", "ecx", "edx");
-	if (!isparent)
+	if (!isparent) {
+		files->thself = tid;
+		// Clear our child state array, since we have no children yet.
+		memset(&files->child, 0, sizeof(files->child));
+		files->child[0].state = PROC_RESERVED;
 		return 0;	// in the child
+	}
 
 	// Fork the child, copying our entire user address space into it.
 	cs.tf.tf_regs.reg_eax = 0;	// isparent == 0 in the child
-	sys_put(cmd | SYS_REGS | SYS_COPY, child, &cs, ALLVA, ALLVA, ALLSIZE);
+	sys_put(SYS_SNAP | SYS_START | SYS_REGS | SYS_COPY, tid, &cs, ALLVA, ALLVA, ALLSIZE);
+	// Record the inode generation numbers of all inodes at fork time,
+	// so that we can reconcile them later when we synchronize with it.
+	memset(&files->child[tid], 0, sizeof(files->child[tid]));
+	files->child[tid].state = PROC_FORKED;
 
-	return 1;
+	return tid;
 }
 
 void
-join(int cmd, uint8_t child, int trapexpect)
+tjoin(uint8_t child)
 {
 	// Wait for the child and retrieve its CPU state.
 	// If merging, leave the highest 4MB containing the stack unmerged,
 	// so that the stack acts as a "thread-private" memory area.
 	struct cpustate cs;
-	sys_get(cmd | SYS_REGS, child, &cs, ALLVA, ALLVA, ALLSIZE-PTSIZE);
+	sys_get(SYS_MERGE | SYS_REGS, child, &cs, SHAREVA, SHAREVA, SHARESIZE-PTSIZE);
 
 	// Make sure the child exited with the expected trap number
-	if (cs.tf.tf_trapno != trapexpect) {
+	if (cs.tf.tf_trapno != T_SYSCALL) {
 		cprintf("  eip  0x%08x\n", cs.tf.tf_eip);
 		cprintf("  esp  0x%08x\n", cs.tf.tf_esp);
 		panic("join: unexpected trap %d, expecting %d\n",
-			cs.tf.tf_trapno, trapexpect);
+			cs.tf.tf_trapno, T_SYSCALL);
 	}
 }
 
-#define readfaulttest(va) \
-	if (!fork(SYS_START, 0)) \
-		{ (void)(*(volatile int*)(va)); sys_ret(); } \
-	join(0, 0, T_PGFLT);
-
-#define writefaulttest(va) \
-	if (!fork(SYS_START, 0)) \
-		{ *(volatile int*)(va) = 0xdeadbeef; sys_ret(); } \
-	join(0, 0, T_PGFLT);
-
-static void cputsfaultchild(int arg) {
-	sys_cputs((char*)arg);
-}
-#define cputsfaulttest(va) \
-	if (!fork(SYS_START, 0)) \
-		{ sys_cputs((char*)(va)); sys_ret(); } \
-	join(0, 0, T_PGFLT);
-
-#define putfaulttest(va) \
-	if (!fork(SYS_START, 0)) { \
-		sys_put(SYS_REGS, 0, (cpustate*)(va), NULL, NULL, 0); \
-		sys_ret(); } \
-	join(0, 0, T_PGFLT);
-
-#define getfaulttest(va) \
-	if (!fork(SYS_START, 0)) { \
-		sys_get(SYS_REGS, 0, (cpustate*)(va), NULL, NULL, 0); \
-		sys_ret(); } \
-	join(0, 0, T_PGFLT);
-
 #define swapints(a,b) ({ int t = (a); (a) = (b); (b) = t; })
-
-//#define MIN_STRIDE 100
 
 uint64_t
 get_time(void)
@@ -263,11 +255,14 @@ get_time(void)
 void
 pqsort(uint32_t *lo, uint32_t *hi, int nthread)
 {
+	//cprintf("starting thread %d...\n", files->thself);
+	//cprintf("lo = %x, hi = %x, num = %d\n", lo, hi, hi-lo + 1);
 	if (lo >= hi)
 		return;
 	
 	if(/*hi <= lo + MIN_STRIDE ||*/ nthread <= 1) { // now, MIN_STRIDE is controlled by nthread...
 		sedgesort(lo, hi - lo + 1);
+		//insort(lo, hi-lo + 1);
 		return;
 	}
 
@@ -284,23 +279,36 @@ pqsort(uint32_t *lo, uint32_t *hi, int nthread)
 	swapints(*lo, l[-1]);
 
 	// Now recursively sort the two halves in parallel subprocesses
-	if (!fork(SYS_START | SYS_SNAP, 0)) {
+	int lchild, rchild;
+	if (!(lchild = tfork())) {
 		pqsort(lo, l-2, (nthread>>1));
 		sys_ret();
 	}
-	if (!fork(SYS_START | SYS_SNAP, 1)) {
+	if (!(rchild = tfork())) {
 		pqsort(h+1, hi, (nthread>>1));
 		sys_ret();
 	}
-	join(SYS_MERGE, 0, T_SYSCALL);
-	join(SYS_MERGE, 1, T_SYSCALL);
+	//cprintf("to join children...l=%d, r=%d\n", lchild, rchild);
+	tjoin((uint8_t)lchild);
+	tjoin((uint8_t)rchild);
 }
 
 #define RAND_INT_NUM 1000000
 int niter = 10;
 #define MAX_ARRAY_SIZE 1000000
+
+#ifdef MAXTHREADS
+#define MAX_THREAD MAXTHREADS/2
+#else
 #define MAX_THREAD 8
+#endif 
+
+#ifndef USE_MALLOC
 uint32_t randints[MAX_ARRAY_SIZE];
+#else
+#include <inc/dlmalloc.h>
+uint32_t *randints = NULL;
+#endif
 
 #include <inc/rngs.h>
 #define MAXINT (0xffffffff)
@@ -310,13 +318,19 @@ gen_randints(uint32_t *randints, size_t n, int seed) {
 	SelectStream(0);
 	PutSeed(seed); //use a negative seed to activate sys_time dependent seed!
 	int i;
-	for(i = 0; i < n; ++i)
+	for(i = 0; i < n; ++i) {
 		randints[i] = (uint32_t)(MAXINT * Random());
+		//cprintf("%d ", randints[i]);
+	}
+	//cprintf("\n");
 }
 
 void
 testpqsort(int array_size, int nthread)
-{
+{	
+#ifdef USE_MALLOC
+	randints = malloc(array_size*4);
+#endif
 	assert(nthread <= MAX_THREAD);
 	int iter = 0;
 	uint64_t tt = 0ull;
@@ -326,20 +340,29 @@ testpqsort(int array_size, int nthread)
 		pqsort(randints, randints + array_size - 1, nthread);
 		uint64_t td = get_time();
 		cprintf("test %d uses time: %lld\n", iter, td-ts);
-		tt += td;
+		tt += (td - ts);
 		//int i;
 		//for(i = 0; i < array_size; ++i)
-		//	cprintf("%d ", testints[i]);
+		//	cprintf("%d ", randints[i]);
 	}
 	
 	cprintf("array_size: %d\tave. time: %lld\n", array_size, tt/niter);
+#ifdef USE_MALLOC
+	free(randints);
+#endif
 }
 
 int
 main()
 {
+	files->thself = 0;
 	cprintf("start...\n");
-	testpqsort(MAX_ARRAY_SIZE, MAX_THREAD);
+	//testpqsort(10, 2);
+	//testpqsort(700000, 8);
+	//testpqsort(800000, 8);
+	//testpqsort(900000, 8);
+	testpqsort(500000, MAX_THREAD);
+	testpqsort(1000000, MAX_THREAD);
 	return 0;
 }
 

@@ -63,6 +63,7 @@ pid_t fork(void)
 		:
 		: "ebx", "ecx", "edx");
 	if (!isparent) {
+		files->thself = pid;
 		// Clear our child state array, since we have no children yet.
 		memset(&files->child, 0, sizeof(files->child));
 		files->child[0].state = PROC_RESERVED;

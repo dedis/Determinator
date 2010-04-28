@@ -991,7 +991,7 @@ int pthread_setspecific(pthread_key_t key, const void *val)
 }
 
 ////////// Memory allocation //////////
-
+/*
 extern char end[];
 static void *brk = end;
 
@@ -1042,7 +1042,7 @@ free(void *ptr)
 {
 	// XXX
 }
-
+*/
 ////////// Signal handling //////////
 
 sighandler_t
