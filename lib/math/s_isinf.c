@@ -22,39 +22,38 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
  */
 
 #include <math.h>
 
 #include "fpmath.h"
 
-#undef isnan
+__weak_reference(__isinf, isinf);
 
 int
-isnan(double d)
+__isinf(double d)
 {
 	union IEEEd2bits u;
 
 	u.d = d;
-	return (u.bits.exp == 2047 && (u.bits.manl != 0 || u.bits.manh != 0));
+	return (u.bits.exp == 2047 && u.bits.manl == 0 && u.bits.manh == 0);
 }
 
 int
-isnanf(float f)
+__isinff(float f)
 {
 	union IEEEf2bits u;
 
 	u.f = f;
-	return (u.bits.exp == 255 && u.bits.man != 0);
+	return (u.bits.exp == 255 && u.bits.man == 0);
 }
 
 int
-__isnanl(long double e)
+__isinfl(long double e)
 {
 	union IEEEl2bits u;
 
 	u.e = e;
 	mask_nbit_l(u);
-	return (u.bits.exp == 32767 && (u.bits.manl != 0 || u.bits.manh != 0));
+	return (u.bits.exp == 32767 && u.bits.manl == 0 && u.bits.manh == 0);
 }

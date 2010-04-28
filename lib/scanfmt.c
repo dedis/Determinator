@@ -5,9 +5,24 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <limits.h>
 
 #define PEEK	1
 #define NEXT	2
+
+#define SCANDIGITS(base,sc,val,each) \
+	while (1) { \
+		if (sc >= '0' && sc <= '9') \
+			val = val * base + sc - '0'; \
+		else if (sc >= 'A' && sc <= 'A' + base - 10) \
+			val = val * base + 10 + sc - 'A'; \
+		else if (sc >= 'a' && sc <= 'a' + base - 10) \
+			val = val * base + 10 + sc - 'a'; \
+		else \
+			break; \
+		sc = lookch(NEXT|PEEK, dat); \
+		each; \
+	}
 
 int
 vscanfmt(int (*lookch)(int action, void *dat), void *dat,
@@ -40,7 +55,7 @@ vscanfmt(int (*lookch)(int action, void *dat), void *dat,
 			continue;
 		}
 
-		int precision = -1;
+		int width = -1;
 		int lflag = 0;
 		int skipflag = 0;
 		int base;
@@ -48,11 +63,9 @@ vscanfmt(int (*lookch)(int action, void *dat), void *dat,
 		switch (fc = *f++) {
 		case '0': case '1': case '2': case '3': case '4':
 		case '5': case '6': case '7': case '8': case '9':
-			precision = 0;
-			do {
-				precision = precision * 10 + fc - '0';
-				fc = *f++;
-			} while (fc >= '0' && fc <= '9');
+			if (width < 0)
+				width = 0;
+			width = width * 10 + fc - '0';
 			goto reswitch;
 		case 'l':
 			lflag++;
@@ -60,30 +73,59 @@ vscanfmt(int (*lookch)(int action, void *dat), void *dat,
 		case '*':
 			skipflag = 1;
 			goto reswitch;
-		case 'd':
-		case 'u':
-			base = 10;
-			number:
-			while (isspace(sc))	// consume input whitespace
+		case 'c': {			// character(s)
+			if (width < 0)
+				width = 1;
+			char *buf = va_arg(ap, char *);
+			while (width-- > 0) {
+				if (sc < 0)
+					goto err;	// incomplete field
+				*buf++ = sc;
+				sc = lookch(NEXT | (width > 0 ? PEEK : 0), dat);
+			}
+			nelt++;
+			continue;
+		    }
+		case 's': {			// string
+			if (width < 0)
+				width = INT_MAX;
+			while (isspace(sc))	// consume leading whitespace
+				sc = lookch(NEXT|PEEK, dat);
+			char *buf = va_arg(ap, char *);
+			while (width-- > 0) {
+				if (sc < 0)
+					goto err;	// incomplete field
+				if (isspace(sc))
+					break;		// end of string
+				*buf++ = sc;
+				sc = lookch(NEXT | (width > 0 ? PEEK : 0), dat);
+			}
+			*buf = 0;		// null terminate string
+			nelt++;
+			continue;
+		    }
+		case 'i': {			// general integer
+			base = 0;
+		number:
+			while (isspace(sc))	// consume leading whitespace
 				sc = lookch(NEXT|PEEK, dat);
 			int neg = (sc == '-');	// consume leading +/- signs
 			if (neg || sc == '+')
 				sc = lookch(NEXT|PEEK, dat);
-			uint64_t val = 0;
-			bool anydig = 0;
-			while (1) {		// scan digits
-				if (sc >= '0' && sc <= '9')
-					val = val * base + sc - '0';
-				else if (sc >= 'A' && sc <= 'A' + base - 10)
-					val = val * base + 10 + sc - 'A';
-				else if (sc >= 'a' && sc <= 'a' + base - 10)
-					val = val * base + 10 + sc - 'a';
-				else
-					break;
-				sc = lookch(NEXT|PEEK, dat);
-				anydig = 1;
+			if (base == 0) {	// choose a base
+				if (sc == '0') {
+					sc = lookch(NEXT|PEEK, dat);
+					if (sc == 'x' || sc == 'X') {
+						sc = lookch(NEXT|PEEK, dat);
+						base = 16;
+					} else
+						base = 8;
+				} else
+					base = 10;
 			}
-			if (!anydig)
+			uint64_t val = 0; int ndig = 0;
+			SCANDIGITS(base,sc,val,ndig++)
+			if (ndig == 0)
 				goto err;	// didn't find a valid number
 			if (neg)
 				val = -val;
@@ -97,12 +139,50 @@ vscanfmt(int (*lookch)(int action, void *dat), void *dat,
 				*va_arg(ap, long long *) = val;
 			nelt++;
 			continue;
-		case 'x':
+		    }
+		case 'd':			// decimal integer
+		case 'u': 
+			base = 10;
+			goto number;
+		case 'x': case 'X':		// hexadecimal integer
 			base = 16;
 			goto number;
-		case 'o':
+		case 'o':			// octal integer
 			base = 8;
 			goto number;
+		case 'a': case 'A':		// floating-point number
+		case 'e': case 'E':
+		case 'f': case 'F':
+		case 'g': case 'G': {
+			while (isspace(sc))	// consume input whitespace
+				sc = lookch(NEXT|PEEK, dat);
+			int neg = (sc == '-');	// consume leading +/- signs
+			if (neg || sc == '+')
+				sc = lookch(NEXT|PEEK, dat);
+			// XXX NAN, INF/INFINITY
+			uint64_t intpart = 0; int intdig = 0;
+			SCANDIGITS(10,sc,intpart,intdig++)
+			if (intdig == 0 && sc != '.')
+				goto err;	// didn't find a valid number
+			double val = intpart;
+			if (sc == '.') {
+				sc = lookch(NEXT|PEEK, dat);	// skip '.'
+				uint64_t numer = 0, denom = 1;
+				SCANDIGITS(10,sc,numer,denom *= 10);
+				val += (double)numer / (double)denom;
+			}
+			if (neg)
+				val = -val;
+			if (skipflag)
+				continue;
+			if (lflag == 0)		// store as float
+				*va_arg(ap, float *) = val;
+			else 			// store as double
+				*va_arg(ap, double *) = val;
+			nelt++;
+			continue;
+			break;
+		    }
 		default:
 			panic("vscanfmt: unknown conversion character '%c'\n",
 				fc);
@@ -132,50 +212,62 @@ int
 sscanf(const char *str, const char *fmt, ...)
 {
 	va_list ap;
-	int rc;
-
 	va_start(ap, fmt);
-	rc = vsscanf(str, fmt, ap);
+	int rc = vsscanf(str, fmt, ap);
 	va_end(ap);
-
 	return rc;
 }
 
-int
-vfscanf(FILE *f, const char *fmt, va_list arg)
+typedef struct fscanstate {
+	FILE *f;
+	int c;
+} fscanstate;
+
+static int fscanlook(int action, void *dat)
 {
-	panic("vfscanf not implemented");
+	fscanstate *st = dat;
+	if (action & NEXT) {
+		assert(st->c != EOF);	// should have a char by now
+		st->c = EOF;		// toss it and move to next
+	}
+	if ((action & PEEK) && (st->c == EOF))
+		st->c = fgetc(st->f);	// get a new char
+	return st->c;
+}
+
+int
+vfscanf(FILE *f, const char *fmt, va_list ap)
+{
+	fscanstate st = { .f = f, .c = EOF };
+	int rc = vscanfmt(fscanlook, &st, fmt, ap);
+	if (st.c != EOF)
+		ungetc(st.c, f);	// unget the last char we peeked
+	return rc;
 }
 
 int
 fscanf(FILE *f, const char *fmt, ...)
 {
 	va_list ap;
-	int rc;
-
 	va_start(ap, fmt);
-	rc = vfscanf(f, fmt, ap);
+	int rc = vfscanf(f, fmt, ap);
 	va_end(ap);
-
 	return rc;
 }
 
 int
 vscanf(const char *fmt, va_list arg)
 {
-	panic("vscanf not implemented");
+	return vfscanf(stdin, fmt, arg);
 }
 
 int
 scanf(const char *fmt, ...)
 {
 	va_list ap;
-	int rc;
-
 	va_start(ap, fmt);
-	rc = vscanf(fmt, ap);
+	int rc = vscanf(fmt, ap);
 	va_end(ap);
-
 	return rc;
 }
 

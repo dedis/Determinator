@@ -100,3 +100,6 @@ through the interrupt.
   and instead just force processes always to migrate back home
   before they can migrate anywhere else?
 
+- Add better checker for COPY, MERGE, and ZERO to:
+	- make sure EXACTLY the right amount of address space gets processed
+	- cover all the copy/leave/merge variations at pdir and ptab level

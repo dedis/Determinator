@@ -31,6 +31,7 @@ int	putc(int c, FILE *f);
 int	putchar(int c);
 int	getc(FILE *f);
 int	getchar(void);
+int	ungetc(int c, FILE *f);
 int	puts(const char *str);
 int	fputs(const char *str, FILE *f);
 #endif
@@ -70,6 +71,8 @@ int	scanf(const char *fmt, ...);
 int	vscanf(const char *fmt, va_list args);
 int	fscanf(FILE *f, const char *fmt, ...);
 int	vfscanf(FILE *f, const char *fmt, va_list args);
+
+void	perror(const char *s);
 
 // lib/stdio.c
 FILE *	fopen(const char *filename, const char *mode);

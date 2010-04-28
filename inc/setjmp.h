@@ -5,7 +5,7 @@
 #include <types.h>
 #include <cdefs.h>
 
-typedef uint32_t jmp_buf[11];
+typedef uint32_t jmp_buf[6];
 
 int setjmp(jmp_buf buf);
 void gcc_noreturn longjmp(jmp_buf buf, int ret);

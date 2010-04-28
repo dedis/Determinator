@@ -8,6 +8,8 @@
 #include <inc/string.h>
 #include <inc/stdarg.h>
 #include <inc/assert.h>
+#include <inc/ctype.h>
+#include <inc/math.h>
 
 /*
  * Space or zero padding and a field width are supported for the numeric
@@ -34,6 +36,32 @@ printnum(void (*putch)(int, void*), void *putdat,
 	// then print this (the least significant) digit
 	putch("0123456789abcdef"[num % base], putdat);
 }
+
+#ifndef PIOS_KERNEL	// the kernel doesn't need or want floating-point
+static void
+printfloat(void (*putch)(int, void*), void *putdat,
+	 double num, int width, int padc)
+{
+	if (num >= 10.0) {
+		printfloat(putch, putdat, num / 10.0, width - 1, padc);
+	} else
+		while (--width > 0)
+			putch(padc, putdat);
+	putch('0' + (int)fmod(num, 10.0), putdat);
+}
+
+static void
+printfrac(void (*putch)(int, void*), void *putdat, double num, int width)
+{
+	num -= floor(num);	// get the fractional part only
+	while (width-- > 0) {
+		num *= 10.0;
+		int dig = (int)num;
+		putch('0' + dig, putdat);
+		num -= dig;
+	}
+}
+#endif	// ! PIOS_KERNEL
 
 // Get an unsigned int of various possible sizes from a varargs list,
 // depending on the lflag parameter.
@@ -92,22 +120,13 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		case '-':
 			padc = '-';
 			goto reswitch;
-			
-		// flag to pad with 0's instead of spaces
-		case '0':
-			padc = '0';
-			goto reswitch;
 
 		// width field
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9':
+		case '0':
+			if (width < 0)	// pad with 0's instead of spaces
+				padc = '0';
+		case '1': case '2': case '3': case '4':
+		case '5': case '6': case '7': case '8': case '9':
 			for (precision = 0; ; ++fmt) {
 				precision = precision * 10 + ch - '0';
 				ch = *fmt;
@@ -118,7 +137,11 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		case '*':
 			precision = va_arg(ap, int);
-			goto process_precision;
+
+		process_precision:
+			if (width < 0)
+				width = precision, precision = -1;
+			goto reswitch;
 
 		case '.':
 			if (width < 0)
@@ -127,11 +150,6 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		case '#':
 			altflag = 1;
-			goto reswitch;
-
-		process_precision:
-			if (width < 0)
-				width = precision, precision = -1;
 			goto reswitch;
 
 		// long flag (doubled for long long)
@@ -207,11 +225,46 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			printnum(putch, putdat, num, base, width, padc);
 			break;
 
+#ifndef PIOS_KERNEL
+		// floating-point
+		case 'f': case 'F': {
+			double val = va_arg(ap, double);
+			if (val < 0) {
+				putch('-', putdat);
+				val = -val;
+			}
+
+			// Handle infinities and NaNs
+			const char *str = NULL;
+			if (isinf(val))
+				str = isupper(ch) ? "INF" : "inf";
+			else if (isnan(val))
+				str = isupper(ch) ? "NAN" : "nan";
+			if (str != NULL) {
+				putch(str[0], putdat);
+				putch(str[1], putdat);
+				putch(str[2], putdat);
+				break;
+			}
+
+			if (precision < 0)	// width of fraction part
+				precision = 6;
+			width -= precision;	// width only of int part
+			if (precision > 0 || altflag)
+				width--;	// account for '.'
+			printfloat(putch, putdat, val, width, padc);
+			if (precision > 0 || altflag)
+				putch('.', putdat);
+			printfrac(putch, putdat, val, precision);
+			break;
+		    }
+#endif	// ! PIOS_KERNEL
+
 		// escaped '%' character
 		case '%':
 			putch(ch, putdat);
 			break;
-			
+
 		// unrecognized escape sequence - just print it literally
 		default:
 			putch('%', putdat);

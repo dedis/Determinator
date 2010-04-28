@@ -8,6 +8,7 @@
 #include <inc/pthread.h>
 #include <inc/signal.h>
 #include <inc/assert.h>
+#include <inc/errno.h>
 #include <inc/file.h>
 #include <inc/x86.h>
 #include <inc/mmu.h>
@@ -16,7 +17,7 @@
 
 // Tunable scheduling policy parameters (could be made variables).
 #define P_QUANTUM	0	// Number of instructions per thread quantum
-//#define P_QUANTUM	100	// Number of instructions per thread quantum
+//#define P_QUANTUM	1000	// Number of instructions per thread quantum
 #define P_MUTEXFAIR	0	// Mutex transfer in strict round-robin order
 #define P_MUTEXIMMED	0	// Pass on mutex immediately on unlock
 
@@ -35,12 +36,14 @@
 typedef struct pthread {
 	int		tno;		// thread number in master process
 	int		state;		// thread's current state
+	int		detached;	// true if thread can never join
 	struct pthread *qnext;		// next on scheduler or wait queue
 	pthread_mutex_t*reqs;		// mutexes req'd by other threads
 	struct pthread *joiner;		// thread blocked joining this thread
 	void *		exitval;	// value thread returned on exit
 
 	// state save area for blocked (but not preempted) threads
+	uint32_t	pff;		// process feature flags
 	uint32_t	ebp;		// frame pointer
 	uint32_t	esp;		// stack pointer
 	uint32_t	eip;		// instruction pointer
@@ -282,6 +285,9 @@ cprintf("sched: thread %d preempted eip %x\n", t->tno, cs.tf.tf_eip);
 		panic("sched: thread %d trap %d while mlocked, eip %x",
 			t->tno, cs.tf.tf_trapno, cs.tf.tf_eip);
 
+	// If the thread started using the FPU, remember that.
+	t->pff = cs.pff;
+
 	// OK, just resume the thread from where it left off,
 	// with tlock == 2 so it knows it's the master process.
 	asm volatile(
@@ -428,10 +434,10 @@ mret(void)
 	// Making this cpustate static is safe since only the master uses it,
 	// and means we don't have to clear it on each use.
 	static cpustate cs = {
-		.pff = P_QUANTUM ? PFF_ICNT : 0,
 		.icnt = 0,
 		.imax = P_QUANTUM,
 	};
+	cs.pff = t->pff | (P_QUANTUM ? PFF_ICNT : 0);
 
 	// Copy our register state and address space to the child,
 	// (re)start the child, and invoke the scheduler in the master process.
@@ -530,6 +536,8 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 	pthread_t t = &th[tno];
 	memset(t, 0, sizeof(*t));
 	t->tno = tno;
+	if (attr != NULL)
+		t->detached = *attr & PTHREAD_CREATE_DETACHED;
 
 	tinit(t);	// initialize the thread's stack
 
@@ -558,6 +566,7 @@ pthread_join(pthread_t tj, void **out_exitval)
 
 	// Wait for target thread to exit
 	assert(tj == &th[tj->tno]);
+	assert(!tj->detached);		// can't join with detached threads!
 	if (tj->state != TH_EXIT)	// hasn't exited as of last check -
 		mcall();		// give up timeslice and check for sure
 	if (tj->state != TH_EXIT) {	// hasn't yet exited - must wait for it
@@ -570,7 +579,8 @@ pthread_join(pthread_t tj, void **out_exitval)
 	assert(tj->state == TH_EXIT);
 
 	// Retrieve the thread's exit value
-	*out_exitval = tj->exitval;
+	if (out_exitval != NULL)
+		*out_exitval = tj->exitval;
 
 	// Free the thread for subsequent reuse
 	tj->state = TH_FREE;
@@ -591,10 +601,47 @@ pthread_exit(void *exitval)
 	if (t->joiner != NULL)
 		tready(t->joiner);
 
-	// save our exit status and block until joiner collects it
+	// save our exit status and block until joiner collects it,
+	// or just go to TH_FREE immediately if we're detached.
 	t->exitval = exitval;
-	tblock(t, TH_EXIT);
+	tblock(t, t->detached ? TH_FREE : TH_EXIT);
 	panic("exited thread should not have unblocked");
+}
+
+int pthread_attr_init(pthread_attr_t *attr)
+{
+	*attr = PTHREAD_CREATE_JOINABLE;
+	return 0;
+}
+
+int pthread_attr_destroy(pthread_attr_t *attr)
+{
+	return 0;
+}
+
+int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate)
+{
+	*detachstate = *attr;
+	return 0;
+}
+
+int pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate)
+{
+	*attr = detachstate;
+	return 0;
+}
+
+int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize)
+{
+	*stacksize = TSTACKSIZE;
+	return 0;
+}
+
+int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
+{
+	warn("pthread_attr_setstacksize: ignoring request for stack size %d",
+		stacksize);
+	return 0;
 }
 
 ////////// Mutexes //////////
@@ -671,6 +718,23 @@ pthread_mutex_lock(pthread_mutex_t *m)
 	return 0;
 }
 
+int
+pthread_mutex_trylock(pthread_mutex_t *m)
+{
+	pthread *t = self();
+	mlock();
+	int rc;
+	if (m->owner != t || (P_MUTEXFAIR && m->qhead != NULL)) {
+		rc = EBUSY;	// already locked
+	} else {
+		assert(!m->locked);	// shouldn't already be locked
+		m->locked = 1;
+		rc = 0;
+	}
+	mret();
+	return rc;
+}
+
 static gcc_inline void
 mutexunlock(pthread_t t, pthread_mutex_t *m)
 {
@@ -701,7 +765,6 @@ pthread_mutex_unlock(pthread_mutex_t *m)
 static void
 mutexreqs(pthread_t t)
 {
-	assert(t == self());
 	assert(tlock == 2);
 
 	pthread_mutex_t *m, **mp = &t->reqs;
@@ -723,6 +786,7 @@ mutexreqs(pthread_t t)
 			// so add mutex to new owner's reqs list.
 			m->reqnext = tn->reqs;
 			tn->reqs = m;
+			tn->qnext = NULL;
 		} else {		// mutex's queue now empty
 			m->reqnext = NULL;
 			m->qtail = &m->qhead;	// reset empty list
@@ -731,6 +795,17 @@ mutexreqs(pthread_t t)
 		// Let the new owner thread run
 		tready(tn);
 	}
+}
+
+int pthread_mutexattr_init(pthread_mutexattr_t *attr)
+{
+	*attr = 0;
+	return 0;
+}
+
+int pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
+{
+	return 0;
 }
 
 ////////// Condition variables //////////
@@ -835,6 +910,18 @@ condwakeups(void)
 	}
 }
 
+int pthread_condattr_init(pthread_condattr_t *attr)
+{
+	*attr = 0;
+	return 0;
+}
+
+int pthread_condattr_destroy(pthread_condattr_t *attr)
+{
+	return 0;
+}
+
+
 ////////// Thread-specific data //////////
 
 int pthread_key_create(pthread_key_t *keyp, destructor dtor)
@@ -895,6 +982,8 @@ malloc(size_t size)
 	void *pgnew = ROUNDUP(nbrk, PAGESIZE);
 	if (pgnew > pgold)
 		sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, pgold, pgnew - pgold);
+
+	mret();
 
 	return ptr;
 }

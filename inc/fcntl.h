@@ -1,5 +1,5 @@
 #if LAB >= 9
-// Unix compatibility API - standard Unix functions
+// Unix compatibility API - file control functions
 #ifndef PIOS_INC_FCNTL_H
 #define PIOS_INC_FCNTL_H 1
 

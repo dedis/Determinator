@@ -139,10 +139,10 @@ proc_save(proc *p, trapframe *tf, int entry)
 
 	if (p->sv.pff & PFF_ICNT) {	// Instruction counting/recovery
 		//cprintf("proc_save tf %x -> proc %x\n", tf, &p->sv.tf);
-		if (tf->tf_eflags & FL_TF) {	// single stepping
+		if (p->sv.tf.tf_eflags & FL_TF) {	// single stepping
 			if (entry > 0)
 				p->sv.icnt++;	// executed the INT insn
-			tf->tf_eflags &= ~FL_TF;
+			p->sv.tf.tf_eflags &= ~FL_TF;
 		} else if (p->pmcmax > 0) {	// using performance counters
 			assert(pmc_get != NULL);
 			p->sv.icnt += pmc_get(p->pmcmax);
@@ -153,6 +153,8 @@ proc_save(proc *p, trapframe *tf, int entry)
 		}
 		assert(p->sv.icnt <= p->sv.imax);
 	}
+	assert(!(p->sv.tf.tf_eflags & FL_TF));
+	assert(p->pmcmax == 0);
 #endif
 }
 
@@ -242,6 +244,8 @@ proc_run(proc *p)
 		asm volatile("fxrstor %0" : : "m" (p->sv.fx));
 	}
 
+	assert(!(p->sv.tf.tf_eflags & FL_TF));
+	assert(p->pmcmax == 0);
 	if (p->sv.pff & PFF_ICNT) {	// Instruction counting/recovery
 		//cprintf("proc_run proc %x\n", &p->sv.tf);
 		if (p->sv.icnt >= p->sv.imax) {
@@ -258,6 +262,9 @@ proc_run(proc *p)
 			p->pmcmax = pmax;
 		} else
 			p->sv.tf.tf_eflags |= FL_TF;	// just single-step
+	} else {
+		assert(!(p->sv.tf.tf_eflags & FL_TF));
+		assert(p->pmcmax == 0);
 	}
 #if SOL >= 3
 	// Switch to the new process's address space.

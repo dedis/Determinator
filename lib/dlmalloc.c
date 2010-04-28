@@ -53,6 +53,14 @@ thcalloc(size_t num, size_t bytes)
 	memset(ret, 0, num*bytes);
 	return ret;
 }
+
+void *
+threalloc(void *mem, size_t bytes)
+{
+	assert(child_mspace[TID] != 0);
+	return mspace_realloc(child_mspace[TID], mem, bytes);
+}
+
 /*------------------------------ internal #includes ---------------------- */
 
 #ifdef WIN32

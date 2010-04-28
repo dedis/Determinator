@@ -10,6 +10,7 @@
 #include <inc/file.h>
 #include <inc/stat.h>
 #include <inc/stdio.h>
+#include <inc/unistd.h>
 #include <inc/errno.h>
 #include <inc/dirent.h>
 #include <inc/string.h>
@@ -82,6 +83,22 @@ fputc(int c, FILE *fd)
 	return ch;
 }
 
+int
+ungetc(int c, FILE *fd)
+{
+	// We only support the most common use of ungetc(),
+	// to back up the read position after "peeking" a character.
+	assert(filedesc_isreadable(fd));
+	fileinode *fi = &files->fi[fd->ino];
+	if (c == EOF || fd->ofs <= 0 || fd->ofs > fi->size) {
+		errno = EINVAL;
+		return EOF;
+	}
+	if (((uint8_t*)FILEDATA(fd->ino))[--fd->ofs] != c)
+		panic("ungetc: unsupported usage, ungetting the wrong char");
+	return c;
+}
+
 size_t
 fread(void *buf, size_t eltsize, size_t count, FILE *fd)
 {
@@ -93,6 +110,11 @@ size_t
 fwrite(const void *buf, size_t eltsize, size_t count, FILE *fd)
 {
 	ssize_t actual = filedesc_write(fd, buf, eltsize, count);
+
+	// Make sure console output gets flushed every one
+	if (isatty(fd - files->fd) && memchr(buf, '\n', eltsize*count))
+		fflush(fd);
+		
 	return actual >= 0 ? actual : 0;	// no error indication
 }
 

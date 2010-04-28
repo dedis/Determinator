@@ -49,6 +49,7 @@ pthread_t pthread_self(void);
 //////////////////// PIOS_DSCHED ////////////////////
 #else	// Nondeterministic compatibility mode pthreads API
 
+#include <types.h>
 #include <cdefs.h>
 
 // Keep the two pthreads implementations disjoint at the linker level.
@@ -65,18 +66,21 @@ pthread_t pthread_self(void);
 #define pthread_cond_wait	dsthread_cond_wait
 
 typedef struct pthread *pthread_t;
-typedef void pthread_attr_t;
+typedef int pthread_attr_t;
 typedef int pthread_key_t;
+
+#define PTHREAD_CREATE_JOINABLE		0	// Thread expects to be joined
+#define PTHREAD_CREATE_DETACHED		1	// Thread nevers gets joined
 
 typedef struct pthread_mutex {
 	pthread_t	owner;		// which thread currently owns mutex
-	bool		locked;		// true if mutex currently locked
+	int		locked;		// true if mutex currently locked
 	pthread_t	qhead;		// queue of waiting threads - head
 	pthread_t	*qtail;		// queue of waiting threads - tail
 	struct pthread_mutex *reqnext;	// chain on current owner's reqs list
 //	struct pthread_mutex *wakenext;	// chain on list of mutexes to pass on
 } pthread_mutex_t;
-typedef void pthread_mutexattr_t;
+typedef int pthread_mutexattr_t;
 
 typedef struct pthread_cond {
 	int		event;		// 0 = none, 1 = signal, 3 = broadcast
@@ -84,23 +88,38 @@ typedef struct pthread_cond {
 	pthread_t	*qtail;		// queue of waiting threads - tail
 	struct pthread_cond *evnext;	// chain on list of signaled conds
 } pthread_cond_t;
-typedef void pthread_condattr_t;
+typedef int pthread_condattr_t;
+
 
 int pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 		void *(*start_routine)(void *), void *arg);
 int pthread_join(pthread_t th, void **out_exitval);
 void pthread_exit(void *exitval) gcc_noreturn;
 
+int pthread_attr_init(pthread_attr_t *attr);
+int pthread_attr_destroy(pthread_attr_t *attr);
+int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate);
+int pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate);
+int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize);
+int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize);
+
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr);
 int pthread_mutex_destroy(pthread_mutex_t *mutex);
 int pthread_mutex_lock(pthread_mutex_t *mutex);
+int pthread_mutex_trylock(pthread_mutex_t *mutex);
 int pthread_mutex_unlock(pthread_mutex_t *mutex);
+
+int pthread_mutexattr_init(pthread_mutexattr_t *attr);
+int pthread_mutexattr_destroy(pthread_mutexattr_t *attr);
 
 int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr);
 int pthread_cond_destroy(pthread_cond_t *cond);
 int pthread_cond_signal(pthread_cond_t *cond);
 int pthread_cond_broadcast(pthread_cond_t *cond);
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+
+int pthread_condattr_init(pthread_condattr_t *attr);
+int pthread_condattr_destroy(pthread_condattr_t *attr);
 
 int pthread_key_create(pthread_key_t *key, void (*init)(void *));
 int pthread_key_delete(pthread_key_t key);

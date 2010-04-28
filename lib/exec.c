@@ -67,14 +67,18 @@ exec_readelf(const char *path)
 
 	// Make sure it looks like an ELF image.
 	elfhdr *eh = imgdata;
-	if (imgsize < sizeof(*eh) || eh->e_magic != ELF_MAGIC)
-		goto badelf;
+	if (imgsize < sizeof(*eh) || eh->e_magic != ELF_MAGIC) {
+		warn("exec_readelf: ELF header not found");
+		goto err;
+	}
 
 	// Load each program segment into the scratch area
 	proghdr *ph = imgdata + eh->e_phoff;
 	proghdr *eph = ph + eh->e_phnum;
-	if (imgsize < (void*)eph - imgdata)
-		goto badelf;
+	if (imgsize < (void*)eph - imgdata) {
+		warn("exec_readelf: ELF program header truncated");
+		goto err;
+	}
 	for (; ph < eph; ph++) {
 		if (ph->p_type != ELF_PROG_LOAD)
 			continue;
@@ -83,8 +87,11 @@ exec_readelf(const char *path)
 		intptr_t valo = ph->p_va;
 		intptr_t vahi = valo + ph->p_memsz;
 		if (valo < VM_USERLO || valo > VM_USERLO+EXEMAX ||
-				vahi < valo || vahi > VM_USERLO+EXEMAX)
-			goto badelf;
+				vahi < valo || vahi > VM_USERLO+EXEMAX) {
+			warn("exec_readelf: executable image too large "
+				"(%d bytes > %d max)", vahi-valo, EXEMAX);
+			goto err;
+		}
 
 		// Map all pages the segment touches in our scratch region.
 		// They've already been zeroed by the SYS_ZERO above.
@@ -100,8 +107,10 @@ exec_readelf(const char *path)
 		intptr_t filelo = ph->p_offset;
 		intptr_t filehi = filelo + ph->p_filesz;
 		if (filelo < 0 || filelo > imgsize
-				|| filehi < filelo || filehi > imgsize)
-			goto badelf;
+				|| filehi < filelo || filehi > imgsize) {
+			warn("exec_readelf: loaded section out of bounds");
+			goto err;
+		}
 		memcpy((void*)valo + scratchofs, imgdata + filelo,
 			filehi - filelo);
 
@@ -116,14 +125,14 @@ exec_readelf(const char *path)
 		(void*)VM_USERLO, EXEMAX);
 
 	// The new program should have the same entrypoint as we do!
-	if (eh->e_entry != (intptr_t)start)
-		goto badelf;
+	if (eh->e_entry != (intptr_t)start) {
+		warn("exec_readelf: executable has a different start address");
+		goto err;
+	}
 
 	filedesc_close(fd);	// Done with the ELF file
 	return 0;
 
-badelf:
-	warn("execv: file %s is not an ELF image", path);
 err:
 	filedesc_close(fd);
 	return -1;

@@ -251,6 +251,10 @@ trap(trapframe *tf)
 		trap_return(tf);
 
 	case T_DEBUG:	// count instructions by single-stepping
+		// XXX user code can set the trace flag itself;
+		// need to manage a virtual trace flag on behalf of it
+		// instead of just panicking if we see a debug trap
+		// that we didn't cause.
 		assert(tf->tf_cs & 3);
 		assert(tf->tf_eflags & FL_TF);
 		assert(p->sv.pff & PFF_ICNT);

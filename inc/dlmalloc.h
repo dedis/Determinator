@@ -5,7 +5,6 @@
 #include <inc/vm.h>
 
 #define MAXTHREADS	(32)
-#define TSTACKSIZE	((VM_STACKHI - VM_STACKLO) / MAXTHREADS)
 #define HEAP_HI		VM_SHAREHI
 #define HEAP_LO		(VM_SHARELO + (VM_SHAREHI - VM_SHARELO)/2)
 #define HEAP_SZ		((HEAP_HI - HEAP_LO)/MAXTHREADS)
@@ -14,10 +13,12 @@
 #define thcalloc				calloc
 #define thfree					free
 #define thmalloc				malloc
+#define threalloc				realloc
 
 void *thmalloc(size_t bytes);
 void thfree(void *mem);
 void *thcalloc(size_t num, size_t bytes);
+void *threalloc(void *mem, size_t bytes);
 
 #endif /* PIOS_THREAD_MALLOC_H */
 /* --------------- PIOS header finishes ---------------*/
@@ -783,7 +784,7 @@ extern "C" {
 #define dlfree                 free
 #define dlmalloc               malloc
 #define dlmemalign             memalign
-#define dlrealloc              realloc
+#define drealloc              realloc
 #define dlvalloc               valloc
 #define dlpvalloc              pvalloc
 #define dlmallinfo             mallinfo

@@ -14,12 +14,6 @@
 #include <dev/lapic.h>
 
 
-// Frequency at which we want our local APICs to produce interrupts,
-// which are used for context switching.
-// Must be at least 19Hz in order to keep the system type up-to-date.
-#define HZ		25
-
-
 volatile uint32_t *lapic;  // Initialized in mp.c
 
 
