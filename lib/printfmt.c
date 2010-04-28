@@ -5,76 +5,66 @@
 
 #include <inc/types.h>
 #include <inc/stdio.h>
+#include <inc/ctype.h>
 #include <inc/string.h>
 #include <inc/stdarg.h>
 #include <inc/assert.h>
 #include <inc/ctype.h>
 #include <inc/math.h>
 
-/*
- * Space or zero padding and a field width are supported for the numeric
- * formats only. 
- */
+typedef struct printstate {
+	void (*putch)(int ch, void *putdat);	// character output function
+	void *putdat;		// data for above function
+	int padc;		// left pad character, ' ' or '0'
+	int lwidth;		// field width for left-padding, -1=none
+	int rwidth;		// field width for right-padding, -1=none
+	int prec;		// numeric precision or string length, -1=none
+	int signc;		// sign character: '+', '-', ' ', or -1=none
+	int flags;		// flags below
+	int base;		// base for numeric output
+} printstate;
 
-/*
- * Print a number (base <= 16) in reverse order,
- * using specified putch function and associated pointer putdat.
- */
+#define	F_L	0x01		// (at least) one 'l' specified
+#define	F_LL	0x02		// (at least) two 'l's specified
+#define F_ALT	0x04		// '#' alternate format flag specified
+#define F_DOT	0x08		// '.' separating width from precision seen
+#define F_RPAD	0x10		// '-' indiciating right padding seen
+
+// Print padding characters, and an optional sign before a number.
 static void
-printnum(void (*putch)(int, void*), void *putdat,
-	 unsigned long long num, unsigned base, int width, int padc, int signc)
+printpad(printstate *st, int width)
+{
+	if (st->signc >= 0)
+		width--;		// account for sign character
+	while (--st->width > 0)
+		putch(st->padc, st->putdat);
+	if (st->signc >= 0)
+		putch(st->signc, st->putdat);
+}
+
+// Print a number (base <= 16) in reverse order,
+// padding on the left to make output at least 'leftwidth' characters.
+static void
+printnum(printstate *st, unsigned long long num, int leftwidth)
 {
 	// first recursively print all preceding (more significant) digits
-	if (num >= base) {
-		printnum(putch, putdat, num / base, base, width-1, padc, signc);
-	} else {
-		// print any needed pad characters before first digit
-		if (signc >= 0)
-			width--;	// account for sign character
-		while (--width > 0)
-			putch(padc, putdat);
-		if (signc >= 0)
-			putch(signc, putdat);
-	}
+	if (num >= st->base)
+		printnum(st, num / st->base, leftwidth - 1);
+	else
+		printpad(st, leftwidth);
 
 	// then print this (the least significant) digit
-	putch("0123456789abcdef"[num % base], putdat);
+	putch("0123456789abcdef"[num % st->base], st->putdat);
 }
-
-#ifndef PIOS_KERNEL	// the kernel doesn't need or want floating-point
-static void
-printfloat(void (*putch)(int, void*), void *putdat,
-	 double num, int width, int padc)
-{
-	if (num >= 10.0) {
-		printfloat(putch, putdat, num / 10.0, width - 1, padc);
-	} else
-		while (--width > 0)
-			putch(padc, putdat);
-	putch('0' + (int)fmod(num, 10.0), putdat);
-}
-
-static void
-printfrac(void (*putch)(int, void*), void *putdat, double num, int width)
-{
-	num -= floor(num);	// get the fractional part only
-	while (width-- > 0) {
-		num *= 10.0;
-		int dig = (int)num;
-		putch('0' + dig, putdat);
-		num -= dig;
-	}
-}
-#endif	// ! PIOS_KERNEL
 
 // Get an unsigned int of various possible sizes from a varargs list,
 // depending on the lflag parameter.
-static unsigned long long
-getuint(va_list *ap, int lflag)
+static uintmax_t
+getuint(printstate *st, va_list *ap)
 {
-	if (lflag >= 2)
+	if (st->flags & F_LL)
 		return va_arg(*ap, unsigned long long);
-	else if (lflag)
+	else if (st->flags & F_L)
 		return va_arg(*ap, unsigned long);
 	else
 		return va_arg(*ap, unsigned int);
@@ -82,17 +72,42 @@ getuint(va_list *ap, int lflag)
 
 // Same as getuint but signed - can't use getuint
 // because of sign extension
-static long long
-getint(va_list *ap, int lflag)
+static intmax_t
+getint(printstate *st, va_list *ap)
 {
-	if (lflag >= 2)
+	if (st->flags & F_LL)
 		return va_arg(*ap, long long);
-	else if (lflag)
+	else if (st->flags & F_L)
 		return va_arg(*ap, long);
 	else
 		return va_arg(*ap, int);
 }
 
+#ifndef PIOS_KERNEL	// the kernel doesn't need or want floating-point
+static void
+printfloat(printstate *st, double num, int leftwidth)
+{
+	if (num >= 10.0)
+		printfloat(st, num / 10.0, leftwidth - 1);
+	else
+		printpad(st, leftwidth);
+
+	int dig = fmod(num, 10.0); assert(dig >= 0 && dig < 10);
+	putch('0' + dig, st->putdat);
+}
+
+static void
+printfrac(printstate *st, double num, int width)
+{
+	num -= floor(num);	// get the fractional part only
+	while (width-- > 0) {
+		num *= 10.0;
+		int dig = (int)num; assert(dig >= 0 && dig < 10);
+		putch('0' + dig, putdat);
+		num -= dig;
+	}
+}
+#endif	// ! PIOS_KERNEL
 
 // Main function to format and print a string.
 void
@@ -100,6 +115,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 {
 	register int ch, err;
 
+	printstate st = { .putch = putch, .putdat = putdat };
 	while (1) {
 		while ((ch = *(unsigned char *) fmt++) != '%') {
 			if (ch == '\0')
@@ -108,64 +124,67 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		}
 
 		// Process a %-escape sequence
-		int padc = ' ';
-		int signc = -1;
-		int width = -1;
-		int precision = -1;
-		int lflag = 0;
-		int dotflag = 0;
-		int altflag = 0;
-		int base;
-		unsigned long long num;
+		st.padc = ' ';
+		st.signc = -1;
+		st.flags = 0;
+		st.lwidth = -1;
+		st.rwidth = -1;
+		st.prec = -1;
+		uintmax_t num;
 	reswitch:
 		switch (ch = *(unsigned char *) fmt++) {
 
 		// modifier flags
 		case '-': // pad on the right instead of the left
-			padc = '-';
+			st.flags |= F_RPAD;
 			goto reswitch;
 
 		case '+': // prefix positive numeric values with a '+' sign
-			signc = '+';
+			st.signc = '+';
 			goto reswitch;
 
 		case ' ': // prefix signless numeric values with a space
-			if (signc < 0)
+			if (st.signc < 0)
 				signc = ' ';
 			goto reswitch;
 
 		// width or precision field
 		case '0':
-			if (!dotflag)	// pad with 0's instead of spaces
-				padc = '0';
+			if (!(st.flags & F_DOT))
+				padc = '0'; // pad with 0's instead of spaces
 		case '1': case '2': case '3': case '4':
 		case '5': case '6': case '7': case '8': case '9':
-			for (precision = 0; ; ++fmt) {
-				precision = precision * 10 + ch - '0';
+			for (st.prec = 0; ; ++fmt) {
+				st.prec = st.prec * 10 + ch - '0';
 				ch = *fmt;
 				if (ch < '0' || ch > '9')
 					break;
 			}
-			goto process_precision;
+			goto gotprec;
 
 		case '*':
-			precision = va_arg(ap, int);
-		process_precision:
-			if (!dotflag)
-				width = precision, precision = -1;
+			st.prec = va_arg(ap, int);
+		gotprec:
+			if (!(st.flags & F_DOT)) {
+				if (st.flags & F_RPAD)
+					st.rwidth = st.prec;
+				else
+					st.lwidth = st.prec;
+				st.prec = -1;
+			}
 			goto reswitch;
 
 		case '.':
-			dotflag = 1;
+			st.flags |= F_DOT;
 			goto reswitch;
 
 		case '#':
-			altflag = 1;
+			st.flags |= F_ALT;
 			goto reswitch;
 
 		// long flag (doubled for long long)
 		case 'l':
-			lflag++;
+			st.flags |= (st.flags & F_L) ? F_LL : F_L;
 			goto reswitch;
 
 		// character
@@ -175,43 +194,42 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		// string
 		case 's': {
-			const char *p;
-			if ((p = va_arg(ap, char *)) == NULL)
-				p = "(null)";
-			if (width > 0 && padc != '-')
-				for (width -= strnlen(p, precision); width > 0; width--)
-					putch(padc, putdat);
-			for (; (ch = *p++) != '\0' && (precision < 0 || --precision >= 0); width--)
-				if (altflag && (ch < ' ' || ch > '~'))
+			const char *s;
+			if ((s = va_arg(ap, char *)) == NULL)
+				s = "(null)";
+			int plen = (st.prec >= 0) ? strnlen(s, st.prec)
+						   : strlen(s);
+			printpad(st, st.lwidth - len);
+			while ((ch = *p++) != '\0' && (--len >= 0))
+				if (altflag && !isprint(ch))
 					putch('?', putdat);
 				else
 					putch(ch, putdat);
-			for (; width > 0; width--)
-				putch(' ', putdat);
+			printpad(st, st.rwidth - len);
 			break;
 		    }
 
 		// (signed) decimal
 		case 'd':
-			num = getint(&ap, lflag);
-			if ((long long) num < 0) {
-				num = -(long long) num;
-				signc = '-';
+			num = getint(&st, &ap);
+			if ((intmax_t) num < 0) {
+				num = -(intmax_t) num;
+				st.signc = '-';
 			}
-			base = 10;
+			st.base = 10;
 			goto number;
 
 		// unsigned decimal
 		case 'u':
-			num = getuint(&ap, lflag);
-			base = 10;
+			num = getuint(&st, &ap);
+			st.base = 10;
 			goto number;
 
 		// (unsigned) octal
 		case 'o':
 #if SOL >= 1
-			num = getuint(&ap, lflag);
-			base = 8;
+			num = getuint(&st, &ap);
+			st.base = 8;
 			goto number;
 #else
 			// Replace this with your code.
@@ -227,24 +245,29 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			putch('x', putdat);
 			num = (unsigned long long)
 				(uintptr_t) va_arg(ap, void *);
-			base = 16;
+			st.base = 16;
 			goto number;
 
 		// (unsigned) hexadecimal
 		case 'x':
-			num = getuint(&ap, lflag);
+			num = getuint(&st, &ap);
 			base = 16;
-		number:
-			printnum(putch, putdat, num, base, width, padc, signc);
+		number: {
+			int lwidth = (st.flags & F_RPAD) ? -1 : width;
+			int rwidth = (st.flags & F_RPAD) ? width : -1;
+			printnum(&st, num, lwidth);
 			break;
+		    }
 
 #ifndef PIOS_KERNEL
 		// floating-point
-		case 'f': case 'F': {
+		case 'f': case 'F':
+		case 'e': case 'E':	// XXX should be different from %f
+		case 'g': case 'G': {	// XXX should be different from %f
 			double val = va_arg(ap, double);
 			if (val < 0) {
-				putch('-', putdat);
 				val = -val;
+				signc = '-';
 			}
 
 			// Handle infinities and NaNs
@@ -260,15 +283,17 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 				break;
 			}
 
-			if (precision < 0)	// width of fraction part
-				precision = 6;
-			width -= precision;	// width only of int part
-			if (precision > 0 || altflag)
-				width--;	// account for '.'
-			printfloat(putch, putdat, val, width, padc);
+			if (st.prec < 0)	// width of fraction part
+				st.prec = 6;
+			lwidth -= st.prec;	// width only of int part
+			if (st.prec > 0 || altflag)
+				lwidth--;	// account for '.'
+			printfloat(putch, putdat, val, lwidth, padc, signc);
 			if (precision > 0 || altflag)
 				putch('.', putdat);
-			printfrac(putch, putdat, val, precision);
+			printfrac(&st, val, precision);
+			for (; rwidth > 0; rwidth--)
+				putch(' ', putdat);
 			break;
 		    }
 #endif	// ! PIOS_KERNEL
