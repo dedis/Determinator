@@ -4,6 +4,7 @@
 #define PIOS_DSCHED
 
 #include <inc/string.h>
+#include <inc/stdlib.h>
 #include <inc/syscall.h>
 #include <inc/pthread.h>
 #include <inc/signal.h>
@@ -49,13 +50,13 @@ typedef struct pthread {
 	uint32_t	eip;		// instruction pointer
 } pthread;
 
-// Per-thread state control block, at fixed address VM_PRIVHI-16 (0xeffffff0).
+// Per-thread state control block, at fixed address 0xeffff000.
 // The kernel sets up the %gs register with this offset.
 typedef struct threadpriv {
-	// Thread pointer that GCC-generated code reads via %gs:0,
-	// in order to get the base from which to access thread-local variables.
-	// We use the GNU TLS model, meaning this pointer points to itself.
-	struct threadpriv	*tptr;
+	// Pointer to thread-private global data laid out by the linker.
+	// GCC-generated code reads this via %gs:0 to find thread-private data.
+	void		*tlshi;
+	void		*tlslo;
 
 	// We place a 3-instruction sequence in this page,
 	// which child processes use to make calls into the master process.
@@ -64,9 +65,9 @@ typedef struct threadpriv {
 	// Using this code to call the master avoids the race condition
 	// where we get preempted just after checking that we're a child,
 	// and then mistakenly return to the master's parent instead of the master.
-	char			mcall[3];
+	char		mcall[3];
 } threadpriv;
-#define THREADPRIV	((threadpriv*)(VM_PRIVHI - 16))
+#define THREADPRIV	((threadpriv*)(VM_PRIVHI - PAGESIZE))
 
 // Another special "thread-private" page,
 // which contains the scheduler stack in the master process.
@@ -174,25 +175,8 @@ init(void)
 	static_assert((intptr_t)(THREADPRIV + 1) <= VM_PRIVHI);
 	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL,
 		(void*) VM_PRIVHI - PAGESIZE, PAGESIZE);
-	THREADPRIV->tptr = THREADPRIV;
 	assert(mmcalle - mmcalls == sizeof(THREADPRIV->mcall));
 	memcpy(THREADPRIV->mcall, mmcalls, mmcalle - mmcalls);
-
-	// Now we should safely be able to access thread-local variables via GCC.
-	// Figure out how big our thread-local state area actually is.
-	extern __thread char tdata_start[], tbss_start[];
-	intptr_t tdatasize = tbss_start - tdata_start;
-
-	// Make sure our full thread-local storage area is accessible.
-	void *pglo = ROUNDDOWN((void *)tdata_start, PAGESIZE);
-	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, pglo, (void*)VM_PRIVHI - pglo);
-
-	// Initialize statically-initialized variables from the executable image.
-	// We depend on the fact that tbss_start coincides with __init_array_start
-	// because of the way the linker lays out executables.  (XXX bad hack.)
-	extern char __init_array_start[];
-	memcpy(tdata_start, __init_array_start - tdatasize, tdatasize);
-	assert(testint == 0x12345678);	// make sure it worked!
 
 	// We should have been started in thread 0's stack area.
 	pthread_t t = &th[0];
@@ -548,10 +532,34 @@ tpinit(pthread_t t)
 	assert(t == self());
 	assert(tlock == 0);
 
-	// Set up our child version of the mcall-page.
-	assert(THREADPRIV->tptr == THREADPRIV);
+	// Set up our child version of the mcall code sequence.
 	assert(cmcalle - cmcalls == sizeof(THREADPRIV->mcall));
 	memcpy(THREADPRIV->mcall, cmcalls, cmcalle - cmcalls);
+
+	// Figure out how big our GCC thread-local state area needs to be.
+	extern __thread char tdata_start[], tbss_start[];
+	intptr_t tdatasize = tbss_start - tdata_start;	// size of init'd data
+	assert(THREADPRIV->tlshi == NULL);
+	intptr_t tlssize = -(intptr_t)tdata_start;	// complete tls area
+	assert(tlssize >= tdatasize);
+
+	// Allocate a TLS area for this thread.
+	// Of course, we could just place the TLS data area
+	// at a fixed location in the space above VM_PRIVLO,
+	// but then other threads wouldn't be able to refer to our
+	// thread-private storage (e.g., via pointers we pass to them),
+	// and pthreads-based code sometimes assumes it can do this.
+	THREADPRIV->tlslo = malloc(tlssize);
+	THREADPRIV->tlshi = THREADPRIV->tlslo + tlssize;
+cprintf("thread %d tls area %x size %x\n", t->tno, THREADPRIV->tlslo, tlssize);
+
+	// Initialize our TLS area from the linker-generated image.
+	// We depend on tbss_start coinciding with __init_array_start
+	// because of the way the linker lays out executables.  (XXX bad hack.)
+	extern char __init_array_start[];
+	memcpy(THREADPRIV->tlslo, __init_array_start - tdatasize, tdatasize);
+	memset(THREADPRIV->tlslo + tdatasize, 0, tlssize - tdatasize);
+	assert(testint == 0x12345678);	// make sure it worked!
 }
 
 // Initial entrypoint for threads started via pthread_create().
@@ -640,7 +648,7 @@ pthread_exit(void *exitval)
 	mcall();
 
 	pthread_t t = self();
-cprintf("pthread_exit %d detached %d\n", t->tno, t->detached);
+	cprintf("pthread_exit %d detached %d\n", t->tno, t->detached);
 	assert(t->state == TH_RUN);
 
 	// wake up any thread trying to join with us
@@ -889,7 +897,8 @@ static int condevent(pthread_cond_t *c, bool broadcast)
 		c->nwake = INT_MAX;
 	else
 		c->nwake++;
-cprintf("cond_event thread %d %x ev %d nwake %d\n", t->tno, c, broadcast, c->nwake);
+	//cprintf("cond_event thread %d %x bcast %d nwake %d\n",
+	//	t->tno, c, broadcast, c->nwake);
 
 	// Now return to nonpreemptible execution.
 	// If our timeslice ended and we've become the master by now,
@@ -923,7 +932,7 @@ pthread_cond_wait(pthread_cond_t *c, pthread_mutex_t *m)
 	*c->qtail = t;
 	c->qtail = &t->qnext;
 
-cprintf("cond_wait thread %d cond %x\n", t->tno, c);
+	//cprintf("cond_wait thread %d cond %x\n", t->tno, c);
 	mutexunlock(t, m);	// unlock mutex (while nonpreemptible)
 	tblock(t, TH_COND);	// block until signaled
 	mutexlock(t, m);	// re-lock the mutex
@@ -941,11 +950,9 @@ condwakeups(void)
 		pthread_cond_t *c = evconds;
 		assert(c->nwake > 0);
 
-cprintf("condwakeup %x nwake %d\n", c, c->nwake);
 		// Wake up one or all waiting threads, depending on c->event
 		do {
 			pthread *tw = c->qhead;
-cprintf("condwakeup tw %d\n", tw->tno);
 			if (tw == NULL)
 				break;
 			c->qhead = tw->qnext;	// unlink thread from queue
@@ -1014,7 +1021,7 @@ int pthread_setspecific(pthread_key_t key, const void *val)
 }
 
 ////////// Memory allocation //////////
-/*
+
 extern char end[];
 static void *brk = end;
 
@@ -1065,7 +1072,7 @@ free(void *ptr)
 {
 	// XXX
 }
-*/
+
 ////////// Signal handling //////////
 
 sighandler_t

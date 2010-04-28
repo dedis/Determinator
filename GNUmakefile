@@ -126,7 +126,7 @@ endif
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
 # XXX modified to -O2 for benchmarking
-CFLAGS += $(DEFS) $(LABDEFS) -O1 -fno-builtin \
+CFLAGS += $(DEFS) $(LABDEFS) -O2 -fno-builtin \
 		-I$(TOP) -I$(TOP)/inc -I$(GCCDIR)/include -MD  \
 		-Wall -Wno-unused -Werror -gstabs
 
@@ -300,7 +300,7 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
 NCPUS = 2
-#if SOL >= 1
+#if LAB >= 9
 NCPUS := $(shell if test `uname -n` = "korz"; then echo 8; else echo 2; fi)
 #endif
 IMAGES = $(OBJDIR)/kern/kernel.img
