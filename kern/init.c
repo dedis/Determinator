@@ -139,6 +139,8 @@ init(void)
 #if SOL == 1
 	// Conjure up a trapframe and "return" to it to enter user mode.
 	static trapframe utf = {
+		tf_gs: CPU_GDT_UDTLS | 3,
+		tf_fs: 0,
 		tf_ds: CPU_GDT_UDATA | 3,
 		tf_es: CPU_GDT_UDATA | 3,
 		tf_eip: (uint32_t) user,

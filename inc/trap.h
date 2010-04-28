@@ -83,23 +83,21 @@ typedef struct trapframe {
 
 	// registers and other info we push manually in trapasm.S
 	pushregs tf_regs;
-	uint16_t tf_es;
-	uint16_t tf_padding1;
-	uint16_t tf_ds;
-	uint16_t tf_padding2;
+	uint16_t tf_gs;		uint16_t tf_padding_gs;
+	uint16_t tf_fs; 	uint16_t tf_padding_fs;
+	uint16_t tf_es;		uint16_t tf_padding_es;
+	uint16_t tf_ds; 	uint16_t tf_padding_ds;
 	uint32_t tf_trapno;
 
 	// format from here on determined by x86 hardware architecture
 	uint32_t tf_err;
 	uintptr_t tf_eip;
-	uint16_t tf_cs;
-	uint16_t tf_padding3;
+	uint16_t tf_cs; 	uint16_t tf_padding_cs;
 	uint32_t tf_eflags;
 
 	// rest included only when crossing rings, e.g., user to kernel
 	uintptr_t tf_esp;
-	uint16_t tf_ss;
-	uint16_t tf_padding4;
+	uint16_t tf_ss;		uint16_t tf_padding_ss;
 } trapframe;
 
 // size of trapframe pushed when called from user and kernel mode, respectively
@@ -133,7 +131,7 @@ typedef gcc_aligned(16) struct fxsave {
 
 // Must equal 'sizeof(struct trapframe)'.
 // A static_assert in kern/trap.c checks this.
-#define SIZEOF_STRUCT_TRAPFRAME	0x44
+#define SIZEOF_STRUCT_TRAPFRAME	0x4c
 
 #endif /* !PIOS_INC_TRAP_H */
 #endif /* LAB >= 1 */

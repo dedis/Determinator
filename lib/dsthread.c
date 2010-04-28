@@ -49,23 +49,29 @@ typedef struct pthread {
 	uint32_t	eip;		// instruction pointer
 } pthread;
 
-// Per-thread state page, starting at VM_PRIVLO
+// Per-thread state control block, at fixed address VM_PRIVHI-16 (0xeffffff0).
+// The kernel sets up the %gs register with this offset.
 typedef struct threadpriv {
-	//void *		brk;		// heap allocation pointer
-	void *		tspec[MAXKEYS];	// thread-specific value for each key
-} threadpriv;
-#define THREADPRIV	((threadpriv*)VM_PRIVLO)
+	// Thread pointer that GCC-generated code reads via %gs:0,
+	// in order to get the base from which to access thread-local variables.
+	// We use the GNU TLS model, meaning this pointer points to itself.
+	struct threadpriv	*tptr;
 
-// Special "thread-private" page that mcall() uses to call the master process.
-// In the master process, this page just contains a RET instruction;
-// in all child processes representing threads, it does a sys_ret().
-#define MCALLPAGE	((char*)VM_PRIVLO + PAGESIZE)
+	// We place a 3-instruction sequence in this page,
+	// which child processes use to make calls into the master process.
+	// In child processes, this code fragment is INT $T_SYSCALL; RET,
+	// whereas in the master process, it's just RET; RET; RET.
+	// Using this code to call the master avoids the race condition
+	// where we get preempted just after checking that we're a child,
+	// and then mistakenly return to the master's parent instead of the master.
+	char			mcall[3];
+} threadpriv;
+#define THREADPRIV	((threadpriv*)(VM_PRIVHI - 16))
 
 // Another special "thread-private" page,
-// which contains the scheduler stack in the master process,
-// but is unmapped in all child processes.
-#define SCHEDSTACKHI	(VM_PRIVHI)
-#define SCHEDSTACKLO	(VM_PRIVHI - PAGESIZE)
+// which contains the scheduler stack in the master process.
+#define SCHEDSTACKLO	(VM_PRIVLO + PAGESIZE)
+#define SCHEDSTACKHI	(VM_PRIVLO + PAGESIZE*2)
 
 // Divide our total stack address space into equal-size per-thread chunks.
 // Arrange them downward so that the initial stack is in the "thread 0" area.
@@ -102,10 +108,13 @@ static volatile int tlock = -1;
 // The ready queue contains threads that are definitely waiting to be run;
 // the run queue contains threads whose results we need to collect in turn.
 // We always process the ready queue before the run queue.
-static pthread *readyqhead;
+static pthread *readyqhead = NULL;
 static pthread **readyqtail = &readyqhead;
-static pthread *runqhead;
+static pthread *runqhead = NULL;
 static pthread **runqtail = &runqhead;
+
+// The scheduler runs on a thread-private stack in the master process.
+static __thread char schedstack[PAGESIZE];
 
 // List of condition variables we have signaled during this timeslice.
 // Each thread effectively maintains its own list during its timeslice,
@@ -113,9 +122,12 @@ static pthread **runqtail = &runqhead;
 // which is why all threads can use this (shared) location without conflict.
 static pthread_cond_t *evconds;
 
+// Thread-specific state via the pthreads API
 typedef void (*destructor)(void *);
-static pthread_key_t nextkey = 1;
-static destructor dtors[MAXKEYS];
+static pthread_key_t nextkey = 1;	// next key to be assigned
+static destructor dtors[MAXKEYS];	// destructor for each key
+static __thread void *tspec[MAXKEYS];	// thread-specific value for each key
+
 
 
 static void tinit(pthread_t t);
@@ -146,22 +158,41 @@ extern char cmcalls[], cmcalle[];
 asm("mmcalls: ret; ret; ret; mmcalle:");
 extern char mmcalls[], mmcalle[];
 
+static volatile __thread int testint = 0x12345678;
+
 static void
 init(void)
 {
 	assert(tlock < 0);
 	tlock = 2;		// we start out as the master process
 
-	// Create the master's version of the mcall-page.
-	assert(sizeof(threadpriv) <= PAGESIZE);
-	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, MCALLPAGE, PAGESIZE);
-	memcpy(MCALLPAGE, mmcalls, mmcalle - mmcalls);
-
 	// Create the scheduler stack.
 	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL,
-		(void*)SCHEDSTACKLO, PAGESIZE);
-	sys_get(SYS_PERM, 0, NULL, NULL,
-		(void*)SCHEDSTACKLO-PAGESIZE, PAGESIZE);
+		(void*)SCHEDSTACKLO, SCHEDSTACKHI - SCHEDSTACKLO);
+
+	// Create the master's version of the threadpriv page.
+	static_assert((intptr_t)(THREADPRIV + 1) <= VM_PRIVHI);
+	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL,
+		(void*) VM_PRIVHI - PAGESIZE, PAGESIZE);
+	THREADPRIV->tptr = THREADPRIV;
+	assert(mmcalle - mmcalls == sizeof(THREADPRIV->mcall));
+	memcpy(THREADPRIV->mcall, mmcalls, mmcalle - mmcalls);
+
+	// Now we should safely be able to access thread-local variables via GCC.
+	// Figure out how big our thread-local state area actually is.
+	extern __thread char tdata_start[], tbss_start[];
+	intptr_t tdatasize = tbss_start - tdata_start;
+
+	// Make sure our full thread-local storage area is accessible.
+	void *pglo = ROUNDDOWN((void *)tdata_start, PAGESIZE);
+	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, pglo, (void*)VM_PRIVHI - pglo);
+
+	// Initialize statically-initialized variables from the executable image.
+	// We depend on the fact that tbss_start coincides with __init_array_start
+	// because of the way the linker lays out executables.  (XXX bad hack.)
+	extern char __init_array_start[];
+	memcpy(tdata_start, __init_array_start - tdatasize, tdatasize);
+	assert(testint == 0x12345678);	// make sure it worked!
 
 	// We should have been started in thread 0's stack area.
 	pthread_t t = &th[0];
@@ -410,11 +441,11 @@ mcall(void)
 	// that way we'll do the correct thing even if we get preempted
 	// just the moment before that instruction is executed.
 	asm volatile("call %1"
-			: : "a" (SYS_RET), "m" (*(char*)MCALLPAGE)
+			: : "a" (SYS_RET), "m" (THREADPRIV->mcall[0])
 			: "memory");
 
 	assert(tlock == 2);
-	assert(MCALLPAGE[0] == mmcalls[0]);
+	assert(THREADPRIV->mcall[0] == mmcalls[0]);
 }
 
 // Return a thread running as master to its proper child process,
@@ -488,6 +519,10 @@ tinit(pthread_t t)
 		(void*)TSTACKLO(tno), PAGESIZE);
 	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL,
 		(void*)TSTACKLO(tno) + PAGESIZE, TSTACKSIZE - PAGESIZE);
+
+	// Create the child's thread-private area by cloning the master's.
+	sys_put(SYS_COPY, tno, NULL,
+		(void*)VM_PRIVLO, (void*)VM_PRIVLO, VM_PRIVHI - VM_PRIVLO);
 }
 
 // Initialize a thread's thread-private state area,
@@ -498,15 +533,10 @@ tpinit(pthread_t t)
 	assert(t == self());
 	assert(tlock == 0);
 
-	// Set up our thread-private storage page.
-	assert(sizeof(threadpriv) <= PAGESIZE);
-	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, THREADPRIV, PAGESIZE);
-//	THREADPRIV->brk = (void*) THEAPLO(t->tno);
-
 	// Set up our child version of the mcall-page.
-	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, MCALLPAGE, PAGESIZE);
-	memcpy(MCALLPAGE, cmcalls, cmcalle - cmcalls);
-	assert((cmcalle - cmcalls) == (mmcalle - mmcalls));
+	assert(THREADPRIV->tptr == THREADPRIV);
+	assert(cmcalle - cmcalls == sizeof(THREADPRIV->mcall));
+	memcpy(THREADPRIV->mcall, cmcalls, cmcalle - cmcalls);
 }
 
 // Initial entrypoint for threads started via pthread_create().
@@ -950,13 +980,13 @@ int pthread_key_delete(pthread_key_t key)
 void *pthread_getspecific(pthread_key_t key)
 {
 	assert(key > 0 && key < MAXKEYS);
-	return THREADPRIV->tspec[key];
+	return tspec[key];
 }
 
 int pthread_setspecific(pthread_key_t key, const void *val)
 {
 	assert(key > 0 && key < MAXKEYS);
-	THREADPRIV->tspec[key] = (void*) val;
+	tspec[key] = (void*) val;
 	return 0;
 }
 

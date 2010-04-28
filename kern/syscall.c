@@ -189,6 +189,8 @@ do_put(trapframe *tf, uint32_t cmd)
 #endif
 
 		// Make sure process uses user-mode segments and eflag settings
+		cp->sv.tf.tf_gs = CPU_GDT_UDTLS | 3;
+		cp->sv.tf.tf_fs = 0;
 		cp->sv.tf.tf_ds = CPU_GDT_UDATA | 3;
 		cp->sv.tf.tf_es = CPU_GDT_UDATA | 3;
 		cp->sv.tf.tf_cs = CPU_GDT_UCODE | 3;
@@ -235,9 +237,15 @@ do_put(trapframe *tf, uint32_t cmd)
 		systrap(tf, T_GPFLT, 0);
 	}
 
-	if (cmd & SYS_PERM)
+	if (cmd & SYS_PERM) {
+		// validate destination region
+		if (PGOFF(dva) || PGOFF(size)
+				|| dva < VM_USERLO || dva > VM_USERHI
+				|| size > VM_USERHI-dva)
+			systrap(tf, T_GPFLT, 0);
 		if (!pmap_setperm(cp->pdir, dva, size, cmd & SYS_RW))
 			panic("pmap_put: no memory to set permissions");
+	}
 
 	if (cmd & SYS_SNAP)	// Snapshot child's state
 		pmap_copy(cp->pdir, VM_USERLO, cp->rpdir, VM_USERLO,
@@ -341,9 +349,15 @@ do_get(trapframe *tf, uint32_t cmd)
 		systrap(tf, T_GPFLT, 0);
 	}
 
-	if (cmd & SYS_PERM)
+	if (cmd & SYS_PERM) {
+		// validate destination region
+		if (PGOFF(dva) || PGOFF(size)
+				|| dva < VM_USERLO || dva > VM_USERHI
+				|| size > VM_USERHI-dva)
+			systrap(tf, T_GPFLT, 0);
 		if (!pmap_setperm(p->pdir, dva, size, cmd & SYS_RW))
 			panic("pmap_get: no memory to set permissions");
+	}
 
 	if (cmd & SYS_SNAP)
 		systrap(tf, T_GPFLT, 0);	// only valid for PUT

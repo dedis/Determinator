@@ -69,6 +69,8 @@ proc_alloc(proc *p, uint32_t cn)
 #endif	// LAB >= 5
 
 	// Integer register state
+	cp->sv.tf.tf_gs = CPU_GDT_UDTLS | 3;
+	cp->sv.tf.tf_fs = 0;
 	cp->sv.tf.tf_ds = CPU_GDT_UDATA | 3;
 	cp->sv.tf.tf_es = CPU_GDT_UDATA | 3;
 	cp->sv.tf.tf_cs = CPU_GDT_UCODE | 3;

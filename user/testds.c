@@ -14,6 +14,15 @@ pthread_mutex_t m;
 pthread_cond_t c;
 int full;
 
+extern int __init_array_start[];
+extern __thread int tdata_start, tbss_start;
+
+__thread int firstpriv = 1;
+__thread int privbss1;
+__thread int priv = 2;
+__thread int privbss2;
+__thread int priv2 = 3;
+
 void *exiter(void *arg)
 {
 	return (void*)((int)arg << 4);
@@ -29,6 +38,8 @@ void *joiner(void *arg)
 void *producer(void *arg)
 {
 	int i;
+	firstpriv = 0x123;
+	priv = 0x1234;
 	for (i = 0; i < 5; i++) {
 		pthread_mutex_lock(&m);
 		while (full)
@@ -38,12 +49,17 @@ void *producer(void *arg)
 		pthread_cond_signal(&c);
 		pthread_mutex_unlock(&m);
 	}
+	assert(firstpriv == 0x123);
+	assert(priv == 0x1234);
+	assert(priv2 == 3);
 	return NULL;
 }
 
 void *consumer(void *arg)
 {
 	int i;
+	priv = 0x4321;
+	priv2 = -3;
 	for (i = 0; i < 5; i++) {
 		pthread_mutex_lock(&m);
 		while (!full)
@@ -53,6 +69,9 @@ void *consumer(void *arg)
 		pthread_mutex_unlock(&m);
 		pthread_cond_signal(&c);
 	}
+	assert(firstpriv == 1);
+	assert(priv == 0x4321);
+	assert(priv2 == -3);
 	return NULL;
 }
 
