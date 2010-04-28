@@ -87,7 +87,7 @@ proc_alloc(proc *p, uint32_t cn)
 	cp->pdir = pmap_newpdir();
 	cp->rpdir = pmap_newpdir();
 	if (!cp->pdir || !cp->rpdir) {
-		if (cp->pdir) pmap_freepdir(cp->pdir);
+		if (cp->pdir) pmap_freepdir(mem_ptr2pi(cp->pdir));
 		return NULL;
 	}
 #endif	// SOL >= 3

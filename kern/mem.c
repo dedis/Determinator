@@ -22,13 +22,6 @@
 #include <dev/nvram.h>
 
 
-// These special symbols mark the start and end of
-// the program's entire linker-arranged memory region,
-// including the program's code, data, and bss sections.
-// Use these to avoid treating kernel code/data pages as free memory!
-extern char start[], end[];
-
-
 size_t mem_max;			// Maximum physical address
 size_t mem_npage;		// Total number of physical memory pages
 
@@ -229,34 +222,6 @@ mem_free(pageinfo *pi)
 	// Fill this function in.
 	panic("mem_free not implemented.");
 #endif /* not SOL >= 1 */
-}
-
-// Atomically increment the reference count on a page.
-void
-mem_incref(pageinfo *pi)
-{
-	assert(pi > &mem_pageinfo[1] && pi < &mem_pageinfo[mem_npage]);
-	assert(pi != mem_ptr2pi(pmap_zero));	// Don't alloc/free zero page!
-	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
-
-	lockadd(&pi->refcount, 1);
-}
-
-// Atomically decrement the reference count on a page,
-// freeing the page if there are no more refs.
-void
-mem_decref(pageinfo* pi)
-{
-	assert(pi > &mem_pageinfo[1] && pi < &mem_pageinfo[mem_npage]);
-	assert(pi != mem_ptr2pi(pmap_zero));	// Don't alloc/free zero page!
-	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
-
-	if (lockaddz(&pi->refcount, -1))
-#if LAB >= 5
-		if (pi->shared == 0)	// free only if no remote refs
-#endif
-			mem_free(pi);
-	assert(pi->refcount >= 0);
 }
 
 #if LAB >= 5

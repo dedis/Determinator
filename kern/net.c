@@ -298,7 +298,7 @@ void net_rxmigrq(net_migrq *migrq)
 
 	// Free the proc's old page directory and allocate a fresh one.
 	// (The old pdir will hang around until all shared copies disappear.)
-	mem_decref(mem_ptr2pi(p->pdir));
+	mem_decref(mem_ptr2pi(p->pdir), pmap_freepdir);
 	p->pdir = pmap_newpdir();	assert(p->pdir);
 
 	// Now we need to pull over the page directory next,

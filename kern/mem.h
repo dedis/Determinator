@@ -8,6 +8,8 @@
 #endif
 
 #include <inc/types.h>
+#include <inc/mmu.h>
+#include <inc/x86.h>
 
 
 // At physical address MEM_IO (640K) there is a 384K hole for I/O.
@@ -50,12 +52,18 @@ extern size_t mem_max;		// Maximum physical address
 extern size_t mem_npage;	// Total number of physical memory pages
 extern pageinfo *mem_pageinfo;	// Metadata array indexed by page number
 
-
 // Convert between pageinfo pointers, page indexes, and physical page addresses
 #define mem_phys2pi(phys)	(&mem_pageinfo[(phys)/PAGESIZE])
 #define mem_pi2phys(pi)		(((pi)-mem_pageinfo) * PAGESIZE)
 #define mem_ptr2pi(ptr)		(mem_phys2pi(mem_phys(ptr)))
 #define mem_pi2ptr(pi)		(mem_ptr(mem_pi2phys(pi)))
+
+
+// The linker defines these special symbols to mark the start and end of
+// the program's entire linker-arranged memory region,
+// including the program's code, data, and bss sections.
+// Use these to avoid treating kernel code/data pages as free memory!
+extern char start[], end[];
 
 
 // Detect available physical memory and initialize the mem_pageinfo array.
@@ -68,13 +76,44 @@ pageinfo *mem_alloc(void);
 // Return a physical page to the free list.
 void mem_free(pageinfo *pi);
 
-void mem_incref(pageinfo *pp);
-void mem_decref(pageinfo* pp);
-
+#if LAB >= 3
+extern uint8_t pmap_zero[PAGESIZE];	// for the asserts below
+#endif	// LAB >= 3
 #if LAB >= 5
+
 void mem_rrtrack(uint32_t rr, pageinfo *pi);
 pageinfo *mem_rrlookup(uint32_t rr);
 #endif // LAB >= 5
+
+
+// Atomically increment the reference count on a page.
+static gcc_inline void
+mem_incref(pageinfo *pi)
+{
+	assert(pi > &mem_pageinfo[1] && pi < &mem_pageinfo[mem_npage]);
+	assert(pi != mem_ptr2pi(pmap_zero));	// Don't alloc/free zero page!
+	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
+
+	lockadd(&pi->refcount, 1);
+}
+
+// Atomically decrement the reference count on a page,
+// freeing the page with the provided function if there are no more refs.
+static gcc_inline void
+mem_decref(pageinfo* pi, void (*freefun)(pageinfo *pi))
+{
+	assert(pi > &mem_pageinfo[1] && pi < &mem_pageinfo[mem_npage]);
+	assert(pi != mem_ptr2pi(pmap_zero));	// Don't alloc/free zero page!
+	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
+
+	if (lockaddz(&pi->refcount, -1))
+#if LAB >= 5
+		if (pi->shared == 0)	// free only if no remote refs
+#endif
+			freefun(pi);
+	assert(pi->refcount >= 0);
+}
+
 
 #endif /* !PIOS_KERN_MEM_H */
 #endif // LAB >= 1
