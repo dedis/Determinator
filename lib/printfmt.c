@@ -22,15 +22,19 @@
  */
 static void
 printnum(void (*putch)(int, void*), void *putdat,
-	 unsigned long long num, unsigned base, int width, int padc)
+	 unsigned long long num, unsigned base, int width, int padc, int signc)
 {
 	// first recursively print all preceding (more significant) digits
 	if (num >= base) {
-		printnum(putch, putdat, num / base, base, width - 1, padc);
+		printnum(putch, putdat, num / base, base, width-1, padc, signc);
 	} else {
 		// print any needed pad characters before first digit
+		if (signc >= 0)
+			width--;	// account for sign character
 		while (--width > 0)
 			putch(padc, putdat);
+		if (signc >= 0)
+			putch(signc, putdat);
 	}
 
 	// then print this (the least significant) digit
@@ -94,11 +98,7 @@ getint(va_list *ap, int lflag)
 void
 vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 {
-	register const char *p;
 	register int ch, err;
-	unsigned long long num;
-	int base, lflag, width, precision, altflag;
-	char padc;
 
 	while (1) {
 		while ((ch = *(unsigned char *) fmt++) != '%') {
@@ -108,22 +108,35 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		}
 
 		// Process a %-escape sequence
-		padc = ' ';
-		width = -1;
-		precision = -1;
-		lflag = 0;
-		altflag = 0;
+		int padc = ' ';
+		int signc = -1;
+		int width = -1;
+		int precision = -1;
+		int lflag = 0;
+		int dotflag = 0;
+		int altflag = 0;
+		int base;
+		unsigned long long num;
 	reswitch:
 		switch (ch = *(unsigned char *) fmt++) {
 
-		// flag to pad on the right
-		case '-':
+		// modifier flags
+		case '-': // pad on the right instead of the left
 			padc = '-';
 			goto reswitch;
 
-		// width field
+		case '+': // prefix positive numeric values with a '+' sign
+			signc = '+';
+			goto reswitch;
+
+		case ' ': // prefix signless numeric values with a space
+			if (signc < 0)
+				signc = ' ';
+			goto reswitch;
+
+		// width or precision field
 		case '0':
-			if (width < 0)	// pad with 0's instead of spaces
+			if (!dotflag)	// pad with 0's instead of spaces
 				padc = '0';
 		case '1': case '2': case '3': case '4':
 		case '5': case '6': case '7': case '8': case '9':
@@ -137,15 +150,13 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		case '*':
 			precision = va_arg(ap, int);
-
 		process_precision:
-			if (width < 0)
+			if (!dotflag)
 				width = precision, precision = -1;
 			goto reswitch;
 
 		case '.':
-			if (width < 0)
-				width = 0;
+			dotflag = 1;
 			goto reswitch;
 
 		case '#':
@@ -163,7 +174,8 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			break;
 
 		// string
-		case 's':
+		case 's': {
+			const char *p;
 			if ((p = va_arg(ap, char *)) == NULL)
 				p = "(null)";
 			if (width > 0 && padc != '-')
@@ -177,13 +189,14 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			for (; width > 0; width--)
 				putch(' ', putdat);
 			break;
+		    }
 
 		// (signed) decimal
 		case 'd':
 			num = getint(&ap, lflag);
 			if ((long long) num < 0) {
-				putch('-', putdat);
 				num = -(long long) num;
+				signc = '-';
 			}
 			base = 10;
 			goto number;
@@ -222,7 +235,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			num = getuint(&ap, lflag);
 			base = 16;
 		number:
-			printnum(putch, putdat, num, base, width, padc);
+			printnum(putch, putdat, num, base, width, padc, signc);
 			break;
 
 #ifndef PIOS_KERNEL

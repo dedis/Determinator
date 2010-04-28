@@ -524,6 +524,21 @@ tinit(pthread_t t)
 		(void*)VM_PRIVLO, (void*)VM_PRIVLO, VM_PRIVHI - VM_PRIVLO);
 }
 
+// Find the size of the thread-private state area.
+// This is only called from tpinit(), but needs to be separate and non-inlined,
+// otherwise GCC assumes the (NULL) thread private pointer it reads here
+// can be reused later in tpinit() for accessing (real) thread-private data.
+static gcc_noinline void
+tpgetsize(int *tdatasize, int *tlssize) {
+	extern __thread char tdata_start[], tbss_start[];
+	*tdatasize = tbss_start - tdata_start;	// size of init'd data
+
+	assert(THREADPRIV->tlshi == NULL);
+	*tlssize = -(intptr_t)tdata_start;	// complete tls area
+
+	assert(*tlssize >= *tdatasize);
+}
+
 // Initialize a thread's thread-private state area,
 // which can be done only from within the thread itself.
 static void
@@ -537,11 +552,8 @@ tpinit(pthread_t t)
 	memcpy(THREADPRIV->mcall, cmcalls, cmcalle - cmcalls);
 
 	// Figure out how big our GCC thread-local state area needs to be.
-	extern __thread char tdata_start[], tbss_start[];
-	intptr_t tdatasize = tbss_start - tdata_start;	// size of init'd data
-	assert(THREADPRIV->tlshi == NULL);
-	intptr_t tlssize = -(intptr_t)tdata_start;	// complete tls area
-	assert(tlssize >= tdatasize);
+	int tdatasize, tlssize;
+	tpgetsize(&tdatasize, &tlssize);
 
 	// Allocate a TLS area for this thread.
 	// Of course, we could just place the TLS data area
@@ -551,7 +563,6 @@ tpinit(pthread_t t)
 	// and pthreads-based code sometimes assumes it can do this.
 	THREADPRIV->tlslo = malloc(tlssize);
 	THREADPRIV->tlshi = THREADPRIV->tlslo + tlssize;
-cprintf("thread %d tls area %x size %x\n", t->tno, THREADPRIV->tlslo, tlssize);
 
 	// Initialize our TLS area from the linker-generated image.
 	// We depend on tbss_start coinciding with __init_array_start
