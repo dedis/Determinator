@@ -122,13 +122,16 @@ endif
 # Where does GCC have its libgcc.a and libgcc's include directory?
 GCCDIR := $(dir $(shell $(CC) $(CFLAGS) -print-libgcc-file-name))
 
+# x86-64 systems may have the include directory with the 64-bit
+GCCALTDIR := $(dir $(shell $(CC) -print-libgcc-file-name))
+
 # Compiler flags
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
 # XXX modified to -O2 for benchmarking
 CFLAGS += $(DEFS) $(LABDEFS) -O1 -fno-builtin \
-		-I$(TOP) -I$(TOP)/inc -I$(GCCDIR)/include -MD  \
-		-Wall -Wno-unused -Werror -gstabs
+		-I$(TOP) -I$(TOP)/inc -I$(GCCDIR)/include -I$(GCCALTDIR)/include \
+		-MD -Wall -Wno-unused -Werror -gstabs
 
 # Add -fno-stack-protector if the option exists.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 \
