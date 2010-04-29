@@ -266,17 +266,25 @@ trap(trapframe *tf)
 		tf->tf_trapno = T_ICNT;
 		proc_ret(tf, -1);	// can't run any more insns!
 
-	case T_PERFCTR:
-		assert(tf->tf_cs & 3);
+	case T_PERFCTR:	// count insns via performance monitoring counters
+		lapic_eoi();	// first acknowledge the PMC interrupt
+		// Since performance counter interrupts are asynchronous,
+		// one can arrive after the process that triggered it
+		// has already taken a trap for some other reason and
+		// the CPU has switched to another process or the idle loop.
+		// If we're in the idle loop when this happens, cs == 0.
+		if (!(tf->tf_cs & 3) || (p->pmcmax == 0)) {
+			warn("spurious performance counter interrupt\n");
+			trap_return(tf);
+		}
 		assert(p->sv.pff & PFF_ICNT);
-		assert(p->pmcmax > 0);
 		assert(pmc_get != NULL);
 		int32_t ninsn = pmc_get(p->pmcmax);
 		int32_t overshoot = ninsn - p->pmcmax;
 		if (overshoot > pmc_overshoot)
 			pmc_overshoot = overshoot;
-		cprintf("T_PERFCTR: after %d tgt %d ovr %d max %d\n",
-			ninsn, p->pmcmax, overshoot, pmc_overshoot);
+		//cprintf("T_PERFCTR: after %d tgt %d ovr %d max %d\n",
+		//	ninsn, p->pmcmax, overshoot, pmc_overshoot);
 		p->sv.icnt += ninsn;
 		p->pmcmax = 0;
 		if (p->sv.icnt > p->sv.imax)

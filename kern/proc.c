@@ -148,6 +148,8 @@ proc_save(proc *p, trapframe *tf, int entry)
 		} else if (p->pmcmax > 0) {	// using performance counters
 			assert(pmc_get != NULL);
 			p->sv.icnt += pmc_get(p->pmcmax);
+			if (entry == 0)
+				p->sv.icnt--;	// don't count aborted INT insn
 			p->pmcmax = 0;
 			if (p->sv.icnt > p->sv.imax)
 				panic("oops, perf ctr overshoot by %d insns\n",
