@@ -10,10 +10,12 @@
 #define HEAP_SZ		((HEAP_HI - HEAP_LO)/MAXTHREADS)
 
 #define USE_DL_PREFIX //to override all DL functions.
+/*
 #define thcalloc				calloc
 #define thfree					free
 #define thmalloc				malloc
 #define threalloc				realloc
+*/
 
 void *thmalloc(size_t bytes);
 void thfree(void *mem);

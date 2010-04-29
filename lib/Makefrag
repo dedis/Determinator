@@ -15,7 +15,9 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/unistd.c \
 			lib/fork.c \
 			lib/exec.c \
+			lib/sprintf.c \
 			lib/fprintf.c \
+			lib/strerror.c \
 			lib/readline.c \
 			lib/thread.c \
 			lib/pthread.c \
