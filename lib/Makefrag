@@ -105,7 +105,7 @@ $(XCDIR)/include $(XCDIR)/lib:
 	mkdir -p $@
 
 $(XCDIR)/include/%.h: inc/%.h $(XCDIR)/include
-	unifdef -n -DLAB=9 -DSOL=9 $< >$@ || true
+	unifdef -l -DLAB=9 -DSOL=9 $< >$@ || true
 
 $(XCDIR)/include/sys: $(XCDIR)/include
 	ln -s . $@

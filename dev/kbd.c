@@ -12,6 +12,9 @@
 #include <dev/pic.h>
 #include <dev/ioapic.h>
 #endif
+#if LAB >= 9
+#include <dev/video.h>		// for video scrollback
+#endif
 
 
 #define NO		0
@@ -153,12 +156,16 @@ kbd_proc_data(void)
 	}
 
 	// Process special keys
-#if LAB >= 99
+#if LAB >= 9
 #if CRT_SAVEROWS > 0
 	// Shift-PageUp and Shift-PageDown: scroll console
-	if ((shift & SHIFT) && (c == KEY_PGUP || c == KEY_PGDN)) {
-		cga_scroll(c == KEY_PGUP ? -CRT_ROWS : CRT_ROWS);
-		return 0;
+	if (shift & SHIFT) {
+		switch (c) {
+		case KEY_UP:	video_scroll(-1); return 0;
+		case KEY_DN:	video_scroll(1); return 0;
+		case KEY_PGUP:	video_scroll(-(CRT_ROWS-1)); return 0;
+		case KEY_PGDN:	video_scroll(CRT_ROWS); return 0;
+		}
 	}
 #endif
 #endif

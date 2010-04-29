@@ -282,6 +282,12 @@ trap(trapframe *tf)
 		if (p->sv.icnt > p->sv.imax)
 			panic("oops, perf ctr overshoot by %d insns\n",
 				p->sv.icnt - p->sv.imax);
+		if (p->sv.icnt < p->sv.imax) {
+			p->sv.tf.tf_eflags |= FL_TF;	// single-step the rest
+			trap_return(tf);
+		}
+		tf->tf_trapno = T_ICNT;
+		proc_ret(tf, -1);	// can't run any more insns!
 
 #endif // SOL >= 2
 	case T_LTIMER: ;

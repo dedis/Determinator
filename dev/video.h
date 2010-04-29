@@ -23,4 +23,11 @@
 void video_init(void);
 void video_putc(int c);
 
+#if LAB >= 9
+// Scrollback support
+#define CRT_SAVEROWS	1024
+
+void video_scroll(int delta);	// for console scrollback
+#endif
+
 #endif /* PIOS_KERN_VIDEO_H_ */

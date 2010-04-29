@@ -17,8 +17,8 @@
 
 
 // Tunable scheduling policy parameters (could be made variables).
-#define P_QUANTUM	0	// Number of instructions per thread quantum
-//#define P_QUANTUM	1000	// Number of instructions per thread quantum
+//#define P_QUANTUM	0	// Number of instructions per thread quantum
+#define P_QUANTUM	1000	// Number of instructions per thread quantum
 #define P_MUTEXFAIR	0	// Mutex transfer in strict round-robin order
 #define P_MUTEXIMMED	0	// Pass on mutex immediately on unlock
 
@@ -113,6 +113,7 @@ static pthread *readyqhead = NULL;
 static pthread **readyqtail = &readyqhead;
 static pthread *runqhead = NULL;
 static pthread **runqtail = &runqhead;
+static int runqlen;
 
 // The scheduler runs on a thread-private stack in the master process.
 static __thread char schedstack[PAGESIZE];
@@ -230,6 +231,7 @@ trun(pthread_t t)
 	assert(t->qnext == NULL); assert(*runqtail == NULL);
 	*runqtail = t;
 	runqtail = &t->qnext;
+	assert(++runqlen <= MAXTHREADS);
 }
 
 // The scheduler runs on the special scheduler stack page,
@@ -265,6 +267,12 @@ pthread_sched(void)
 	static cpustate cs;
 	pthread_t t;
 	while (1) {
+{ static int dispcnt, qlencum;
+qlencum += runqlen;
+if (++dispcnt >= 1000) {
+	cprintf("sched: runqlen %d avg %d\n", runqlen, qlencum / dispcnt);
+	qlencum = dispcnt = 0;
+} }
 		if (runqhead == NULL) {
 			tdump();
 			panic("sched: no running threads - deadlock?");
@@ -273,6 +281,7 @@ pthread_sched(void)
 		if ((runqhead = t->qnext) == NULL)	// dequeue first thread
 			runqtail = &runqhead;		// for good measure
 		t->qnext = NULL;
+		assert(--runqlen >= 0);
 
 		// Merge the thread's memory changes and get its register state.
 		tlock = 0;	// default state for user procs
