@@ -111,9 +111,6 @@ NCC	:= gcc $(CC_VER) -pipe
 TAR	:= gtar
 PERL	:= perl
 
-# Where does GCC have its libgcc.a and libgcc's include directory?
-GCCDIR := $(dir $(shell $(CC) $(CFLAGS) -print-libgcc-file-name))
-
 # If we're not using the special "PIOS edition" of GCC,
 # reconfigure the host OS's compiler for our purposes.
 ifneq ($(GCCPREFIX),pios-)
@@ -121,6 +118,9 @@ CFLAGS += -nostdinc -m32
 LDFLAGS += -nostdlib -m elf_i386
 USER_LDFLAGS += -e start -Ttext=0x40000100
 endif
+
+# Where does GCC have its libgcc.a and libgcc's include directory?
+GCCDIR := $(dir $(shell $(CC) $(CFLAGS) -print-libgcc-file-name))
 
 # Compiler flags
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
