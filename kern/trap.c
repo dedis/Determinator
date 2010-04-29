@@ -275,13 +275,19 @@ trap(trapframe *tf)
 		int32_t overshoot = ninsn - p->pmcmax;
 		if (overshoot > pmc_overshoot)
 			pmc_overshoot = overshoot;
-		//cprintf("T_PERFCTR: after %d tgt %d ovr %d max %d\n",
-		//	ninsn, p->pmcmax, overshoot, pmc_overshoot);
+		cprintf("T_PERFCTR: after %d tgt %d ovr %d max %d\n",
+			ninsn, p->pmcmax, overshoot, pmc_overshoot);
 		p->sv.icnt += ninsn;
 		p->pmcmax = 0;
 		if (p->sv.icnt > p->sv.imax)
 			panic("oops, perf ctr overshoot by %d insns\n",
 				p->sv.icnt - p->sv.imax);
+		if (p->sv.icnt < p->sv.imax) {
+			tf->tf_eflags |= FL_TF;	// single-step the rest
+			trap_return(tf);
+		}
+		tf->tf_trapno = T_ICNT;
+		proc_ret(tf, -1);	// can't run any more insns!
 
 #endif // SOL >= 2
 	case T_LTIMER: ;

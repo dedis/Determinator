@@ -319,6 +319,7 @@ pthread_sched(void)
 
 	// OK, just resume the thread from where it left off,
 	// with tlock == 2 so it knows it's the master process.
+#if 0
 	asm volatile(
 		"	pushl	%0;"
 		"	popfl;"
@@ -336,6 +337,35 @@ pthread_sched(void)
 		  "d" (cs.tf.tf_regs.reg_edx),
 		  "S" (cs.tf.tf_regs.reg_esi),
 		  "D" (cs.tf.tf_regs.reg_edi));
+#else
+	// XXX instead of using popfl to restore the flags,
+	// connive to restore just the condition codes and not FL_TF,
+	// to avoid interfering with the kernel's TF-based icnt stuff.
+	// This should of course not be necessary;
+	// the kernel instead needs to scan the instruction stream
+	// and emulate any "unsafe" instructions like popfl.
+	asm volatile(
+		"	movl	%0,%%eax;"
+		"	xchgb	%%al,%%ah;"
+		"	shlb	$4,%%al;"	// get OF in high bit of AL
+		"	shrb	$1,%%al;"	// set real OF with that bit
+		"	sahf;"			// restore low 8 bits of eflags
+		"	movl	%4,%%eax;"	// restore eax
+		"	movl	%1,%%ebp;"
+		"	movl	%2,%%esp;"
+		"	jmp	*%3;"
+		:
+		: "m" (cs.tf.tf_eflags),
+		  "m" (cs.tf.tf_regs.reg_ebp),
+		  "m" (cs.tf.tf_esp),
+		  "m" (cs.tf.tf_eip),
+		  "m" (cs.tf.tf_regs.reg_eax),
+		  "b" (cs.tf.tf_regs.reg_ebx),
+		  "c" (cs.tf.tf_regs.reg_ecx),
+		  "d" (cs.tf.tf_regs.reg_edx),
+		  "S" (cs.tf.tf_regs.reg_esi),
+		  "D" (cs.tf.tf_regs.reg_edi));
+#endif
 	// (asm fragment does not return here)
 	while (1);
 }
