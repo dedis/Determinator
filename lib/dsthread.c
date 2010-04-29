@@ -293,7 +293,6 @@ pthread_sched(void)
 			panic("sched: thread %d trap %d eip %x",
 				t->tno, cs.tf.tf_trapno, cs.tf.tf_eip);
 		}
-cprintf("sched: thread %d preempted eip %x\n", t->tno, cs.tf.tf_eip);
 
 		// We preempted the thread while running normal user code.
 		// Process events and return it to the tail of the run queue.
