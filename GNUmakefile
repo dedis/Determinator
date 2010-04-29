@@ -301,7 +301,7 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 
 NCPUS = 2
 #if LAB >= 9
-NCPUS := $(shell if test `uname -n` = "korz"; then echo 8; else echo 2; fi)
+NCPUS := $(shell if test `uname -n` = "korz"; then echo 12; else echo 2; fi)
 #endif
 IMAGES = $(OBJDIR)/kern/kernel.img
 QEMUOPTS = -smp $(NCPUS) -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio \

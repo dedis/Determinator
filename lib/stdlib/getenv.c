@@ -7,7 +7,7 @@ char *
 getenv(const char *name)
 {
 	if (strcmp(name, "OMP_NUM_THREADS") == 0) {
-		char *str = "8";
+		char *str = "16";
 		warn("getenv HACK HACK HACK: returning %s", str);
 		return str;
 	}

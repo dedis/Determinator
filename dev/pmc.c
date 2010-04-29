@@ -139,7 +139,7 @@ pmc_amdinit(void)
 	pmc_avail = true;
 	pmc_set = pmc_amdset;
 	pmc_get = pmc_amdget;
-	pmc_safety = 70;	// max observed 66
+	pmc_safety = 80;	// max observed 72
 }
 
 void
