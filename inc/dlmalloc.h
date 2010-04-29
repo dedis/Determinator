@@ -617,7 +617,8 @@ MAX_RELEASE_CHECK_RATE   default: 4095 unless not HAVE_MMAP
 #endif  /* MMAP_CLEARS */
 #ifndef HAVE_MREMAP
 #ifdef linux
-#define HAVE_MREMAP 1
+//#define HAVE_MREMAP 1
+#define HAVE_MREMAP 0 //for PIOS
 #else   /* linux */
 #define HAVE_MREMAP 0
 #endif  /* linux */

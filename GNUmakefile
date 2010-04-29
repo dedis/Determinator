@@ -221,6 +221,9 @@ include lib/Makefrag
 include user/Makefrag
 #endif
 
+#Phoenix benchmark
+#include phoenix/phenix-2.0.0/src/Makefrag
+
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S *.ld
