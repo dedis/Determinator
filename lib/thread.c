@@ -50,8 +50,10 @@ tfork(uint16_t child)
 		  "=a" (isparent)
 		:
 		: "ebx", "ecx", "edx");
-	if (!isparent)
+	if (!isparent) {
+		files->thself = child;
 		return 0;	// in the child
+	}
 
 	// Fork the child, copying our entire user address space into it.
 	cs.tf.tf_regs.reg_eax = 0;	// isparent == 0 in the child

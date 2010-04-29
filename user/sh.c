@@ -248,7 +248,7 @@ _gettoken(char *s, char **p1, char **p2)
 	*p1 = 0;
 	*p2 = 0;
 
-	while (strchr(WHITESPACE, *s))
+	while (*s && strchr(WHITESPACE, *s))
 		*s++ = 0;
 	if (*s == 0) {
 		if (debug > 1)

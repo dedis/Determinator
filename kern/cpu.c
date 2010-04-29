@@ -47,7 +47,13 @@ cpu cpu_boot = {
 		[CPU_GDT_UDATA >> 3] = SEGDESC32(1, STA_W,
 					0x00000000, 0xffffffff, 3),
 
-		// 0x28 - tss, initialized in cpu_init()
+#if LAB >= 9
+		// 0x28 - user thread local storage data segment
+		[CPU_GDT_UDTLS >> 3] = SEGDESC32(1, STA_W,
+					0xeffffff0, 0xffffffff, 3),
+
+#endif
+		// 0x30 - tss, initialized in cpu_init()
 		[CPU_GDT_TSS >> 3] = SEGDESC_NULL,
 #endif	// SOL >= 1
 	},

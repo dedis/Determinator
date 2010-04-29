@@ -14,8 +14,9 @@
 #define CPU_GDT_KDATA	0x10	// kernel data
 #define CPU_GDT_UCODE	0x18	// user text
 #define CPU_GDT_UDATA	0x20	// user data
-#define CPU_GDT_TSS	0x28	// task state segment
-#define CPU_GDT_NDESC	6	// number of GDT entries used, including null
+#define CPU_GDT_UDTLS	0x28	// user thread local storage data segment
+#define CPU_GDT_TSS	0x30	// task state segment
+#define CPU_GDT_NDESC	7	// number of GDT entries used, including null
 
 
 #ifndef __ASSEMBLER__

@@ -106,7 +106,8 @@ int
 isatty(int fn)
 {
 	assert(filedesc_isopen(&files->fd[fn]));
-	return files->fd[fn].ino == FILEINO_CONSIN;
+	return files->fd[fn].ino == FILEINO_CONSIN
+		|| files->fd[fn].ino == FILEINO_CONSOUT;
 }
 
 int

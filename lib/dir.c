@@ -176,9 +176,18 @@ long telldir(DIR *dir)
 	return dir->ofs;
 }
 
+#if LAB >= 9
 int rename(const char *oldpath, const char *newpath)
 {
-	panic("rename not implemented");
+	panic("rename() not implemented");
 }
+
+int unlink(const char *path)
+{
+	warn("unlink() not implemented");
+	errno = ENOSYS;
+	return -1;
+}
+#endif
 
 #endif	// LAB >= 4

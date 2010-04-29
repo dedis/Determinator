@@ -82,4 +82,14 @@ exec_start:
 	jmp	start
 
 #endif	// LAB >= 4
-#endif // LAB >= 3
+
+#if LAB >= 9
+// Thread-local storage definitions.
+	.section ".tdata"
+	.globl	tdata_start
+tdata_start:
+	.section ".tbss"
+	.globl	tbss_start
+tbss_start:
+#endif	// LAB >= 9
+#endif	// LAB >= 3

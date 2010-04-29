@@ -99,6 +99,8 @@ TRAPHANDLER	(Xdefault, T_DEFAULT)
 _alltraps:
 	pushl %ds		# build trap frame
 	pushl %es
+	pushl %fs		# build trap frame
+	pushl %gs
 	pushal
 
 	movl $CPU_GDT_KDATA,%eax # load kernel's data segment
@@ -137,7 +139,9 @@ trap_return:
 #if SOL >= 1
 	movl	4(%esp),%esp	// reset stack pointer to point to trap frame
 	popal			// restore general-purpose registers except esp
-	popl	%es		// restore data segment registers
+	popl	%gs		// restore data segment registers
+	popl	%fs
+	popl	%es
 	popl	%ds
 	addl	$8,%esp		// skip tf_trapno and tf_errcode
 	iret			// return from trap handler

@@ -197,6 +197,8 @@ trap_print(trapframe *tf)
 {
 	cprintf("TRAP frame at %p\n", tf);
 	trap_print_regs(&tf->tf_regs);
+	cprintf("  gs   0x----%04x\n", tf->tf_gs);
+	cprintf("  fs   0x----%04x\n", tf->tf_fs);
 	cprintf("  es   0x----%04x\n", tf->tf_es);
 	cprintf("  ds   0x----%04x\n", tf->tf_ds);
 	cprintf("  trap 0x%08x %s\n", tf->tf_trapno, trap_name(tf->tf_trapno));

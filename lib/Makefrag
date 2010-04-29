@@ -34,13 +34,16 @@ ifdef LAB9
 LIB_SRCFILES +=		lib/stdio/putc.c \
 			lib/stdio/getc.c \
 			lib/stdio/puts.c \
+			lib/stdio/perror.c \
 			lib/stdlib/strtol.c \
 			lib/stdlib/strtoll.c \
 			lib/stdlib/strtoul.c \
 			lib/stdlib/strtoull.c \
 			lib/stdlib/strtod.c \
+			lib/stdlib/setjmp.S \
 			lib/stdlib/getenv.c \
 			lib/stdlib/sysconf.c \
+			lib/stdlib/mktemp.c \
 			lib/string/strcasecmp.c \
 			lib/string/strcat.c \
 			lib/string/strdup.c \
