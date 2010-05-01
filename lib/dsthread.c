@@ -17,8 +17,8 @@
 
 
 // Tunable scheduling policy parameters (could be made variables).
-//#define P_QUANTUM	0	// Number of instructions per thread quantum
-#define P_QUANTUM	10000	// Number of instructions per thread quantum
+#define P_QUANTUM	0	// Number of instructions per thread quantum
+//#define P_QUANTUM	10000	// Number of instructions per thread quantum
 #define P_MUTEXFAIR	0	// Mutex transfer in strict round-robin order
 #define P_MUTEXIMMED	0	// Pass on mutex immediately on unlock
 
@@ -267,12 +267,14 @@ pthread_sched(void)
 	static cpustate cs;
 	pthread_t t;
 	while (1) {
+#if P_QUANTUM > 0
 { static int dispcnt, qlencum;
 qlencum += runqlen;
 if (++dispcnt >= 100000000/P_QUANTUM) {
 	cprintf("sched: runqlen %d avg %d\n", runqlen, qlencum / dispcnt);
 	qlencum = dispcnt = 0;
 } }
+#endif
 		if (runqhead == NULL) {
 			tdump();
 			panic("sched: no running threads - deadlock?");
