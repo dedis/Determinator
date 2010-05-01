@@ -276,8 +276,8 @@ trap(trapframe *tf)
 		}
 #endif
 		lapic_eoi();
-		if (tf->tf_cs & 3)	// If in user mode, context switch
-			proc_yield(tf);
+//		if (tf->tf_cs & 3)	// If in user mode, context switch
+//			proc_yield(tf);
 		trap_return(tf);	// Otherwise, stay in idle loop
 	case T_LERROR:
 		lapic_errintr();
