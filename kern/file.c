@@ -108,7 +108,6 @@ file_initroot(proc *root)
 	int i;
 	int ino = FILEINO_GENERAL;
 	for (i = 0; i < ninitfiles; i++) {
-		int ino = FILEINO_GENERAL+i;
 		int filesize = initfiles[i][2] - initfiles[i][1];
 		strcpy(files->fi[ino].de.d_name, initfiles[i][0]);
 		files->fi[ino].dino = FILEINO_ROOTDIR;

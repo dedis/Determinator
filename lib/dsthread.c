@@ -536,7 +536,12 @@ mret(void)
 		  "i" (SCHEDSTACKHI)
 		: "cc", "memory");
 
-	assert(tlock == 0);
+if (tlock != 0) {
+	cprintf("mret: oops, tlock == %d in thread %d\n",
+		tlock, t->tno);
+	dump((void*)read_esp(), 0x80);
+}
+	//assert(tlock == 0);
 }
 
 ////////// Threads //////////

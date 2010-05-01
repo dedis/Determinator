@@ -50,6 +50,5 @@ parsec: $(PARSEC_APPS)
 	$(TOP)/../parsec/bin/parsecmgmt -c pios -p $@ -a uninstall
 	$(TOP)/../parsec/bin/parsecmgmt -c pios -p $@ -a build
 	ln -sf ../../parsec/pkgs/apps/$@/obj/$(PARSEC_CONFIG)/$@ fs/$@
-	cd fs && tar xvf "../../parsec/pkgs/apps/$@/inputs/input_simsmall.tar"
 
 endif
