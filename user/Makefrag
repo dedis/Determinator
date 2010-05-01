@@ -36,16 +36,18 @@ $(OBJDIR)/host/%: user/%.c lib/bench.c
 # Assumes the parsec source tree is checked out next to the pios tree.
 PARSEC_CONFIG := $(sort $(notdir $(wildcard \
 			$(TOP)/../parsec/pkgs/*/*/obj/*.pios)))
+ifneq ($(strip $(PARSEC_CONFIG)),)
 PARSEC_PROGS := blackscholes x264
-parsec:
-	@mkdir -p fs
-	cd fs; for prog in $(PARSEC_PROGS); do \
-		file="../../parsec/pkgs/apps/$$prog/obj/$(PARSEC_CONFIG)/$$prog"; \
-		echo "$$file"; \
-		if test -x "$$file"; then \
-			ln -sf "$$file" "$$prog"; \
-			tar xvf "../../parsec/pkgs/apps/$$prog/inputs/input_simsmall.tar"; \
-		fi \
-	done
+
+parsec: $(addprefix fs/,$(PARSEC_PROGS)) all
+
+fs/%: $(TOP)/../parsec/pkgs/apps/%/parsec $(XC_DEPS)
+	$(TOP)/../parsec/bin/parsecmgmt -c pios -p $(notdir $@) -a uninstall
+	$(TOP)/../parsec/bin/parsecmgmt -c pios -p $(notdir $@) -a build
+	@-mkdir -p fs
+	ln -sf ../../parsec/pkgs/apps/$(notdir $@)/obj/$(PARSEC_CONFIG)/$(notdir $@) $@
+	(cd fs && tar xvf "../../parsec/pkgs/apps/$(notdir $@)/inputs/input_simsmall.tar")
+endif
+
 
 endif

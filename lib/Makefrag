@@ -92,14 +92,15 @@ $(OBJDIR)/lib/libc.a: $(LIB_OBJFILES)
 
 XCDIR := xc/pios
 XC_INCFILES := $(patsubst inc/%,%,$(wildcard inc/*.h))
+XC_DEPS :=	$(addprefix $(XCDIR)/include/,$(XC_INCFILES)) \
+		$(XCDIR)/include/sys \
+		$(XCDIR)/lib/libc.a \
+		$(XCDIR)/lib/libm.a \
+		$(XCDIR)/lib/libg.a \
+		$(XCDIR)/lib/libpthread.a \
+		$(XCDIR)/lib/crt0.o
 
-all:	$(addprefix $(XCDIR)/include/,$(XC_INCFILES)) \
-	$(XCDIR)/include/sys \
-	$(XCDIR)/lib/libc.a \
-	$(XCDIR)/lib/libm.a \
-	$(XCDIR)/lib/libg.a \
-	$(XCDIR)/lib/libpthread.a \
-	$(XCDIR)/lib/crt0.o
+all:	$(XC_DEPS)
 
 $(XCDIR)/include $(XCDIR)/lib:
 	mkdir -p $@

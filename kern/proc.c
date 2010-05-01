@@ -145,6 +145,7 @@ proc_save(proc *p, trapframe *tf, int entry)
 			if (entry > 0)
 				p->sv.icnt++;	// executed the INT insn
 			p->sv.tf.tf_eflags &= ~FL_TF;
+			p->sv.tf.tf_eflags |= FL_IF;
 		} else if (p->pmcmax > 0) {	// using performance counters
 			assert(pmc_get != NULL);
 			p->sv.icnt += pmc_get(p->pmcmax);
@@ -264,8 +265,14 @@ proc_run(proc *p)
 			assert(!(p->sv.tf.tf_eflags & FL_TF));
 			pmc_set(pmax);
 			p->pmcmax = pmax;
-		} else
+		} else {
 			p->sv.tf.tf_eflags |= FL_TF;	// just single-step
+			// XXX taking hardware interrupts while tracing
+			// messes up our ability to count properly.
+			// Ideally we should poll for pending interrupts
+			// after each instruction we trace.
+			p->sv.tf.tf_eflags &= ~FL_IF;
+		}
 	} else {
 		assert(!(p->sv.tf.tf_eflags & FL_TF));
 		assert(p->pmcmax == 0);
