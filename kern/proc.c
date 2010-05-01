@@ -79,7 +79,7 @@ proc_alloc(proc *p, uint32_t cn)
 
 	// Floating-point register state
 	cp->sv.fx.fcw = 0x037f;	// round-to-nearest, 80-bit prec, mask excepts
-	cp->sv.fx.mxcsr = 0x000001f8;	// all MMX exceptions masked
+	cp->sv.fx.mxcsr = 0x00001f80;	// all MMX exceptions masked
 #endif
 
 #if SOL >= 3

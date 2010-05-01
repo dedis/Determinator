@@ -49,5 +49,4 @@ fs/%: $(TOP)/../parsec/pkgs/apps/%/parsec $(XC_DEPS)
 	(cd fs && tar xvf "../../parsec/pkgs/apps/$(notdir $@)/inputs/input_simsmall.tar")
 endif
 
-
 endif

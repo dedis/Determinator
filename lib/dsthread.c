@@ -699,7 +699,6 @@ pthread_exit(void *exitval)
 	mcall();
 
 	pthread_t t = self();
-	cprintf("pthread_exit %d detached %d\n", t->tno, t->detached);
 	assert(t->state == TH_RUN);
 
 	// wake up any thread trying to join with us
