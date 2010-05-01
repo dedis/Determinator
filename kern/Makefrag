@@ -39,6 +39,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			dev/pmc.c \
 			lib/printfmt.c \
 			lib/cprintf.c \
+			lib/sprintf.c \
 			lib/string.c \
 			lib/syscall.c
 

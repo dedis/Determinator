@@ -83,7 +83,11 @@ fileino_read(int ino, off_t ofs, void *buf, size_t eltsize, size_t count)
 	assert(eltsize > 0);
 
 	fileinode *fi = &files->fi[ino];
+#if LAB >= 9
+	// XXX hack: allow reading init-files bigger than 4MB
+#else
 	assert(fi->size <= FILE_MAXSIZE);
+#endif
 
 #if SOL >= 4
 	ssize_t actual = 0;
