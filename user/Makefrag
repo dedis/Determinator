@@ -36,17 +36,18 @@ $(OBJDIR)/host/%: user/%.c lib/bench.c
 # Assumes the parsec source tree is checked out next to the pios tree.
 PARSEC_CONFIG := $(sort $(notdir $(wildcard \
 			$(TOP)/../parsec/pkgs/*/*/obj/*.pios)))
-ifneq ($(strip $(PARSEC_CONFIG)),)
-PARSEC_PROGS := blackscholes x264
+PARSEC_APPS := blackscholes x264
 
-parsec: $(addprefix fs/,$(PARSEC_PROGS)) all
-
-fs/%: $(TOP)/../parsec/pkgs/apps/%/parsec $(XC_DEPS)
-	$(TOP)/../parsec/bin/parsecmgmt -c pios -p $(notdir $@) -a uninstall
-	$(TOP)/../parsec/bin/parsecmgmt -c pios -p $(notdir $@) -a build
+# Rebuild the parsec benchmarks that PIOS supports.
+# This has to be done manually when needed,
+# to avoid long PARSEC rebuilds whenever the C library changes.
+parsec: $(XC_DEPS)
 	@-mkdir -p fs
-	ln -sf ../../parsec/pkgs/apps/$(notdir $@)/obj/$(PARSEC_CONFIG)/$(notdir $@) $@
-	(cd fs && tar xvf "../../parsec/pkgs/apps/$(notdir $@)/inputs/input_simsmall.tar")
-endif
+	for app in $(PARSEC_APPS); do \
+		$(TOP)/../parsec/bin/parsecmgmt -c pios -p $$app -a uninstall; \
+		$(TOP)/../parsec/bin/parsecmgmt -c pios -p $$app -a build; \
+		ln -sf ../../parsec/pkgs/apps/$$app/obj/$(PARSEC_CONFIG)/$$app fs/$$app; \
+		(cd fs && tar xvf "../../parsec/pkgs/apps/$$app/inputs/input_simsmall.tar"); \
+	done
 
 endif
