@@ -41,13 +41,15 @@ PARSEC_APPS := blackscholes x264
 # Rebuild the parsec benchmarks that PIOS supports.
 # This has to be done manually when needed,
 # to avoid long PARSEC rebuilds whenever the C library changes.
-parsec: $(XC_DEPS)
+parsec: $(PARSEC_APPS)
+
+# A ficticious target for each PARSEC benchmark,
+# for rebuilding them individually.
+%: $(TOP)/../parsec/pkgs/apps/% $(XC_DEPS)
 	@-mkdir -p fs
-	for app in $(PARSEC_APPS); do \
-		$(TOP)/../parsec/bin/parsecmgmt -c pios -p $$app -a uninstall; \
-		$(TOP)/../parsec/bin/parsecmgmt -c pios -p $$app -a build; \
-		ln -sf ../../parsec/pkgs/apps/$$app/obj/$(PARSEC_CONFIG)/$$app fs/$$app; \
-		(cd fs && tar xvf "../../parsec/pkgs/apps/$$app/inputs/input_simsmall.tar"); \
-	done
+	$(TOP)/../parsec/bin/parsecmgmt -c pios -p $@ -a uninstall
+	$(TOP)/../parsec/bin/parsecmgmt -c pios -p $@ -a build
+	ln -sf ../../parsec/pkgs/apps/$@/obj/$(PARSEC_CONFIG)/$@ fs/$@
+	cd fs && tar xvf "../../parsec/pkgs/apps/$@/inputs/input_simsmall.tar"
 
 endif
