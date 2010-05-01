@@ -57,6 +57,7 @@ KERN_INITFILES :=	sh \
 # Performance benchmarking programs
 KERN_INITFILES +=	matmult \
 			microbench \
+			time \
 			fun \
 			icnt \
 			testds \
