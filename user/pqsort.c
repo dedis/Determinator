@@ -159,7 +159,7 @@ register int    len;
 
 typedef struct pqsort_args
 {
-	uint32_t *lo, *hi;
+	KEY_T *lo, *hi;
 	int nth, cn;
 } pqsort_args;
 
@@ -167,27 +167,27 @@ void *
 pqsort(void *arg)
 {
 	pqsort_args *a = arg;
-	uint32_t *lo = a->lo;
-	uint32_t *hi = a->hi;
+	KEY_T *lo = a->lo;
+	KEY_T *hi = a->hi;
 	int nth = a->nth;
 	int cn = a->cn;
 
-	//printf("lo = %x, hi = %x, num = %d\n", lo, hi, hi-lo + 1);
+	//printf("cn %d, lo = %x, hi = %x, num = %d\n", cn, lo, hi, hi-lo + 1);
 	if (lo >= hi)
 		return NULL;
 	
 	if(/*hi <= lo + MIN_STRIDE ||*/ nth <= 1) { // now, MIN_STRIDE is controlled by nthread...
-		int tmp = hi[1];
-		hi[1] = INT_MAX;
+		//int tmp = hi[1];
+		//hi[1] = INT_MAX;
 		sedgesort(lo, hi - lo + 1);
-		assert(hi[1] == INT_MAX);
-		hi[1] = tmp;
+		//assert(hi[1] == INT_MAX);
+		//hi[1] = tmp;
 		//insort(lo, hi-lo + 1);
 		return NULL;
 	}
 
 	int pivot = *lo;	// yeah, bad way to choose pivot...
-	uint32_t *l = lo+1, *h = hi;
+	KEY_T *l = lo+1, *h = hi;
 	while (l <= h) {
 		if (*l < pivot)
 			l++;
@@ -215,20 +215,20 @@ int niter = 10;
 #define MAX_ARRAY_SIZE 1000000
 #define MAXTHREADS 16
 
-uint32_t randints[MAX_ARRAY_SIZE+1];
+KEY_T randints[MAX_ARRAY_SIZE+1];
 
 #include <inc/rngs.h>
-#define MAXINT (0xffffffff)
 
 void
-gen_randints(uint32_t *randints, size_t n, int seed) {
+gen_randints(KEY_T *randints, size_t n, int seed) {
 	SelectStream(0);
 	PutSeed(seed); //use a negative seed to activate sys_time dependent seed!
 	int i;
 	for(i = 0; i < n; ++i) {
-		randints[i] = (uint32_t)(MAXINT * Random());
+		randints[i] = (KEY_T)(UINT_MAX * Random());
 		//printf("%d ", randints[i]);
 	}
+	randints[n] = INT_MAX;	// sentinel at end of array req'd by sedgesort
 	//printf("\n");
 }
 
