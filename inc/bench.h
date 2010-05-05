@@ -9,6 +9,7 @@
 #else
 #include <sys/types.h>
 #include <stdint.h>
+#define cprintf printf	// use system's normal printf
 #endif
 
 void bench_fork(unsigned char child, void *(*fun)(void *), void *arg);

@@ -22,12 +22,12 @@ $(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(USER_LDDEPS)
 
 #if LAB >= 9
 # Host versions of benchmark programs, for comparison purposes
-all: obj/host/matmult obj/host/microbench
+all: obj/host/matmult obj/host/pqsort obj/host/microbench
 
 $(OBJDIR)/host/%: user/%.c lib/bench.c
 	@echo + ld $@
 	$(V)mkdir -p $(OBJDIR)/host
-	$(V)gcc -m32 -O2 -o $@ -I$(TOP) $^ -lpthread
+	$(V)gcc -g -m32 -O2 -o $@ -I$(TOP) $^ -lpthread
 #endif
 
 
