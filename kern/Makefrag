@@ -63,7 +63,8 @@ KERN_INITFILES +=	matmult \
 			icnt \
 			testds \
 			testfloat \
-			pqsort
+			pqsort \
+			ncpu
 
 # Anything we find in the 'fs' subdirectory also becomes a file.
 KERN_FSFILES :=		$(wildcard fs/*)

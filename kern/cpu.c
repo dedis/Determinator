@@ -61,6 +61,9 @@ cpu cpu_boot = {
 	magic: CPU_MAGIC
 };
 
+// Artificial limit on the number of CPUs the scheduler may use.
+int cpu_limit = INT_MAX;
+
 
 #if SOL >= 9
 void

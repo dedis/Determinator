@@ -23,7 +23,8 @@
 #define P_MUTEXIMMED	0	// Pass on mutex immediately on unlock
 
 
-#define MAXTHREADS	256		// must be power of two
+#define MAXTHREADS	16		// must be power of two
+//#define MAXTHREADS	256		// must be power of two
 #define MAXKEYS		1000
 
 // Thread states
@@ -80,7 +81,6 @@ typedef struct threadpriv {
 #define TSTACKHI(tno)	(VM_STACKHI - (tno) * TSTACKSIZE)
 #define TSTACKLO(tno)	(TSTACKHI(tno) - TSTACKSIZE)
 
-#if 0
 // Use half of the general-purpose "shared" address space area as heap,
 // and divide this heap space into equal-size per-thread chunks.
 #define HEAPSIZE	((VM_SHAREHI - VM_SHARELO) / 2)
@@ -89,7 +89,6 @@ typedef struct threadpriv {
 #define THEAPSIZE	(HEAPSIZE / MAXTHREADS)
 #define THEAPLO(tno)	(HEAPLO + (tno) * THEAPSIZE)
 #define THEAPHI(tno)	(HEAPLO + (tno) * THEAPSIZE + THEAPSIZE)
-#endif
 
 
 static pthread th[MAXTHREADS];
@@ -1078,27 +1077,43 @@ int pthread_setspecific(pthread_key_t key, const void *val)
 ////////// Memory allocation //////////
 
 extern char end[];
-static void *brk = end;
+void *brk[MAXTHREADS];
 
 void *
 malloc(size_t size)
 {
-	mcall();
+//	mcall();
 
 	// Allocate the requested memory
-	void *ptr = brk;
-	void *nbrk = ptr + ROUNDUP(size, 8);
-	if (nbrk > (void*) VM_SHAREHI)
-		panic("malloc: can't alloc chunk of size %d", size);
-	brk = nbrk;
+	int tno = selfno();
+	void *ptr = brk[tno];
+	if (ptr == NULL) {
+		// Thread 0 gets an extra large heap.
+		ptr = (tno > 0) ? (void*) THEAPLO(tno) : end;
+		void *lopg = ROUNDUP(ptr, PAGESIZE);
+		void *hipg = (void*) THEAPHI(tno);
+		assert(hipg > lopg);
+		sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, lopg, hipg - lopg);
+	}
+	assert(ptr >= (void*)end);
+	assert(ptr + size <= (void*)VM_SHAREHI);
+	void *nbrk = ROUNDUP(ptr + 8 + size, 8);
+	if (nbrk > (void*) THEAPHI(tno))
+		panic("malloc: thread %d can't alloc chunk of size %d",
+			tno, size);
+	brk[tno] = nbrk;
+*(uint32_t*)ptr = size;
+ptr += 8;
+//if (size > 1024)
+//	cprintf("thread %d malloc size %d -> %x\n", tno, size, ptr);
 
-	// Make sure the new memory is accessible
-	void *pgold = ROUNDUP(ptr, PAGESIZE);
-	void *pgnew = ROUNDUP(nbrk, PAGESIZE);
-	if (pgnew > pgold)
-		sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, pgold, pgnew - pgold);
+//	// Make sure the new memory is accessible
+//	void *pgold = ROUNDUP(ptr, PAGESIZE);
+//	void *pgnew = ROUNDUP(nbrk, PAGESIZE);
+//	if (pgnew > pgold)
+//		sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, pgold, pgnew - pgold);
 
-	mret();
+//	mret();
 
 	return ptr;
 }
@@ -1125,7 +1140,10 @@ realloc(void *ptr, size_t newsize)
 void
 free(void *ptr)
 {
-	// XXX
+//	int size = *(int*)(ptr-8);
+//	if (size > 1024)
+//		cprintf("thread %d free size %d at %x\n",
+//			selfno(), size, ptr);
 }
 
 ////////// Signal handling //////////

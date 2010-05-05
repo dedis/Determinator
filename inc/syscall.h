@@ -11,8 +11,9 @@
 #define SYS_PUT		0x00000001	// Push data to child and start it
 #define SYS_GET		0x00000002	// Pull results from child
 #define SYS_RET		0x00000003	// Return to parent
-#if SOL >= 4
+#if LAB >= 9
 #define SYS_TIME	0x00000004	// Get time since kernel boot
+#define SYS_NCPU	0x00000005	// Set max number of running CPUs
 #endif
 
 #define SYS_START	0x00000010	// Put: start child running
@@ -152,7 +153,7 @@ sys_ret(void)
 		"a" (SYS_RET));
 }
 
-#if SOL >= 4
+#if LAB >= 9
 static uint64_t gcc_inline
 sys_time(void)
 {
@@ -163,6 +164,16 @@ sys_time(void)
 		: "i" (T_SYSCALL),
 		  "a" (SYS_TIME));
 	return (uint64_t)hi << 32 | lo;
+}
+
+static void gcc_inline
+sys_ncpu(int newlimit)
+{
+	asm volatile("int %0"
+		:
+		: "i" (T_SYSCALL),
+		  "a" (SYS_NCPU),
+		  "c" (newlimit));
 }
 #endif	// SOL >= 4
 

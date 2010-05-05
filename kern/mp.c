@@ -123,6 +123,9 @@ mp_init(void)
 			cpu *c = (proc->flags & MPBOOT)
 					? &cpu_boot : cpu_alloc();
 			c->id = proc->apicid;
+#if LAB >= 9
+			c->num = ncpu;	// also assign sequential CPU numbers
+#endif
 			ncpu++;
 			continue;
 		case MPIOAPIC:

@@ -194,16 +194,18 @@ proc_sched(void)
 	// Spin until something appears on the ready list.
 	// Would be better to use the hlt instruction and really go idle,
 	// but then we'd have to deal with inter-processor interrupts (IPIs).
+	cpu *c = cpu_cur();
 	spinlock_acquire(&readylock);
-	while (!readyhead) {
+	while (!readyhead || cpu_disabled(c)) {
 		spinlock_release(&readylock);
 
 		//cprintf("cpu %d waiting for work\n", cpu_cur()->id);
-		while (!readyhead) {	// spin until something appears
+		while (!readyhead || cpu_disabled(c)) {	// spin-wait for work
 			sti();		// enable device interrupts briefly
 			pause();	// let CPU know we're in a spin loop
 			cli();		// disable interrupts again
 		}
+		//cprintf("cpu %d found work\n", cpu_cur()->id);
 
 		spinlock_acquire(&readylock);
 		// now must recheck readyhead while holding readylock!
