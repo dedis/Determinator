@@ -17,8 +17,8 @@
 
 
 // Tunable scheduling policy parameters (could be made variables).
-#define P_QUANTUM	0	// Number of instructions per thread quantum
-//#define P_QUANTUM	10000	// Number of instructions per thread quantum
+//#define P_QUANTUM	0	// Number of instructions per thread quantum
+#define P_QUANTUM	10000000	// Number of instructions per thread quantum
 #define P_MUTEXFAIR	0	// Mutex transfer in strict round-robin order
 #define P_MUTEXIMMED	0	// Pass on mutex immediately on unlock
 
@@ -164,6 +164,8 @@ static volatile __thread int testint = 0x12345678;
 static void
 init(void)
 {
+	cprintf("dsthread quantum %d\n", P_QUANTUM);
+
 	assert(tlock < 0);
 	tlock = 2;		// we start out as the master process
 
@@ -269,7 +271,7 @@ pthread_sched(void)
 #if P_QUANTUM > 0
 { static int dispcnt, qlencum;
 qlencum += runqlen;
-if (++dispcnt >= 100000000/P_QUANTUM) {
+if (++dispcnt >= 1000000000/P_QUANTUM) {
 	cprintf("sched: runqlen %d avg %d\n", runqlen, qlencum / dispcnt);
 	qlencum = dispcnt = 0;
 } }

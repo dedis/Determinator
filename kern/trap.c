@@ -314,6 +314,7 @@ trap(trapframe *tf)
 		assert(tf->tf_cs & 3);
 		assert(tf->tf_eflags & FL_TF);
 		assert(p->sv.pff & PFF_ICNT);
+		assert(!pmc_get || (p->sv.imax - p->sv.icnt) <= pmc_safety);
 		//cprintf("T_DEBUG eip %x\n", tf->tf_eip);
 		if (++p->sv.icnt < p->sv.imax)
 			trap_return(tf);	// keep stepping
