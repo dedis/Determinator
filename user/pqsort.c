@@ -211,62 +211,55 @@ pqsort(void *arg)
 	return NULL;
 }
 
-int niter = 10;
-#define MAX_ARRAY_SIZE 1000000
-#define MAXTHREADS 16
+#define MAX_ARRAY_SIZE	1000000
+#define MAXTHREADS	16
+#define NITER		10
 
-KEY_T randints[MAX_ARRAY_SIZE+1];
+KEY_T randints[NITER][MAX_ARRAY_SIZE+1];
 
 #include <inc/rngs.h>
 
 void
-gen_randints(KEY_T *randints, size_t n, int seed) {
+gen_randints(size_t n, int seed) {
 	SelectStream(0);
 	PutSeed(seed); //use a negative seed to activate sys_time dependent seed!
-	int i;
-	for(i = 0; i < n; ++i) {
-		randints[i] = (KEY_T)(UINT_MAX * Random());
-		//printf("%d ", randints[i]);
+	int i,j;
+	for(j = 0; j < NITER; j++) {
+		for(i = 0; i < n; ++i) {
+			randints[j][i] = (KEY_T)(UINT_MAX * Random());
+			//printf("%d ", randints[i]);
+		}
+		randints[j][n] = INT_MAX;	// sentinel at end of array
 	}
-	randints[n] = INT_MAX;	// sentinel at end of array req'd by sedgesort
 	//printf("\n");
 }
 
 void
 testpqsort(int array_size, int nthread)
 {	
-#ifdef USE_MALLOC
-	randints = malloc(array_size*4);
-#endif
 	assert(nthread <= MAXTHREADS);
-	int iter = 0;
-	uint64_t tt = 0ull;
-	for(; iter < niter; ++iter) {
-		gen_randints(randints, array_size, 1);
-		uint64_t ts = bench_time();
+	int iter;
+
+	gen_randints(array_size, 1);
+	uint64_t ts = bench_time();
+	for(iter = 0; iter < NITER; ++iter) {
 		pqsort_args arg = {
-			.lo = randints,
-			.hi = randints + array_size - 1,
+			.lo = randints[iter],
+			.hi = randints[iter] + array_size - 1,
 			.nth = nthread,
 			.cn = 1 };
 		pqsort(&arg);
-		uint64_t td = bench_time();
-		//printf("test %d uses time: %lld\n", iter, td-ts);
-		tt += (td - ts);
-		//int i;
-		//for(i = 0; i < array_size; ++i)
-		//	printf("%d ", randints[i]);
 	}
-	
-	printf("array_size: %d\tavg. time: %lld\n", array_size, tt/niter);
-#ifdef USE_MALLOC
-	free(randints);
-#endif
+	uint64_t td = bench_time();
+	uint64_t tt = (td - ts);
+
+	printf("array_size: %d\tavg. time: %lld\n", array_size, tt/NITER);
 }
 
 int
 main()
 {
+	cprintf("new and improved!\n");
 	int nth;
 	for (nth = 1; nth <= MAXTHREADS; nth *= 2) {
 		printf("nthreads %d...\n", nth);
