@@ -538,7 +538,10 @@ pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 	assert(size <= VM_USERHI - sva);
 	assert(size <= VM_USERHI - dva);
 
-	// Invalidate the destination region we'll be modifying
+	// Invalidate the source and destination regions we may be modifying.
+	// (We may remove permissions from the source for copy-on-write.)
+	// No need to invalidate rpdir since rpdirs are never loaded.
+	pmap_inval(spdir, sva, size);
 	pmap_inval(dpdir, dva, size);
 
 	pde_t *rpde = &rpdir[PDX(sva)];		// find PDEs

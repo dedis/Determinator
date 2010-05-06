@@ -55,7 +55,7 @@ net_init(void)
 static void
 net_ethsetup(net_ethhdr *eth, uint8_t destnode)
 {
-	assert(destnode > 0 && destnode < NET_MAXNODES);
+	assert(destnode > 0 && destnode <= NET_MAXNODES);
 	assert(destnode != net_node);	// soliloquy isn't a virtue here
 
 	memcpy(eth->dst, net_mac, 6);	eth->dst[5] = destnode;
