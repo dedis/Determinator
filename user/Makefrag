@@ -22,12 +22,12 @@ $(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(USER_LDDEPS)
 
 #if LAB >= 9
 # Host versions of benchmark programs, for comparison purposes
-all: obj/host/matmult obj/host/microbench
+all: obj/host/matmult obj/host/pqsort obj/host/microbench
 
 $(OBJDIR)/host/%: user/%.c lib/bench.c
 	@echo + ld $@
 	$(V)mkdir -p $(OBJDIR)/host
-	$(V)gcc -m32 -O2 -o $@ -I$(TOP) $^ -lpthread
+	$(V)gcc -g -m32 -O2 -o $@ -I$(TOP) $^ -lpthread
 #endif
 
 
@@ -36,16 +36,19 @@ $(OBJDIR)/host/%: user/%.c lib/bench.c
 # Assumes the parsec source tree is checked out next to the pios tree.
 PARSEC_CONFIG := $(sort $(notdir $(wildcard \
 			$(TOP)/../parsec/pkgs/*/*/obj/*.pios)))
-PARSEC_PROGS := blackscholes x264
-parsec:
-	@mkdir -p fs
-	cd fs; for prog in $(PARSEC_PROGS); do \
-		file="../../parsec/pkgs/apps/$$prog/obj/$(PARSEC_CONFIG)/$$prog"; \
-		echo "$$file"; \
-		if test -x "$$file"; then \
-			ln -sf "$$file" "$$prog"; \
-			tar xvf "../../parsec/pkgs/apps/$$prog/inputs/input_simsmall.tar"; \
-		fi \
-	done
+PARSEC_APPS := blackscholes x264
+
+# Rebuild the parsec benchmarks that PIOS supports.
+# This has to be done manually when needed,
+# to avoid long PARSEC rebuilds whenever the C library changes.
+parsec: $(PARSEC_APPS)
+
+# A ficticious target for each PARSEC benchmark,
+# for rebuilding them individually.
+%: $(TOP)/../parsec/pkgs/apps/% $(XC_DEPS)
+	@-mkdir -p fs
+	$(TOP)/../parsec/bin/parsecmgmt -c pios -p $@ -a uninstall
+	$(TOP)/../parsec/bin/parsecmgmt -c pios -p $@ -a build
+	ln -sf ../../parsec/pkgs/apps/$@/obj/$(PARSEC_CONFIG)/$@ fs/$@
 
 endif

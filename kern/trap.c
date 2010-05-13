@@ -5,6 +5,9 @@
 #include <inc/mmu.h>
 #include <inc/x86.h>
 #include <inc/assert.h>
+#if LAB >= 9
+#include <inc/fenv.h>
+#endif
 
 #include <kern/cpu.h>
 #include <kern/trap.h>
@@ -54,7 +57,7 @@ trap_init_idt(void)
 	extern char
 		Xdivide,Xdebug,Xnmi,Xbrkpt,Xoflow,Xbound,
 		Xillop,Xdevice,Xdblflt,Xtss,Xsegnp,Xstack,
-		Xgpflt,Xpgflt,Xfperr,Xalign,Xmchk,Xdefault;
+		Xgpflt,Xpgflt,Xfperr,Xalign,Xmchk,Xsimd,Xdefault;
 #if SOL >= 2
 	extern char
 		Xirq0,Xirq1,Xirq2,Xirq3,Xirq4,Xirq5,
@@ -92,6 +95,7 @@ trap_init_idt(void)
 	SETGATE(idt[T_FPERR],  0, CPU_GDT_KCODE, &Xfperr,  0);
 	SETGATE(idt[T_ALIGN],  0, CPU_GDT_KCODE, &Xalign,  0);
 	SETGATE(idt[T_MCHK],   0, CPU_GDT_KCODE, &Xmchk,   0);
+	SETGATE(idt[T_SIMD],   0, CPU_GDT_KCODE, &Xsimd,   0);
 
 #if SOL >= 2
 	SETGATE(idt[T_IRQ0 + 0], 0, CPU_GDT_KCODE, &Xirq0, 0);
@@ -245,43 +249,12 @@ trap(trapframe *tf)
 
 #if SOL >= 2
 	case T_DEVICE:	// attempted to access FPU while TS flag set
-		cprintf("trap: enabling FPU\n");
+		//cprintf("trap: enabling FPU\n");
 		p->sv.pff |= PFF_USEFPU;
 		assert(sizeof(p->sv.fx) == 512);
 		lcr0(rcr0() & ~CR0_TS);			// enable FPU
 		asm volatile("fxrstor %0" : : "m" (p->sv.fx));
 		trap_return(tf);
-
-	case T_DEBUG:	// count instructions by single-stepping
-		// XXX user code can set the trace flag itself;
-		// need to manage a virtual trace flag on behalf of it
-		// instead of just panicking if we see a debug trap
-		// that we didn't cause.
-		assert(tf->tf_cs & 3);
-		assert(tf->tf_eflags & FL_TF);
-		assert(p->sv.pff & PFF_ICNT);
-		//cprintf("T_DEBUG eip %x\n", tf->tf_eip);
-		if (++p->sv.icnt < p->sv.imax)
-			trap_return(tf);	// keep stepping
-		tf->tf_trapno = T_ICNT;
-		proc_ret(tf, -1);	// can't run any more insns!
-
-	case T_PERFCTR:
-		assert(tf->tf_cs & 3);
-		assert(p->sv.pff & PFF_ICNT);
-		assert(p->pmcmax > 0);
-		assert(pmc_get != NULL);
-		int32_t ninsn = pmc_get(p->pmcmax);
-		int32_t overshoot = ninsn - p->pmcmax;
-		if (overshoot > pmc_overshoot)
-			pmc_overshoot = overshoot;
-		//cprintf("T_PERFCTR: after %d tgt %d ovr %d max %d\n",
-		//	ninsn, p->pmcmax, overshoot, pmc_overshoot);
-		p->sv.icnt += ninsn;
-		p->pmcmax = 0;
-		if (p->sv.icnt > p->sv.imax)
-			panic("oops, perf ctr overshoot by %d insns\n",
-				p->sv.icnt - p->sv.imax);
 
 #endif // SOL >= 2
 	case T_LTIMER: ;
@@ -303,8 +276,8 @@ trap(trapframe *tf)
 		}
 #endif
 		lapic_eoi();
-		if (tf->tf_cs & 3)	// If in user mode, context switch
-			proc_yield(tf);
+//		if (tf->tf_cs & 3)	// If in user mode, context switch
+//			proc_yield(tf);
 		trap_return(tf);	// Otherwise, stay in idle loop
 	case T_LERROR:
 		lapic_errintr();
@@ -332,6 +305,57 @@ trap(trapframe *tf)
 			c->id, tf->tf_cs, tf->tf_eip);
 		trap_return(tf); // Note: no EOI (see Local APIC manual)
 		break;
+#if LAB >= 9
+	case T_DEBUG:	// count instructions by single-stepping
+		// XXX user code can set the trace flag itself;
+		// need to manage a virtual trace flag on behalf of it
+		// instead of just panicking if we see a debug trap
+		// that we didn't cause.
+		assert(tf->tf_cs & 3);
+		assert(tf->tf_eflags & FL_TF);
+		assert(p->sv.pff & PFF_ICNT);
+		assert(!pmc_get || (p->sv.imax - p->sv.icnt) <= pmc_safety);
+		//cprintf("T_DEBUG eip %x\n", tf->tf_eip);
+		if (++p->sv.icnt < p->sv.imax)
+			trap_return(tf);	// keep stepping
+		tf->tf_trapno = T_ICNT;
+		proc_ret(tf, -1);	// can't run any more insns!
+
+	case T_PERFCTR:	// count insns via performance monitoring counters
+		lapic_eoi();	// first acknowledge the PMC interrupt
+		// Since performance counter interrupts are asynchronous,
+		// one can arrive after the process that triggered it
+		// has already taken a trap for some other reason and
+		// the CPU has switched to another process or the idle loop.
+		// If we're in the idle loop when this happens, cs == 0.
+		if (!(tf->tf_cs & 3) || (p->pmcmax == 0)) {
+			warn("spurious performance counter interrupt\n");
+			trap_return(tf);
+		}
+		assert(p->sv.pff & PFF_ICNT);
+		assert(pmc_get != NULL);
+		int32_t ninsn = pmc_get(p->pmcmax);
+		int32_t overshoot = ninsn - p->pmcmax;
+		if (overshoot > pmc_overshoot)
+			pmc_overshoot = overshoot;
+		//cprintf("T_PERFCTR: after %d tgt %d ovr %d max %d\n",
+		//	ninsn, p->pmcmax, overshoot, pmc_overshoot);
+		p->sv.icnt += ninsn;
+		p->pmcmax = 0;
+		if (p->sv.icnt > p->sv.imax)
+			panic("oops, perf ctr overshoot by %d insns\n",
+				p->sv.icnt - p->sv.imax);
+		if (p->sv.icnt < p->sv.imax) {
+			tf->tf_eflags |= FL_TF;	// single-step the rest
+			trap_return(tf);
+		}
+		tf->tf_trapno = T_ICNT;
+		proc_ret(tf, -1);	// can't run any more insns!
+
+	case T_SIMD:
+		__stmxcsr(&tf->tf_err);		// use MXCSR as error code
+		break;				// defer to user code
+#endif	// LAB >= 9
 	}
 #if SOL >= 5
 	if (tf->tf_trapno == T_IRQ0 + e100_irq) {

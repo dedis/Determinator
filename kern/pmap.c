@@ -116,16 +116,26 @@ pmap_newpdir(void)
 	return pdir;
 }
 
-//
 // Free a page directory, and all page tables and mappings it may contain.
-//
 void
-pmap_freepdir(pte_t *pdir)
+pmap_freepdir(pageinfo *pdirpi)
 {
-	pmap_remove(pdir, VM_USERLO, VM_USERHI-VM_USERLO);
-	mem_free(mem_ptr2pi(pdir));
+	pmap_remove(mem_pi2ptr(pdirpi), VM_USERLO, VM_USERHI-VM_USERLO);
+	mem_free(pdirpi);
 }
 
+// Free a page table and all page mappings it may contain.
+void
+pmap_freeptab(pageinfo *ptabpi)
+{
+	pte_t *pte = mem_pi2ptr(ptabpi), *ptelim = pte + NPTENTRIES;
+	for (; pte < ptelim; pte++) {
+		uint32_t pgaddr = PGADDR(*pte);
+		if (pgaddr != PTE_ZERO)
+			mem_decref(mem_phys2pi(pgaddr), mem_free);
+	}
+	mem_free(ptabpi);
+}
 
 // Given 'pdir', a pointer to a page directory, pmap_walk returns
 // a pointer to the page table entry (PTE) for user virtual address 'va'.
@@ -182,27 +192,38 @@ pmap_walk(pde_t *pdir, uint32_t va, bool writing)
 	// If the page table is shared and we're writing, copy it first.
 	// Must propagate the read-only status down to the page mappings.
 	if (writing && !(*pde & PTE_W)) {
-		pageinfo *pi = mem_alloc();
-		if (pi == NULL)
-			return NULL;
-		mem_incref(pi);
-		pte_t *nptab = mem_pi2ptr(pi);
-		//cprintf("pdir_walk %x %x: copy ptab %x->%x\n",
-		//	pdir, va, ptab, nptab);
+		if (mem_ptr2pi(ptab)->refcount == 1) {
+			// Page table isn't shared, so we can use in-place;
+			// but must propagate the read-only status
+			// from the PDE level down to all individual PTEs.
+			int i;
+			for (i = 0; i < NPTENTRIES; i++)
+				ptab[i] &= ~PTE_W;
+		} else {
+			// Page table is or may still be shared - must copy.
+			pageinfo *pi = mem_alloc();
+			if (pi == NULL)
+				return NULL;
+			mem_incref(pi);
+			pte_t *nptab = mem_pi2ptr(pi);
+			//cprintf("pdir_walk %x %x: copy ptab %x->%x\n",
+			//	pdir, va, ptab, nptab);
 
-		// Copy all page table entries, incrementing each's refcount
-		int i;
-		for (i = 0; i < NPTENTRIES; i++) {
-			uint32_t pte = ptab[i];
-			nptab[i] = pte & ~PTE_W;
-			assert(PGADDR(pte) != 0);
-			if (PGADDR(pte) != PTE_ZERO)
-				mem_incref(mem_phys2pi(PGADDR(pte)));
+			// Copy all page table entries,
+			// incrementing each's refcount
+			int i;
+			for (i = 0; i < NPTENTRIES; i++) {
+				uint32_t pte = ptab[i];
+				nptab[i] = pte & ~PTE_W;
+				assert(PGADDR(pte) != 0);
+				if (PGADDR(pte) != PTE_ZERO)
+					mem_incref(mem_phys2pi(PGADDR(pte)));
+			}
+
+			mem_decref(mem_ptr2pi(ptab), pmap_freeptab);
+			ptab = nptab;
 		}
-
-		mem_decref(mem_ptr2pi(ptab));	// release old ptab reference
-		*pde = (uint32_t)nptab | PTE_A | PTE_P | PTE_W | PTE_U;
-		ptab = nptab;
+		*pde = (uint32_t)ptab | PTE_A | PTE_P | PTE_W | PTE_U;
 	}
 
 	return &ptab[PTX(la)];
@@ -296,8 +317,16 @@ pmap_remove(pde_t *pdir, uint32_t va, size_t size)
 			continue;
 		}
 
-		// Are we removing the entire page table?
-		bool wholeptab = (PTX(va) == 0 && vahi-va >= PTSIZE);
+		// Can we remove an entire page table at once?
+		if (PTX(va) == 0 && vahi-va >= PTSIZE) {
+			uint32_t ptabaddr = PGADDR(*pde);
+			if (ptabaddr != PTE_ZERO)	// drop ptab ref
+				mem_decref(mem_phys2pi(ptabaddr),
+						pmap_freeptab);
+			*pde = PTE_ZERO;
+			va += PTSIZE;
+			continue;
+		}
 
 		pte_t *pte = pmap_walk(pdir, va, 1);	// find & unshare PTE
 		assert(pte != NULL);	// XXX
@@ -306,16 +335,10 @@ pmap_remove(pde_t *pdir, uint32_t va, size_t size)
 		do {
 			uint32_t pgaddr = PGADDR(*pte);
 			if (pgaddr != PTE_ZERO)
-				mem_decref(mem_phys2pi(pgaddr));
+				mem_decref(mem_phys2pi(pgaddr), mem_free);
 			*pte++ = PTE_ZERO;
 			va += PAGESIZE;
 		} while (va < vahi && PTX(va) != 0);
-
-		// Free the page table too if appropriate
-		if (wholeptab) {
-			mem_decref(mem_phys2pi(PGADDR(*pde)));
-			*pde = PTE_ZERO;
-		}
 	}
 #else /* not SOL >= 3 */
 	// Fill in this function
@@ -433,7 +456,7 @@ pmap_pagefault(trapframe *tf)
 		uint32_t npg = mem_pi2phys(npi);
 		memmove((void*)npg, (void*)pg, PAGESIZE); // copy the page
 		if (pg != PTE_ZERO)
-			mem_decref(mem_phys2pi(pg));	// release the old ref
+			mem_decref(mem_phys2pi(pg), mem_free); // drop old ref
 		//cprintf("pmap_pflt %x %x: copy page %x->%x\n",
 		//	p->pdir, fva, pg, npg);
 		pg = npg;
@@ -472,7 +495,7 @@ pmap_mergepage(pte_t *rpte, pte_t *spte, pte_t *dpte, uint32_t dva)
 		uint8_t *npg = mem_pi2ptr(npi);
 		memmove(npg, dpg, PAGESIZE); // copy the page
 		if (dpg != (uint8_t*)PTE_ZERO)
-			mem_decref(mem_ptr2pi(dpg));	// release the old ref
+			mem_decref(mem_ptr2pi(dpg), mem_free); // drop old ref
 		dpg = npg;
 		*dpte = (uint32_t)npg |
 			SYS_RW | PTE_A | PTE_D | PTE_W | PTE_U | PTE_P;
@@ -489,7 +512,7 @@ pmap_mergepage(pte_t *rpte, pte_t *spte, pte_t *dpte, uint32_t dva)
 		}
 
 		cprintf("pmap_mergepage: conflict at dva %x\n", dva);
-		mem_decref(mem_phys2pi(PGADDR(*dpte)));
+		mem_decref(mem_phys2pi(PGADDR(*dpte)), mem_free);
 		*dpte = PTE_ZERO;
 		return;
 	}
@@ -515,7 +538,10 @@ pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 	assert(size <= VM_USERHI - sva);
 	assert(size <= VM_USERHI - dva);
 
-	// Invalidate the destination region we'll be modifying
+	// Invalidate the source and destination regions we may be modifying.
+	// (We may remove permissions from the source for copy-on-write.)
+	// No need to invalidate rpdir since rpdirs are never loaded.
+	pmap_inval(spdir, sva, size);
 	pmap_inval(dpdir, dva, size);
 
 	pde_t *rpde = &rpdir[PDX(sva)];		// find PDEs
@@ -554,7 +580,8 @@ pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 			if (*dpte == *rpte) {	// unchanged in dest
 				// just copy source page using COW
 				if (PGADDR(*dpte) != PTE_ZERO)
-					mem_decref(mem_phys2pi(PGADDR(*dpte)));
+					mem_decref(mem_phys2pi(PGADDR(*dpte)),
+							mem_free);
 				*spte &= ~PTE_W;
 				*dpte = *spte;		// copy ptable mapping
 				mem_incref(mem_phys2pi(PGADDR(*spte)));

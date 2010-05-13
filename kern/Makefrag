@@ -39,6 +39,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			dev/pmc.c \
 			lib/printfmt.c \
 			lib/cprintf.c \
+			lib/sprintf.c \
 			lib/string.c \
 			lib/syscall.c
 
@@ -57,11 +58,13 @@ KERN_INITFILES :=	sh \
 # Performance benchmarking programs
 KERN_INITFILES +=	matmult \
 			microbench \
+			time \
 			fun \
 			icnt \
 			testds \
 			testfloat \
-			pqsort
+			pqsort \
+			ncpu
 
 # Anything we find in the 'fs' subdirectory also becomes a file.
 KERN_FSFILES :=		$(wildcard fs/*)

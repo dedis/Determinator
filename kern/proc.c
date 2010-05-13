@@ -79,7 +79,7 @@ proc_alloc(proc *p, uint32_t cn)
 
 	// Floating-point register state
 	cp->sv.fx.fcw = 0x037f;	// round-to-nearest, 80-bit prec, mask excepts
-	cp->sv.fx.mxcsr = 0x000001f8;	// all MMX exceptions masked
+	cp->sv.fx.mxcsr = 0x00001f80;	// all MMX exceptions masked
 #endif
 
 #if SOL >= 3
@@ -87,7 +87,7 @@ proc_alloc(proc *p, uint32_t cn)
 	cp->pdir = pmap_newpdir();
 	cp->rpdir = pmap_newpdir();
 	if (!cp->pdir || !cp->rpdir) {
-		if (cp->pdir) pmap_freepdir(cp->pdir);
+		if (cp->pdir) pmap_freepdir(mem_ptr2pi(cp->pdir));
 		return NULL;
 	}
 #endif	// SOL >= 3
@@ -145,9 +145,12 @@ proc_save(proc *p, trapframe *tf, int entry)
 			if (entry > 0)
 				p->sv.icnt++;	// executed the INT insn
 			p->sv.tf.tf_eflags &= ~FL_TF;
+			p->sv.tf.tf_eflags |= FL_IF;
 		} else if (p->pmcmax > 0) {	// using performance counters
 			assert(pmc_get != NULL);
 			p->sv.icnt += pmc_get(p->pmcmax);
+			if (entry == 0)
+				p->sv.icnt--;	// don't count aborted INT insn
 			p->pmcmax = 0;
 			if (p->sv.icnt > p->sv.imax)
 				panic("oops, perf ctr overshoot by %d insns\n",
@@ -191,16 +194,18 @@ proc_sched(void)
 	// Spin until something appears on the ready list.
 	// Would be better to use the hlt instruction and really go idle,
 	// but then we'd have to deal with inter-processor interrupts (IPIs).
+	cpu *c = cpu_cur();
 	spinlock_acquire(&readylock);
-	while (!readyhead) {
+	while (!readyhead || cpu_disabled(c)) {
 		spinlock_release(&readylock);
 
 		//cprintf("cpu %d waiting for work\n", cpu_cur()->id);
-		while (!readyhead) {	// spin until something appears
+		while (!readyhead || cpu_disabled(c)) {	// spin-wait for work
 			sti();		// enable device interrupts briefly
 			pause();	// let CPU know we're in a spin loop
 			cli();		// disable interrupts again
 		}
+		//cprintf("cpu %d found work\n", cpu_cur()->id);
 
 		spinlock_acquire(&readylock);
 		// now must recheck readyhead while holding readylock!
@@ -262,8 +267,14 @@ proc_run(proc *p)
 			assert(!(p->sv.tf.tf_eflags & FL_TF));
 			pmc_set(pmax);
 			p->pmcmax = pmax;
-		} else
+		} else {
 			p->sv.tf.tf_eflags |= FL_TF;	// just single-step
+			// XXX taking hardware interrupts while tracing
+			// messes up our ability to count properly.
+			// Ideally we should poll for pending interrupts
+			// after each instruction we trace.
+			p->sv.tf.tf_eflags &= ~FL_IF;
+		}
 	} else {
 		assert(!(p->sv.tf.tf_eflags & FL_TF));
 		assert(p->pmcmax == 0);

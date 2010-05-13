@@ -83,7 +83,7 @@ typedef struct pthread_mutex {
 typedef int pthread_mutexattr_t;
 
 typedef struct pthread_cond {
-	int		event;		// 0 = none, 1 = signal, 3 = broadcast
+	int		nwake;		// number of threads to wake up
 	pthread_t	qhead;		// queue of waiting threads - head
 	pthread_t	*qtail;		// queue of waiting threads - tail
 	struct pthread_cond *evnext;	// chain on list of signaled conds

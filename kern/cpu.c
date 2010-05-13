@@ -50,7 +50,7 @@ cpu cpu_boot = {
 #if LAB >= 9
 		// 0x28 - user thread local storage data segment
 		[CPU_GDT_UDTLS >> 3] = SEGDESC32(1, STA_W,
-					0xeffffff0, 0xffffffff, 3),
+					0xeffff000, 0xffffffff, 3),
 
 #endif
 		// 0x30 - tss, initialized in cpu_init()
@@ -60,6 +60,9 @@ cpu cpu_boot = {
 
 	magic: CPU_MAGIC
 };
+
+// Artificial limit on the number of CPUs the scheduler may use.
+int cpu_limit = INT_MAX;
 
 
 #if SOL >= 9
