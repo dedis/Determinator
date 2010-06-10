@@ -25,7 +25,7 @@
  * documentation and/or software.
  */
 
-#include <inc/string.h>
+#include <string.h>
 
 #include "md5.h"
 

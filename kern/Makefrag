@@ -64,6 +64,7 @@ KERN_INITFILES +=	matmult \
 			testds \
 			testfloat \
 			pqsort \
+			bcrack \
 			ncpu
 
 # Anything we find in the 'fs' subdirectory also becomes a file.
