@@ -1,3 +1,15 @@
+/*
+ * Standard I/O definitions, mostly inline with the standard C/Unix API
+ * (except for the PIOS-specific "console printing" routines cprintf/cputs,
+ * which are intended for debugging purposes only).
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
+
 #ifndef PIOS_INC_STDIO_H
 #define PIOS_INC_STDIO_H
 

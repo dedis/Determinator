@@ -1,5 +1,12 @@
 #if LAB >= 99	// XXX reinstate in lab3 or lab4?
-// Fork a binary tree of processes and display their structure.
+/*
+ * Fork a binary tree of processes and display their structure.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ */
 
 #include <inc/lib.h>
 

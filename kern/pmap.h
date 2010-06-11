@@ -1,5 +1,13 @@
 #if LAB >= 3
-/* See COPYRIGHT for copyright information. */
+/*
+ * Page mapping and page directory/table management definitions.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #ifndef PIOS_KERN_PMAP_H
 #define PIOS_KERN_PMAP_H

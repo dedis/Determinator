@@ -1,5 +1,13 @@
 #if LAB >= 4
-// User-space Unix compatibility API - stat() definitions.
+/*
+ * User-space Unix compatibility API - stat() definitions.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
+
 #ifndef PIOS_INC_STAT_H
 #define PIOS_INC_STAT_H 1
 

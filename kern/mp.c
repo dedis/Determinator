@@ -1,8 +1,15 @@
 #if LAB >= 2
-// Multiprocessor bootstrap.
-// Search memory for MP description structures.
-// http://developer.intel.com/design/pentium/datashts/24201606.pdf
-// This source file adapted from xv6.
+/*
+ * Multiprocessor bootstrap.
+ * Searches physical memory for MP description structures.
+ * http://developer.intel.com/design/pentium/datashts/24201606.pdf
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from xv6 from MIT and Plan 9 from Bell Labs.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/types.h>
 #include <inc/string.h>

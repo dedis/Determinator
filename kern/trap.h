@@ -1,6 +1,14 @@
 #if LAB >= 1
-// Trap handling module definitions.
-// See COPYRIGHT for copyright information.
+/*
+ * Processor trap handling module definitions.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
+
 #ifndef PIOS_KERN_TRAP_H
 #define PIOS_KERN_TRAP_H
 #ifndef PIOS_KERNEL

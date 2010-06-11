@@ -1,5 +1,13 @@
 #if LAB >= 2
-/* See COPYRIGHT for copyright information. */
+/*
+ * System call handling.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the xv6 instructional operating system from MIT.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/x86.h>
 #include <inc/string.h>

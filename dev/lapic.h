@@ -1,7 +1,14 @@
 #if LAB >= 2
-// Local APIC (Advanced Programmable Interrupt Controller) definitions.
-// Adapted from xv6.
-// See COPYRIGHT for copyright information.
+/*
+ * Local APIC (Advanced Programmable Interrupt Controller) definitions.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from xv6 from MIT and Plan 9 from Bell Labs.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
+
 #ifndef PIOS_DEV_LAPIC_H
 #define PIOS_DEV_LAPIC_H
 #ifndef PIOS_KERNEL

@@ -1,4 +1,12 @@
 #if LAB >= 3
+/*
+ * Test suite for PIOS virtual memory facilities implemented in Lab 3.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/stdio.h>
 #include <inc/string.h>

@@ -1,5 +1,13 @@
 #if LAB >= 4
-// More-or-less Unix-compatible fork and wait functions
+/*
+ * More-or-less Unix-compatible process fork and wait functions,
+ * which PIOS implements completely in the user space C library.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/file.h>
 #include <inc/stat.h>

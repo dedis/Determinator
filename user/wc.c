@@ -1,4 +1,13 @@
 #if LAB >= 4
+/*
+ * Simple Unix-like program to count characters, words, and lines in a file.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ */
+
 #include <inc/types.h>
 #include <inc/stdio.h>
 #include <inc/stdlib.h>

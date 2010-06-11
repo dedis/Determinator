@@ -1,4 +1,13 @@
 #if LAB >= 2
+/*
+ * PIOS system call definitions.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
+
 #ifndef PIOS_INC_SYSCALL_H
 #define PIOS_INC_SYSCALL_H
 

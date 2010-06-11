@@ -1,6 +1,13 @@
 #if LAB >= 2
-// Driver code for the 8259A Programmable Interrupt Controller (PIC).
-// See COPYRIGHT for copyright information.
+/*
+ * Driver code for the 8259A Programmable Interrupt Controller (PIC).
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/trap.h>
 #include <inc/assert.h>

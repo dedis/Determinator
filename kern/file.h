@@ -1,5 +1,13 @@
 #if LAB >= 4
-/* See COPYRIGHT for copyright information. */
+/* 
+ * Initial file system and file-based I/O support for the root process.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
+
 #ifndef PIOS_KERN_FILE_H
 #define PIOS_KERN_FILE_H
 #ifndef PIOS_KERNEL

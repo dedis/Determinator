@@ -1,4 +1,12 @@
 #if LAB >= 1
+/*
+ * Boot loader code to read the kernel image from disk and start it.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology 
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ */
 #include <inc/x86.h>
 #include <inc/elf.h>
 

@@ -1,6 +1,12 @@
 #if LAB >= 1
-// Per-CPU kernel state.
-// See COPYRIGHT for copyright information.
+/*
+ * Per-CPU kernel state structures.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 #ifndef PIOS_KERN_SEG_H
 #define PIOS_KERN_SEG_H
 #ifndef PIOS_KERNEL

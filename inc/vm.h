@@ -1,6 +1,13 @@
 #if LAB >= 3
-// User-visible virtual memory layout definitions.
-// See COPYRIGHT for copyright information.
+/*
+ * User-visible virtual memory layout definitions for PIOS.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
+
 #ifndef PIOS_INC_VM_H
 #define PIOS_INC_VM_H
 

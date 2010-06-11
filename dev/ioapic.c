@@ -1,8 +1,15 @@
 #if LAB >= 2
-// The I/O APIC manages hardware interrupts for an SMP system.
-// http://www.intel.com/design/chipsets/datashts/29056601.pdf
-// See also picirq.c.
-// This source file adapted from xv6.
+/*
+ * The I/O APIC manages hardware interrupts for an SMP system.
+ * http://www.intel.com/design/chipsets/datashts/29056601.pdf
+ * See also pic.c, which handles the old pre-SMP interrupt controller.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from xv6 and FreeBSD code.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/types.h>
 #include <inc/trap.h>

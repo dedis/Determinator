@@ -1,4 +1,14 @@
 #if LAB >= 5
+/*
+ * PCI bus exploration and initialization code.
+ *
+ * Copyright (c) 1990 The Regents of the University of California.
+ * See section "BSD License" in the file LICENSES for licensing terms.
+ *
+ * This code is derived from JOS and in turn from NetBSD.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
+
 #include <inc/x86.h>
 #include <inc/assert.h>
 #include <inc/string.h>

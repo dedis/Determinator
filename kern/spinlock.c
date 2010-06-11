@@ -1,6 +1,13 @@
 #if LAB >= 2
-// Mutual exclusion spin locks.
-// Adapted from xv6.
+/*
+ * Spin locks for multiprocessor mutual exclusion in the kernel.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the xv6 instructional operating system from MIT.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/assert.h>
 #include <inc/x86.h>

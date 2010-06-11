@@ -1,6 +1,12 @@
 #if LAB >= 2
-// Process management.
-// See COPYRIGHT for copyright information.
+/*
+ * PIOS process management.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/string.h>
 #include <inc/syscall.h>

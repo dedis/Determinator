@@ -1,4 +1,15 @@
 #if LAB >= 3
+/*
+ * Entrypoint code for PIOS user-space programs.
+ * This code must always be the first object file linked into any program,
+ * and must always be linked at the same memory address (see below).
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/syscall.h>
 #include <inc/vm.h>

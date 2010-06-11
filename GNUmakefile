@@ -5,6 +5,10 @@
 #	Recursive Make Considered Harmful
 #	http://aegis.sourceforge.net/auug97.pdf
 #
+# Copyright (C) 2003 Massachusetts Institute of Technology 
+# See section "MIT License" in the file LICENSES for licensing terms.
+# Primary authors: Bryan Ford, Eddie Kohler, Austin Clemens
+#
 OBJDIR := obj
 
 ifdef LAB

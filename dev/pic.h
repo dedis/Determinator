@@ -1,6 +1,14 @@
 #if LAB >= 2
-// Hardware definitions for the 8259A Programmable Interrupt Controller (PIC).
-// See COPYRIGHT for copyright information.
+/*
+ * Hardware definitions for the 8259A Programmable Interrupt Controller (PIC).
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
+
 #ifndef PIOS_DEV_PIC_H
 #define PIOS_DEV_PIC_H
 

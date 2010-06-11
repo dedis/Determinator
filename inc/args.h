@@ -1,12 +1,18 @@
 #if LAB >= 4
-/* See COPYRIGHT for copyright information. */
+/*
+ * Simple command-line argument parser.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from JOS and Plan 9.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #ifndef PIOS_INC_ARGS_H
 #define PIOS_INC_ARGS_H
 
 /*
-
-Simple command-line argument parser.
 
      SYNOPSIS
           #include <inc/args.h>

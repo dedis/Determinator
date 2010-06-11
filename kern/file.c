@@ -1,6 +1,12 @@
 #if LAB >= 4
-// Process management.
-// See COPYRIGHT for copyright information.
+/*
+ * Initial file system and file-based I/O support for the root process.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/x86.h>
 #include <inc/stat.h>

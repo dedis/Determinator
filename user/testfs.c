@@ -1,4 +1,12 @@
 #if LAB >= 4
+/*
+ * Test suite for the PIOS user-space file system implemented in Lab 4.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/stdio.h>
 #include <inc/stdlib.h>

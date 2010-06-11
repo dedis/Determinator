@@ -1,6 +1,15 @@
 #if LAB >= 5
-// Register definitions and driver code for managing the PCI bus.
-// See COPYRIGHT for copyright information.
+/*
+ * Register definitions and driver code for managing the PCI bus.
+ * PCI bus exploration and initialization code.
+ *
+ * Copyright (c) 1990 The Regents of the University of California.
+ * See section "BSD License" in the file LICENSES for licensing terms.
+ *
+ * This code is derived from JOS and in turn from NetBSD.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
+
 #ifndef PIOS_KERN_PCI_H
 #define PIOS_KERN_PCI_H
 

@@ -1,5 +1,13 @@
 #if LAB >= 4
-// Directory entry (dirent) structure for the user-space Unix file system.
+/*
+ * Directory entry (dirent) structure for the user-space Unix file system.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
+
 #ifndef PIOS_INC_DIRENT_H
 #define PIOS_INC_DIRENT_H 1
 

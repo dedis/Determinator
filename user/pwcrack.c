@@ -1,6 +1,14 @@
-// Brute-force MD5-based "password cracker":
-// exhaustively searches for a short ASCII string
-// whose MD5 hash yields a given hash output.
+#if LAB >= 5
+/*
+ * Brute-force MD5-based "password cracker" parallel test program:
+ * exhaustively searches for a short ASCII string whose MD5 hash
+ * yields a given hash hex string as output.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/stdio.h>
 #include <inc/stdlib.h>
@@ -134,3 +142,4 @@ main(int argc, char **argv)
 	return 1;
 }
 
+#endif // LAB >= 5

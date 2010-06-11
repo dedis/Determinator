@@ -1,5 +1,11 @@
-// Kernel debugging code.
-// See COPYRIGHT for copyright information.
+/*
+ * Kernel debugging support.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #ifndef PIOS_KERN_DEBUG_H_
 #define PIOS_KERN_DEBUG_H_

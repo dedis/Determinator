@@ -1,6 +1,13 @@
 #if LAB >= 1
-/* Trap handler entry and exit code. */
-/* See COPYRIGHT for copyright information. */
+/*
+ * Trap handler entry and exit code, written in assembly language.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/mmu.h>
 #include <inc/trap.h>

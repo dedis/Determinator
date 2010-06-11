@@ -1,4 +1,12 @@
-/* See COPYRIGHT for copyright information. */
+/*
+ * Assertions and other debugging macros.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #ifndef PIOS_INC_ASSERT_H
 #define PIOS_INC_ASSERT_H

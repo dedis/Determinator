@@ -1,3 +1,14 @@
+#
+# Makefile fragment for the PIOS runtime support library.
+# This is NOT a complete makefile;
+# you must run GNU make in the top-level directory
+# where the GNUmakefile is located.
+#
+# Copyright (C) 2003 Massachusetts Institute of Technology 
+# See section "MIT License" in the file LICENSES for licensing terms.
+# Primary authors: Bryan Ford, Eddie Kohler, Cliff Frey
+#
+
 OBJDIRS += lib
 
 # Source files comprising the minimal PIOS C library.

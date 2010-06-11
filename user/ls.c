@@ -1,4 +1,13 @@
 #if LAB >= 4
+/*
+ * Simple Unix-like program to list the files in a directory.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ */
+
 #include <inc/stat.h>
 #include <inc/errno.h>
 #include <inc/stdio.h>

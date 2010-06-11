@@ -1,6 +1,9 @@
 #if LAB >= 4
 /*
  * Unix-compatibility API - error number definitions.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
  */
 #ifndef PIOS_INC_ERRNO_H
 #define PIOS_INC_ERRNO_H

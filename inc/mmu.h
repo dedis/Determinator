@@ -1,4 +1,13 @@
 #if LAB >= 1
+/*
+ * x86 memory management unit (MMU) hardware definitions.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ */
+
 #ifndef PIOS_INC_MMU_H
 #define PIOS_INC_MMU_H
 
