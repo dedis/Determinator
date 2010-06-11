@@ -1,4 +1,20 @@
 #if LAB >= 4
+/*
+ * Implementation of Unix-compatible formatted printing via file descriptors,
+ * based on printfmt() and fwrite().
+ *
+ * Copyright (c) 1986, 1988, 1991, 1993
+ *	The Regents of the University of California.  All rights reserved.
+ * (c) UNIX System Laboratories, Inc.
+ * See section "BSD License" in the file LICENSES for licensing terms.
+ *
+ * All or some portions of this file are derived from material licensed
+ * to the University of California by American Telephone and Telegraph
+ * Co. or Unix System Laboratories, Inc. and are reproduced herein with
+ * the permission of UNIX System Laboratories, Inc.
+ *
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 #include <inc/stdio.h>
 
 // Collect up to 256 characters into a buffer

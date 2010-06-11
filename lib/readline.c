@@ -1,4 +1,14 @@
 #if LAB >= 4
+/*
+ * Simple interactive console line reading function,
+ * with no editing support other than handling backspace.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ */
+
 #include <inc/stdio.h>
 #include <inc/unistd.h>
 

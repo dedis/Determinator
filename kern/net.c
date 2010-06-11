@@ -1,4 +1,12 @@
 #if LAB >= 5
+/*
+ * Networking code implementing cross-node process migration.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/string.h>
 

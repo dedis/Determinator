@@ -1,6 +1,14 @@
 #if LAB >= 1
-// Physical memory management definitions.
-// See COPYRIGHT for copyright information.
+/*
+ * Physical memory management definitions.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
+
 #ifndef PIOS_KERN_MEM_H
 #define PIOS_KERN_MEM_H
 #ifndef PIOS_KERNEL

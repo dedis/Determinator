@@ -1,4 +1,14 @@
 #if LAB >= 1
+/*
+ * PIOS trap handling definitions.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
+
 #ifndef PIOS_INC_TRAP_H
 #define PIOS_INC_TRAP_H
 

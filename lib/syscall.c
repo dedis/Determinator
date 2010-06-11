@@ -1,5 +1,12 @@
 #if LAB >= 2
-// System call stubs.
+/*
+ * PIOS system call stubs for use by user-space applications.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/syscall.h>
 

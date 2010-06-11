@@ -1,4 +1,16 @@
-/* See COPYRIGHT for copyright information. */
+/*
+ * Main console driver for PIOS, which manages lower-level console devices
+ * such as video (dev/video.*), keyboard (dev/kbd.*), and serial (dev/serial.*)
+ *
+ * Copyright (c) 2010 Yale University.
+ * Copyright (c) 1993, 1994, 1995 Charles Hannum.
+ * Copyright (c) 1990 The Regents of the University of California.
+ * See section "BSD License" in the file LICENSES for licensing terms.
+ *
+ * This code is derived from the NetBSD pcons driver, and in turn derived
+ * from software contributed to Berkeley by William Jolitz and Don Ahn.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/stdio.h>
 #include <inc/stdarg.h>

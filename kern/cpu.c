@@ -1,7 +1,13 @@
 #if LAB >= 1
-// Segment management required for privilege level changes:
-// global descriptor table (GDT) and task state segment (TSS)
-// See COPYRIGHT for copyright information.
+/*
+ * CPU setup and management of key protected-mode data structures,
+ * such as global descriptor table (GDT) and task state segment (TSS).
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/assert.h>
 #include <inc/string.h>

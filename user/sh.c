@@ -1,4 +1,14 @@
 #if LAB >= 4
+/*
+ * Simple Unix-style command shell usable in interactive or script mode.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
+
 #if SOL >= 1
 // NOTE: The "#if LAB >= 1" sections below used to be "#if SOL >= 7"
 // sections.  Now we gave them the entire shell in the last lab so

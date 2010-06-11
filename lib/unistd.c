@@ -1,6 +1,13 @@
 #if LAB >= 4
-// Basic user-space file and I/O support functions,
-// used by the standard I/O functions in stdio.c.
+/*
+ * Basic user-space file and I/O support functions
+ * compatible with Unix's "low-level" file API.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/file.h>
 #include <inc/unistd.h>

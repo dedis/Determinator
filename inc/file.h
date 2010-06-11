@@ -1,24 +1,34 @@
 #if LAB >= 4
-// File storage and I/O definitions.
-// In PIOS, file I/O is implemented mostly in user space,
-// with files kept within each process's own address space
-// in the virtual address range 2GB-3GB (0x80000000-0xc0000000).
-// Each file's contents occupies a 4MB area of this address region
-// (regardless of the file's actual size), for up to 256 files total.
-// The first 4MB region, for "file 0", is reserved for a process state area.
-//
-// Output streams such as the display are represented by append-mode files,
-// for which data appended by child processes gets merged together
-// into a composite output stream when the child synchronizes with its parent.
-// Input streams such as the console are represented by "partial files"
-// provided by the parent process (or ultimately the kernel):
-// if a child reads to the current end of a partial file,
-// it returns to its parent (or the kernel) to wait for more input.
+/*
+ * File storage and file-based I/O definitions.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
+
 #ifndef PIOS_INC_FILE_H
 #define PIOS_INC_FILE_H 1
 
 #include <inc/types.h>
 
+/*
+ * In PIOS, file I/O is implemented mostly in user space,
+ * with files kept within each process's own address space
+ * in the virtual address range 2GB-3GB (0x80000000-0xc0000000).
+ * Each file's contents occupies a 4MB area of this address region
+ * (regardless of the file's actual size), for up to 256 files total.
+ * The first 4MB region, for "file 0", is reserved for a process state area.
+ *
+ * Output streams such as the display are represented by append-mode files,
+ * for which data appended by child processes gets merged together
+ * into a composite output stream when the child synchronizes with its parent.
+ * Input streams such as the console are represented by "partial files"
+ * provided by the parent process (or ultimately the kernel):
+ * if a child reads to the current end of a partial file,
+ * it returns to its parent (or the kernel) to wait for more input.
+ */
 
 // These definitions should really be in limits.h according to POSIX
 #define OPEN_MAX	256	// Max number of open files per process

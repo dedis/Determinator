@@ -1,9 +1,13 @@
 #if LAB >= 1
-/* See COPYRIGHT for copyright information. */
-
-/* Support for two time-related hardware gadgets: 1) the run time
- * clock with its NVRAM access functions; 2) the 8253 timer, which
- * generates interrupts on IRQ 0.
+/*
+ * Device driver code for accessing the PC's nonvolatile RAM (NVRAM),
+ * which is part of the PC's real-time clock/calendar.
+ *
+ * Copyright (C) 1998 Exotec, Inc.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
  */
 
 #include <inc/x86.h>

@@ -1,4 +1,16 @@
 #if LAB >= 4
+/*
+ * Simple "thread" fork/join functions for PIOS.
+ * Since the PIOS doesn't actually allow multiple threads
+ * to run in one process and share memory directly,
+ * these functions use the kernel's SNAP and MERGE features
+ * to emulate threads in a deterministic consistency model.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/stdio.h>
 #include <inc/string.h>

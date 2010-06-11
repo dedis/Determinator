@@ -1,4 +1,13 @@
 #if LAB >= 3
+/*
+ * Debugging support code for user-space programs.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/stdio.h>
 #include <inc/stdlib.h>

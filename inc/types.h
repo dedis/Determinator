@@ -1,3 +1,19 @@
+/*
+ * Generic type definitions and macros used throughout PIOS.
+ * Most are C/Unix standard, with a few PIOS-specific exceptions.
+ *
+ * Copyright (c) 1982, 1986, 1991, 1993
+ *	The Regents of the University of California.  All rights reserved.
+ * (c) UNIX System Laboratories, Inc.
+ * See section "BSD License" in the file LICENSES for licensing terms.
+ *
+ * All or some portions of this file are derived from material licensed
+ * to the University of California by American Telephone and Telegraph
+ * Co. or Unix System Laboratories, Inc. and are reproduced herein with
+ * the permission of UNIX System Laboratories, Inc.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
+
 #ifndef PIOS_INC_TYPES_H
 #define PIOS_INC_TYPES_H
 

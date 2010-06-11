@@ -1,5 +1,15 @@
 #if LAB >= 4
-// Unix compatibility API - standard Unix functions
+/*
+ * Unix compatibility API - standard Unix "low-level" file I/O functions.
+ * In PIOS, the "low-level" and "high-level" APIs actually refer to
+ * the same set of file descriptors, just accessed slightly differently.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
+
 #ifndef PIOS_INC_UNISTD_H
 #define PIOS_INC_UNISTD_H 1
 

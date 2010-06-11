@@ -1,4 +1,12 @@
 #if LAB >= 4
+/*
+ * Basic C standard library functions.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/gcc.h>
 #include <inc/file.h>

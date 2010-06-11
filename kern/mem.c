@@ -1,6 +1,13 @@
 #if LAB >= 1
-// Physical memory management.
-// See COPYRIGHT for copyright information.
+/*
+ * Physical memory management.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/x86.h>
 #include <inc/mmu.h>

@@ -3,6 +3,12 @@
  * Minimal PIO-based (non-interrupt-driven) IDE driver code.
  * For information about what all this IDE/ATA magic means,
  * see the materials available on the class references page.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Primary author: Eddie Kohler
  */
 
 #include <inc/stdio.h>

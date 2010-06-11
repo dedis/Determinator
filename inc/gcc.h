@@ -1,5 +1,12 @@
-// Convenience macros for using GCC-specific compiler features
-// that tend to be very useful in OS programming.
+/*
+ * Convenience macros for using GCC-specific compiler features
+ * that tend to be useful in OS programming.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 #ifndef PIOS_INC_GCC_H
 #define PIOS_INC_GCC_H
 

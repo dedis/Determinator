@@ -1,5 +1,13 @@
 #if LAB >= 1
-/* See COPYRIGHT for copyright information. */
+/*
+ * Kernel entrypoint and stack setup.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology 
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #if LAB >= 3
 #include <inc/trap.h>

@@ -1,6 +1,13 @@
 #if LAB >= 2
-// Process definitions.
-// See COPYRIGHT for copyright information.
+/*
+ * PIOS process management definitions.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
+
 #ifndef PIOS_KERN_PROC_H
 #define PIOS_KERN_PROC_H
 #ifndef PIOS_KERNEL

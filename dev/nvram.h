@@ -1,8 +1,16 @@
 #if LAB >= 1
-// Definition's for the PC's nonvolatile RAM (NVRAM),
-// part of the battery-backed real-timem clock.
-// The kernel reads the NVRAM to detect how much memory we have.
-// See COPYRIGHT for copyright information.
+/*
+ * Definitions for the PC's nonvolatile RAM (NVRAM),
+ * part of the PC's battery-backed real-time clock.
+ * The kernel reads the NVRAM to detect how much memory we have.
+ *
+ * Copyright (C) 1998 Exotec, Inc.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
+
 #ifndef PIOS_DEV_NVRAM_H
 #define PIOS_DEV_NVRAM_H
 #ifndef PIOS_KERNEL

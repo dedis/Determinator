@@ -1,6 +1,14 @@
 #if LAB >= 99
-// IDE disk device driver definitions.
-// See COPYRIGHT for copyright information.
+/*
+ * IDE disk device driver definitions.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Primary author: Eddie Kohler
+ */
+
 #ifndef PIOS_DEV_IDE_H
 #define PIOS_DEV_IDE_H
 #ifndef PIOS_KERNEL
