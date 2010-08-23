@@ -1,5 +1,13 @@
 #if LAB >= 3
-/* See COPYRIGHT for copyright information. */
+/*
+ * Page mapping and page directory/table management definitions.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #ifndef PIOS_KERN_PMAP_H
 #define PIOS_KERN_PMAP_H
@@ -39,7 +47,8 @@ extern uint8_t pmap_zero[PAGESIZE];
 
 void pmap_init(void);
 pte_t *pmap_newpdir(void);
-void pmap_freepdir(pte_t *pdir);
+void pmap_freepdir(pageinfo *pdirpi);
+void pmap_freeptab(pageinfo *ptabpi);
 pte_t *pmap_walk(pde_t *pdir, uint32_t uva, bool writing);
 pte_t *pmap_insert(pde_t *pdir, pageinfo *pi, uint32_t uva, int perm);
 void pmap_remove(pde_t *pdir, uint32_t uva, size_t size);

@@ -4,6 +4,7 @@
 #define PIOS_DSCHED
 
 #include <inc/string.h>
+#include <inc/stdlib.h>
 #include <inc/syscall.h>
 #include <inc/pthread.h>
 #include <inc/signal.h>
@@ -16,13 +17,14 @@
 
 
 // Tunable scheduling policy parameters (could be made variables).
-#define P_QUANTUM	0	// Number of instructions per thread quantum
-//#define P_QUANTUM	1000	// Number of instructions per thread quantum
+//#define P_QUANTUM	0	// Number of instructions per thread quantum
+#define P_QUANTUM	10000000	// Number of instructions per thread quantum
 #define P_MUTEXFAIR	0	// Mutex transfer in strict round-robin order
 #define P_MUTEXIMMED	0	// Pass on mutex immediately on unlock
 
 
-#define MAXTHREADS	256		// must be power of two
+#define MAXTHREADS	16		// must be power of two
+//#define MAXTHREADS	256		// must be power of two
 #define MAXKEYS		1000
 
 // Thread states
@@ -49,13 +51,13 @@ typedef struct pthread {
 	uint32_t	eip;		// instruction pointer
 } pthread;
 
-// Per-thread state control block, at fixed address VM_PRIVHI-16 (0xeffffff0).
+// Per-thread state control block, at fixed address 0xeffff000.
 // The kernel sets up the %gs register with this offset.
 typedef struct threadpriv {
-	// Thread pointer that GCC-generated code reads via %gs:0,
-	// in order to get the base from which to access thread-local variables.
-	// We use the GNU TLS model, meaning this pointer points to itself.
-	struct threadpriv	*tptr;
+	// Pointer to thread-private global data laid out by the linker.
+	// GCC-generated code reads this via %gs:0 to find thread-private data.
+	void		*tlshi;
+	void		*tlslo;
 
 	// We place a 3-instruction sequence in this page,
 	// which child processes use to make calls into the master process.
@@ -64,9 +66,9 @@ typedef struct threadpriv {
 	// Using this code to call the master avoids the race condition
 	// where we get preempted just after checking that we're a child,
 	// and then mistakenly return to the master's parent instead of the master.
-	char			mcall[3];
+	char		mcall[3];
 } threadpriv;
-#define THREADPRIV	((threadpriv*)(VM_PRIVHI - 16))
+#define THREADPRIV	((threadpriv*)(VM_PRIVHI - PAGESIZE))
 
 // Another special "thread-private" page,
 // which contains the scheduler stack in the master process.
@@ -79,7 +81,6 @@ typedef struct threadpriv {
 #define TSTACKHI(tno)	(VM_STACKHI - (tno) * TSTACKSIZE)
 #define TSTACKLO(tno)	(TSTACKHI(tno) - TSTACKSIZE)
 
-#if 0
 // Use half of the general-purpose "shared" address space area as heap,
 // and divide this heap space into equal-size per-thread chunks.
 #define HEAPSIZE	((VM_SHAREHI - VM_SHARELO) / 2)
@@ -88,7 +89,6 @@ typedef struct threadpriv {
 #define THEAPSIZE	(HEAPSIZE / MAXTHREADS)
 #define THEAPLO(tno)	(HEAPLO + (tno) * THEAPSIZE)
 #define THEAPHI(tno)	(HEAPLO + (tno) * THEAPSIZE + THEAPSIZE)
-#endif
 
 
 static pthread th[MAXTHREADS];
@@ -112,6 +112,7 @@ static pthread *readyqhead = NULL;
 static pthread **readyqtail = &readyqhead;
 static pthread *runqhead = NULL;
 static pthread **runqtail = &runqhead;
+static int runqlen;
 
 // The scheduler runs on a thread-private stack in the master process.
 static __thread char schedstack[PAGESIZE];
@@ -163,6 +164,8 @@ static volatile __thread int testint = 0x12345678;
 static void
 init(void)
 {
+	cprintf("dsthread quantum %d\n", P_QUANTUM);
+
 	assert(tlock < 0);
 	tlock = 2;		// we start out as the master process
 
@@ -174,25 +177,8 @@ init(void)
 	static_assert((intptr_t)(THREADPRIV + 1) <= VM_PRIVHI);
 	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL,
 		(void*) VM_PRIVHI - PAGESIZE, PAGESIZE);
-	THREADPRIV->tptr = THREADPRIV;
 	assert(mmcalle - mmcalls == sizeof(THREADPRIV->mcall));
 	memcpy(THREADPRIV->mcall, mmcalls, mmcalle - mmcalls);
-
-	// Now we should safely be able to access thread-local variables via GCC.
-	// Figure out how big our thread-local state area actually is.
-	extern __thread char tdata_start[], tbss_start[];
-	intptr_t tdatasize = tbss_start - tdata_start;
-
-	// Make sure our full thread-local storage area is accessible.
-	void *pglo = ROUNDDOWN((void *)tdata_start, PAGESIZE);
-	sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, pglo, (void*)VM_PRIVHI - pglo);
-
-	// Initialize statically-initialized variables from the executable image.
-	// We depend on the fact that tbss_start coincides with __init_array_start
-	// because of the way the linker lays out executables.  (XXX bad hack.)
-	extern char __init_array_start[];
-	memcpy(tdata_start, __init_array_start - tdatasize, tdatasize);
-	assert(testint == 0x12345678);	// make sure it worked!
 
 	// We should have been started in thread 0's stack area.
 	pthread_t t = &th[0];
@@ -206,6 +192,19 @@ init(void)
 }
 
 ////////// Scheduling //////////
+
+// List all active threads and their current states, for deadlock debugging.
+static void
+tdump(void)
+{
+	int i;
+	for (i = 0; i < MAXTHREADS; i++) {
+		if (th[i].state == TH_FREE)
+			continue;
+		cprintf("thread %d: state %d eip %x esp %x\n",
+			i, th[i].state, th[i].eip, th[i].esp);
+	}
+}
 
 // Handle any events relevant to a thread
 // before it either starts running again or blocks.
@@ -233,6 +232,7 @@ trun(pthread_t t)
 	assert(t->qnext == NULL); assert(*runqtail == NULL);
 	*runqtail = t;
 	runqtail = &t->qnext;
+	assert(++runqlen <= MAXTHREADS);
 }
 
 // The scheduler runs on the special scheduler stack page,
@@ -268,12 +268,23 @@ pthread_sched(void)
 	static cpustate cs;
 	pthread_t t;
 	while (1) {
-		if (runqhead == NULL)
+#if P_QUANTUM > 0
+{ static int dispcnt, qlencum;
+qlencum += runqlen;
+if (++dispcnt >= 1000000000/P_QUANTUM) {
+	cprintf("sched: runqlen %d avg %d\n", runqlen, qlencum / dispcnt);
+	qlencum = dispcnt = 0;
+} }
+#endif
+		if (runqhead == NULL) {
+			tdump();
 			panic("sched: no running threads - deadlock?");
+		}
 		t = runqhead;
 		if ((runqhead = t->qnext) == NULL)	// dequeue first thread
 			runqtail = &runqhead;		// for good measure
 		t->qnext = NULL;
+		assert(--runqlen >= 0);
 
 		// Merge the thread's memory changes and get its register state.
 		tlock = 0;	// default state for user procs
@@ -294,7 +305,6 @@ pthread_sched(void)
 			panic("sched: thread %d trap %d eip %x",
 				t->tno, cs.tf.tf_trapno, cs.tf.tf_eip);
 		}
-cprintf("sched: thread %d preempted eip %x\n", t->tno, cs.tf.tf_eip);
 
 		// We preempted the thread while running normal user code.
 		// Process events and return it to the tail of the run queue.
@@ -321,6 +331,7 @@ cprintf("sched: thread %d preempted eip %x\n", t->tno, cs.tf.tf_eip);
 
 	// OK, just resume the thread from where it left off,
 	// with tlock == 2 so it knows it's the master process.
+#if 0
 	asm volatile(
 		"	pushl	%0;"
 		"	popfl;"
@@ -338,6 +349,35 @@ cprintf("sched: thread %d preempted eip %x\n", t->tno, cs.tf.tf_eip);
 		  "d" (cs.tf.tf_regs.reg_edx),
 		  "S" (cs.tf.tf_regs.reg_esi),
 		  "D" (cs.tf.tf_regs.reg_edi));
+#else
+	// XXX instead of using popfl to restore the flags,
+	// connive to restore just the condition codes and not FL_TF,
+	// to avoid interfering with the kernel's TF-based icnt stuff.
+	// This should of course not be necessary;
+	// the kernel instead needs to scan the instruction stream
+	// and emulate any "unsafe" instructions like popfl.
+	asm volatile(
+		"	movl	%0,%%eax;"
+		"	xchgb	%%al,%%ah;"
+		"	shlb	$4,%%al;"	// get OF in high bit of AL
+		"	shrb	$1,%%al;"	// set real OF with that bit
+		"	sahf;"			// restore low 8 bits of eflags
+		"	movl	%4,%%eax;"	// restore eax
+		"	movl	%1,%%ebp;"
+		"	movl	%2,%%esp;"
+		"	jmp	*%3;"
+		:
+		: "m" (cs.tf.tf_eflags),
+		  "m" (cs.tf.tf_regs.reg_ebp),
+		  "m" (cs.tf.tf_esp),
+		  "m" (cs.tf.tf_eip),
+		  "m" (cs.tf.tf_regs.reg_eax),
+		  "b" (cs.tf.tf_regs.reg_ebx),
+		  "c" (cs.tf.tf_regs.reg_ecx),
+		  "d" (cs.tf.tf_regs.reg_edx),
+		  "S" (cs.tf.tf_regs.reg_esi),
+		  "D" (cs.tf.tf_regs.reg_edi));
+#endif
 	// (asm fragment does not return here)
 	while (1);
 }
@@ -358,7 +398,7 @@ tblock(pthread_t t, int newstate)
 	t->state = newstate;
 
 	// Save critical registers and invoke scheduler;
-	// this thread will continue when it gets unblocked.
+	// this thread will continue if/when it gets unblocked.
 	asm volatile(
 		"	pushl	%%esi;"		// save a few registers
 		"	pushl	%%edi;"
@@ -497,7 +537,12 @@ mret(void)
 		  "i" (SCHEDSTACKHI)
 		: "cc", "memory");
 
-	assert(tlock == 0);
+if (tlock != 0) {
+	cprintf("mret: oops, tlock == %d in thread %d\n",
+		tlock, t->tno);
+	dump((void*)read_esp(), 0x80);
+}
+	//assert(tlock == 0);
 }
 
 ////////// Threads //////////
@@ -525,6 +570,21 @@ tinit(pthread_t t)
 		(void*)VM_PRIVLO, (void*)VM_PRIVLO, VM_PRIVHI - VM_PRIVLO);
 }
 
+// Find the size of the thread-private state area.
+// This is only called from tpinit(), but needs to be separate and non-inlined,
+// otherwise GCC assumes the (NULL) thread private pointer it reads here
+// can be reused later in tpinit() for accessing (real) thread-private data.
+static gcc_noinline void
+tpgetsize(int *tdatasize, int *tlssize) {
+	extern __thread char tdata_start[], tbss_start[];
+	*tdatasize = tbss_start - tdata_start;	// size of init'd data
+
+	assert(THREADPRIV->tlshi == NULL);
+	*tlssize = -(intptr_t)tdata_start;	// complete tls area
+
+	assert(*tlssize >= *tdatasize);
+}
+
 // Initialize a thread's thread-private state area,
 // which can be done only from within the thread itself.
 static void
@@ -533,10 +593,30 @@ tpinit(pthread_t t)
 	assert(t == self());
 	assert(tlock == 0);
 
-	// Set up our child version of the mcall-page.
-	assert(THREADPRIV->tptr == THREADPRIV);
+	// Set up our child version of the mcall code sequence.
 	assert(cmcalle - cmcalls == sizeof(THREADPRIV->mcall));
 	memcpy(THREADPRIV->mcall, cmcalls, cmcalle - cmcalls);
+
+	// Figure out how big our GCC thread-local state area needs to be.
+	int tdatasize, tlssize;
+	tpgetsize(&tdatasize, &tlssize);
+
+	// Allocate a TLS area for this thread.
+	// Of course, we could just place the TLS data area
+	// at a fixed location in the space above VM_PRIVLO,
+	// but then other threads wouldn't be able to refer to our
+	// thread-private storage (e.g., via pointers we pass to them),
+	// and pthreads-based code sometimes assumes it can do this.
+	THREADPRIV->tlslo = malloc(tlssize);
+	THREADPRIV->tlshi = THREADPRIV->tlslo + tlssize;
+
+	// Initialize our TLS area from the linker-generated image.
+	// We depend on tbss_start coinciding with __init_array_start
+	// because of the way the linker lays out executables.  (XXX bad hack.)
+	extern char __init_array_start[];
+	memcpy(THREADPRIV->tlslo, __init_array_start - tdatasize, tdatasize);
+	memset(THREADPRIV->tlslo + tdatasize, 0, tlssize - tdatasize);
+	assert(testint == 0x12345678);	// make sure it worked!
 }
 
 // Initial entrypoint for threads started via pthread_create().
@@ -625,7 +705,7 @@ pthread_exit(void *exitval)
 	mcall();
 
 	pthread_t t = self();
-	assert(t->state > TH_FREE && t->state < TH_EXIT);
+	assert(t->state == TH_RUN);
 
 	// wake up any thread trying to join with us
 	if (t->joiner != NULL)
@@ -851,12 +931,12 @@ pthread_cond_init(pthread_cond_t *c, const pthread_condattr_t *attr)
 int
 pthread_cond_destroy(pthread_cond_t *c)
 {
-	assert(c->event == 0);
+	assert(c->nwake == 0);
 	assert(c->qhead == NULL);
 	return 0;
 }
 
-static int condevent(pthread_cond_t *c, int ev)
+static int condevent(pthread_cond_t *c, bool broadcast)
 {
 	if (c->qhead == NULL)
 		return 0;	// no one waiting, nothing to do
@@ -864,12 +944,17 @@ static int condevent(pthread_cond_t *c, int ev)
 	mlock();
 
 	pthread *t = self();
-	if (c->event == 0) {	// add cond to our thread's signal chain
+	if (c->nwake == 0) {	// add cond to our thread's signal chain
 		assert(c->evnext == NULL);
 		c->evnext = evconds;
 		evconds = c;
 	}
-	c->event |= ev;
+	if (broadcast)
+		c->nwake = INT_MAX;
+	else
+		c->nwake++;
+	//cprintf("cond_event thread %d %x bcast %d nwake %d\n",
+	//	t->tno, c, broadcast, c->nwake);
 
 	// Now return to nonpreemptible execution.
 	// If our timeslice ended and we've become the master by now,
@@ -881,13 +966,13 @@ static int condevent(pthread_cond_t *c, int ev)
 int
 pthread_cond_signal(pthread_cond_t *c)
 {
-	return condevent(c, 1);
+	return condevent(c, 0);
 }
 
 int
 pthread_cond_broadcast(pthread_cond_t *c)
 {
-	return condevent(c, 3);
+	return condevent(c, 1);
 }
 
 int
@@ -903,6 +988,7 @@ pthread_cond_wait(pthread_cond_t *c, pthread_mutex_t *m)
 	*c->qtail = t;
 	c->qtail = &t->qnext;
 
+	//cprintf("cond_wait thread %d cond %x\n", t->tno, c);
 	mutexunlock(t, m);	// unlock mutex (while nonpreemptible)
 	tblock(t, TH_COND);	// block until signaled
 	mutexlock(t, m);	// re-lock the mutex
@@ -918,7 +1004,7 @@ condwakeups(void)
 	assert(tlock == 2);
 	while (evconds != NULL) {
 		pthread_cond_t *c = evconds;
-		assert(c->event != 0);
+		assert(c->nwake > 0);
 
 		// Wake up one or all waiting threads, depending on c->event
 		do {
@@ -930,12 +1016,12 @@ condwakeups(void)
 			tw->qnext = NULL;
 			tready(tw);		// let it run again
 
-		} while (c->event > 1);
+		} while (--c->nwake > 0);
 		if (c->qhead == NULL)	// reset tail if queue is now empty
 			c->qtail = &c->qhead;
 
 		evconds = c->evnext;
-		c->event = 0;
+		c->nwake = 0;
 		c->evnext = NULL;
 	}
 }
@@ -991,29 +1077,45 @@ int pthread_setspecific(pthread_key_t key, const void *val)
 }
 
 ////////// Memory allocation //////////
-/*
+
 extern char end[];
-static void *brk = end;
+void *brk[MAXTHREADS];
 
 void *
 malloc(size_t size)
 {
-	mcall();
+//	mcall();
 
 	// Allocate the requested memory
-	void *ptr = brk;
-	void *nbrk = ptr + ROUNDUP(size, 8);
-	if (nbrk > (void*) VM_SHAREHI)
-		panic("malloc: can't alloc chunk of size %d", size);
-	brk = nbrk;
+	int tno = selfno();
+	void *ptr = brk[tno];
+	if (ptr == NULL) {
+		// Thread 0 gets an extra large heap.
+		ptr = (tno > 0) ? (void*) THEAPLO(tno) : end;
+		void *lopg = ROUNDUP(ptr, PAGESIZE);
+		void *hipg = (void*) THEAPHI(tno);
+		assert(hipg > lopg);
+		sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, lopg, hipg - lopg);
+	}
+	assert(ptr >= (void*)end);
+	assert(ptr + size <= (void*)VM_SHAREHI);
+	void *nbrk = ROUNDUP(ptr + 8 + size, 8);
+	if (nbrk > (void*) THEAPHI(tno))
+		panic("malloc: thread %d can't alloc chunk of size %d",
+			tno, size);
+	brk[tno] = nbrk;
+*(uint32_t*)ptr = size;
+ptr += 8;
+//if (size > 1024)
+//	cprintf("thread %d malloc size %d -> %x\n", tno, size, ptr);
 
-	// Make sure the new memory is accessible
-	void *pgold = ROUNDUP(ptr, PAGESIZE);
-	void *pgnew = ROUNDUP(nbrk, PAGESIZE);
-	if (pgnew > pgold)
-		sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, pgold, pgnew - pgold);
+//	// Make sure the new memory is accessible
+//	void *pgold = ROUNDUP(ptr, PAGESIZE);
+//	void *pgnew = ROUNDUP(nbrk, PAGESIZE);
+//	if (pgnew > pgold)
+//		sys_get(SYS_PERM | SYS_RW, 0, NULL, NULL, pgold, pgnew - pgold);
 
-	mret();
+//	mret();
 
 	return ptr;
 }
@@ -1040,9 +1142,12 @@ realloc(void *ptr, size_t newsize)
 void
 free(void *ptr)
 {
-	// XXX
+//	int size = *(int*)(ptr-8);
+//	if (size > 1024)
+//		cprintf("thread %d free size %d at %x\n",
+//			selfno(), size, ptr);
 }
-*/
+
 ////////// Signal handling //////////
 
 sighandler_t

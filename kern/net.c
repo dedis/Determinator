@@ -1,4 +1,12 @@
 #if LAB >= 5
+/*
+ * Networking code implementing cross-node process migration.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/string.h>
 
@@ -55,7 +63,7 @@ net_init(void)
 static void
 net_ethsetup(net_ethhdr *eth, uint8_t destnode)
 {
-	assert(destnode > 0 && destnode < NET_MAXNODES);
+	assert(destnode > 0 && destnode <= NET_MAXNODES);
 	assert(destnode != net_node);	// soliloquy isn't a virtue here
 
 	memcpy(eth->dst, net_mac, 6);	eth->dst[5] = destnode;
@@ -298,7 +306,7 @@ void net_rxmigrq(net_migrq *migrq)
 
 	// Free the proc's old page directory and allocate a fresh one.
 	// (The old pdir will hang around until all shared copies disappear.)
-	mem_decref(mem_ptr2pi(p->pdir));
+	mem_decref(mem_ptr2pi(p->pdir), pmap_freepdir);
 	p->pdir = pmap_newpdir();	assert(p->pdir);
 
 	// Now we need to pull over the page directory next,

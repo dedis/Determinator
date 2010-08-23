@@ -1,6 +1,13 @@
 #if LAB >= 4
-// Basic user-space file and I/O support functions,
-// used by the standard I/O functions in stdio.c.
+/*
+ * Basic user-space file and I/O support functions,
+ * used by the C/Unix file API functions in stdio.c and unistd.c.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/file.h>
 #include <inc/stat.h>
@@ -83,7 +90,11 @@ fileino_read(int ino, off_t ofs, void *buf, size_t eltsize, size_t count)
 	assert(eltsize > 0);
 
 	fileinode *fi = &files->fi[ino];
+#if LAB >= 9
+	// XXX hack: allow reading init-files bigger than 4MB
+#else
 	assert(fi->size <= FILE_MAXSIZE);
+#endif
 
 #if SOL >= 4
 	ssize_t actual = 0;

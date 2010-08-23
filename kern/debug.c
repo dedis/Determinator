@@ -1,6 +1,12 @@
-// Kernel debugging code.
-// Called throughout the kernel, especially by assert() macro.
-// See COPYRIGHT for copyright information.
+/*
+ * Kernel debugging support.
+ * Called throughout the kernel, especially by assert() macro.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/stdio.h>
 #include <inc/stdarg.h>

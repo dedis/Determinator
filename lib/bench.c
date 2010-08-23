@@ -15,6 +15,9 @@
 #define ALLVA		((void*) VM_USERLO)
 #define ALLSIZE		(VM_USERHI - VM_USERLO)
 
+#define SHAREVA		((void*) VM_SHARELO)
+#define SHARESIZE	(VM_SHAREHI - VM_SHARELO)
+
 // Fork a child process, returning 0 in the child and 1 in the parent.
 void
 bench_fork(uint8_t child, void *(*fun)(void *), void *arg)
@@ -60,11 +63,10 @@ bench_join(uint8_t child)
 	int cmd = SYS_MERGE;
 	int trapexpect = T_SYSCALL;
 
-	// Wait for the child and retrieve its CPU state.
-	// If merging, leave the highest 4MB containing the stack unmerged,
-	// so that the stack acts as a "thread-private" memory area.
+	// Wait for the child and retrieve its final CPU state
+	// and whatever changes it made to the shared memory area.
 	struct cpustate cs;
-	sys_get(cmd | SYS_REGS, child, &cs, ALLVA, ALLVA, ALLSIZE-PTSIZE);
+	sys_get(cmd | SYS_REGS, child, &cs, SHAREVA, SHAREVA, SHARESIZE);
 
 	// Make sure the child exited with the expected trap number
 	if (cs.tf.tf_trapno != trapexpect) {

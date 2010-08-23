@@ -4,17 +4,26 @@
 
 int main()
 {	
-	printf("%f %f %f\n", 1.0, M_PI, M_E);
-	printf("%.0f %#.0f %.0f\n", 1.0, M_PI, M_E);
+	printf("%f %f %f\n", 1.0, M_PI, -M_E);
+	printf("%.0f %#.0f %.0f\n", 1.0, -M_PI, M_E);
 	printf("%.3f %#.3f %.3f\n", 1.0, M_PI, M_E);
-	printf("%.15f %#.15f %.15f\n", 1.0, M_PI, M_E);
+	printf("%.15f %#.15f %.15f\n", -1.0, M_PI, M_E);
 
 	printf("%20f %20f %20f\n", 1.0, M_PI, M_E);
 	printf("%20.0f %20#.0f %20.0f\n", 1.0, M_PI, M_E);
 	printf("%20.3f %20#.3f %20.3f\n", 1.0, M_PI, M_E);
 	printf("%20.15f %20#.15f %20.15f\n", 1.0, M_PI, M_E);
 
+	printf("%+20f %-20f %+-20f\n", 1.0, M_PI, M_E);
+
 	printf("%f %f %f\n", 123456.123456123456, HUGE_VAL, -HUGE_VAL);
+
+	printf("%.3e %.3e %.3e\n", -1.2345, 12345.0, .000012345);
+	printf("%020.3e %-20.3e %20.3e\n", 1.2345, -12345.0, .000012345);
+	printf("%.3g %.3g %.3g %.3g %.3g %.3g\n", 1.2345, 123.45, -12345.0,
+			.0012345, .00012345, .000012345);
+	printf("%.3g %.3g %.3g %.3g %.3g %.3g\n", 1.2000, -120.00, 12000.0,
+			.0012000, .00012000, .000012000);
 
 	int x,y,z;
 	int rc = sscanf("-12345 0777 -0xffff", "%i%i%i", &x, &y, &z);

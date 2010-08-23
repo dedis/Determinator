@@ -1,4 +1,13 @@
 #!/usr/bin/perl
+#
+# This script pads a boot block to the required 512 byte sector size
+# and attaches the magic "signature" (0x55aa) at the end.
+#
+# Copyright (C) 1997 Massachusetts Institute of Technology 
+# See section "MIT License" in the file LICENSES for licensing terms.
+#
+# Derived from the MIT Exokernel and JOS.
+#
 
 open(BB, $ARGV[0]) || die "open $ARGV[0]: $!";
 

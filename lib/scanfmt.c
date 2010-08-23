@@ -204,7 +204,7 @@ static int sscanlook(int action, void *dat)
 int
 vsscanf(const char *str, const char *fmt, va_list ap)
 {
-	cprintf("scanning str '%s' via fmt '%s'\n", str, fmt);
+	//cprintf("scanning str '%s' via fmt '%s'\n", str, fmt);
 	return vscanfmt(sscanlook, &str, fmt, ap);
 }
 

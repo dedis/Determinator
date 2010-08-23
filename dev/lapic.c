@@ -1,7 +1,14 @@
 #if LAB >= 2
-// The local APIC manages internal (non-I/O) interrupts.
-// See Chapter 8 & Appendix C of Intel processor manual volume 3.
-// Adapted from xv6.
+/*
+ * The local APIC manages internal (non-I/O) interrupts.
+ * See Chapter 8 & Appendix C of Intel processor manual volume 3.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from xv6 from MIT and Plan 9 from Bell Labs.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/types.h>
 #include <inc/trap.h>

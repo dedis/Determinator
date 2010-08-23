@@ -1,9 +1,23 @@
-// Implementation of cprintf console output for user environments,
-// based on printfmt() and cputs().
-//
-// cprintf is a debugging facility, not a generic output facility.
-// It is very important that it always go to the console, especially when 
-// debugging file descriptor code!
+/*
+ * Implementation of cprintf console output for user environments,
+ * based on printfmt() and cputs().
+ *
+ * cprintf is a debugging facility, not a generic output facility.
+ * It is very important that it always go to the console, especially when 
+ * debugging file descriptor code!
+ *
+ * Copyright (c) 1986, 1988, 1991, 1993
+ *	The Regents of the University of California.  All rights reserved.
+ * (c) UNIX System Laboratories, Inc.
+ * See section "BSD License" in the file LICENSES for licensing terms.
+ *
+ * All or some portions of this file are derived from material licensed
+ * to the University of California by American Telephone and Telegraph
+ * Co. or Unix System Laboratories, Inc. and are reproduced herein with
+ * the permission of UNIX System Laboratories, Inc.
+ *
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/types.h>
 #include <inc/stdio.h>

@@ -1,5 +1,13 @@
 #if LAB >= 2
-/* See COPYRIGHT for copyright information. */
+/*
+ * System call handling.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the xv6 instructional operating system from MIT.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/x86.h>
 #include <inc/string.h>
@@ -373,7 +381,7 @@ do_ret(trapframe *tf)
 	proc_ret(tf, 1);	// Complete syscall insn and return to parent
 }
 
-#if SOL >= 4
+#if LAB >= 9
 static void gcc_noreturn
 do_time(trapframe *tf)
 {
@@ -381,6 +389,18 @@ do_time(trapframe *tf)
 	t = t * 1000000000 / TIMER_FREQ;	// convert to nanoseconds
 	tf->tf_regs.reg_edx = t >> 32;
 	tf->tf_regs.reg_eax = t;
+	trap_return(tf);
+}
+
+static void gcc_noreturn
+do_ncpu(trapframe *tf)
+{
+	int newlim = tf->tf_regs.reg_ecx;
+	if (newlim > 0)
+		cpu_limit = newlim;
+	else
+		warn("do_ncpu: bad CPU limit %d", newlim);
+	cprintf("do_ncpu: CPU limit now %d\n", cpu_limit);
 	trap_return(tf);
 }
 #endif
@@ -400,8 +420,9 @@ syscall(trapframe *tf)
 	case SYS_PUT:	return do_put(tf, cmd);
 	case SYS_GET:	return do_get(tf, cmd);
 	case SYS_RET:	return do_ret(tf);
-#if SOL >= 4
+#if LAB >= 9
 	case SYS_TIME:	return do_time(tf);
+	case SYS_NCPU:	return do_ncpu(tf);
 #endif
 #else	// not SOL >= 2
 	// Your implementations of SYS_PUT, SYS_GET, SYS_RET here...

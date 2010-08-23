@@ -1,5 +1,13 @@
 #if LAB >= 4
-// More-or-less Unix-compatible fork and wait functions
+/*
+ * More-or-less Unix-compatible process fork and wait functions,
+ * which PIOS implements completely in the user space C library.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/file.h>
 #include <inc/stat.h>
@@ -292,6 +300,8 @@ reconcile_inode(pid_t pid, filestate *cfiles, int pino, int cino)
 	//	pfi->de.d_name, pino, cino,
 	//	pfi->ver, cfi->ver, rver,
 	//	pfi->size, cfi->size, rlen);
+	assert(pfi->size <= FILE_MAXSIZE);
+	assert(cfi->size <= FILE_MAXSIZE);
 
 	// If both inodes have been changed and at least one was exclusive,
 	// then we have a conflict - just mark both inodes conflicted.
@@ -373,6 +383,13 @@ reconcile_merge(pid_t pid, filestate *cfiles, int pino, int cino)
 
 	if (pgrow == 0 && cgrow == 0)
 		return 0;	// nothing to merge
+
+	//cprintf("reconcile_merge %s %d/%d: ver %d/%d(%d) len %d/%d(%d)\n",
+	//	pfi->de.d_name, pino, cino,
+	//	pfi->ver, cfi->ver, cfi->rver,
+	//	pfi->size, cfi->size, rlen);
+	assert(pfi->size <= FILE_MAXSIZE);
+	assert(cfi->size <= FILE_MAXSIZE);
 
 	// Map if necessary and find src & dst file data areas.
 	// The child's inode table is sitting at VM_SCRATCHLO,

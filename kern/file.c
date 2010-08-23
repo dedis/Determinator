@@ -1,9 +1,16 @@
 #if LAB >= 4
-// Process management.
-// See COPYRIGHT for copyright information.
+/*
+ * Initial file system and file-based I/O support for the root process.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/x86.h>
 #include <inc/stat.h>
+#include <inc/stdio.h>
 #include <inc/unistd.h>
 #include <inc/string.h>
 #include <inc/syscall.h>
@@ -105,8 +112,8 @@ file_initroot(proc *root)
 	int ninitfiles = sizeof(initfiles)/sizeof(initfiles[0]);
 #if SOL >= 4
 	int i;
+	int ino = FILEINO_GENERAL;
 	for (i = 0; i < ninitfiles; i++) {
-		int ino = FILEINO_GENERAL+i;
 		int filesize = initfiles[i][2] - initfiles[i][1];
 		strcpy(files->fi[ino].de.d_name, initfiles[i][0]);
 		files->fi[ino].dino = FILEINO_ROOTDIR;
@@ -116,6 +123,19 @@ file_initroot(proc *root)
 					ROUNDUP(filesize, PAGESIZE),
 					SYS_READ | SYS_WRITE);
 		memcpy(FILEDATA(ino), initfiles[i][1], filesize);
+
+		// XXX hack: allow initial files to be bigger than 4MB,
+		// by reserving the other inodes for nonexistent files.
+		int ninos = ROUNDUP(filesize, PTSIZE) / PTSIZE;
+		ino++;
+		while (--ninos > 0) {
+			files->fi[ino].dino = FILEINO_ROOTDIR;
+			sprintf(files->fi[ino].de.d_name, ".%s_%d",
+				initfiles[i][0], ino);
+			files->fi[ino].mode = 0;	// "deleted" file
+			ino++;
+		}
+		assert(ino <= FILE_INODES);
 	}
 #else
 	// Lab 4: your file system initialization code here.

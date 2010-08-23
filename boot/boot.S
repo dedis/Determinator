@@ -1,4 +1,12 @@
 #if LAB >= 1
+/*
+ * Boot loader entrypoint and protected mode setup.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology 
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ */
 #include <inc/mmu.h>
 
 # Start the CPU: switch to 32-bit protected mode, jump into C.

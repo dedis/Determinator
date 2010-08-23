@@ -5,6 +5,10 @@
 #	Recursive Make Considered Harmful
 #	http://aegis.sourceforge.net/auug97.pdf
 #
+# Copyright (C) 2003 Massachusetts Institute of Technology 
+# See section "MIT License" in the file LICENSES for licensing terms.
+# Primary authors: Bryan Ford, Eddie Kohler, Austin Clemens
+#
 OBJDIR := obj
 
 ifdef LAB
@@ -111,9 +115,6 @@ NCC	:= gcc $(CC_VER) -pipe
 TAR	:= gtar
 PERL	:= perl
 
-# Where does GCC have its libgcc.a and libgcc's include directory?
-GCCDIR := $(dir $(shell $(CC) $(CFLAGS) -print-libgcc-file-name))
-
 # If we're not using the special "PIOS edition" of GCC,
 # reconfigure the host OS's compiler for our purposes.
 ifneq ($(GCCPREFIX),pios-)
@@ -122,13 +123,19 @@ LDFLAGS += -nostdlib -m elf_i386
 USER_LDFLAGS += -e start -Ttext=0x40000100
 endif
 
+# Where does GCC have its libgcc.a and libgcc's include directory?
+GCCDIR := $(dir $(shell $(CC) $(CFLAGS) -print-libgcc-file-name))
+
+# x86-64 systems may have the include directory with the 64-bit
+GCCALTDIR := $(dir $(shell $(CC) -print-libgcc-file-name))
+
 # Compiler flags
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
 # XXX modified to -O2 for benchmarking
-CFLAGS += $(DEFS) $(LABDEFS) -O1 -fno-builtin \
-		-I$(TOP) -I$(TOP)/inc -I$(GCCDIR)/include -MD  \
-		-Wall -Wno-unused -Werror -gstabs
+CFLAGS += $(DEFS) $(LABDEFS) -O2 -fno-builtin -I$(TOP) -I$(TOP)/inc \
+		-I$(GCCDIR)/include -I$(GCCALTDIR)/include \
+		-MD -Wall -Wno-unused -Werror -gstabs
 
 # Add -fno-stack-protector if the option exists.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 \
@@ -221,6 +228,9 @@ include lib/Makefrag
 include user/Makefrag
 #endif
 
+#Phoenix benchmark
+#include phoenix/phenix-2.0.0/src/Makefrag
+
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S *.ld
@@ -300,8 +310,8 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
 NCPUS = 2
-#if SOL >= 1
-NCPUS := $(shell if test `uname -n` = "korz"; then echo 8; else echo 2; fi)
+#if LAB >= 9
+#NCPUS := $(shell if test `uname -n` = "korz"; then echo 12; else echo 2; fi)
 #endif
 IMAGES = $(OBJDIR)/kern/kernel.img
 QEMUOPTS = -smp $(NCPUS) -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio \

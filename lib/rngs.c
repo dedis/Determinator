@@ -32,8 +32,8 @@
  * ------------------------------------------------------------------------- 
  */
 
-#include <inc/stdio.h>
-#include <inc/syscall.h>
+#include <stdio.h>
+#include <inc/bench.h>
 #include <inc/rngs.h>
 
 #define MODULUS    2147483647 /* DON'T CHANGE THIS VALUE                  */
@@ -113,7 +113,7 @@ static int  initialized   = 0;          /* test for stream initialization */
   if (x > 0)
     x = x % MODULUS;                       /* correct if x is too large  */
   if (x <= 0)                                 
-    x = ((unsigned long) sys_time()) % MODULUS;
+    x = ((unsigned long) bench_time()) % MODULUS;
 /*
   if (x == 0)                                
     while (!ok) {

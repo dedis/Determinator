@@ -1,4 +1,15 @@
-// Text-mode CGA/VGA display output
+/*
+ * Text-mode CGA/VGA display output device driver.
+ *
+ * Copyright (c) 2010 Yale University.
+ * Copyright (c) 1993, 1994, 1995 Charles Hannum.
+ * Copyright (c) 1990 The Regents of the University of California.
+ * See section "BSD License" in the file LICENSES for licensing terms.
+ *
+ * This code is derived from the NetBSD pcons driver, and in turn derived
+ * from software contributed to Berkeley by William Jolitz and Don Ahn.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/string.h>
 
@@ -11,17 +22,13 @@ static unsigned addr_6845;
 static uint16_t *crt_buf;
 static uint16_t crt_pos;
 
-#if LAB >= 99
-// Scrollback support
-#define CRT_SAVEROWS	128
-
+#if LAB >= 9
 #if CRT_SAVEROWS > 0
 static uint16_t crtsave_buf[CRT_SAVEROWS * CRT_COLS];
 static uint16_t crtsave_pos;
 static int16_t crtsave_backscroll;
 static uint16_t crtsave_size;
 #endif
-
 #endif
 void
 video_init(void)
@@ -53,7 +60,7 @@ video_init(void)
 }
 
 
-#if LAB >= 99
+#if LAB >= 9
 #if CRT_SAVEROWS > 0
 // Copy one screen's worth of data to or from the save buffer,
 // starting at line 'first_line'.
@@ -91,7 +98,7 @@ video_savebuf_copy(int first_line, bool to_screen)
 void
 video_putc(int c)
 {
-#if LAB >= 99
+#if LAB >= 9
 #if CRT_SAVEROWS > 0
 	// unscroll if necessary
 	if (crtsave_backscroll > 0) {
@@ -138,7 +145,7 @@ video_putc(int c)
 	if (crt_pos >= CRT_SIZE) {
 		int i;
 
-#if LAB >= 99
+#if LAB >= 9
 #if CRT_SAVEROWS > 0
 		// Save the scrolled-back row
 		if (crtsave_size == CRT_SAVEROWS - CRT_ROWS)
@@ -146,7 +153,6 @@ video_putc(int c)
 		else
 			crtsave_size++;
 		memmove(crtsave_buf + ((crtsave_pos + crtsave_size - 1) % CRT_SAVEROWS) * CRT_COLS, crt_buf, CRT_COLS * sizeof(uint16_t));
-		
 #endif
 #endif
 		memmove(crt_buf, crt_buf + CRT_COLS,
@@ -163,9 +169,9 @@ video_putc(int c)
 	outb(addr_6845 + 1, crt_pos);
 }
 
-#if LAB >= 99
+#if LAB >= 9
 #if CRT_SAVEROWS > 0
-static void
+void
 video_scroll(int delta)
 {
 	int new_backscroll = MAX(MIN(crtsave_backscroll - delta, crtsave_size), 0);
@@ -179,7 +185,6 @@ video_scroll(int delta)
 	crtsave_backscroll = new_backscroll;
 	video_savebuf_copy(crtsave_pos + crtsave_size - crtsave_backscroll, 1);
 }
-
 #endif
 #endif
 

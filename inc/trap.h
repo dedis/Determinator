@@ -1,4 +1,14 @@
 #if LAB >= 1
+/*
+ * PIOS trap handling definitions.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
+
 #ifndef PIOS_INC_TRAP_H
 #define PIOS_INC_TRAP_H
 
@@ -26,7 +36,8 @@
 #define T_FPERR		16	// floating point error
 #define T_ALIGN		17	// aligment check
 #define T_MCHK		18	// machine check
-#define T_SIMDERR	19	// SIMD floating point error
+#define T_SIMD		19	// SIMD floating point exception
+#define T_SECEV		30	// Security-sensitive event
 
 #define T_IRQ0		32	// Legacy ISA hardware interrupts: IRQ0-15.
 

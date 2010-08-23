@@ -1,7 +1,13 @@
 #if LAB >= 1
-// Segment management required for privilege level changes:
-// global descriptor table (GDT) and task state segment (TSS)
-// See COPYRIGHT for copyright information.
+/*
+ * CPU setup and management of key protected-mode data structures,
+ * such as global descriptor table (GDT) and task state segment (TSS).
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/assert.h>
 #include <inc/string.h>
@@ -50,7 +56,7 @@ cpu cpu_boot = {
 #if LAB >= 9
 		// 0x28 - user thread local storage data segment
 		[CPU_GDT_UDTLS >> 3] = SEGDESC32(1, STA_W,
-					0xeffffff0, 0xffffffff, 3),
+					0xeffff000, 0xffffffff, 3),
 
 #endif
 		// 0x30 - tss, initialized in cpu_init()
@@ -60,6 +66,9 @@ cpu cpu_boot = {
 
 	magic: CPU_MAGIC
 };
+
+// Artificial limit on the number of CPUs the scheduler may use.
+int cpu_limit = INT_MAX;
 
 
 #if SOL >= 9

@@ -9,7 +9,7 @@
 
 #define MINDIM		16
 #define MAXDIM		1024
-#define MAXTHREADS	8
+#define MAXTHREADS	16
 
 typedef int elt;
 

@@ -1,8 +1,15 @@
 #if LAB >= 2
-// Multiprocessor bootstrap definitions.
-// See MultiProcessor Specification Version 1.[14]
-// This source file adapted from xv6.
-// See COPYRIGHT for copyright information.
+/*
+ * Multiprocessor bootstrap definitions.
+ * See MultiProcessor Specification Version 1.[14]
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from xv6 from MIT and Plan 9 from Bell Labs.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
+
 #ifndef PIOS_KERN_MP_H
 #define PIOS_KERN_MP_H
 #ifndef PIOS_KERNEL

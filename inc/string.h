@@ -1,10 +1,19 @@
+/*
+ * Generic string-handling functions as defined in the C standard.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
+
 #ifndef PIOS_INC_STRING_H
 #define PIOS_INC_STRING_H
 
 #include <types.h>
 
 int	strlen(const char *s);
-int	strnlen(const char *s, size_t size);
 char *	strcpy(char *dst, const char *src);
 char *	strncpy(char *dst, const char *src, size_t size);
 size_t	strlcpy(char *dst, const char *src, size_t size);

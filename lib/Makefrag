@@ -1,3 +1,14 @@
+#
+# Makefile fragment for the PIOS runtime support library.
+# This is NOT a complete makefile;
+# you must run GNU make in the top-level directory
+# where the GNUmakefile is located.
+#
+# Copyright (C) 2003 Massachusetts Institute of Technology 
+# See section "MIT License" in the file LICENSES for licensing terms.
+# Primary authors: Bryan Ford, Eddie Kohler, Cliff Frey
+#
+
 OBJDIRS += lib
 
 # Source files comprising the minimal PIOS C library.
@@ -15,7 +26,9 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/unistd.c \
 			lib/fork.c \
 			lib/exec.c \
+			lib/sprintf.c \
 			lib/fprintf.c \
+			lib/strerror.c \
 			lib/readline.c \
 			lib/thread.c \
 			lib/pthread.c \
@@ -89,20 +102,21 @@ $(OBJDIR)/lib/libc.a: $(LIB_OBJFILES)
 
 XCDIR := xc/pios
 XC_INCFILES := $(patsubst inc/%,%,$(wildcard inc/*.h))
+XC_DEPS :=	$(addprefix $(XCDIR)/include/,$(XC_INCFILES)) \
+		$(XCDIR)/include/sys \
+		$(XCDIR)/lib/libc.a \
+		$(XCDIR)/lib/libm.a \
+		$(XCDIR)/lib/libg.a \
+		$(XCDIR)/lib/libpthread.a \
+		$(XCDIR)/lib/crt0.o
 
-all:	$(addprefix $(XCDIR)/include/,$(XC_INCFILES)) \
-	$(XCDIR)/include/sys \
-	$(XCDIR)/lib/libc.a \
-	$(XCDIR)/lib/libm.a \
-	$(XCDIR)/lib/libg.a \
-	$(XCDIR)/lib/libpthread.a \
-	$(XCDIR)/lib/crt0.o
+all:	$(XC_DEPS)
 
 $(XCDIR)/include $(XCDIR)/lib:
 	mkdir -p $@
 
 $(XCDIR)/include/%.h: inc/%.h $(XCDIR)/include
-	unifdef -n -DLAB=9 -DSOL=9 $< >$@ || true
+	unifdef -l -DLAB=9 -DSOL=9 $< >$@ || true
 
 $(XCDIR)/include/sys: $(XCDIR)/include
 	ln -s . $@

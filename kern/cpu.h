@@ -1,6 +1,12 @@
 #if LAB >= 1
-// Per-CPU kernel state.
-// See COPYRIGHT for copyright information.
+/*
+ * Per-CPU kernel state structures.
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 #ifndef PIOS_KERN_SEG_H
 #define PIOS_KERN_SEG_H
 #ifndef PIOS_KERNEL
@@ -53,6 +59,10 @@ typedef struct cpu {
 
 	// Local APIC ID of this CPU, for inter-processor interrupts etc.
 	uint8_t		id;
+#if LAB >= 9
+	// CPU number for this CPU, assigned sequentially from 0.
+	uint8_t		num;
+#endif
 
 	// Flag used in cpu.c to serialize bootstrap of all CPUs
 	volatile uint32_t booted;
@@ -79,6 +89,14 @@ typedef struct cpu {
 // others get chained onto this via cpu_boot.next as we find them.
 extern cpu cpu_boot;
 
+#if LAB >= 9
+// This variable artificially limits the number of running CPUs;
+// those above this count just spin in the idle loop.
+extern int cpu_limit;
+#define cpu_disabled(c)		((c)->num >= cpu_limit)
+#else
+#define cpu_disabled(c)		0
+#endif
 
 // Find the CPU struct representing the current CPU.
 // It always resides at the bottom of the page containing the CPU's stack.

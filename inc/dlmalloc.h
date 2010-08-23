@@ -10,10 +10,12 @@
 #define HEAP_SZ		((HEAP_HI - HEAP_LO)/MAXTHREADS)
 
 #define USE_DL_PREFIX //to override all DL functions.
+/*
 #define thcalloc				calloc
 #define thfree					free
 #define thmalloc				malloc
 #define threalloc				realloc
+*/
 
 void *thmalloc(size_t bytes);
 void thfree(void *mem);
@@ -617,7 +619,8 @@ MAX_RELEASE_CHECK_RATE   default: 4095 unless not HAVE_MMAP
 #endif  /* MMAP_CLEARS */
 #ifndef HAVE_MREMAP
 #ifdef linux
-#define HAVE_MREMAP 1
+//#define HAVE_MREMAP 1
+#define HAVE_MREMAP 0 //for PIOS
 #else   /* linux */
 #define HAVE_MREMAP 0
 #endif  /* linux */

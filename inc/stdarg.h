@@ -1,4 +1,13 @@
 #if LAB >= 1
+/*
+ * Variable argument (varargs) parsing macros compliant with the C standard.
+ *
+ * Copyright (c) 1991, 1993 The Regents of the University of California.
+ * See section "BSD License" in the file LICENSES for licensing terms.
+ *
+ * This code is derived from JOS and from BSD. 
+ */
+
 #ifndef PIOS_INC_STDARG_H
 #define	PIOS_INC_STDARG_H
 

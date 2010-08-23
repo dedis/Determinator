@@ -1,6 +1,13 @@
 #if LAB >= 1
-/* Trap handler entry and exit code. */
-/* See COPYRIGHT for copyright information. */
+/*
+ * Trap handler entry and exit code, written in assembly language.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/mmu.h>
 #include <inc/trap.h>
@@ -55,6 +62,7 @@ TRAPHANDLER     (Xpgflt,  T_PGFLT)
 TRAPHANDLER_NOEC(Xfperr,  T_FPERR)
 TRAPHANDLER     (Xalign,  T_ALIGN)
 TRAPHANDLER_NOEC(Xmchk,   T_MCHK)
+TRAPHANDLER_NOEC(Xsimd,   T_SIMD)
 
 #if SOL >= 2
 
@@ -83,7 +91,7 @@ TRAPHANDLER_NOEC(Xperfctr,  T_PERFCTR)	// Performance counter interrupt
 
 #endif	// SOL >= 2
 /* default handler -- not for any specific trap */
-TRAPHANDLER	(Xdefault, T_DEFAULT)
+TRAPHANDLER_NOEC(Xdefault, T_DEFAULT)
 
 
 #else /* SOL >= 1 */

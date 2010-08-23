@@ -1,11 +1,21 @@
 #if LAB >= 4
-////////// "High-level" C standard I/O functions //////////
-// In a normal Unix C library, these would implement user-space buffering
-// on top of the native low-level system calls (open, close, read, write).
-// But since our "low-level" file operations are also done in user space,
-// there's really no need for separate high-level and low-level sets.
-// Therefore, the FILE structs used by the high-level functions
-// just point to the same filedesc structs that low-level fds refer to.
+/*
+ * "High-level" C standard I/O functions for PIOS.
+ *
+ * In a normal Unix C library, these would implement user-space buffering
+ * on top of the native low-level system calls (open, close, read, write).
+ * But since our "low-level" file operations are also done in user space,
+ * there's really no need for separate high-level and low-level sets.
+ * Therefore, the FILE structs used by the high-level functions
+ * just point to the same filedesc structs that low-level fds refer to,
+ * which simplifies PIOS's user-space C library code a lot.
+ *
+ * Copyright (C) 1997 Massachusetts Institute of Technology
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ */
 
 #include <inc/file.h>
 #include <inc/stat.h>

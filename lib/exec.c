@@ -1,4 +1,12 @@
 #if LAB >= 4
+/*
+ * PIOS user-space implementation of Unix-style executable loading (exec).
+ *
+ * Copyright (C) 2010 Yale University.
+ * See section "MIT License" in the file LICENSES for licensing terms.
+ *
+ * Primary author: Bryan Ford
+ */
 
 #include <inc/cdefs.h>
 #include <inc/mmu.h>

@@ -4,6 +4,10 @@
 # you must run GNU make in the top-level directory
 # where the GNUmakefile is located.
 #
+# Copyright (C) 2003 Massachusetts Institute of Technology 
+# See section "MIT License" in the file LICENSES for licensing terms.
+# Primary authors: Bryan Ford, Eddie Kohler
+#
 
 OBJDIRS += kern
 
@@ -39,6 +43,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			dev/pmc.c \
 			lib/printfmt.c \
 			lib/cprintf.c \
+			lib/sprintf.c \
 			lib/string.c \
 			lib/syscall.c
 
@@ -57,11 +62,14 @@ KERN_INITFILES :=	sh \
 # Performance benchmarking programs
 KERN_INITFILES +=	matmult \
 			microbench \
+			time \
 			fun \
 			icnt \
 			testds \
 			testfloat \
-			pqsort
+			pqsort \
+			bcrack \
+			ncpu
 
 # Anything we find in the 'fs' subdirectory also becomes a file.
 KERN_FSFILES :=		$(wildcard fs/*)
