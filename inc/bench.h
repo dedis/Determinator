@@ -15,5 +15,6 @@
 void bench_fork(unsigned char child, void *(*fun)(void *), void *arg);
 void bench_join(unsigned char child);
 unsigned long long bench_time(void);
-
+unsigned long long get_user_time(void);
+unsigned long long get_system_time(void);
 #endif	// PIOS_INC_BENCH_H
