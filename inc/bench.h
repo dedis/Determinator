@@ -17,4 +17,6 @@ void bench_join(unsigned char child);
 unsigned long long bench_time(void);
 unsigned long long get_user_time(void);
 unsigned long long get_system_time(void);
+void print_output(int dim, int nbi, int nbj, int nth, int niter, uint64_t td,
+		  uint64_t user_time, uint64_t system_time);
 #endif	// PIOS_INC_BENCH_H
