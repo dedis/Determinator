@@ -83,19 +83,12 @@ bench_time(void)
 	return sys_time();
 }
 
-uint64_t
-get_user_time(void)
+void
+get_rusage_time(unsigned long long * user_time,
+		unsigned long long * system_time)
 {
-	return bench_time();
+	* system_time = * user_time = bench_time();
 }
-
-uint64_t
-get_system_time(void)
-{
-	return bench_time();
-}
-//			print_output(dim, nbi, nbj, nth, niter, td,
-//				     user_time, system_time);
 
 void
 print_output(int dim, int nbi, int nbj, int nth, int niter, uint64_t td,
@@ -152,24 +145,18 @@ bench_time(void)
 	return ((uint64_t)tv.tv_sec * 1000000 + tv.tv_usec) * 1000; // ns
 }
 
-uint64_t
-get_user_time(void)
+void
+get_rusage_time(unsigned long long * user_time,
+		unsigned long long * system_time)
 {
 	struct rusage ru;
 	if (getrusage(RUSAGE_SELF, &ru) < 0)
 		perror("getrusage");
-	return ((uint64_t)ru.ru_utime.tv_sec * 1000000 +
-		ru.ru_utime.tv_usec) * 1000; // ns
-}
+	* user_time = ((uint64_t)ru.ru_utime.tv_sec * 1000000 +
+		       ru.ru_utime.tv_usec) * 1000; // ns
+	* system_time = ((uint64_t)ru.ru_stime.tv_sec * 1000000 +
+			 ru.ru_stime.tv_usec) * 1000; // ns
 
-uint64_t
-get_system_time(void)
-{
-	struct rusage ru;
-	if (getrusage(RUSAGE_SELF, &ru) < 0)
-		perror("getrusage");
-	return ((uint64_t)ru.ru_stime.tv_sec * 1000000 +
-		ru.ru_stime.tv_usec) * 1000; // ns
 }
 
 void
