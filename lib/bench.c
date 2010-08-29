@@ -145,6 +145,7 @@ bench_time(void)
 	return ((uint64_t)tv.tv_sec * 1000000 + tv.tv_usec) * 1000; // ns
 }
 
+// Set user_time and system_time to their values in microseconds.
 void
 get_rusage_time(unsigned long long * user_time,
 		unsigned long long * system_time)
@@ -152,10 +153,10 @@ get_rusage_time(unsigned long long * user_time,
 	struct rusage ru;
 	if (getrusage(RUSAGE_SELF, &ru) < 0)
 		perror("getrusage");
-	* user_time = ((uint64_t)ru.ru_utime.tv_sec * 1000000 +
-		       ru.ru_utime.tv_usec) * 1000; // ns
-	* system_time = ((uint64_t)ru.ru_stime.tv_sec * 1000000 +
-			 ru.ru_stime.tv_usec) * 1000; // ns
+	* user_time = (uint64_t)ru.ru_utime.tv_sec * 1000000 +
+		ru.ru_utime.tv_usec;
+	* system_time = (uint64_t)ru.ru_stime.tv_sec * 1000000 +
+		ru.ru_stime.tv_usec;
 
 }
 
@@ -163,14 +164,13 @@ void
 print_output(int dim, int nbi, int nbj, int nth, int niter, uint64_t td,
 	     uint64_t user_time, uint64_t system_time)
 {
+	// Wall clock time is in seconds.
+	// User and system times are in microseconds.
 	printf("%dx%d\t%d\t%d\t%lld.%09lld\t"
-	       "%lld.%09lld\t%lld.%09lld\n",
+	       "%lld\t%lld\n",
 	       dim/nbi, dim/nbj, nth, niter,
 	       (long long)td / 1000000000,
 	       (long long)td % 1000000000,
-	       (long long)user_time / 1000000000,
-	       (long long)user_time % 1000000000,
-	       (long long)system_time / 1000000000,
-	       (long long)system_time % 1000000000);
+	       (long long)user_time, (long long)system_time);
 }
 #endif	// ! PIOS_USER
