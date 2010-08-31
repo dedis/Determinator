@@ -1,4 +1,17 @@
-For instructions on building without doing exports, look at the top of
+Since this is the "instructor's version" of PIOS, you first have to configure
+it for a particular lab, which determines which parts of the source code are
+included.  You probably want the lab4 version initially, since that's the most
+complete non-distributed PIOS configuration:
+
+	make LAB=4 SOL=4 labsetup
+
+The lab5 version is the most complete (with the distributed computing
+facilities), but the default testing rules in the makefiles automatically start
+two virtual machines instead of just one, which can be a pain or just confusing
+if you're not actually trying to test a distributed, cluster configuration of
+PIOS.
+
+For more instructions on building without doing exports, look at the top of
 GNUMakefile.
 
 Be warned against starting lines with dangerous things like
