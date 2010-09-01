@@ -94,18 +94,6 @@ get_system_time(void)
 {
 	return bench_time();
 }
-//			print_output(dim, nbi, nbj, nth, niter, td,
-//				     user_time, system_time);
-
-void
-print_output(int dim, int nbi, int nbj, int nth, int niter, uint64_t td,
-	     uint64_t user_time, uint64_t system_time)
-{
-	printf("blksize %dx%d thr %d itr %d: %lld.%09lld\n",
-	       dim/nbi, dim/nbj, nth, niter,
-	       (long long)td / 1000000000,
-	       (long long)td % 1000000000);
-}
 
 #else	// ! PIOS_USER
 
@@ -170,20 +158,5 @@ get_system_time(void)
 		perror("getrusage");
 	return ((uint64_t)ru.ru_stime.tv_sec * 1000000 +
 		ru.ru_stime.tv_usec) * 1000; // ns
-}
-
-void
-print_output(int dim, int nbi, int nbj, int nth, int niter, uint64_t td,
-	     uint64_t user_time, uint64_t system_time)
-{
-	printf("%dx%d\t%d\t%d\t%lld.%09lld\t"
-	       "%lld.%09lld\t%lld.%09lld\n",
-	       dim/nbi, dim/nbj, nth, niter,
-	       (long long)td / 1000000000,
-	       (long long)td % 1000000000,
-	       (long long)user_time / 1000000000,
-	       (long long)user_time % 1000000000,
-	       (long long)system_time / 1000000000,
-	       (long long)system_time % 1000000000);
 }
 #endif	// ! PIOS_USER
