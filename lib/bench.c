@@ -83,18 +83,6 @@ bench_time(void)
 	return sys_time();
 }
 
-uint64_t
-get_user_time(void)
-{
-	return bench_time();
-}
-
-uint64_t
-get_system_time(void)
-{
-	return bench_time();
-}
-
 #else	// ! PIOS_USER
 
 ////////// Conventional Unix/Pthreads Version //////////
@@ -105,7 +93,6 @@ get_system_time(void)
 #include <assert.h>
 #include <pthread.h>
 #include <sys/time.h>
-#include <sys/resource.h>
 
 char tforked[256];
 pthread_t threads[256];
@@ -140,23 +127,4 @@ bench_time(void)
 	return ((uint64_t)tv.tv_sec * 1000000 + tv.tv_usec) * 1000; // ns
 }
 
-uint64_t
-get_user_time(void)
-{
-	struct rusage ru;
-	if (getrusage(RUSAGE_SELF, &ru) < 0)
-		perror("getrusage");
-	return ((uint64_t)ru.ru_utime.tv_sec * 1000000 +
-		ru.ru_utime.tv_usec) * 1000; // ns
-}
-
-uint64_t
-get_system_time(void)
-{
-	struct rusage ru;
-	if (getrusage(RUSAGE_SELF, &ru) < 0)
-		perror("getrusage");
-	return ((uint64_t)ru.ru_stime.tv_sec * 1000000 +
-		ru.ru_stime.tv_usec) * 1000; // ns
-}
 #endif	// ! PIOS_USER

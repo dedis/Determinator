@@ -82,9 +82,6 @@ int main(int argc, char **argv)
 		a[i] = b[i] = i;
 
 	int dim, nth, nbi, nbj, iter;
-	uint64_t user_time, system_time;
-	user_time = get_user_time();
-	system_time = get_system_time();
 	for (dim = MINDIM; dim <= MAXDIM; dim *= 2) {
 		printf("matrix size: %dx%d = %d (%d bytes)\n",
 			dim, dim, dim*dim, dim*dim*(int)sizeof(elt));
@@ -99,19 +96,11 @@ int main(int argc, char **argv)
 			for (iter = 0; iter < niter; iter++)
 				matmult(nbi, nbj, dim);
 			uint64_t td = (bench_time() - ts) / niter;
-			user_time = get_user_time() - user_time;
-			system_time = get_system_time() - system_time;
 
-			printf("blksize %dx%d thr %d itr %d: %lld.%09lld "
-			       "user %lld.%09lld sys %lld.%09lld\n",
-			       dim/nbi, dim/nbj, nth, niter,
-			       (long long)td / 1000000000,
-			       (long long)td % 1000000000,
-			       (long long)user_time / 1000000000,
-			       (long long)user_time % 1000000000,
-			       (long long)system_time / 1000000000,
-			       (long long)system_time % 1000000000);
-
+			printf("blksize %dx%d thr %d itr %d: %lld.%09lld\n",
+				dim/nbi, dim/nbj, nth, niter,
+				(long long)td / 1000000000,
+				(long long)td % 1000000000);
 
 			if (nbi == nbj)
 				nbi *= 2;
