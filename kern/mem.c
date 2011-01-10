@@ -239,8 +239,10 @@ void
 mem_incref(pageinfo *pi)
 {
 	assert(pi > &mem_pageinfo[1] && pi < &mem_pageinfo[mem_npage]);
-	assert(pi != mem_ptr2pi(pmap_zero));	// Don't alloc/free zero page!
 	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
+#if LAB >= 3
+	assert(pi != mem_ptr2pi(pmap_zero));	// Don't alloc/free zero page!
+#endif
 
 	lockadd(&pi->refcount, 1);
 }
@@ -251,8 +253,10 @@ void
 mem_decref(pageinfo* pi)
 {
 	assert(pi > &mem_pageinfo[1] && pi < &mem_pageinfo[mem_npage]);
-	assert(pi != mem_ptr2pi(pmap_zero));	// Don't alloc/free zero page!
 	assert(pi < mem_ptr2pi(start) || pi > mem_ptr2pi(end-1));
+#if LAB >= 3
+	assert(pi != mem_ptr2pi(pmap_zero));	// Don't alloc/free zero page!
+#endif
 
 	if (lockaddz(&pi->refcount, -1))
 #if LAB >= 5
