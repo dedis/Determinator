@@ -55,7 +55,8 @@ KERN_INITFILES :=	sh \
 			echo \
 			cat \
 			wc \
-			testfs
+			testfs \
+			testvm
 endif
 ifdef LAB5
 KERN_INITFILES +=	testmigr \
@@ -63,14 +64,15 @@ KERN_INITFILES +=	testmigr \
 endif
 
 # Binary program images to embed within the kernel.
-ifdef LAB2
-KERN_BINFILES :=	boot/bootother
-endif
+ifdef LAB4
+KERN_BINFILES +=	$(patsubst %,user/%,$(KERN_INITFILES))
+else
 ifdef LAB3
 KERN_BINFILES +=	user/testvm
 endif
-ifdef LAB4
-KERN_BINFILES +=	$(patsubst %,user/%,$(KERN_INITFILES))
+endif
+ifdef LAB2
+KERN_BINFILES +=	boot/bootother
 endif
 
 KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))

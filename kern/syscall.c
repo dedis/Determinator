@@ -37,9 +37,9 @@ systrap(trapframe *utf, int trapno, int err)
 {
 #if SOL >= 3
 	//cprintf("systrap: reflect trap %d to parent process\n", trapno);
-	utf->tf_trapno = trapno;
-	utf->tf_err = err;
-	utf->tf_eip -= 2;	// back up before int 0x30 syscall instruction
+	utf->trapno = trapno;
+	utf->err = err;
+	utf->eip -= 2;	// back up before int 0x30 syscall instruction
 	proc_ret(utf);
 #else
 	panic("systrap() not implemented.");
@@ -53,7 +53,7 @@ systrap(trapframe *utf, int trapno, int err)
 // and invokes systrap() above to blame the trap on the user process.
 //
 // Notes:
-// - Be sure the parent gets the correct tf_trapno, tf_err, and tf_eip values.
+// - Be sure the parent gets the correct trapno, err, and eip values.
 // - Be sure to release any spinlocks you were holding during the copyin/out.
 //
 static void gcc_noreturn
@@ -67,7 +67,7 @@ sysrecover(trapframe *ktf, void *recoverdata)
 	c->recover = NULL;
 
 	// Pretend that a trap caused this process to stop.
-	systrap(utf, ktf->tf_trapno, ktf->tf_err);
+	systrap(utf, ktf->trapno, ktf->err);
 #else
 	panic("sysrecover() not implemented.");
 #endif
@@ -130,11 +130,11 @@ do_cputs(trapframe *tf, uint32_t cmd)
 	// Print the string supplied by the user: pointer in EBX
 #if SOL >= 3
 	char buf[SYS_CPUTS_MAX+1];
-	usercopy(tf, 0, buf, tf->tf_regs.reg_ebx, SYS_CPUTS_MAX);
+	usercopy(tf, 0, buf, tf->regs.ebx, SYS_CPUTS_MAX);
 	buf[SYS_CPUTS_MAX] = 0;	// make sure it's null-terminated
 	cprintf("%s", buf);
 #else	// SOL < 3
-	cprintf("%s", (char*)tf->tf_regs.reg_ebx);
+	cprintf("%s", (char*)tf->regs.ebx);
 #endif	// SOL < 3
 
 	trap_return(tf);	// syscall completed
@@ -149,10 +149,10 @@ do_put(trapframe *tf, uint32_t cmd)
 
 #if SOL >= 5
 	// First migrate if we need to.
-	uint8_t node = (tf->tf_regs.reg_edx >> 8) & 0xff;
+	uint8_t node = (tf->regs.edx >> 8) & 0xff;
 	if (node == 0) node = RRNODE(p->home);		// Goin' home
 	if (node != net_node) {
-		tf->tf_eip -= 2;	// Restart syscall after we arrive
+		tf->eip -= 2;	// Restart syscall after we arrive
 		net_migrate(tf, node);
 	}
 
@@ -160,7 +160,7 @@ do_put(trapframe *tf, uint32_t cmd)
 	spinlock_acquire(&p->lock);
 
 	// Find the named child process; create if it doesn't exist
-	uint32_t cn = tf->tf_regs.reg_edx & 0xff;
+	uint32_t cn = tf->regs.edx & 0xff;
 	proc *cp = p->child[cn];
 	if (!cp) {
 		cp = proc_alloc(p, cn);
@@ -182,27 +182,27 @@ do_put(trapframe *tf, uint32_t cmd)
 
 		// Copy user's trapframe into child process
 #if SOL >= 3
-		usercopy(tf, 0, &cp->tf, tf->tf_regs.reg_ebx,
+		usercopy(tf, 0, &cp->tf, tf->regs.ebx,
 				sizeof(trapframe));
 #else
-		cpustate *cs = (cpustate*) tf->tf_regs.reg_ebx;
+		cpustate *cs = (cpustate*) tf->regs.ebx;
 		cp->tf = cs->tf;
 #endif
 
 		// Make sure process uses user-mode segments and eflag settings
-		cp->tf.tf_ds = CPU_GDT_UDATA | 3;
-		cp->tf.tf_es = CPU_GDT_UDATA | 3;
-		cp->tf.tf_cs = CPU_GDT_UCODE | 3;
-		cp->tf.tf_ss = CPU_GDT_UDATA | 3;
-		cp->tf.tf_eflags &=
+		cp->tf.ds = CPU_GDT_UDATA | 3;
+		cp->tf.es = CPU_GDT_UDATA | 3;
+		cp->tf.cs = CPU_GDT_UCODE | 3;
+		cp->tf.ss = CPU_GDT_UDATA | 3;
+		cp->tf.eflags &=
 			FL_CF|FL_PF|FL_AF|FL_ZF|FL_SF|FL_TF|FL_DF|FL_OF;
-		cp->tf.tf_eflags |= FL_IF;	// enable interrupts
+		cp->tf.eflags |= FL_IF;	// enable interrupts
 	}
 
 #if SOL >= 3
-	uint32_t sva = tf->tf_regs.reg_esi;
-	uint32_t dva = tf->tf_regs.reg_edi;
-	uint32_t size = tf->tf_regs.reg_ecx;
+	uint32_t sva = tf->regs.esi;
+	uint32_t dva = tf->regs.edi;
+	uint32_t size = tf->regs.ecx;
 	switch (cmd & SYS_MEMOP) {
 	case 0:	// no memory operation
 		break;
@@ -257,10 +257,10 @@ do_get(trapframe *tf, uint32_t cmd)
 
 #if SOL >= 5
 	// First migrate if we need to.
-	uint8_t node = (tf->tf_regs.reg_edx >> 8) & 0xff;
+	uint8_t node = (tf->regs.edx >> 8) & 0xff;
 	if (node == 0) node = RRNODE(p->home);		// Goin' home
 	if (node != net_node) {
-		tf->tf_eip -= 2;	// Restart syscall after we arrive
+		tf->eip -= 2;	// Restart syscall after we arrive
 		net_migrate(tf, node);
 	}
 
@@ -268,7 +268,7 @@ do_get(trapframe *tf, uint32_t cmd)
 	spinlock_acquire(&p->lock);
 
 	// Find the named child process; DON'T create if it doesn't exist
-	uint32_t cn = tf->tf_regs.reg_edx & 0xff;
+	uint32_t cn = tf->regs.edx & 0xff;
 	proc *cp = p->child[cn];
 	if (!cp)
 		cp = &proc_null;
@@ -287,18 +287,18 @@ do_get(trapframe *tf, uint32_t cmd)
 
 		// Copy child process's trapframe into user space
 #if SOL >= 3
-		usercopy(tf, 1, &cp->tf, tf->tf_regs.reg_ebx,
+		usercopy(tf, 1, &cp->tf, tf->regs.ebx,
 				sizeof(trapframe));
 #else
-		cpustate *cs = (cpustate*) tf->tf_regs.reg_ebx;
+		cpustate *cs = (cpustate*) tf->regs.ebx;
 		cs->tf = cp->tf;
 #endif
 	}
 
 #if SOL >= 3
-	uint32_t sva = tf->tf_regs.reg_esi;
-	uint32_t dva = tf->tf_regs.reg_edi;
-	uint32_t size = tf->tf_regs.reg_ecx;
+	uint32_t sva = tf->regs.esi;
+	uint32_t dva = tf->regs.edi;
+	uint32_t size = tf->regs.ecx;
 	switch (cmd & SYS_MEMOP) {
 	case 0:	// no memory operation
 		break;
@@ -352,7 +352,7 @@ do_ret(trapframe *tf)
 	// First migrate to our home node if we're not already there.
 	proc *p = proc_cur();
 	if (net_node != RRNODE(p->home)) {
-		tf->tf_eip -= 2;	// Restart syscall when we arrive
+		tf->eip -= 2;	// Restart syscall when we arrive
 		net_migrate(tf, RRNODE(p->home));
 	}
 
@@ -368,7 +368,7 @@ void
 syscall(trapframe *tf)
 {
 	// EAX register holds system call command/flags
-	uint32_t cmd = tf->tf_regs.reg_eax;
+	uint32_t cmd = tf->regs.eax;
 	switch (cmd & SYS_TYPE) {
 	case SYS_CPUTS:	return do_cputs(tf, cmd);
 #if SOL >= 2

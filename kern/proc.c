@@ -71,10 +71,10 @@ proc_alloc(proc *p, uint32_t cn)
 #endif	// LAB >= 5
 
 	// register state
-	cp->tf.tf_ds = CPU_GDT_UDATA | 3;
-	cp->tf.tf_es = CPU_GDT_UDATA | 3;
-	cp->tf.tf_cs = CPU_GDT_UCODE | 3;
-	cp->tf.tf_ss = CPU_GDT_UDATA | 3;
+	cp->tf.ds = CPU_GDT_UDATA | 3;
+	cp->tf.es = CPU_GDT_UDATA | 3;
+	cp->tf.cs = CPU_GDT_UCODE | 3;
+	cp->tf.ss = CPU_GDT_UDATA | 3;
 
 #if SOL >= 3
 	// Allocate a page directory for this process
@@ -124,7 +124,7 @@ proc_wait(proc *p, proc *cp, trapframe *tf)
 	p->runcpu = NULL;
 	p->waitchild = cp;	// remember what child we're waiting on
 	p->tf = *tf;		// save our register state
-	p->tf.tf_eip -= 2;	// back up to replay int instruction
+	p->tf.eip -= 2;	// back up to replay int instruction
 
 	spinlock_release(&p->lock);
 
@@ -231,7 +231,7 @@ proc_ret(trapframe *tf)
 	proc *p = cp->parent;		// find our parent
 
 	if (p == NULL) {		// "return" from root process!
-		if (tf->tf_trapno != T_SYSCALL) {
+		if (tf->trapno != T_SYSCALL) {
 			trap_print(tf);
 			panic("trap in root process");
 		}
@@ -285,8 +285,8 @@ proc_check(void)
 		uint32_t *esp = (uint32_t*) &child_stack[i][PAGESIZE];
 		*--esp = i;	// push argument to child() function
 		*--esp = 0;	// fake return address
-		child_state.tf.tf_eip = (uint32_t) child;
-		child_state.tf.tf_esp = (uint32_t) esp;
+		child_state.tf.eip = (uint32_t) child;
+		child_state.tf.esp = (uint32_t) esp;
 
 		// Use PUT syscall to create each child,
 		// but only start the first 2 children for now.
@@ -331,13 +331,13 @@ proc_check(void)
 		if (recovargs) {	// trap recovery needed
 			trap_check_args *args = recovargs;
 			cprintf("recover from trap %d\n",
-				child_state.tf.tf_trapno);
-			child_state.tf.tf_eip = (uint32_t) args->reip;
-			args->trapno = child_state.tf.tf_trapno;
+				child_state.tf.trapno);
+			child_state.tf.eip = (uint32_t) args->reip;
+			args->trapno = child_state.tf.trapno;
 		} else
-			assert(child_state.tf.tf_trapno == T_SYSCALL);
+			assert(child_state.tf.trapno == T_SYSCALL);
 		i = (i+1) % 4;	// rotate to next child proc
-	} while (child_state.tf.tf_trapno != T_SYSCALL);
+	} while (child_state.tf.trapno != T_SYSCALL);
 	assert(recovargs == NULL);
 
 	cprintf("proc_check() trap reflection test succeeded\n");

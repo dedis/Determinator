@@ -143,7 +143,7 @@ trap_return:
 	popal			// restore general-purpose registers except esp
 	popl	%es		// restore data segment registers
 	popl	%ds
-	addl	$8,%esp		// skip tf_trapno and tf_errcode
+	addl	$8,%esp		// skip trapno and errcode
 	iret			// return from trap handler
 #else // SOL >= 1
 /*

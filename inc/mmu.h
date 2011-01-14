@@ -164,13 +164,13 @@ typedef struct segdesc {
 // Segment that is loadable but faults when used
 #define SEGDESC_FAULT	(struct segdesc){ 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0 }
 // Normal segment
-#define SEGDESC32(type, base, lim, dpl) (struct segdesc)		\
+#define SEGDESC32(app, type, base, lim, dpl) (struct segdesc)		\
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
-    type, 1, dpl, 1, (unsigned) (lim) >> 28, 0, 0, 1, 1,		\
+    type, app, dpl, 1, (unsigned) (lim) >> 28, 0, 0, 1, 1,		\
     (unsigned) (base) >> 24 }
-#define SEGDESC16(type, base, lim, dpl) (struct segdesc)		\
+#define SEGDESC16(app, type, base, lim, dpl) (struct segdesc)		\
 { (lim) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,		\
-    type, 1, dpl, 1, (unsigned) (lim) >> 16, 0, 0, 1, 0,		\
+    type, app, dpl, 1, (unsigned) (lim) >> 16, 0, 0, 1, 0,		\
     (unsigned) (base) >> 24 }
 
 #endif /* !__ASSEMBLER__ */

@@ -136,13 +136,13 @@ init(void)
 #if SOL == 1
 	// Conjure up a trapframe and "return" to it to enter user mode.
 	static trapframe utf = {
-		tf_ds: CPU_GDT_UDATA | 3,
-		tf_es: CPU_GDT_UDATA | 3,
-		tf_eip: (uint32_t) user,
-		tf_cs: CPU_GDT_UCODE | 3,
-		tf_eflags: FL_IOPL_3,	// let user() output to console
-		tf_esp: (uint32_t) &user_stack[PAGESIZE],
-		tf_ss: CPU_GDT_UDATA | 3,
+		ds: CPU_GDT_UDATA | 3,
+		es: CPU_GDT_UDATA | 3,
+		eip: (uint32_t) user,
+		cs: CPU_GDT_UCODE | 3,
+		eflags: FL_IOPL_3,	// let user() output to console
+		esp: (uint32_t) &user_stack[PAGESIZE],
+		ss: CPU_GDT_UDATA | 3,
 	};
 	trap_return(&utf);
 #elif SOL == 2
@@ -152,8 +152,8 @@ init(void)
 	// Create our first actual user-mode process
 	// (though it's still be sharing the kernel's address space for now).
 	proc *root = proc_alloc(NULL, 0);
-	root->tf.tf_eip = (uint32_t) user;
-	root->tf.tf_esp = (uint32_t) &user_stack[PAGESIZE];
+	root->tf.eip = (uint32_t) user;
+	root->tf.esp = (uint32_t) &user_stack[PAGESIZE];
 
 	proc_ready(root);	// make it ready
 	proc_sched();		// run it
@@ -198,8 +198,8 @@ init(void)
 	}
 
 	// Start the process at the entry indicated in the ELF header
-	root->tf.tf_eip = eh->e_entry;
-	root->tf.tf_eflags |= FL_IF;	// enable interrupts
+	root->tf.eip = eh->e_entry;
+	root->tf.eflags |= FL_IF;	// enable interrupts
 
 	// Give the process a 1-page stack in high memory
 	// (the process can then increase its own stack as desired)
@@ -207,7 +207,7 @@ init(void)
 	pte_t *pte = pmap_insert(root->pdir, pi, VM_STACKHI-PAGESIZE,
 				SYS_READ | SYS_WRITE | PTE_P | PTE_U | PTE_W);
 	assert(pte != NULL);
-	root->tf.tf_esp = VM_STACKHI;
+	root->tf.esp = VM_STACKHI;
 
 	// Give the root process an initial file system.
 	file_initroot(root);

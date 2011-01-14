@@ -409,7 +409,7 @@ pmap_pagefault(trapframe *tf)
 
 #if SOL >= 3
 	// It can't be our problem unless it's a write fault in user space!
-	if (fva < VM_USERLO || fva >= VM_USERHI || !(tf->tf_err & PFE_WR))
+	if (fva < VM_USERLO || fva >= VM_USERHI || !(tf->err & PFE_WR))
 		return;
 
 	proc *p = proc_cur();
