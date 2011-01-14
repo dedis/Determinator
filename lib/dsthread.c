@@ -299,11 +299,11 @@ if (++dispcnt >= 1000000000/P_QUANTUM) {
 		assert(olock == 0);
 
 		// Pass on any traps/returns other than quantum expiration.
-		if (cs.tf.tf_trapno == T_SYSCALL) {
+		if (cs.tf.trapno == T_SYSCALL) {
 			sys_ret();	// pass I/O on to our parent
-		} else if (cs.tf.tf_trapno != T_ICNT) {
+		} else if (cs.tf.trapno != T_ICNT) {
 			panic("sched: thread %d trap %d eip %x",
-				t->tno, cs.tf.tf_trapno, cs.tf.tf_eip);
+				t->tno, cs.tf.trapno, cs.tf.eip);
 		}
 
 		// We preempted the thread while running normal user code.
@@ -322,9 +322,9 @@ if (++dispcnt >= 1000000000/P_QUANTUM) {
 	}
 
 	// Unexpected trap in pthreads code?
-	if (cs.tf.tf_trapno != T_SYSCALL && cs.tf.tf_trapno != T_ICNT)
+	if (cs.tf.trapno != T_SYSCALL && cs.tf.trapno != T_ICNT)
 		panic("sched: thread %d trap %d while mlocked, eip %x",
-			t->tno, cs.tf.tf_trapno, cs.tf.tf_eip);
+			t->tno, cs.tf.trapno, cs.tf.eip);
 
 	// If the thread started using the FPU, remember that.
 	t->pff = cs.pff;
@@ -339,16 +339,16 @@ if (++dispcnt >= 1000000000/P_QUANTUM) {
 		"	movl	%2,%%esp;"
 		"	jmp	*%3;"
 		:
-		: "m" (cs.tf.tf_eflags),
-		  "m" (cs.tf.tf_regs.reg_ebp),
-		  "m" (cs.tf.tf_esp),
-		  "m" (cs.tf.tf_eip),
-		  "a" (cs.tf.tf_regs.reg_eax),
-		  "b" (cs.tf.tf_regs.reg_ebx),
-		  "c" (cs.tf.tf_regs.reg_ecx),
-		  "d" (cs.tf.tf_regs.reg_edx),
-		  "S" (cs.tf.tf_regs.reg_esi),
-		  "D" (cs.tf.tf_regs.reg_edi));
+		: "m" (cs.tf.eflags),
+		  "m" (cs.tf.regs.ebp),
+		  "m" (cs.tf.esp),
+		  "m" (cs.tf.eip),
+		  "a" (cs.tf.regs.eax),
+		  "b" (cs.tf.regs.ebx),
+		  "c" (cs.tf.regs.ecx),
+		  "d" (cs.tf.regs.edx),
+		  "S" (cs.tf.regs.esi),
+		  "D" (cs.tf.regs.edi));
 #else
 	// XXX instead of using popfl to restore the flags,
 	// connive to restore just the condition codes and not FL_TF,
@@ -367,16 +367,16 @@ if (++dispcnt >= 1000000000/P_QUANTUM) {
 		"	movl	%2,%%esp;"
 		"	jmp	*%3;"
 		:
-		: "m" (cs.tf.tf_eflags),
-		  "m" (cs.tf.tf_regs.reg_ebp),
-		  "m" (cs.tf.tf_esp),
-		  "m" (cs.tf.tf_eip),
-		  "m" (cs.tf.tf_regs.reg_eax),
-		  "b" (cs.tf.tf_regs.reg_ebx),
-		  "c" (cs.tf.tf_regs.reg_ecx),
-		  "d" (cs.tf.tf_regs.reg_edx),
-		  "S" (cs.tf.tf_regs.reg_esi),
-		  "D" (cs.tf.tf_regs.reg_edi));
+		: "m" (cs.tf.eflags),
+		  "m" (cs.tf.regs.ebp),
+		  "m" (cs.tf.esp),
+		  "m" (cs.tf.eip),
+		  "m" (cs.tf.regs.eax),
+		  "b" (cs.tf.regs.ebx),
+		  "c" (cs.tf.regs.ecx),
+		  "d" (cs.tf.regs.edx),
+		  "S" (cs.tf.regs.esi),
+		  "D" (cs.tf.regs.edi));
 #endif
 	// (asm fragment does not return here)
 	while (1);
@@ -524,9 +524,9 @@ mret(void)
 		"	jmp	pthread_sched;"	// invoke the scheduler
 		"	.p2align 4,0x90;"
 		"1:	"
-		: "=m" (cs.tf.tf_regs.reg_ebp),
-		  "=m" (cs.tf.tf_esp),
-		  "=m" (cs.tf.tf_eip)
+		: "=m" (cs.tf.regs.ebp),
+		  "=m" (cs.tf.esp),
+		  "=m" (cs.tf.eip)
 		: "i" (T_SYSCALL),
 		  "a" (SYS_PUT | SYS_REGS | SYS_COPY | SYS_SNAP | SYS_START),
 		  "d" (t->tno),

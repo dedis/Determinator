@@ -208,7 +208,7 @@ net_migrate(trapframe *tf, uint8_t dstnode, int entry)
 
 	assert(dstnode > 0 && dstnode <= NET_MAXNODES && dstnode != net_node);
 	//cprintf("proc %x at eip %x migrating to node %d\n",
-	//	p, p->tf.tf_eip, dstnode);
+	//	p, p->tf.eip, dstnode);
 
 	// Account for the fact that we've shared this process,
 	// to make sure the remote refs it contains don't go away.

@@ -1,7 +1,0 @@
-For instructions on building without doing exports, look at the top of
-GNUMakefile.
-
-Be warned against starting lines with dangerous things like
-if/ifdef/ifndef/else/endif/fi unless they will be matched correctly by
-mklab.pl.  this should only be a problem for strangely written perl
-code or shell scripts.

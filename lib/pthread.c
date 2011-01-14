@@ -60,11 +60,11 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 		"	movl	$1f,%4;"
 		"	movl	$1,%5;"
 		"1:	"
-		: "=m" (cs.tf.tf_regs.reg_esi),
-		  "=m" (cs.tf.tf_regs.reg_edi),
-		  "=m" (cs.tf.tf_regs.reg_ebp),
-		  "=m" (cs.tf.tf_esp),
-		  "=m" (cs.tf.tf_eip),
+		: "=m" (cs.tf.regs.esi),
+		  "=m" (cs.tf.regs.edi),
+		  "=m" (cs.tf.regs.ebp),
+		  "=m" (cs.tf.esp),
+		  "=m" (cs.tf.eip),
 		  "=a" (isparent)
 		:
 		: "ebx", "ecx", "edx");
@@ -86,7 +86,7 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 	}
 
 	// Fork the child, copying our entire user address space into it.
-	cs.tf.tf_regs.reg_eax = 0;	// isparent == 0 in the child
+	cs.tf.regs.eax = 0;	// isparent == 0 in the child
 	sys_put(SYS_START | SYS_SNAP | SYS_REGS | SYS_COPY, th,
 		&cs, ALLVA, ALLVA, ALLSIZE);
 
@@ -121,15 +121,15 @@ wait_at_barrier(pthread_t first_child, pthread_barrier_t barrier)
 		sys_get(SYS_MERGE | SYS_REGS, th, &cs, SHAREVA, SHAREVA, SHARESIZE);
 
 		// Make sure the child exited with the expected trap number
-		if (cs.tf.tf_trapno != T_SYSCALL) {
-			cprintf("  eip  0x%08x\n", cs.tf.tf_eip);
-			cprintf("  esp  0x%08x\n", cs.tf.tf_esp);
+		if (cs.tf.trapno != T_SYSCALL) {
+			cprintf("  eip  0x%08x\n", cs.tf.eip);
+			cprintf("  esp  0x%08x\n", cs.tf.esp);
 			cprintf("join: unexpected trap %d, expecting %d\n",
-				cs.tf.tf_trapno, T_SYSCALL);
+				cs.tf.trapno, T_SYSCALL);
 			errno = EINVAL;
 			return -1;
 		}
-		status = cs.tf.tf_regs.reg_edx;
+		status = cs.tf.regs.edx;
 
 		// This should be the same barrier;
 		assert(barrier == BARRIER_READ(status));
@@ -168,18 +168,18 @@ pthread_join(pthread_t th, void **out_exitval)
 		sys_get(SYS_MERGE | SYS_REGS, th, &cs, SHAREVA, SHAREVA, SHARESIZE);
 
 		// Make sure the child exited with the expected trap number
-		if (cs.tf.tf_trapno != T_SYSCALL) {
-			cprintf("  eip  0x%08x\n", cs.tf.tf_eip);
-			cprintf("  esp  0x%08x\n", cs.tf.tf_esp);
+		if (cs.tf.trapno != T_SYSCALL) {
+			cprintf("  eip  0x%08x\n", cs.tf.eip);
+			cprintf("  esp  0x%08x\n", cs.tf.esp);
 			cprintf("join: unexpected trap %d, expecting %d\n",
-				cs.tf.tf_trapno, T_SYSCALL);
+				cs.tf.trapno, T_SYSCALL);
 			status = -1;
 			errno = EINVAL;
 			ret = -1;
 			goto done;
 		}
 
-		status = cs.tf.tf_regs.reg_edx;
+		status = cs.tf.regs.edx;
 
 		// At a barrier?
 		if (status & EXIT_BARRIER) {

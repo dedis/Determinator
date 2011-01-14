@@ -432,12 +432,12 @@ pmap_pagefault(trapframe *tf)
 {
 	// Read processor's CR2 register to find the faulting linear address.
 	uint32_t fva = rcr2();
-	//cprintf("pmap_pagefault fva %x eip %x\n", fva, tf->tf_eip);
+	//cprintf("pmap_pagefault fva %x eip %x\n", fva, tf->eip);
 
 #if SOL >= 3
 	// It can't be our problem unless it's a write fault in user space!
-	if (fva < VM_USERLO || fva >= VM_USERHI || !(tf->tf_err & PFE_WR)) {
-		cprintf("pmap_pagefault: fva %x err %x\n", fva, tf->tf_err);
+	if (fva < VM_USERLO || fva >= VM_USERHI || !(tf->err & PFE_WR)) {
+		cprintf("pmap_pagefault: fva %x err %x\n", fva, tf->err);
 		return;
 	}
 

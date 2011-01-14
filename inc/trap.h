@@ -71,14 +71,14 @@
 // because that's just as fast or faster and they get to choose
 // exactly which registers to save and where.
 typedef struct pushregs {
-	uint32_t reg_edi;
-	uint32_t reg_esi;
-	uint32_t reg_ebp;
-	uint32_t reg_oesp;		/* Useless */
-	uint32_t reg_ebx;
-	uint32_t reg_edx;
-	uint32_t reg_ecx;
-	uint32_t reg_eax;
+	uint32_t edi;
+	uint32_t esi;
+	uint32_t ebp;
+	uint32_t oesp;		/* Useless */
+	uint32_t ebx;
+	uint32_t edx;
+	uint32_t ecx;
+	uint32_t eax;
 } pushregs;
 
 
@@ -87,28 +87,28 @@ typedef struct pushregs {
 // in conjunction with the interrupt/trap entry code in trapasm.S.
 // All interrupts and traps use this same format,
 // although not all fields are always used:
-// e.g., the error code (tf_err) applies only to some traps,
-// and the processor pushes tf_esp and tf_ss
+// e.g., the error code (err) applies only to some traps,
+// and the processor pushes esp and ss
 // only when taking a trap from user mode (privilege level >0).
 typedef struct trapframe {
 
 	// registers and other info we push manually in trapasm.S
-	pushregs tf_regs;
-	uint16_t tf_gs;		uint16_t tf_padding_gs;
-	uint16_t tf_fs; 	uint16_t tf_padding_fs;
-	uint16_t tf_es;		uint16_t tf_padding_es;
-	uint16_t tf_ds; 	uint16_t tf_padding_ds;
-	uint32_t tf_trapno;
+	pushregs regs;
+	uint16_t gs;		uint16_t padding_gs;
+	uint16_t fs; 		uint16_t padding_fs;
+	uint16_t es;		uint16_t padding_es;
+	uint16_t ds; 		uint16_t padding_ds;
+	uint32_t trapno;
 
 	// format from here on determined by x86 hardware architecture
-	uint32_t tf_err;
-	uintptr_t tf_eip;
-	uint16_t tf_cs; 	uint16_t tf_padding_cs;
-	uint32_t tf_eflags;
+	uint32_t err;
+	uintptr_t eip;
+	uint16_t cs; 		uint16_t padding_cs;
+	uint32_t eflags;
 
 	// rest included only when crossing rings, e.g., user to kernel
-	uintptr_t tf_esp;
-	uint16_t tf_ss;		uint16_t tf_padding_ss;
+	uintptr_t esp;
+	uint16_t ss;		uint16_t padding_ss;
 } trapframe;
 
 // size of trapframe pushed when called from user and kernel mode, respectively

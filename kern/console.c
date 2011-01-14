@@ -147,10 +147,10 @@ cons_intenable(void)
 void
 cputs(const char *str)
 {
+#if SOL >= 2
 	if (read_cs() & 3)
 		return sys_cputs(str);	// use syscall from user mode
 
-#if SOL >= 2
 	// Hold the console spinlock while printing the entire string,
 	// so that the output of different cputs calls won't get mixed.
 	// Implement ad hoc recursive locking for debugging convenience.

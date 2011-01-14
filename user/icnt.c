@@ -25,8 +25,8 @@ int main(int argc, char **argv)
 		cpustate cs;
 		sys_get(SYS_REGS, 0, &cs, 0, 0, 0);
 		cprintf("@ %x: trap %d icnt %d imax %d\n",
-			cs.tf.tf_eip, cs.tf.tf_trapno, cs.icnt, cs.imax);
-		if (cs.tf.tf_trapno != T_SYSCALL && cs.tf.tf_trapno != T_ICNT)
+			cs.tf.eip, cs.tf.trapno, cs.icnt, cs.imax);
+		if (cs.tf.trapno != T_SYSCALL && cs.tf.trapno != T_ICNT)
 			break;
 
 		cs.pff |= PFF_ICNT;

@@ -1,14 +1,10 @@
 Post-2010 TODOs:
 
-- Fix the SEGDESC* macros to take a system/application flag argument
-
 - lab1: do user-mode trap handling after memory initialization,
 	or else don't panic in mem_init so kernel gets to user-mode test.
 	Perhaps move user-mode test to lab2?
 
 - Strip as much unnecessary garbage as possible out of printfmt.c
-
-- get rid of tf_ and reg_ prefixes from trapframe and regs structs
 
 - Rename 'dev' directory to 'hw', move kern/mp.* into it
 	(since it's hardware-related but not really a device driver).

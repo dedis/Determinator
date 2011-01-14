@@ -75,12 +75,14 @@ proc_alloc(proc *p, uint32_t cn)
 #endif	// LAB >= 5
 
 	// Integer register state
-	cp->sv.tf.tf_gs = CPU_GDT_UDTLS | 3;
-	cp->sv.tf.tf_fs = 0;
-	cp->sv.tf.tf_ds = CPU_GDT_UDATA | 3;
-	cp->sv.tf.tf_es = CPU_GDT_UDATA | 3;
-	cp->sv.tf.tf_cs = CPU_GDT_UCODE | 3;
-	cp->sv.tf.tf_ss = CPU_GDT_UDATA | 3;
+#if LAB >= 9
+	cp->sv.tf.gs = CPU_GDT_UDTLS | 3;
+	cp->sv.tf.fs = 0;
+#endif
+	cp->sv.tf.ds = CPU_GDT_UDATA | 3;
+	cp->sv.tf.es = CPU_GDT_UDATA | 3;
+	cp->sv.tf.cs = CPU_GDT_UCODE | 3;
+	cp->sv.tf.ss = CPU_GDT_UDATA | 3;
 #if SOL >= 2
 
 	// Floating-point register state
@@ -137,7 +139,7 @@ proc_save(proc *p, trapframe *tf, int entry)
 	if (tf != &p->sv.tf)
 		p->sv.tf = *tf;		// integer register state
 	if (entry == 0)
-		p->sv.tf.tf_eip -= 2;	// back up to replay INT instruction
+		p->sv.tf.eip -= 2;	// back up to replay INT instruction
 
 	if (p->sv.pff & PFF_USEFPU) {	// FPU state
 		assert(sizeof(p->sv.fx) == 512);
@@ -147,11 +149,11 @@ proc_save(proc *p, trapframe *tf, int entry)
 
 	if (p->sv.pff & PFF_ICNT) {	// Instruction counting/recovery
 		//cprintf("proc_save tf %x -> proc %x\n", tf, &p->sv.tf);
-		if (p->sv.tf.tf_eflags & FL_TF) {	// single stepping
+		if (p->sv.tf.eflags & FL_TF) {	// single stepping
 			if (entry > 0)
 				p->sv.icnt++;	// executed the INT insn
-			p->sv.tf.tf_eflags &= ~FL_TF;
-			p->sv.tf.tf_eflags |= FL_IF;
+			p->sv.tf.eflags &= ~FL_TF;
+			p->sv.tf.eflags |= FL_IF;
 		} else if (p->pmcmax > 0) {	// using performance counters
 			assert(pmc_get != NULL);
 			p->sv.icnt += pmc_get(p->pmcmax);
@@ -164,7 +166,7 @@ proc_save(proc *p, trapframe *tf, int entry)
 		}
 		assert(p->sv.icnt <= p->sv.imax);
 	}
-	assert(!(p->sv.tf.tf_eflags & FL_TF));
+	assert(!(p->sv.tf.eflags & FL_TF));
 	assert(p->pmcmax == 0);
 #endif
 }
@@ -257,32 +259,32 @@ proc_run(proc *p)
 		asm volatile("fxrstor %0" : : "m" (p->sv.fx));
 	}
 
-	assert(!(p->sv.tf.tf_eflags & FL_TF));
+	assert(!(p->sv.tf.eflags & FL_TF));
 	assert(p->pmcmax == 0);
 	if (p->sv.pff & PFF_ICNT) {	// Instruction counting/recovery
 		//cprintf("proc_run proc %x\n", &p->sv.tf);
 		if (p->sv.icnt >= p->sv.imax) {
 			warn("proc_run: icnt expired");
-			p->sv.tf.tf_trapno = T_ICNT;
+			p->sv.tf.trapno = T_ICNT;
 			proc_ret(&p->sv.tf, -1);	// can't run any insns!
 		}
 		assert(p->pmcmax == 0);
 		int32_t pmax = p->sv.imax - p->sv.icnt - pmc_safety;
 		if (pmc_set != NULL && pmax > 0) {
-			assert(p->sv.tf.tf_eflags & FL_IF);
-			assert(!(p->sv.tf.tf_eflags & FL_TF));
+			assert(p->sv.tf.eflags & FL_IF);
+			assert(!(p->sv.tf.eflags & FL_TF));
 			pmc_set(pmax);
 			p->pmcmax = pmax;
 		} else {
-			p->sv.tf.tf_eflags |= FL_TF;	// just single-step
+			p->sv.tf.eflags |= FL_TF;	// just single-step
 			// XXX taking hardware interrupts while tracing
 			// messes up our ability to count properly.
 			// Ideally we should poll for pending interrupts
 			// after each instruction we trace.
-			p->sv.tf.tf_eflags &= ~FL_IF;
+			p->sv.tf.eflags &= ~FL_IF;
 		}
 	} else {
-		assert(!(p->sv.tf.tf_eflags & FL_TF));
+		assert(!(p->sv.tf.eflags & FL_TF));
 		assert(p->pmcmax == 0);
 	}
 #if SOL >= 3
@@ -335,7 +337,7 @@ proc_ret(trapframe *tf, int entry)
 #endif
 	proc *p = cp->parent;		// find our parent
 	if (p == NULL) {		// "return" from root process!
-		if (tf->tf_trapno != T_SYSCALL) {
+		if (tf->trapno != T_SYSCALL) {
 			trap_print(tf);
 			panic("trap in root process");
 		}
@@ -390,8 +392,8 @@ proc_check(void)
 		uint32_t *esp = (uint32_t*) &child_stack[i][PAGESIZE];
 		*--esp = i;	// push argument to child() function
 		*--esp = 0;	// fake return address
-		child_state.tf.tf_eip = (uint32_t) child;
-		child_state.tf.tf_esp = (uint32_t) esp;
+		child_state.tf.eip = (uint32_t) child;
+		child_state.tf.esp = (uint32_t) esp;
 
 		// Use PUT syscall to create each child,
 		// but only start the first 2 children for now.
@@ -436,13 +438,13 @@ proc_check(void)
 		if (recovargs) {	// trap recovery needed
 			trap_check_args *args = recovargs;
 			cprintf("recover from trap %d\n",
-				child_state.tf.tf_trapno);
-			child_state.tf.tf_eip = (uint32_t) args->reip;
-			args->trapno = child_state.tf.tf_trapno;
+				child_state.tf.trapno);
+			child_state.tf.eip = (uint32_t) args->reip;
+			args->trapno = child_state.tf.trapno;
 		} else
-			assert(child_state.tf.tf_trapno == T_SYSCALL);
+			assert(child_state.tf.trapno == T_SYSCALL);
 		i = (i+1) % 4;	// rotate to next child proc
-	} while (child_state.tf.tf_trapno != T_SYSCALL);
+	} while (child_state.tf.trapno != T_SYSCALL);
 	assert(recovargs == NULL);
 
 	cprintf("proc_check() trap reflection test succeeded\n");
