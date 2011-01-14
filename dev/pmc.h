@@ -1,3 +1,4 @@
+#if LAB >= 9
 // Definitions for using x86 performance monitoring counters
 #ifndef PIOS_KERN_PMC_H_
 #define PIOS_KERN_PMC_H_
@@ -18,3 +19,4 @@ extern int64_t (*pmc_get)(int64_t maxcnt);
 void pmc_init(void);
 
 #endif /* PIOS_KERN_PMC_H_ */
+#endif // LAB >= 9

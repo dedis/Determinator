@@ -1,3 +1,5 @@
+#if LAB >= 9
+
 // Deterministically scheduled "compatibility" implementation of pthreads,
 // supporting nondeterministic constructs like mutexes and condition variables.
 
@@ -1157,3 +1159,4 @@ signal(int sig, sighandler_t newhandler)
 	return NULL;
 }
 
+#endif // LAB >= 9

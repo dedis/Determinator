@@ -1,3 +1,5 @@
+#if LAB >= 9
+
 #include <inc/stdio.h>
 #include <inc/mmu.h>
 #include <inc/syscall.h>
@@ -4484,3 +4486,4 @@ History:
 
 */
 
+#endif // LAB >= 9

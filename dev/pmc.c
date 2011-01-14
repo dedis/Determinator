@@ -1,3 +1,4 @@
+#if LAB >= 9
 // Code to detect and use performance monitoring counters
 
 #include <inc/stdio.h>
@@ -160,3 +161,4 @@ pmc_init(void)
 			"instruction counting will be VERY slow!\n");
 }
 
+#endif // LAB >= 9

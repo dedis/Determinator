@@ -1,3 +1,4 @@
+#if LAB >= 9
 /*-
  * Copyright (c) 2001-2008 The FreeBSD Project.
  * All rights reserved.
@@ -69,3 +70,4 @@ long double complex
 __END_DECLS
 
 #endif /* _COMPLEX_H */
+#endif // LAB >= 9

@@ -1,3 +1,4 @@
+#if LAB >= 9
 // Minimal version of the pthreads API for PIOS
 #ifndef PIOS_INC_PTHREAD_H
 #define PIOS_INC_PTHREAD_H
@@ -127,4 +128,5 @@ void *pthread_getspecific(pthread_key_t key);
 int pthread_setspecific(pthread_key_t key, const void *val);
 
 #endif	// PIOS_DSCHED
-#endif /* !PIOS_INC_PTHREAD_H */
+#endif	/* !PIOS_INC_PTHREAD_H */
+#endif	// LAB >= 9

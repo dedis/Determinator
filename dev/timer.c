@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 9
 /* See COPYRIGHT for copyright information. */
 
 /* 
@@ -65,4 +65,4 @@ timer_read(void)
 	return ticks;
 }
 
-#endif /* LAB >= 4 */
+#endif /* LAB >= 9 */

@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 9
 /*
  * Register definitions for the Intel
  * 8253/8254/82C54 Programmable Interval Timer (PIT).
@@ -71,4 +71,4 @@
 void timer_init(void);
 uint64_t timer_read(void);
 
-#endif // LAB >= 4
+#endif // LAB >= 9
