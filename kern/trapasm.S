@@ -107,7 +107,7 @@ TRAPHANDLER_NOEC(Xdefault, T_DEFAULT)
 _alltraps:
 	pushl %ds		# build trap frame
 	pushl %es
-	pushl %fs		# build trap frame
+	pushl %fs
 	pushl %gs
 	pushal
 

@@ -150,6 +150,6 @@ typedef int32_t			suseconds_t;
 #define _SIZE_T
 #define _STDINT_H
 #define _PTRDIFF_T
-#endif	// LAB >= 9
 
+#endif	// LAB >= 9
 #endif /* !PIOS_INC_TYPES_H */

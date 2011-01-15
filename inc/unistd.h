@@ -117,17 +117,20 @@ int	unlink(const char *path);
 int	pipe(int fds[2]);
 char *	mktemp(char *template);
 int	mkstemp(char *template);
-#endif
 
 // Program convenience functions
 int	getopt(int argc, char * argv[], const char * optstring);
+#endif	// LAB >= 9
 
 // PIOS-specific thread fork/join functions
 int	tfork(uint16_t child);
 void	tjoin(uint16_t child);
-void	tparallel_begin(int * master, int num_children, void * (* start_routine)(void *),
+#if LAB >= 9
+void	tparallel_begin(int * master, int num_children,
+			void * (* start_routine)(void *),
 			void * args, int status_array[]);
 void	tparallel_end(int master);
+#endif
 
 
 #endif	// !PIOS_INC_UNISTD_H

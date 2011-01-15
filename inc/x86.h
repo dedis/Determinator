@@ -355,6 +355,7 @@ cli(void)
 	asm volatile("cli");
 }
 
+#if LAB >= 5
 // Byte-swap a 32-bit word to convert to/from big-endian byte order.
 // (Reverses the order of the 4 bytes comprising the word.)
 static gcc_inline uint32_t
@@ -370,7 +371,9 @@ bswap(uint32_t v)
 #define ntohs(v)	(((uint16_t)(v) >> 8) | (uint16_t)((v) << 8))
 #define htonl(v)	bswap(v)
 #define ntohl(v)	bswap(v)
+#endif // LAB >= 5
 
+#if LAB >= 9
 // Read and write model-specific registers.
 static gcc_inline uint64_t
 rdmsr(int32_t msr)
@@ -394,6 +397,6 @@ rdpmc(int32_t ctr)
         asm volatile("rdpmc" : "=A" (v) : "c" (ctr));
         return v;
 }
-
+#endif // LAB >= 9
 
 #endif /* !PIOS_INC_X86_H */

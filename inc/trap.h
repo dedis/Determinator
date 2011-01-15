@@ -48,7 +48,9 @@
 // We use these vectors to receive local per-CPU interrupts
 #define T_LTIMER	49	// Local APIC timer interrupt
 #define T_LERROR	50	// Local APIC error interrupt
+#if LAB >= 9
 #define T_PERFCTR	51	// Performance counter overflow interrupt
+#endif
 
 #define T_DEFAULT	500	// Unused trap vectors produce this value
 #define T_ICNT		501	// Child process instruction count expired
