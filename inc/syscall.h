@@ -59,10 +59,10 @@
 #endif	// LAB >= 3
 
 
-// Register conventions for CPUTS system call:
+// Register conventions for CPUTS system call (write to debug console):
 //	EAX:	System call command
-//	EBX:	User pointer to string to output to console
-#define SYS_CPUTS_MAX	256	// Max buffer length cputs will accept
+//	EBX:	User pointer to string to output to debug console,
+//		up to CPUTS_MAX characters long (see inc/assert.h)
 
 
 // Register conventions on GET/PUT system call entry:

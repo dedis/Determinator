@@ -19,12 +19,13 @@
 
 #include <inc/types.h>
 #include <inc/stdio.h>
-#include <inc/ctype.h>
 #include <inc/string.h>
 #include <inc/stdarg.h>
 #include <inc/assert.h>
+#if LAB >= 9
 #include <inc/ctype.h>
 #include <inc/math.h>
+#endif
 
 typedef struct printstate {
 	void (*putch)(int ch, void *putdat);	// character output function
@@ -93,9 +94,11 @@ putstr(printstate *st, const char *str, int maxlen)
 		putpad(st);		// (also leaves st->width == 0)
 	while (str < lim) {
 		char ch = *str++;
+#if LAB >= 9
 		if ((st->flags & F_ALT) && !isprint(ch))
 			st->putch('?', st->putdat);
 		else
+#endif
 			st->putch(ch, st->putdat);
 	}
 	putpad(st);			// print right-side padding

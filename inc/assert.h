@@ -14,6 +14,11 @@
 #include <stdio.h>
 #include <cdefs.h>
 
+// The cputs() function is the basic debug-printing function in PIOS.
+// Implemented in kern/console.c (kernel) or lib/cputs.c (user-level code).
+void	cputs(const char *str);
+#define CPUTS_MAX	256	// Max buffer length cputs() will accept
+
 void debug_warn(const char*, int, const char*, ...);
 void debug_panic(const char*, int, const char*, ...) gcc_noreturn;
 void debug_dump(const char*, int, const void *ptr, int size);

@@ -136,9 +136,9 @@ do_cputs(trapframe *tf, uint32_t cmd)
 {
 	// Print the string supplied by the user: pointer in EBX
 #if SOL >= 3
-	char buf[SYS_CPUTS_MAX+1];
-	usercopy(tf, 0, buf, tf->regs.ebx, SYS_CPUTS_MAX);
-	buf[SYS_CPUTS_MAX] = 0;	// make sure it's null-terminated
+	char buf[CPUTS_MAX+1];
+	usercopy(tf, 0, buf, tf->regs.ebx, CPUTS_MAX);
+	buf[CPUTS_MAX] = 0;	// make sure it's null-terminated
 	cprintf("%s", buf);
 #else	// SOL < 3
 	cprintf("%s", (char*)tf->regs.ebx);

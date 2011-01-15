@@ -17,12 +17,16 @@
 #include <inc/x86.h>
 #include <inc/string.h>
 #include <inc/assert.h>
+#if LAB >= 2
 #include <inc/syscall.h>
+#endif
 
 #include <kern/cpu.h>
 #include <kern/console.h>
-#include <kern/spinlock.h>
 #include <kern/mem.h>
+#if LAB >= 2
+#include <kern/spinlock.h>
+#endif
 #if LAB >= 4
 #include <kern/file.h>
 #endif

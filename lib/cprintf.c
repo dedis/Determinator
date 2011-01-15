@@ -22,13 +22,13 @@
 #include <inc/types.h>
 #include <inc/stdio.h>
 #include <inc/stdarg.h>
-#include <inc/syscall.h>
+#include <inc/assert.h>
 
 
 #if LAB < 2
-#define SYS_CPUTS_MAX	256	// Max buffer length cputs will accept
+#define CPUTS_MAX	256	// Max buffer length cputs will accept
 #endif
-// Collect up to SYS_CPUTS_MAX-1 characters into a buffer
+// Collect up to CPUTS_MAX-1 characters into a buffer
 // and perform ONE system call to print all of them,
 // in order to make the lines output to the console atomic
 // and prevent interrupts from causing context switches
@@ -36,7 +36,7 @@
 struct printbuf {
 	int idx;	// current buffer index
 	int cnt;	// total bytes printed so far
-	char buf[SYS_CPUTS_MAX];
+	char buf[CPUTS_MAX];
 };
 
 
@@ -44,7 +44,7 @@ static void
 putch(int ch, struct printbuf *b)
 {
 	b->buf[b->idx++] = ch;
-	if (b->idx == SYS_CPUTS_MAX-1) {
+	if (b->idx == CPUTS_MAX-1) {
 		b->buf[b->idx] = 0;
 		cputs(b->buf);
 		b->idx = 0;
