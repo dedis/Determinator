@@ -42,9 +42,11 @@ lapic_init()
 
 	// The timer repeatedly counts down at bus frequency
 	// from lapic[TICR] and then issues an interrupt.  
-	// First initialize it to the maximum value for calibration.
 	lapicw(TDCR, X1);
 	lapicw(TIMER, PERIODIC | T_LTIMER);
+
+#if LAB >= 9
+	// First initialize TICR to the maximum value for calibration.
 	lapicw(TICR, ~(uint32_t)0); 
 
 	// Use the 8253 Programmable Interval Timer (PIT),
@@ -62,6 +64,11 @@ lapic_init()
 	cprintf("CPU%d: %llu.%09lluHz\n", cpu_cur()->id,
 		lhz / 1000000000, lhz % 1000000000);
 	lapicw(TICR, ltot);
+#else
+	// If we cared more about precise timekeeping,
+	// we would calibrate TICR with another time source such as the PIT.
+	lapicw(TICR, 10000000);
+#endif
 
 	// Disable logical interrupt lines.
 	lapicw(LINT0, MASKED);
@@ -74,7 +81,9 @@ lapic_init()
 
 	// Map other interrupts to appropriate vectors.
 	lapicw(ERROR, T_LERROR);
+#if LAB >= 9
 	lapicw(PCINT, T_PERFCTR);
+#endif
 
 	// Set up to lowest-priority, "anycast" interrupts
 	lapicw(LDR, 0xff << 24);	// Accept all interrupts

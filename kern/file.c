@@ -123,6 +123,7 @@ file_initroot(proc *root)
 					ROUNDUP(filesize, PAGESIZE),
 					SYS_READ | SYS_WRITE);
 		memcpy(FILEDATA(ino), initfiles[i][1], filesize);
+#if LAB >= 9
 
 		// XXX hack: allow initial files to be bigger than 4MB,
 		// by reserving the other inodes for nonexistent files.
@@ -136,6 +137,7 @@ file_initroot(proc *root)
 			ino++;
 		}
 		assert(ino <= FILE_INODES);
+#endif
 	}
 #else
 	// Lab 4: your file system initialization code here.

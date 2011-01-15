@@ -140,6 +140,7 @@ proc_save(proc *p, trapframe *tf, int entry)
 		p->sv.tf = *tf;		// integer register state
 	if (entry == 0)
 		p->sv.tf.eip -= 2;	// back up to replay INT instruction
+#if LAB >= 9
 
 	if (p->sv.pff & PFF_USEFPU) {	// FPU state
 		assert(sizeof(p->sv.fx) == 512);
@@ -168,7 +169,8 @@ proc_save(proc *p, trapframe *tf, int entry)
 	}
 	assert(!(p->sv.tf.eflags & FL_TF));
 	assert(p->pmcmax == 0);
-#endif
+#endif	// LAB >= 9
+#endif	// SOL >= 2
 }
 
 // Go to sleep waiting for a given child process to finish running.
@@ -253,6 +255,7 @@ proc_run(proc *p)
 
 	spinlock_release(&p->lock);
 
+#if LAB >= 9
 	if (p->sv.pff & PFF_USEFPU) {	// FPU state
 		assert(sizeof(p->sv.fx) == 512);
 		lcr0(rcr0() & ~CR0_TS);	// enable FPU
@@ -287,6 +290,7 @@ proc_run(proc *p)
 		assert(!(p->sv.tf.eflags & FL_TF));
 		assert(p->pmcmax == 0);
 	}
+#endif	// LAB >= 9
 #if SOL >= 3
 	// Switch to the new process's address space.
 	lcr3(mem_phys(p->pdir));

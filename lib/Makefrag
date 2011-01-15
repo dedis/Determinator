@@ -12,12 +12,10 @@
 OBJDIRS += lib
 
 # Source files comprising the minimal PIOS C library.
-LIB_SRCFILES :=		lib/console.c \
-			lib/debug.c \
+LIB_SRCFILES :=		lib/debug.c \
 			lib/cputs.c \
 			lib/cprintf.c \
 			lib/printfmt.c \
-			lib/scanfmt.c \
 			lib/string.c \
 			lib/file.c \
 			lib/dir.c \
@@ -30,7 +28,12 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/fprintf.c \
 			lib/strerror.c \
 			lib/readline.c \
-			lib/thread.c \
+			lib/thread.c
+ifdef LAB9
+# Additional C library files not needed by PIOS itself
+# but needed in many applications we may wish to run on PIOS.
+LIB_SRCFILES +=		lib/bench.c \
+			lib/scanfmt.c \
 			lib/pthread.c \
 			lib/getopt.c \
 			lib/lrand48.c \
@@ -38,12 +41,7 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/time.c \
 			lib/rngs.c \
 			lib/dlmalloc.c \
-			lib/mman.c
-
-ifdef LAB9
-# Additional C library files not needed by PIOS itself
-# but needed in many applications we may wish to run on PIOS.
-LIB_SRCFILES +=		lib/bench.c \
+			lib/mman.c \
 			lib/stdio/putc.c \
 			lib/stdio/getc.c \
 			lib/stdio/puts.c \

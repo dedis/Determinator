@@ -115,7 +115,9 @@ init(void)
 	// Find and start other processors in a multiprocessor system
 	mp_init();		// Find info about processors in system
 	pic_init();		// setup the legacy PIC (mainly to disable it)
+#if LAB >= 9
 	timer_init();		// 8253 timer, used to calibrate LAPIC timers
+#endif
 	ioapic_init();		// prepare to handle external device interrupts
 	lapic_init();		// setup this CPU's local APIC
 	cpu_bootothers();	// Get other processors started
@@ -132,7 +134,9 @@ init(void)
 
 #if SOL >= 4
 	cons_intenable();	// Let the console start producing interrupts
+#if LAB >= 9
 	pmc_init();		// Init perf monitoring counters
+#endif
 #else
 	// Lab 4: uncomment this when you can handle IRQ_SERIAL and IRQ_KBD.
 	//cons_intenable();	// Let the console start producing interrupts
@@ -148,8 +152,10 @@ init(void)
 	static trapframe utf = {
 #if LAB >= 9
 		gs: CPU_GDT_UDTLS | 3,
-		fs: 0,
+#else
+		gs: 0,
 #endif
+		fs: 0,
 		ds: CPU_GDT_UDATA | 3,
 		es: CPU_GDT_UDATA | 3,
 		eip: (uint32_t) user,

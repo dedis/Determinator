@@ -23,7 +23,7 @@
 #include <kern/net.h>
 #endif
 
-#if SOL >= 4
+#if LAB >= 9
 #include <dev/timer.h>
 #endif
 
@@ -308,11 +308,13 @@ do_get(trapframe *tf, uint32_t cmd)
 		int len = offsetof(procstate, fx);	// just integer regs
 		if (cmd & SYS_FPU) len = sizeof(procstate); // whole shebang
 
+#if LAB >= 9
 		// Hide our instruction counting from user code.
 		// (XXX maintain a virtual TF for the user.)
 		//cp->sv.tf.eflags &= ~FL_TF;
 		assert(!(cp->sv.tf.eflags & FL_TF));
 
+#endif
 		// Copy child process's trapframe into user space
 #if SOL >= 3
 		usercopy(tf, 1, &cp->sv, tf->regs.ebx, len);

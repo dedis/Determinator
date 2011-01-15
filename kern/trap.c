@@ -129,7 +129,9 @@ trap_init_idt(void)
 	// Vectors we use for local APIC interrupts
 	SETGATE(idt[T_LTIMER], 0, CPU_GDT_KCODE, &Xltimer, 0);
 	SETGATE(idt[T_LERROR], 0, CPU_GDT_KCODE, &Xlerror, 0);
+#if LAB >= 9
 	SETGATE(idt[T_PERFCTR], 0, CPU_GDT_KCODE, &Xperfctr, 0);
+#endif
 
 #endif	// SOL >= 2
 #else	// not SOL >= 1

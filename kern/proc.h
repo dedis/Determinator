@@ -80,7 +80,7 @@ typedef struct proc {
 	uint8_t		arrived;	// Bits 0-2: which parts have arrived
 #endif
 #endif	// LAB >= 3
-#if SOL >= 2
+#if LAB >= 9
 
 	int32_t		pmcmax;		// Max insn count set using perf ctrs
 #endif

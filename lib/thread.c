@@ -75,16 +75,6 @@ tfork(uint16_t child)
 	return 1;
 }
 
-
-void
-tresume(uint16_t child)
-{
-	// Restart a child after it has stopped.
-	// Refresh child's memory state to match parent's.
-	sys_put( SYS_COPY | SYS_SNAP | SYS_START, child,
-		 NULL, SHAREVA, SHAREVA, SHARESIZE);
-}
-
 void
 tjoin(uint16_t child)
 {
@@ -103,6 +93,15 @@ tjoin(uint16_t child)
 	}
 }
 
+#if LAB >= 9
+void
+tresume(uint16_t child)
+{
+	// Restart a child after it has stopped.
+	// Refresh child's memory state to match parent's.
+	sys_put( SYS_COPY | SYS_SNAP | SYS_START, child,
+		 NULL, SHAREVA, SHAREVA, SHARESIZE);
+}
 
 typedef struct internal_args_t {
 	int num_children;
@@ -175,6 +174,5 @@ tparallel_end(int master)
 	}
 }
 
-
-
+#endif // LAB >= 9
 #endif // LAB >= 4

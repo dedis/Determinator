@@ -13,12 +13,6 @@ ifdef LAB3
 OBJDIRS += user
 
 
-user/lu_cont.c: splash/codes/kernels/lu/contiguous_blocks/lu.C
-	    make -C splash/codes/kernels/lu/contiguous_blocks/
-
-user/lu_noncont.c: splash/codes/kernels/lu/non_contiguous_blocks/lu.C
-	    make -C splash/codes/kernels/lu/non_contiguous_blocks/
-
 $(OBJDIR)/user/%.o: user/%.c
 	@echo + cc[USER] $<
 	@mkdir -p $(@D)
@@ -30,8 +24,14 @@ $(OBJDIR)/user/%: $(OBJDIR)/user/%.o $(USER_LDDEPS)
 	$(V)$(OBJDUMP) -S $@ > $@.asm
 	$(V)$(NM) -n $@ > $@.sym
 
+ifdef LAB9
+# LU decomposition benchmarks from SPLASH suite
+user/lu_cont.c: splash/codes/kernels/lu/contiguous_blocks/lu.C
+	    make -C splash/codes/kernels/lu/contiguous_blocks/
 
-#if LAB >= 9
+user/lu_noncont.c: splash/codes/kernels/lu/non_contiguous_blocks/lu.C
+	    make -C splash/codes/kernels/lu/non_contiguous_blocks/
+
 # Host versions of benchmark programs, for comparison purposes
 all: obj/host/matmult obj/host/pqsort obj/host/bcrack obj/host/microbench
 
@@ -39,8 +39,6 @@ $(OBJDIR)/host/%: user/%.c lib/bench.c
 	@echo + ld $@
 	$(V)mkdir -p $(OBJDIR)/host
 	$(V)gcc -g -m32 -O2 -o $@ -I$(TOP) -DLAB=9 -DSOL=9 $^ -lpthread
-#endif
-
 
 # Special target to set up PARSEC benchmark programs and data
 # in the 'fs' subdirectory, to get included in the initial file system.
@@ -62,4 +60,5 @@ parsec: $(PARSEC_APPS)
 	$(TOP)/../parsec/bin/parsecmgmt -c pios -p $@ -a build
 	ln -sf ../../parsec/pkgs/apps/$@/obj/$(PARSEC_CONFIG)/$@ fs/$@
 
+endif
 endif

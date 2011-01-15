@@ -93,6 +93,7 @@ fputc(int c, FILE *fd)
 	return ch;
 }
 
+#if LAB >= 9
 int
 ungetc(int c, FILE *fd)
 {
@@ -109,6 +110,7 @@ ungetc(int c, FILE *fd)
 	return c;
 }
 
+#endif	// LAB >= 9
 size_t
 fread(void *buf, size_t eltsize, size_t count, FILE *fd)
 {

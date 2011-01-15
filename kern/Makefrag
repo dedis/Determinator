@@ -35,17 +35,19 @@ KERN_SRCFILES :=	kern/entry.S \
 			dev/serial.c \
 			dev/pic.c \
 			dev/nvram.c \
-			dev/timer.c \
 			dev/lapic.c \
 			dev/ioapic.c \
 			dev/pci.c \
 			dev/e100.c \
-			dev/pmc.c \
 			lib/printfmt.c \
 			lib/cprintf.c \
 			lib/sprintf.c \
 			lib/string.c \
 			lib/syscall.c
+ifdef LAB9
+KERN_SRCFILES +=	dev/timer.c \
+			dev/pmc.c
+endif
 
 # Build files only if they exist.
 KERN_SRCFILES := $(wildcard $(KERN_SRCFILES))
@@ -59,7 +61,7 @@ KERN_INITFILES :=	sh \
 			wc \
 			testfs \
 			testvm
-#if LAB >= 9
+ifdef LAB9
 # Performance benchmarking programs
 KERN_INITFILES +=	matmult \
 			microbench \
@@ -75,7 +77,7 @@ KERN_INITFILES +=	matmult \
 # Anything we find in the 'fs' subdirectory also becomes a file.
 KERN_FSFILES :=		$(wildcard fs/*)
 KERN_INITFILES +=	$(patsubst fs/%,%,$(KERN_FSFILES))
-#endif
+endif
 endif
 
 ifdef LAB5
@@ -124,7 +126,7 @@ $(OBJDIR)/dev/%.o: dev/%.c
 	@mkdir -p $(@D)
 	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
 
-# Compile the kernel version of a C library file into the obj/kern directory
+# Compile kernel versions of C library sources into the obj/kern directory
 # (see the note above about KERN_OBJFILES).
 $(OBJDIR)/kern/%.o: lib/%.c
 	@echo + cc $<
