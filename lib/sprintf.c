@@ -1,4 +1,4 @@
-#if LAB >= 1
+#if LAB >= 4
 // Formatted printing to strings,
 // based on the formatting code in printfmt.c.
 
@@ -76,4 +76,4 @@ snprintf(char *buf, int n, const char *fmt, ...)
 	return rc;
 }
 
-#endif // LAB >= 1
+#endif // LAB >= 4

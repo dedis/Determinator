@@ -1,3 +1,4 @@
+#if LAB >= 3
 /*
  * User-space implementation of cputs() for console output,
  * which just feeds the string to the sys_cputs() system call.
@@ -16,3 +17,4 @@ void cputs(const char *str)
 	sys_cputs(str);
 }
 
+#endif	// LAB >= 3

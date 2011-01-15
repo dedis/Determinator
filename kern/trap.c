@@ -245,6 +245,7 @@ trap(trapframe *tf)
 	if (c->recover)
 		c->recover(tf, c->recoverdata);
 
+#if LAB >= 2
 #if SOL >= 2
 	proc *p = proc_cur();
 	switch (tf->trapno) {
@@ -384,14 +385,15 @@ trap(trapframe *tf)
 		trap_print(tf);
 		proc_ret(tf, -1);	// Reflect trap to parent process
 	}
-#endif	// SOL >= 2
+#else	// SOL < 2
+	// Lab 2: your trap handling code here!
+#endif	// SOL < 2
 
-#if LAB >= 2
 	// If we panic while holding the console lock,
 	// release it so we don't get into a recursive panic that way.
 	if (spinlock_holding(&cons_lock))
 		spinlock_release(&cons_lock);
-#endif
+#endif	// LAB >= 2
 	trap_print(tf);
 	panic("unhandled trap");
 }

@@ -42,8 +42,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			lib/printfmt.c \
 			lib/cprintf.c \
 			lib/sprintf.c \
-			lib/string.c \
-			lib/syscall.c
+			lib/string.c
 ifdef LAB9
 KERN_SRCFILES +=	dev/timer.c \
 			dev/pmc.c

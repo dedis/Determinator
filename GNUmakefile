@@ -346,10 +346,10 @@ qemu-gdb-nox: $(IMAGES) .gdbinit
 
 # For deleting the build
 clean:
-	rm -rf $(OBJDIR)
+	rm -rf $(OBJDIR) grade-out
 
 realclean: clean
-	rm -rf lab$(LAB).tar.gz grade-out
+	rm -rf lab$(LAB).tar.gz
 
 distclean: realclean
 	rm -rf conf/gcc.mk

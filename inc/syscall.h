@@ -88,10 +88,12 @@
 
 // Process state save area format for GET/PUT with SYS_REGS flags
 typedef struct procstate {
+	trapframe	tf;		// general registers
 	uint32_t	pff;		// process feature flags - see below
+#if LAB >= 9
 	uint32_t	icnt;		// insns executed so far
 	uint32_t	imax;		// max insns to execute before ret
-	trapframe	tf;		// general registers
+#endif
 	fxsave		fx;		// x87/MMX/XMM registers
 } procstate;
 

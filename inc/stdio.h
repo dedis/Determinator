@@ -20,6 +20,19 @@
 #define NULL	((void *) 0)
 #endif /* !NULL */
 
+// Primitive formatted printing functions: lib/printfmt.c
+void	printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...);
+void	vprintfmt(void (*putch)(int, void*), void *putdat,
+		const char *fmt, va_list);
+
+// Debug console output functions.
+// These are available in both the PIOS kernel and in user space,
+// but are implemented differently in user space and in the kernel.
+void	cputs(const char *str);			// lib/cputs.c or kern/cons.c
+int	cprintf(const char *fmt, ...);		// lib/cprintf.c
+int	vcprintf(const char *fmt, va_list);	// lib/cprintf.c
+
+#if LAB >= 4
 #ifndef SEEK_SET
 #define SEEK_SET	0	/* seek relative to beginning of file */
 #define SEEK_CUR	1	/* seek relative to current file position */
@@ -33,7 +46,6 @@ typedef struct filedesc FILE;
 extern FILE *const stdin;
 extern FILE *const stdout;
 extern FILE *const stderr;
-
 
 // lib/stdio.c
 int	fputc(int c, FILE *fh);
@@ -52,10 +64,7 @@ int	fputs(const char *str, FILE *f);
 #define getchar()	fgetc(stdin)
 #define getc(fh)	fgetc(fh)
 
-// lib/printfmt.c
-void	printfmt(void (*putch)(int, void*), void *putdat, const char *fmt, ...);
-void	vprintfmt(void (*putch)(int, void*), void *putdat,
-		const char *fmt, va_list);
+// lib/sprintf.c
 int	sprintf(char *str, const char *fmt, ...);
 int	vsprintf(char *str, const char *fmt, va_list args);
 int	snprintf(char *str, int size, const char *fmt, ...);
@@ -69,13 +78,6 @@ int	sscanf(const char *str, const char *fmt, ...);
 int	vsscanf(const char *str, const char *fmt, va_list arg);
 
 #endif
-// lib/cputs.c (user space impl) or kern/console.c (kernel impl)
-void	cputs(const char *str);
-
-// lib/cprintf.c
-int	cprintf(const char *fmt, ...);
-int	vcprintf(const char *fmt, va_list);
-
 // lib/fprintf.c
 int	printf(const char *fmt, ...);
 int	vprintf(const char *fmt, va_list args);
@@ -112,6 +114,7 @@ char*	readline(const char *prompt);
 #if LAB >= 9
 // lib/dir.c
 int	rename(const char *oldname, const char *newname);
-#endif // LAB >= 9
 
+#endif // LAB >= 9
+#endif // LAB >= 4
 #endif /* !PIOS_INC_STDIO_H */

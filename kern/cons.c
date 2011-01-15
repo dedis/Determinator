@@ -173,6 +173,7 @@ cputs(const char *str)
 #endif
 }
 
+#if LAB >= 4
 // Synchronize the root process's console special files
 // with the actual console I/O device.
 bool
@@ -211,6 +212,7 @@ cons_io(void)
 	// Lab 4: your console I/O code here.
 	warn("cons_io() not implemented");
 	return 0;	// 0 indicates no I/O done
-#endif
+#endif	// SOL >= 4
 }
+#endif	// LAB >= 4
 

@@ -41,10 +41,12 @@ void cons_intr(int (*proc)(void));
 // Called by init() when the kernel is ready to receive console interrupts.
 void cons_intenable(void);
 
+#if LAB >= 4
 // Called from file_io() in the context of the root process,
 // to synchronize the root process's console special I/O files
 // with the kernel's console I/O buffers.
 // Returns true if I/O was done, false if no new I/O was ready.
 bool cons_io(void);
+#endif
 
 #endif /* PIOS_KERN_CONSOLE_H_ */
