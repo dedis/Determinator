@@ -2,7 +2,7 @@
 #!/bin/sh
 
 qemuopts="-hda obj/kern/kernel.img"
-. ./grade-functions.sh
+. misc/grade-functions.sh
 
 
 $make

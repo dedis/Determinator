@@ -28,7 +28,7 @@ endif
 
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 #
-# Anything in an #if LAB >= 999 always gets cut out by mklab.pl on export,
+# Anything in an #if LAB >= 999 always gets cut out by misc/mklab.pl on export,
 # and thus is for the internal instructor/TA project tree only.
 # Students never see this.
 # 
@@ -214,10 +214,9 @@ include user/Makefrag
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S *.ld
 LAB_DIRS := inc boot kern dev lib user
-LAB_FILES := CODING GNUmakefile mergedep.pl grade-functions.sh .gdbinit.tmpl \
-	boot/sign.pl \
-	conf/env.mk \
-	$(foreach lab,1 2 3 4 5,grade-lab$(lab).sh) \
+LAB_FILES := CODING GNUmakefile misc/mergedep.pl misc/grade-functions.sh \
+	.gdbinit.tmpl boot/sign.pl conf/env.mk \
+	$(foreach lab,1 2 3 4 5,misc/grade-lab$(lab).sh) \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))
 
 # Fake targets to export the student lab handout and solution trees.
@@ -239,21 +238,21 @@ LAB_FILES := CODING GNUmakefile mergedep.pl grade-functions.sh .gdbinit.tmpl \
 export-lab%: always
 	rm -rf lab$*
 	num=`expr $* - $(LABADJUST)`; \
-		$(MKLABENV) $(PERL) mklab.pl $$num 0 lab$* $(LAB_FILES)
+		$(MKLABENV) $(PERL) misc/mklab.pl $$num 0 lab$* $(LAB_FILES)
 	test -d lab$*/conf || mkdir lab$*/conf
 	echo >lab$*/conf/lab.mk "LAB=$*"
 	echo >>lab$*/conf/lab.mk "PACKAGEDATE="`date`
 export-sol%: always
 	rm -rf sol$*
 	num=`expr $* - $(LABADJUST)`; \
-		$(MKLABENV) $(PERL) mklab.pl $$num $$num sol$* $(LAB_FILES)
+		$(MKLABENV) $(PERL) misc/mklab.pl $$num $$num sol$* $(LAB_FILES)
 	test -d sol$*/conf || mkdir sol$*/conf
 	echo >sol$*/conf/lab.mk "LAB=$*"
 	echo >>sol$*/conf/lab.mk "PACKAGEDATE="`date`
 export-prep%: always
 	rm -rf prep$*
 	num=`expr $* - $(LABADJUST)`; \
-		$(MKLABENV) $(PERL) mklab.pl $$num `expr $$num - 1` prep$* $(LAB_FILES)
+		$(MKLABENV) $(PERL) misc/mklab.pl $$num `expr $$num - 1` prep$* $(LAB_FILES)
 	test -d prep$*/conf || mkdir prep$*/conf
 	echo >prep$*/conf/lab.mk "LAB=$*"
 	echo >>prep$*/conf/lab.mk "PACKAGEDATE="`date`
@@ -345,15 +344,15 @@ clean:
 	rm -rf $(OBJDIR)
 
 realclean: clean
-	rm -rf lab$(LAB).tar.gz grade-log
+	rm -rf lab$(LAB).tar.gz grade-out
 
 distclean: realclean
 	rm -rf conf/gcc.mk
 
-grade: grade-lab$(LAB).sh
+grade: misc/grade-lab$(LAB).sh
 	$(V)$(MAKE) clean >/dev/null 2>/dev/null
 	$(MAKE) all
-	sh grade-lab$(LAB).sh
+	sh misc/grade-lab$(LAB).sh
 
 tarball: realclean
 	tar cf - `find . -type f | grep -v '^\.*$$' | grep -v '/CVS/' | grep -v '/\.svn/' | grep -v '/\.git/' | grep -v 'lab[0-9].*\.tar\.gz'` | gzip > lab$(LAB)-handin.tar.gz
@@ -373,10 +372,10 @@ xrun-%:
 # This magic automatically generates makefile dependencies
 # for header files included from C source files we compile,
 # and keeps those dependencies up-to-date every time we recompile.
-# See 'mergedep.pl' for more information.
+# See 'misc/mergedep.pl' for more information.
 $(OBJDIR)/.deps: $(foreach dir, $(OBJDIRS), $(wildcard $(OBJDIR)/$(dir)/*.d))
 	@mkdir -p $(@D)
-	@$(PERL) mergedep.pl $@ $^
+	@$(PERL) misc/mergedep.pl $@ $^
 
 -include $(OBJDIR)/.deps
 
