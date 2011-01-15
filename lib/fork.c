@@ -48,8 +48,8 @@ pid_t fork(void)
 	}
 
 	// Set up the register state for the child
-	struct cpustate cs;
-	memset(&cs, 0, sizeof(cs));
+	struct procstate ps;
+	memset(&ps, 0, sizeof(ps));
 
 	// Use some assembly magic to propagate registers to child
 	// and generate an appropriate starting eip
@@ -62,11 +62,11 @@ pid_t fork(void)
 		"	movl	$1f,%4;"
 		"	movl	$1,%5;"
 		"1:	"
-		: "=m" (cs.tf.regs.esi),
-		  "=m" (cs.tf.regs.edi),
-		  "=m" (cs.tf.regs.ebp),
-		  "=m" (cs.tf.esp),
-		  "=m" (cs.tf.eip),
+		: "=m" (ps.tf.regs.esi),
+		  "=m" (ps.tf.regs.edi),
+		  "=m" (ps.tf.regs.ebp),
+		  "=m" (ps.tf.esp),
+		  "=m" (ps.tf.eip),
 		  "=a" (isparent)
 		:
 		: "ebx", "ecx", "edx");
@@ -86,8 +86,8 @@ pid_t fork(void)
 	}
 
 	// Copy our entire user address space into the child and start it.
-	cs.tf.regs.eax = 0;	// isparent == 0 in the child
-	sys_put(SYS_REGS | SYS_COPY | SYS_START, pid, &cs,
+	ps.tf.regs.eax = 0;	// isparent == 0 in the child
+	sys_put(SYS_REGS | SYS_COPY | SYS_START, pid, &ps,
 		ALLVA, ALLVA, ALLSIZE);
 
 	// Record the inode generation numbers of all inodes at fork time,
@@ -127,19 +127,19 @@ waitpid(pid_t pid, int *status, int options)
 	while (1) {
 		// Wait for the child to finish whatever it's doing,
 		// and extract its CPU and process/file state.
-		struct cpustate cs;
-		sys_get(SYS_COPY | SYS_REGS, pid, &cs,
+		struct procstate ps;
+		sys_get(SYS_COPY | SYS_REGS, pid, &ps,
 			(void*)FILESVA, (void*)VM_SCRATCHLO, PTSIZE);
 		filestate *cfiles = (filestate*)VM_SCRATCHLO;
 
 		// Did the child take a trap?
-		if (cs.tf.trapno != T_SYSCALL) {
+		if (ps.tf.trapno != T_SYSCALL) {
 			// Yes - terminate the child WITHOUT reconciling,
 			// since the child's results are probably invalid.
 			warn("child %d took trap %d, eip %x\n",
-				pid, cs.tf.trapno, cs.tf.eip);
+				pid, ps.tf.trapno, ps.tf.eip);
 			if (status != NULL)
-				*status = WSIGNALED | cs.tf.trapno;
+				*status = WSIGNALED | ps.tf.trapno;
 
 			done:
 			// Clear out the child's address space.

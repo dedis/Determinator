@@ -265,9 +265,9 @@ pthread_sched(void)
 	}
 
 	// Now collect results from threads in the run queue.
-	// Use a static cpustate struct so we can refer to it below
+	// Use a static procstate struct so we can refer to it below
 	// without referring to any registers we're trying to restore.
-	static cpustate cs;
+	static procstate ps;
 	pthread_t t;
 	while (1) {
 #if P_QUANTUM > 0
@@ -290,7 +290,7 @@ if (++dispcnt >= 1000000000/P_QUANTUM) {
 
 		// Merge the thread's memory changes and get its register state.
 		tlock = 0;	// default state for user procs
-		sys_get(SYS_REGS | SYS_MERGE, t->tno, &cs,
+		sys_get(SYS_REGS | SYS_MERGE, t->tno, &ps,
 			(void*)VM_USERLO, (void*)VM_USERLO,
 			VM_PRIVLO - VM_USERLO);
 		int olock = tlock;
@@ -301,11 +301,11 @@ if (++dispcnt >= 1000000000/P_QUANTUM) {
 		assert(olock == 0);
 
 		// Pass on any traps/returns other than quantum expiration.
-		if (cs.tf.trapno == T_SYSCALL) {
+		if (ps.tf.trapno == T_SYSCALL) {
 			sys_ret();	// pass I/O on to our parent
-		} else if (cs.tf.trapno != T_ICNT) {
+		} else if (ps.tf.trapno != T_ICNT) {
 			panic("sched: thread %d trap %d eip %x",
-				t->tno, cs.tf.trapno, cs.tf.eip);
+				t->tno, ps.tf.trapno, ps.tf.eip);
 		}
 
 		// We preempted the thread while running normal user code.
@@ -314,22 +314,22 @@ if (++dispcnt >= 1000000000/P_QUANTUM) {
 
 		// Resume the thread's execution, with new memory state,
 		// and the same register state except for a new quantum.
-		cs.icnt = 0;
-		cs.imax = P_QUANTUM;
+		ps.icnt = 0;
+		ps.imax = P_QUANTUM;
 		tlock = 0;	// tlock state expected by thread
 		sys_put(SYS_REGS | SYS_COPY | SYS_SNAP | SYS_START, t->tno,
-			&cs, (void*)VM_USERLO, (void*)VM_USERLO,
+			&ps, (void*)VM_USERLO, (void*)VM_USERLO,
 			VM_PRIVLO - VM_USERLO);
 		tlock = 2;	// tlock state for master process
 	}
 
 	// Unexpected trap in pthreads code?
-	if (cs.tf.trapno != T_SYSCALL && cs.tf.trapno != T_ICNT)
+	if (ps.tf.trapno != T_SYSCALL && ps.tf.trapno != T_ICNT)
 		panic("sched: thread %d trap %d while mlocked, eip %x",
-			t->tno, cs.tf.trapno, cs.tf.eip);
+			t->tno, ps.tf.trapno, ps.tf.eip);
 
 	// If the thread started using the FPU, remember that.
-	t->pff = cs.pff;
+	t->pff = ps.pff;
 
 	// OK, just resume the thread from where it left off,
 	// with tlock == 2 so it knows it's the master process.
@@ -341,16 +341,16 @@ if (++dispcnt >= 1000000000/P_QUANTUM) {
 		"	movl	%2,%%esp;"
 		"	jmp	*%3;"
 		:
-		: "m" (cs.tf.eflags),
-		  "m" (cs.tf.regs.ebp),
-		  "m" (cs.tf.esp),
-		  "m" (cs.tf.eip),
-		  "a" (cs.tf.regs.eax),
-		  "b" (cs.tf.regs.ebx),
-		  "c" (cs.tf.regs.ecx),
-		  "d" (cs.tf.regs.edx),
-		  "S" (cs.tf.regs.esi),
-		  "D" (cs.tf.regs.edi));
+		: "m" (ps.tf.eflags),
+		  "m" (ps.tf.regs.ebp),
+		  "m" (ps.tf.esp),
+		  "m" (ps.tf.eip),
+		  "a" (ps.tf.regs.eax),
+		  "b" (ps.tf.regs.ebx),
+		  "c" (ps.tf.regs.ecx),
+		  "d" (ps.tf.regs.edx),
+		  "S" (ps.tf.regs.esi),
+		  "D" (ps.tf.regs.edi));
 #else
 	// XXX instead of using popfl to restore the flags,
 	// connive to restore just the condition codes and not FL_TF,
@@ -369,16 +369,16 @@ if (++dispcnt >= 1000000000/P_QUANTUM) {
 		"	movl	%2,%%esp;"
 		"	jmp	*%3;"
 		:
-		: "m" (cs.tf.eflags),
-		  "m" (cs.tf.regs.ebp),
-		  "m" (cs.tf.esp),
-		  "m" (cs.tf.eip),
-		  "m" (cs.tf.regs.eax),
-		  "b" (cs.tf.regs.ebx),
-		  "c" (cs.tf.regs.ecx),
-		  "d" (cs.tf.regs.edx),
-		  "S" (cs.tf.regs.esi),
-		  "D" (cs.tf.regs.edi));
+		: "m" (ps.tf.eflags),
+		  "m" (ps.tf.regs.ebp),
+		  "m" (ps.tf.esp),
+		  "m" (ps.tf.eip),
+		  "m" (ps.tf.regs.eax),
+		  "b" (ps.tf.regs.ebx),
+		  "c" (ps.tf.regs.ecx),
+		  "d" (ps.tf.regs.edx),
+		  "S" (ps.tf.regs.esi),
+		  "D" (ps.tf.regs.edi));
 #endif
 	// (asm fragment does not return here)
 	while (1);
@@ -504,13 +504,13 @@ mret(void)
 	pthread_t t = self();
 	trun(t);
 
-	// Making this cpustate static is safe since only the master uses it,
+	// Making this procstate static is safe since only the master uses it,
 	// and means we don't have to clear it on each use.
-	static cpustate cs = {
+	static procstate ps = {
 		.icnt = 0,
 		.imax = P_QUANTUM,
 	};
-	cs.pff = t->pff | (P_QUANTUM ? PFF_ICNT : 0);
+	ps.pff = t->pff | (P_QUANTUM ? PFF_ICNT : 0);
 
 	// Copy our register state and address space to the child,
 	// (re)start the child, and invoke the scheduler in the master process.
@@ -526,13 +526,13 @@ mret(void)
 		"	jmp	pthread_sched;"	// invoke the scheduler
 		"	.p2align 4,0x90;"
 		"1:	"
-		: "=m" (cs.tf.regs.ebp),
-		  "=m" (cs.tf.esp),
-		  "=m" (cs.tf.eip)
+		: "=m" (ps.tf.regs.ebp),
+		  "=m" (ps.tf.esp),
+		  "=m" (ps.tf.eip)
 		: "i" (T_SYSCALL),
 		  "a" (SYS_PUT | SYS_REGS | SYS_COPY | SYS_SNAP | SYS_START),
 		  "d" (t->tno),
-		  "b" (&cs),
+		  "b" (&ps),
 		  "S" (VM_USERLO),
 		  "D" (VM_USERLO),
 		  "c" (VM_PRIVLO - VM_USERLO),

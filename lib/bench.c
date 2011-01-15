@@ -26,8 +26,8 @@ bench_fork(uint8_t child, void *(*fun)(void *), void *arg)
 	int cmd = SYS_START | SYS_SNAP;
 
 	// Set up the register state for the child
-	struct cpustate cs;
-	memset(&cs, 0, sizeof(cs));
+	struct procstate ps;
+	memset(&ps, 0, sizeof(ps));
 
 	// Use some assembly magic to propagate registers to child
 	// and generate an appropriate starting eip
@@ -40,11 +40,11 @@ bench_fork(uint8_t child, void *(*fun)(void *), void *arg)
 		"	movl	$1f,%4;"
 		"	movl	$1,%5;"
 		"1:	"
-		: "=m" (cs.tf.regs.esi),
-		  "=m" (cs.tf.regs.edi),
-		  "=m" (cs.tf.regs.ebp),
-		  "=m" (cs.tf.esp),
-		  "=m" (cs.tf.eip),
+		: "=m" (ps.tf.regs.esi),
+		  "=m" (ps.tf.regs.edi),
+		  "=m" (ps.tf.regs.ebp),
+		  "=m" (ps.tf.esp),
+		  "=m" (ps.tf.eip),
 		  "=a" (isparent)
 		:
 		: "ebx", "ecx", "edx");
@@ -54,8 +54,8 @@ bench_fork(uint8_t child, void *(*fun)(void *), void *arg)
 	}
 
 	// Fork the child, copying our entire user address space into it.
-	cs.tf.regs.eax = 0;	// isparent == 0 in the child
-	sys_put(cmd | SYS_REGS | SYS_COPY, child, &cs, ALLVA, ALLVA, ALLSIZE);
+	ps.tf.regs.eax = 0;	// isparent == 0 in the child
+	sys_put(cmd | SYS_REGS | SYS_COPY, child, &ps, ALLVA, ALLVA, ALLSIZE);
 }
 
 void
@@ -66,15 +66,15 @@ bench_join(uint8_t child)
 
 	// Wait for the child and retrieve its final CPU state
 	// and whatever changes it made to the shared memory area.
-	struct cpustate cs;
-	sys_get(cmd | SYS_REGS, child, &cs, SHAREVA, SHAREVA, SHARESIZE);
+	struct procstate ps;
+	sys_get(cmd | SYS_REGS, child, &ps, SHAREVA, SHAREVA, SHARESIZE);
 
 	// Make sure the child exited with the expected trap number
-	if (cs.tf.trapno != trapexpect) {
-		cprintf("  eip  0x%08x\n", cs.tf.eip);
-		cprintf("  esp  0x%08x\n", cs.tf.esp);
+	if (ps.tf.trapno != trapexpect) {
+		cprintf("  eip  0x%08x\n", ps.tf.eip);
+		cprintf("  esp  0x%08x\n", ps.tf.esp);
 		panic("join: unexpected trap %d, expecting %d\n",
-			cs.tf.trapno, trapexpect);
+			ps.tf.trapno, trapexpect);
 	}
 }
 

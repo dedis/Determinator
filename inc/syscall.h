@@ -86,15 +86,14 @@
 
 #ifndef __ASSEMBLER__
 
-// CPU state save area format for GET/PUT with SYS_REGS flags
-// XXX rename to 'procstate'?
-typedef struct cpustate {
+// Process state save area format for GET/PUT with SYS_REGS flags
+typedef struct procstate {
 	uint32_t	pff;		// process feature flags - see below
 	uint32_t	icnt;		// insns executed so far
 	uint32_t	imax;		// max insns to execute before ret
 	trapframe	tf;		// general registers
 	fxsave		fx;		// x87/MMX/XMM registers
-} cpustate;
+} procstate;
 
 // process feature enable/status flags
 #define PFF_USEFPU	0x0001		// process has used the FPU
@@ -125,13 +124,13 @@ sys_cputs(const char *s)
 }
 
 static void gcc_inline
-sys_put(uint32_t flags, uint16_t child, cpustate *cpu,
+sys_put(uint32_t flags, uint16_t child, procstate *save,
 		void *localsrc, void *childdest, size_t size)
 {
 	asm volatile("int %0" :
 		: "i" (T_SYSCALL),
 		  "a" (SYS_PUT | flags),
-		  "b" (cpu),
+		  "b" (save),
 		  "d" (child),
 		  "S" (localsrc),
 		  "D" (childdest),
@@ -140,13 +139,13 @@ sys_put(uint32_t flags, uint16_t child, cpustate *cpu,
 }
 
 static void gcc_inline
-sys_get(uint32_t flags, uint16_t child, cpustate *cpu,
+sys_get(uint32_t flags, uint16_t child, procstate *save,
 		void *childsrc, void *localdest, size_t size)
 {
 	asm volatile("int %0" :
 		: "i" (T_SYSCALL),
 		  "a" (SYS_GET | flags),
-		  "b" (cpu),
+		  "b" (save),
 		  "d" (child),
 		  "S" (childsrc),
 		  "D" (localdest),

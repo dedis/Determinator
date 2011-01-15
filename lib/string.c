@@ -216,6 +216,7 @@ memchr(const void *s, int c, size_t n)
 	return NULL;
 }
 
+#if LAB >= 9
 long
 strtol(const char *s, char **endptr, int base)
 {
@@ -263,7 +264,6 @@ strtol(const char *s, char **endptr, int base)
 	return (neg ? -val : val);
 }
 
-#if LAB >= 4
 int
 atoi(const char * nptr) {
 	return (int)strtol(nptr, NULL, 10);
@@ -273,8 +273,6 @@ long
 atol(const char * nptr) {
 	return strtol(nptr, NULL, 10);
 }
-
-
-#endif
+#endif	// LAB >= 9
 
 #endif	// LAB >= 1

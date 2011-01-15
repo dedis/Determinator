@@ -18,9 +18,16 @@
 #define NULL	((void *) 0)
 #endif /* !NULL */
 
+
+// Process exit
 #define EXIT_SUCCESS	0	// Success status for exit()
 #define EXIT_FAILURE	1	// Failure status for exit()
 
+void	exit(int status) gcc_noreturn;
+void	abort(void) gcc_noreturn;
+
+
+#if LAB >= 9
 typedef struct {
 	int	quot;		// quotient
 	int	rem;		// remainder
@@ -91,10 +98,6 @@ void *	calloc(size_t nelt, size_t eltsize);
 void *	realloc(void *ptr, size_t newsize);
 void	free(void *ptr);
 
-// Process exit
-void	exit(int status) gcc_noreturn;
-void	abort(void) gcc_noreturn;
-
 // lib/string.c
 int	atoi(const char * nptr);
 long	atol(const char * nptr);
@@ -108,6 +111,6 @@ char *	getenv(const char *name);
 int	putenv(char *string);
 int	setenv(const char *name, const char *val, int overwrite);
 int	unsetenv(const char *name);
-
+#endif	// LAB >= 9
 
 #endif /* !PIOS_INC_STDLIB_H */

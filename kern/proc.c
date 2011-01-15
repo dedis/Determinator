@@ -375,7 +375,7 @@ proc_ret(trapframe *tf, int entry)
 static void child(int n);
 static void grandchild(int n);
 
-static struct cpustate child_state;
+static struct procstate child_state;
 static char gcc_aligned(16) child_stack[4][PAGESIZE];
 
 static volatile uint32_t pingpong = 0;

@@ -185,14 +185,14 @@ do_put(trapframe *tf, uint32_t cmd)
 
 	// Put child's general register state
 	if (cmd & SYS_REGS) {
-		int len = offsetof(cpustate, fx);	// just integer regs
-		if (cmd & SYS_FPU) len = sizeof(cpustate); // whole shebang
+		int len = offsetof(procstate, fx);	// just integer regs
+		if (cmd & SYS_FPU) len = sizeof(procstate); // whole shebang
 
 		// Copy user's trapframe into child process
 #if SOL >= 3
 		usercopy(tf, 0, &cp->sv, tf->regs.ebx, len);
 #else
-		cpustate *cs = (cpustate*) tf->regs.ebx;
+		procstate *cs = (procstate*) tf->regs.ebx;
 		memcpy(cp->sv, cs, len);
 #endif
 
@@ -305,8 +305,8 @@ do_get(trapframe *tf, uint32_t cmd)
 
 	// Get child's general register state
 	if (cmd & SYS_REGS) {
-		int len = offsetof(cpustate, fx);	// just integer regs
-		if (cmd & SYS_FPU) len = sizeof(cpustate); // whole shebang
+		int len = offsetof(procstate, fx);	// just integer regs
+		if (cmd & SYS_FPU) len = sizeof(procstate); // whole shebang
 
 		// Hide our instruction counting from user code.
 		// (XXX maintain a virtual TF for the user.)
@@ -317,7 +317,7 @@ do_get(trapframe *tf, uint32_t cmd)
 #if SOL >= 3
 		usercopy(tf, 1, &cp->sv, tf->regs.ebx, len);
 #else
-		cpustate *cs = (cpustate*) tf->regs.ebx;
+		procstate *cs = (procstate*) tf->regs.ebx;
 		memcpy(&cs, &cp->sv, len);
 #endif
 	}

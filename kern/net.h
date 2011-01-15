@@ -96,7 +96,7 @@ typedef struct net_migrq {
 	net_msgtype	type;	// = NET_MIGRQ
 	uint32_t	home;	// Remote ref for proc's home node & physaddr
 	uint32_t	pdir;	// Remote ref for proc's page directory
-	cpustate	cpu;	// Process's CPU state
+	procstate	save;	// Process's saved user-visible state
 } net_migrq;
 
 typedef struct net_migrp {

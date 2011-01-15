@@ -59,8 +59,8 @@ struct stat {
 #define	S_IFMT		0070000		/* type of file mask */
 #define	S_IFREG		0010000		/* regular */
 #define	S_IFDIR		0020000		/* directory */
-#define	S_IFLNK		0030000		/* symbolic link */
 #if LAB >= 9	       			/* Unix file types unused by PIOS */
+#define	S_IFLNK		0030000		/* symbolic link */
 #define	S_IFCHR		0040000		/* character special */
 #define	S_IFBLK		0050000		/* block special */
 #define	S_IFIFO		0060000		/* named pipe (fifo) */
@@ -68,13 +68,12 @@ struct stat {
 #endif
 
 #define S_IFPART	0100000		/* partial file: wait on read at end */
-#define S_IFRAND	0200000		/* file has been randomly written to */
-#define S_IFCONF	0400000		/* write/write conflict(s) detected */
+#define S_IFCONF	0200000		/* write/write conflict(s) detected */
 
 #define	S_ISREG(m)	(((m) & S_IFMT) == S_IFREG)	/* regular file */
 #define	S_ISDIR(m)	(((m) & S_IFMT) == S_IFDIR)	/* directory */
-#define	S_ISLNK(m)	(((m) & S_IFMT) == S_IFLNK)	/* symbolic link */
 #if LAB >= 9
+#define	S_ISLNK(m)	(((m) & S_IFMT) == S_IFLNK)	/* symbolic link */
 #define	S_ISCHR(m)	(((m) & S_IFMT) == S_IFCHR)	/* char special */
 #define	S_ISBLK(m)	(((m) & S_IFMT) == S_IFBLK)	/* block special */
 #define	S_ISFIFO(m)	(((m) & S_IFMT) == S_IFIFO)	/* fifo or socket */

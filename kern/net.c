@@ -258,7 +258,7 @@ net_txmigrq(proc *p)
 	rq.type = NET_MIGRQ;
 	rq.home = p->home;
 	rq.pdir = RRCONS(net_node, mem_phys(p->pdir), 0);
-	rq.cpu = p->sv;
+	rq.save = p->sv;
 	net_tx(&rq, sizeof(rq), NULL, 0);
 #else	// ! SOL >= 5
 	// Lab 5: insert code to create and send out a migrate request
@@ -297,7 +297,7 @@ void net_rxmigrq(net_migrq *migrq)
 	}
 
 	// Copy the CPU state and pdir RR into our proc struct
-	p->sv = migrq->cpu;
+	p->sv = migrq->save;
 	p->rrpdir = migrq->pdir;
 	p->pullva = VM_USERLO;	// pull all user space from USERLO to USERHI
 

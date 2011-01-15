@@ -142,12 +142,14 @@ typedef struct filestate {
 	int		cwd;		// Ref to inode for current directory
 	bool		exited;		// Set to true when this process exits
 	int		status;		// Process exit status - set on exit()
-	int		thself;		// This thread's number, 0 if master
-	void *		thstat;		// Thread exit status - pthread_exit()
 	filedesc	fd[OPEN_MAX];	// File descriptor table
 	fileinode	fi[FILE_INODES]; // "Inodes" describing actual files
 	procinfo	child[PROC_CHILDREN]; 	// Unix state of child processes
+#if LAB >= 9
+	int		thself;		// This thread's number, 0 if master
+	void *		thstat;		// Thread exit status - pthread_exit()
 	int		barriers[PROC_CHILDREN];  // pthread barriers
+#endif
 } filestate;
 
 #define FILES		((filestate *) FILESVA)

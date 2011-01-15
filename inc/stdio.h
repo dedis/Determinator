@@ -61,12 +61,14 @@ int	vsprintf(char *str, const char *fmt, va_list args);
 int	snprintf(char *str, int size, const char *fmt, ...);
 int	vsnprintf(char *str, int size, const char *fmt, va_list args);
 
+#if LAB >= 9
 // lib/scanfmt.c
 int	vscanfmt(int (*lookch)(int action, void *scandat), void *scandat,
 		const char *fmt, va_list);
 int	sscanf(const char *str, const char *fmt, ...);
 int	vsscanf(const char *str, const char *fmt, va_list arg);
 
+#endif
 // lib/cputs.c (user space impl) or kern/console.c (kernel impl)
 void	cputs(const char *str);
 
@@ -79,12 +81,14 @@ int	printf(const char *fmt, ...);
 int	vprintf(const char *fmt, va_list args);
 int	fprintf(FILE *f, const char *fmt, ...);
 int	vfprintf(FILE *f, const char *fmt, va_list args);
+#if LAB >= 9
 int	scanf(const char *fmt, ...);
 int	vscanf(const char *fmt, va_list args);
 int	fscanf(FILE *f, const char *fmt, ...);
 int	vfscanf(FILE *f, const char *fmt, va_list args);
 
 void	perror(const char *s);
+#endif
 
 // lib/stdio.c
 FILE *	fopen(const char *filename, const char *mode);
@@ -102,10 +106,12 @@ int	fileno(FILE *fd);
 #endif
 int	fflush(FILE *fd);
 
-// lib/dir.c
-int	rename(const char *oldname, const char *newname);
-
 // lib/readline.c
 char*	readline(const char *prompt);
+
+#if LAB >= 9
+// lib/dir.c
+int	rename(const char *oldname, const char *newname);
+#endif // LAB >= 9
 
 #endif /* !PIOS_INC_STDIO_H */

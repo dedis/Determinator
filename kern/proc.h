@@ -57,7 +57,7 @@ typedef struct proc {
 	struct proc	*waitchild;	// child proc if waiting for child
 
 	// Save area for user-visible state when process is not running.
-	cpustate	sv;
+	procstate	sv;
 #if LAB >= 3
 
 	// Virtual memory state for this process.
