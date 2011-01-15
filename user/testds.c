@@ -1,3 +1,4 @@
+#if LAB >= 9
 // Test deterministic scheduling-based pthreads
 
 #define PIOS_DSCHED
@@ -114,3 +115,4 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+#endif	// LAB >= 9

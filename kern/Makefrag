@@ -95,13 +95,20 @@ ifdef LAB2
 KERN_BINFILES +=	boot/bootother
 endif
 
+# Kernel object files generated from C (.c) and assembly (.S) source files
 KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))
 KERN_OBJFILES := $(patsubst %.S, $(OBJDIR)/%.o, $(KERN_OBJFILES))
+
+# The kernel needs to link in a few source files from the PIOS C library,
+# but we want to build a special "kernel version" of those source files
+# so they can conditionally compile based on the PIOS_KERNEL cpp symbol.
+# Therefore, compile the kernel versions of library sources into obj/kern.
 KERN_OBJFILES := $(patsubst $(OBJDIR)/lib/%, $(OBJDIR)/kern/%, $(KERN_OBJFILES))
 
+# All binary files to be linked into the kernel will come from the objdir.
 KERN_BINFILES := $(patsubst %, $(OBJDIR)/%, $(KERN_BINFILES))
 
-# How to build kernel object files
+# Rules describing how to build kernel object files
 $(OBJDIR)/kern/%.o: kern/%.c
 	@echo + cc $<
 	@mkdir -p $(@D)
@@ -117,12 +124,14 @@ $(OBJDIR)/dev/%.o: dev/%.c
 	@mkdir -p $(@D)
 	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
 
+# Compile the kernel version of a C library file into the obj/kern directory
+# (see the note above about KERN_OBJFILES).
 $(OBJDIR)/kern/%.o: lib/%.c
 	@echo + cc $<
 	@mkdir -p $(@D)
 	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
 
-# How to build the kernel itself
+# How to link the kernel itself from its object and binary files.
 $(OBJDIR)/kern/kernel: $(KERN_OBJFILES) $(KERN_BINFILES)
 	@echo + ld $@
 	$(V)$(LD) -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(KERN_LDLIBS) \

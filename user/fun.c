@@ -1,3 +1,4 @@
+#if LAB >= 9
 #include <inc/stdlib.h>
 #include <inc/stdio.h>
 #include <inc/unistd.h>
@@ -80,3 +81,5 @@ int main(int argc, char ** argv) {
 
 	return EXIT_SUCCESS;
 }
+
+#endif	// LAB >= 9

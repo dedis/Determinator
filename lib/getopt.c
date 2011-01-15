@@ -1,3 +1,4 @@
+#if LAB >= 9
 #include <inc/stdio.h>
 #include <inc/stdlib.h>
 #include <inc/string.h>
@@ -102,4 +103,4 @@ int getopt(int argc, char * argv[], const char * optstring) {
 	}
 }
 
-
+#endif	// LAB >= 9

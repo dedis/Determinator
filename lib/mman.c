@@ -1,3 +1,4 @@
+#if LAB >= 9
 //minimal mmap/sbrk
 
 #include <inc/mman.h>
@@ -33,3 +34,4 @@ int munmap(void *addr, size_t length)
 	cprintf("unmap addr $x, len %x\n", addr, length);
 	return 0;
 }
+#endif	// LAB >= 9

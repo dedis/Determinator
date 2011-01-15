@@ -1,3 +1,4 @@
+#if LAB >= 9
 // Simple printf-style formatting routines,
 // used in common by scanf, sscanf, fscanf, etc.
 
@@ -271,3 +272,4 @@ scanf(const char *fmt, ...)
 	return rc;
 }
 
+#endif	// LAB >= 9

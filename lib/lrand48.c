@@ -1,5 +1,5 @@
+#if LAB >= 9
 #include <inc/stdint.h>
-
 
 /* Code taken from Gnu glibc 2.8 */
 
@@ -97,5 +97,4 @@ srand48 (long seedval)
 	(void) srand48_r (seedval, &lib_drand48_data);
 }
 
-
-
+#endif	// LAB >= 9

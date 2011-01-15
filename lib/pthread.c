@@ -1,4 +1,4 @@
-#if SOL >= 4
+#if LAB >= 9
 
 ////////// PIOS Deterministic Threads //////////
 
@@ -272,4 +272,4 @@ pthread_t pthread_self(void)
 }
 
 
-#endif // SOL >= 4
+#endif	// LAB >= 9

@@ -1,3 +1,4 @@
+#if LAB >= 9
 /* -------------------------------------------------------------------------
  * This is an ANSI C library for multi-stream random number generation.  
  * The use of this library is recommended as a replacement for the ANSI C 
@@ -179,3 +180,4 @@ static int  initialized   = 0;          /* test for stream initialization */
   else
     cprintf("\n\a ERROR -- the implementation of rngs.c is not correct.\n\n");
 }
+#endif	// LAB >= 9

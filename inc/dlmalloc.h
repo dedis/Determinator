@@ -1,3 +1,4 @@
+#if LAB >= 9
 /* --------------- for PIOS ---------------*/
 #ifndef PIOS_THREAD_MALLOC_H
 #define PIOS_THREAD_MALLOC_H
@@ -1294,3 +1295,4 @@ int mspace_mallopt(int, int);
 #ifdef __cplusplus
 };  /* end of extern "C" */
 #endif /* __cplusplus */
+#endif	// LAB >= 9

@@ -1,3 +1,4 @@
+#if LAB >= 9
 
 #include <inc/stdio.h>
 #include <inc/stdlib.h>
@@ -14,3 +15,4 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+#endif	// LAB >= 9

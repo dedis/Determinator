@@ -27,7 +27,7 @@
 #define gcc_pure		__attribute__((pure))
 #define gcc_pure2		__attribute__((const))
 
-#if SOL >= 4
+#if LAB >= 9
 
 // Surround function declarations in system C header files with these
 // so the C++ compiler will know that they're C and not C++ functions.
@@ -44,6 +44,5 @@
 	__asm__(".weak " #alias);	\
 	__asm__(".equ "  #alias ", " #sym)
 
-#endif	// SOL >= 4
-
+#endif	// LAB >= 9
 #endif	// PIOS_INC_CDEFS_H

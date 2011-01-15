@@ -1,3 +1,4 @@
+#if LAB >= 9
 #ifndef __PIOS_MMAN_H__
 #define __PIOS_MMAN_H__
 
@@ -50,3 +51,4 @@ void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
 int munmap(void *addr, size_t length);
 
 #endif /* __PIOS_MMAN_H__ */
+#endif	// LAB >= 9

@@ -1,3 +1,4 @@
+#if LAB >= 9
 // Brute-force MD5-based "password cracker":
 // exhaustively searches for a short ASCII string
 // whose MD5 hash yields a given hash output.
@@ -155,3 +156,4 @@ main(int argc, char **argv)
 	return 1;
 }
 
+#endif	// LAB >= 9

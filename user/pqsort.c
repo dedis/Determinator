@@ -1,4 +1,4 @@
-//#if LAB >= 3
+#if LAB >= 9
 
 #include <stdio.h>
 #include <string.h>
@@ -277,4 +277,4 @@ main()
 	return 0;
 }
 
-//#endif // LAB >= 3
+#endif	// LAB >= 9

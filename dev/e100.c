@@ -1,3 +1,4 @@
+#if LAB >= 5
 /*
  * Intel E100 network interface device driver.
  *
@@ -7,7 +8,6 @@
  * Primary Author: Silas Boyd-Wickizer at MIT.
  * Adapted for PIOS by Bryan Ford at Yale University.
  */
-#if LAB >= 5
 
 #include <inc/x86.h>
 #include <inc/stdio.h>

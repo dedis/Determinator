@@ -1,3 +1,4 @@
+#if LAB >= 9
 #if 0	// XXX need to decide on how to use the right malloc.  -baf
 #include <inc/malloc.h>
 #include <inc/stdio.h>
@@ -32,3 +33,4 @@ void free(void * ptr) {
 
 }
 #endif
+#endif	// LAB >= 9

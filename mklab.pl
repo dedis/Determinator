@@ -28,8 +28,14 @@ sub dodir {
 sub dofile {
 	my $filename = shift;
 
+	# Recursively process directories
 	if (-d $filename) {
 		dodir($filename);
+		return;
+	}
+
+	# Don't process symbolic links.
+	if (-l $filename) {
 		return;
 	}
 

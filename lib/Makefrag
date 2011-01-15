@@ -40,11 +40,11 @@ LIB_SRCFILES :=		lib/console.c \
 			lib/dlmalloc.c \
 			lib/mman.c
 
-#if LAB >= 9
 ifdef LAB9
 # Additional C library files not needed by PIOS itself
 # but needed in many applications we may wish to run on PIOS.
-LIB_SRCFILES +=		lib/stdio/putc.c \
+LIB_SRCFILES +=		lib/bench.c \
+			lib/stdio/putc.c \
 			lib/stdio/getc.c \
 			lib/stdio/puts.c \
 			lib/stdio/perror.c \
@@ -67,15 +67,10 @@ LIB_SRCFILES +=		lib/stdio/putc.c \
 			lib/string/strcspn.c \
 			lib/intl/iconv.c \
 			lib/intl/gettext.c
-endif
-#endif
-
-#if SOL >= 4
-LIB_SRCFILES +=		lib/bench.c
 
 # Sun math library (snatched from FreeBSD 8.0.0)
 include lib/math/Makefrag
-#endif
+endif
 
 # Build files only if they exist.
 LIB_SRCFILES := $(wildcard $(LIB_SRCFILES))
@@ -97,7 +92,7 @@ $(OBJDIR)/lib/libc.a: $(LIB_OBJFILES)
 	@echo + ar $@
 	$(V)$(AR) r $@ $(LIB_OBJFILES)
 
-#if SOL >= 4
+ifdef LAB9
 # Rules for building a target install tree for a GCC (cross-)compiler
 
 XCDIR := xc/pios
@@ -126,4 +121,4 @@ $(XCDIR)/lib/lib%.a: $(OBJDIR)/lib/libc.a $(XCDIR)/lib
 $(XCDIR)/lib/crt%.o: $(OBJDIR)/lib/crt%.o
 	cp $< $@
 
-#endif
+endif

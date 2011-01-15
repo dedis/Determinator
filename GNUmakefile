@@ -126,16 +126,19 @@ endif
 # Where does GCC have its libgcc.a and libgcc's include directory?
 GCCDIR := $(dir $(shell $(CC) $(CFLAGS) -print-libgcc-file-name))
 
-# x86-64 systems may have the include directory with the 64-bit
+# x86-64 systems may put libgcc's include directory with the 64-bit compiler
 GCCALTDIR := $(dir $(shell $(CC) -print-libgcc-file-name))
 
 # Compiler flags
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
-# XXX modified to -O2 for benchmarking
-CFLAGS += $(DEFS) $(LABDEFS) -O2 -fno-builtin -I$(TOP) -I$(TOP)/inc \
+CFLAGS += $(DEFS) $(LABDEFS) -fno-builtin -I$(TOP) -I$(TOP)/inc \
 		-I$(GCCDIR)/include -I$(GCCALTDIR)/include \
 		-MD -Wall -Wno-unused -Werror -gstabs
+ifdef LAB9
+# Optimize by default only in the research (Determinator) system.
+CFLAGS += -O2
+endif
 
 # Add -fno-stack-protector if the option exists.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 \
@@ -143,7 +146,7 @@ CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 \
 
 LDFLAGS += -L$(OBJDIR)/lib -L$(GCCDIR)
 
-# Kernel versus user compiler flags
+# Compiler flags that differ for kernel versus user-level code.
 KERN_CFLAGS += $(CFLAGS) -DPIOS_KERNEL
 KERN_LDFLAGS += $(LDFLAGS) -nostdlib -Ttext=0x00100000 -L$(GCCDIR)
 KERN_LDLIBS += $(LDLIBS) -lgcc
@@ -228,8 +231,10 @@ include lib/Makefrag
 include user/Makefrag
 #endif
 
-#Phoenix benchmark
+ifdef LAB9
+# Phoenix benchmark
 #include phoenix/phenix-2.0.0/src/Makefrag
+endif
 
 #if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
 # Find all potentially exportable files
@@ -310,9 +315,10 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
 NCPUS = 2
-#if LAB >= 9
+ifdef LAB9
+# Local hack: use more CPUs by default when running on our main test server.
 #NCPUS := $(shell if test `uname -n` = "korz"; then echo 12; else echo 2; fi)
-#endif
+endif
 IMAGES = $(OBJDIR)/kern/kernel.img
 QEMUOPTS = -smp $(NCPUS) -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio \
 		-k en-us -m 1100M
@@ -325,46 +331,44 @@ QEMUNET2 = -net nic,model=i82559er,macaddr=52:54:00:12:34:02 \
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@
 
-ifeq ($(LAB),5)
+ifneq ($(LAB),5)
+# Launch QEMU and run PIOS. Labs 1-4 need only one instance of QEMU.
+qemu: $(IMAGES)
+	$(QEMU) $(QEMUOPTS)
+else
+# Lab 5 is a distributed system, so we need (at least) two instances.
+# Only one instance gets input from the terminal, to avoid confusion.
 qemu: $(IMAGES)
 	@rm -f node?.dump
 	$(QEMU) $(QEMUOPTS) $(QEMUNET2) </dev/null | sed -e 's/^/2: /g' &
 	@sleep 1
 	$(QEMU) $(QEMUOPTS) $(QEMUNET1)
-else
-qemu: $(IMAGES)
-	$(QEMU) $(QEMUOPTS)
 endif
 
+# Launch QEMU without a virtual VGA display (use when X is unavailable).
 qemu-nox: $(IMAGES)
 	echo "*** Use Ctrl-a x to exit"
 	$(QEMU) -nographic $(QEMUOPTS)
 
-ifeq ($(LAB),5)
+ifneq ($(LAB),5)
+# Launch QEMU for debugging. Labs 1-4 need only one instance of QEMU.
+qemu-gdb: $(IMAGES) .gdbinit
+	@echo "*** Now run 'gdb'." 1>&2
+	$(QEMU) $(QEMUOPTS) -S $(QEMUPORT)
+else
+# Launch QEMU for debugging the 2-node distributed system in Lab 5.
 qemu-gdb: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
 	@rm -f node?.dump
 	$(QEMU) $(QEMUOPTS) $(QEMUNET2) </dev/null | sed -e 's/^/2: /g' &
 	@sleep 1
 	$(QEMU) $(QEMUOPTS) $(QEMUNET1) -S $(QEMUPORT)
-else
-qemu-gdb: $(IMAGES) .gdbinit
-	@echo "*** Now run 'gdb'." 1>&2
-	$(QEMU) $(QEMUOPTS) -S $(QEMUPORT)
 endif
 
+# Launch QEMU for debugging, without a virtual VGA display.
 qemu-gdb-nox: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
 	$(QEMU) -nographic $(QEMUOPTS) -S $(QEMUPORT)
-
-which-qemu:
-	@echo $(QEMU)
-
-gdb: $(IMAGES)
-	$(GDB) $(OBJDIR)/kern/kernel
-
-gdb-boot: $(IMAGS)
-	$(GDB) $(OBJDIR)/boot/bootblock.elf
 
 # For deleting the build
 clean:
@@ -384,7 +388,8 @@ grade: grade-lab$(LAB).sh
 tarball: realclean
 	tar cf - `find . -type f | grep -v '^\.*$$' | grep -v '/CVS/' | grep -v '/\.svn/' | grep -v '/\.git/' | grep -v 'lab[0-9].*\.tar\.gz'` | gzip > lab$(LAB)-handin.tar.gz
 
-# For test runs
+ifdef LAB9
+# For test runs.  (XXX probably doesn't work but would be useful; get working!)
 run-%:
 	$(V)rm -f $(OBJDIR)/kern/init.o $(IMAGES)
 	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" $(IMAGES)
@@ -395,6 +400,7 @@ xrun-%:
 	$(V)rm -f $(OBJDIR)/kern/init.o $(IMAGES)
 	$(V)$(MAKE) "DEFS=-DTEST=_binary_obj_user_$*_start -DTESTSIZE=_binary_obj_user_$*_size" $(IMAGES)
 	$(QEMU) $(QEMUOPTS)
+endif
 
 # This magic automatically generates makefile dependencies
 # for header files included from C source files we compile,

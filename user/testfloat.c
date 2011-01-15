@@ -1,3 +1,4 @@
+#if LAB >= 9
 
 #include <stdio.h>
 #include <math.h>
@@ -43,3 +44,4 @@ int main()
 	return 0;
 }
 
+#endif	// LAB >= 9

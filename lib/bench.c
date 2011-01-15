@@ -1,3 +1,4 @@
+#if LAB >= 9
 #ifdef PIOS_USER
 
 ////////// PIOS Deterministic Threads //////////
@@ -128,3 +129,4 @@ bench_time(void)
 }
 
 #endif	// ! PIOS_USER
+#endif	// LAB >= 9

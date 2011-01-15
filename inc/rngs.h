@@ -1,3 +1,4 @@
+#if LAB >= 9
 /* ----------------------------------------------------------------------- 
  * Name            : rngs.h  (header file for the library file rngs.c) 
  * Author          : Steve Park & Dave Geyer
@@ -17,3 +18,4 @@ void   SelectStream(int index);
 void   TestRandom(void);
 
 #endif
+#endif	// LAB >= 9
