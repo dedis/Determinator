@@ -14,7 +14,7 @@
 #include <inc/x86.h>
 #include <inc/trap.h>
 
-#include <kern/console.h>
+#include <kern/cons.h>
 
 #include <dev/serial.h>
 #if LAB >= 4

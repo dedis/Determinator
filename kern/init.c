@@ -18,7 +18,7 @@
 #endif
 
 #include <kern/init.h>
-#include <kern/console.h>
+#include <kern/cons.h>
 #include <kern/debug.h>
 #include <kern/mem.h>
 #include <kern/cpu.h>

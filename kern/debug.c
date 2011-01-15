@@ -13,7 +13,7 @@
 #include <inc/assert.h>
 #include <inc/x86.h>
 
-#include <kern/console.h>
+#include <kern/cons.h>
 #include <kern/debug.h>
 #include <kern/init.h>
 #if LAB >= 2

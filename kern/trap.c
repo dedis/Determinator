@@ -18,7 +18,7 @@
 
 #include <kern/cpu.h>
 #include <kern/trap.h>
-#include <kern/console.h>
+#include <kern/cons.h>
 #include <kern/init.h>
 #if LAB >= 2
 #include <kern/proc.h>
@@ -384,15 +384,14 @@ trap(trapframe *tf)
 		trap_print(tf);
 		proc_ret(tf, -1);	// Reflect trap to parent process
 	}
+#endif	// SOL >= 2
 
-#if SOL >= 2	// XXX just give out this code incl. the cons_lock!
+#if LAB >= 2
 	// If we panic while holding the console lock,
 	// release it so we don't get into a recursive panic that way.
-	extern spinlock cons_lock;	// XXX move to kern/console.h
 	if (spinlock_holding(&cons_lock))
 		spinlock_release(&cons_lock);
 #endif
-#endif	// SOL >= 2
 	trap_print(tf);
 	panic("unhandled trap");
 }

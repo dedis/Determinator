@@ -22,7 +22,7 @@
 #endif
 
 #include <kern/cpu.h>
-#include <kern/console.h>
+#include <kern/cons.h>
 #include <kern/mem.h>
 #if LAB >= 2
 #include <kern/spinlock.h>
@@ -38,7 +38,7 @@
 void cons_intr(int (*proc)(void));
 static void cons_putc(int c);
 
-#if SOL >= 2
+#if LAB >= 2
 spinlock cons_lock;	// Spinlock to make console output atomic
 #endif
 
@@ -66,7 +66,7 @@ cons_intr(int (*proc)(void))
 {
 	int c;
 
-#if SOL >= 2
+#if LAB >= 2
 	spinlock_acquire(&cons_lock);
 #endif
 	while ((c = (*proc)()) != -1) {
@@ -76,10 +76,10 @@ cons_intr(int (*proc)(void))
 		if (cons.wpos == CONSBUFSIZE)
 			cons.wpos = 0;
 	}
-#if SOL >= 2
+#if LAB >= 2
 	spinlock_release(&cons_lock);
 
-#if SOL >= 4	// XXX just give this code to the students!
+#if LAB >= 4
 	// Wake the root process
 	file_wakeroot();
 #endif
@@ -123,7 +123,7 @@ cons_init(void)
 	if (!cpu_onboot())	// only do once, on the boot CPU
 		return;
 
-#if SOL >= 2
+#if LAB >= 2
 	spinlock_init(&cons_lock);
 #endif
 	video_init();
@@ -151,7 +151,7 @@ cons_intenable(void)
 void
 cputs(const char *str)
 {
-#if SOL >= 2
+#if LAB >= 2
 	if (read_cs() & 3)
 		return sys_cputs(str);	// use syscall from user mode
 
@@ -166,7 +166,7 @@ cputs(const char *str)
 	char ch;
 	while (*str)
 		cons_putc(*str++);
-#if SOL >= 2
+#if LAB >= 2
 
 	if (!already)
 		spinlock_release(&cons_lock);

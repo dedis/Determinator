@@ -17,7 +17,7 @@ OBJDIRS += kern
 # from the lib directory, to avoid gratuitous code duplication.
 KERN_SRCFILES :=	kern/entry.S \
 			kern/init.c \
-			kern/console.c \
+			kern/cons.c \
 			kern/debug.c \
 			kern/mem.c \
 			kern/cpu.c \

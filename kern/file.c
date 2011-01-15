@@ -21,7 +21,7 @@
 #include <kern/proc.h>
 #include <kern/file.h>
 #include <kern/init.h>
-#include <kern/console.h>
+#include <kern/cons.h>
 
 
 // Build a table of files to include in the initial file system.

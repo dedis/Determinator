@@ -14,7 +14,7 @@
 
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
-#include <kern/console.h>
+#include <kern/cons.h>
 
 
 void

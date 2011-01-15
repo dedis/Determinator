@@ -26,6 +26,10 @@
 struct iocons;
 
 
+#if LAB >= 2
+extern struct spinlock cons_lock;
+#endif
+
 void cons_init(void);
 
 // Called by device interrupt routines to feed input characters

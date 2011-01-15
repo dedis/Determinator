@@ -37,7 +37,6 @@ through the interrupt.
   e.g., make cons_intr() just dump stuff into an iocons struct directly.
   Get rid of cons.rpos and cons_getc() entirely, probably,
   and make cputs() build atop cons_startio().
-  Maybe just give the students the console spinlock code?
 
 - Instead of putting an ELF loader in the kernel,
   just have a user-mode utility that creates an "initial system snapshot"
@@ -45,8 +44,6 @@ through the interrupt.
 
 - Lab2 or Lab3 challenge problem: add SYS_GET/SYS_PUT option
   to rearrange the process hierarchy and free processes.
-
-- Naming consistency: rename console.{c,h} to cons.{c,h}
 
 - Make the kernel's program loader push at least minimal args on the stack,
   instead of having to kludge lib/entry.S.
