@@ -50,46 +50,20 @@ TOP = .
 
 # Cross-compiler toolchain
 #
-# This Makefile will automatically use the cross-compiler toolchain
-# installed as 'i386-elf-*', if one exists.  If the host tools ('gcc',
+# This Makefile will automatically use a cross-compiler toolchain installed
+# as 'pios-*' or 'i386-elf-*', if one exists.  If the host tools ('gcc',
 # 'objdump', and so forth) compile for a 32-bit x86 ELF target, that will
 # be detected as well.  If you have the right compiler toolchain installed
 # using a different name, set GCCPREFIX explicitly in conf/env.mk
 
 # try to infer the correct GCCPREFIX
 ifndef GCCPREFIX
-GCCPREFIX := $(shell \
-	if pios-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
-	then echo 'pios-'; \
-	elif i386-elf-objdump -i 2>&1 | grep '^elf32-i386$$' >/dev/null 2>&1; \
-	then echo 'i386-elf-'; \
-	elif objdump -i 2>&1 | grep 'elf32-i386' >/dev/null 2>&1; \
-	then echo ''; \
-	else echo "***" 1>&2; \
-	echo "*** Error: Couldn't find an i386-elf version of GCC/binutils." 1>&2; \
-	echo "*** Is the directory with i386-elf-gcc in your PATH?" 1>&2; \
-	echo "*** If your i386-elf toolchain is installed with a command" 1>&2; \
-	echo "*** prefix other than 'i386-elf-', set your GCCPREFIX" 1>&2; \
-	echo "*** environment variable to that prefix and run 'make' again." 1>&2; \
-	echo "*** To turn off this error, run 'gmake GCCPREFIX= ...'." 1>&2; \
-	echo "***" 1>&2; exit 1; fi)
+GCCPREFIX := $(shell sh misc/gccprefix.sh)
 endif
 
 # try to infer the correct QEMU
 ifndef QEMU
-QEMU := $(shell \
-	if test -x /c/cs422/tools/bin/qemu; \
-	then echo /c/cs422/tools/bin/qemu; exit; \
-	elif which qemu > /dev/null; \
-	then echo qemu; exit; \
-	else \
-	qemu=/Applications/Q.app/Contents/MacOS/i386-softmmu.app/Contents/MacOS/i386-softmmu; \
-	if test -x $$qemu; then echo $$qemu; exit; fi; fi; \
-	echo "***" 1>&2; \
-	echo "*** Error: Couldn't find a working QEMU executable." 1>&2; \
-	echo "*** Is the directory containing the qemu binary in your PATH" 1>&2; \
-	echo "*** or have you tried setting the QEMU variable in conf/env.mk?" 1>&2; \
-	echo "***" 1>&2; exit 1)
+QEMU := $(shell sh misc/which-qemu.sh)
 endif
 
 # try to generate unique GDB and network port numbers
@@ -241,6 +215,7 @@ endif
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S *.ld
 LAB_DIRS := inc boot kern dev lib user
 LAB_FILES := CODING GNUmakefile misc/mergedep.pl misc/grade-functions.sh \
+	misc/gccprefix.sh misc/which-qemu.sh \
 	.gdbinit.tmpl boot/sign.pl conf/env.mk \
 	$(foreach lab,1 2 3 4 5,misc/grade-lab$(lab).sh) \
 	$(wildcard $(foreach dir,$(LAB_DIRS),$(addprefix $(dir)/,$(LAB_PATS))))

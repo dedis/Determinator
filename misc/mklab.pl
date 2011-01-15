@@ -43,8 +43,13 @@ sub dofile {
 	if ($filename =~ /.*\.[ch]$/) { $ccode = 1; }
 	my $tmpfilename = "$filename.tmp";
 
+	# Open the input and output files
 	open(INFILE, "<$filename") or die "Can't open $filename";
 	open(OUTFILE, ">$tmpfilename") or die "Can't open $tmpfilename";
+
+	# Preserve the file permissions (e.g., executable) when exporting
+	$perms = (stat($filename))[2] & 0777;
+	chmod $perms, $tmpfilename;
 
 	my $outlines = 0;
 	my $inlines = 0;

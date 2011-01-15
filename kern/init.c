@@ -281,6 +281,10 @@ user()
 	done();
 }
 
+// This is a function that we call when the kernel is "done" -
+// it just puts the processor into an infinite loop.
+// But this is a function so that we can set breakpoints at it.
+// Our grade scripts use this breakpoint to know when to stop QEMU.
 void gcc_noreturn
 done()
 {

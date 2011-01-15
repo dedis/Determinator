@@ -15,7 +15,7 @@ if gmake --version >/dev/null 2>&1; then make=gmake; else make=make; fi
 pts=5
 timeout=30
 preservefs=n
-qemu=`$make -s --no-print-directory which-qemu`
+qemu=`$SHELL misc/which-qemu.sh`
 brkfn=done
 in=/dev/null
 
@@ -33,7 +33,7 @@ run () {
 	if [ "$brkfn" ]; then
 		# Generate a unique GDB port
 		port=$(expr `id -u` % 5000 + 25000)
-		qemuextra="-s -S -p $port"
+		qemuextra="-S -gdb tcp::$port"
 	fi
 
 	t0=`date +%s.%N 2>/dev/null`

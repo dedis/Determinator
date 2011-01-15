@@ -15,6 +15,7 @@
 
 #include <kern/console.h>
 #include <kern/debug.h>
+#include <kern/init.h>
 #if LAB >= 2
 #include <kern/spinlock.h>
 #endif
@@ -53,7 +54,7 @@ debug_panic(const char *file, int line, const char *fmt,...)
 		cprintf("  from %08x\n", eips[i]);
 
 dead:
-	while (1) ;	// just spin
+	done();		// enter infinite loop (see kern/init.c)
 }
 
 /* like panic, but don't */
