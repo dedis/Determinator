@@ -171,9 +171,9 @@ pmap_freeptab(pageinfo *ptabpi)
 pte_t *
 pmap_walk(pde_t *pdir, uint32_t va, bool writing)
 {
-#if SOL >= 3
 	assert(va >= VM_USERLO && va < VM_USERHI);
 
+#if SOL >= 3
 	uint32_t la = va;			// linear = virtual address
 	pde_t *pde = &pdir[PDX(la)];		// find PDE
 	pte_t *ptab;
@@ -311,11 +311,11 @@ pmap_insert(pde_t *pdir, pageinfo *pi, uint32_t va, int perm)
 void
 pmap_remove(pde_t *pdir, uint32_t va, size_t size)
 {
-#if SOL >= 3
 	assert(PGOFF(size) == 0);	// must be page-aligned
 	assert(va >= VM_USERLO && va < VM_USERHI);
 	assert(size <= VM_USERHI - va);
 
+#if SOL >= 3
 	pmap_inval(pdir, va, size);	// invalidate region we're removing
 
 	uint32_t vahi = va + size;
@@ -382,7 +382,6 @@ int
 pmap_copy(pde_t *spdir, uint32_t sva, pde_t *dpdir, uint32_t dva,
 		size_t size)
 {
-#if SOL >= 3
 	assert(PTOFF(sva) == 0);	// must be 4MB-aligned
 	assert(PTOFF(dva) == 0);
 	assert(PTOFF(size) == 0);
@@ -391,6 +390,7 @@ pmap_copy(pde_t *spdir, uint32_t sva, pde_t *dpdir, uint32_t dva,
 	assert(size <= VM_USERHI - sva);
 	assert(size <= VM_USERHI - dva);
 
+#if SOL >= 3
 	// Invalidate both regions we may be modifying
 	pmap_inval(spdir, sva, size);
 	pmap_inval(dpdir, dva, size);
@@ -538,7 +538,6 @@ int
 pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 		pde_t *dpdir, uint32_t dva, size_t size)
 {
-#if SOL >= 3
 	assert(PTOFF(sva) == 0);	// must be 4MB-aligned
 	assert(PTOFF(dva) == 0);
 	assert(PTOFF(size) == 0);
@@ -547,6 +546,7 @@ pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 	assert(size <= VM_USERHI - sva);
 	assert(size <= VM_USERHI - dva);
 
+#if SOL >= 3
 	// Invalidate the source and destination regions we may be modifying.
 	// (We may remove permissions from the source for copy-on-write.)
 	// No need to invalidate rpdir since rpdirs are never loaded.
@@ -620,13 +620,13 @@ pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 int
 pmap_setperm(pde_t *pdir, uint32_t va, uint32_t size, int perm)
 {
-#if SOL >= 3
 	assert(PGOFF(va) == 0);
 	assert(PGOFF(size) == 0);
 	assert(va >= VM_USERLO && va < VM_USERHI);
 	assert(size <= VM_USERHI - va);
 	assert((perm & ~(SYS_RW)) == 0);
 
+#if SOL >= 3
 	pmap_inval(pdir, va, size);	// invalidate region we're modifying
 
 	// Determine the nominal and actual bits to set or clear

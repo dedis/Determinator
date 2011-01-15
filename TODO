@@ -61,15 +61,10 @@ through the interrupt.
 
 - rename kern/mp.* to dev/mp.* (or hw/mp.*)?
 
-- take the #if SOL >= 1 out of debug_panic()
-
 - see if dirwalk can be simplified by using fileino_create()
 	(or a generalized fileino_lookup())
 
 - combine fprintf.c into stdio.c?
-
-- Move #if SOL down below the asserts at the beginning of setperm(),
-  to make the function's API clearer (especially for the 'perm' arg).
 
 - Add an explicit state/type field to struct pageinfo that can distinguish:
 	- free pages
