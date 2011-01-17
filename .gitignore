@@ -1,14 +1,16 @@
 obj
-bochs.log
-bochs.out
 .gdbinit
-conf/lab.mk
 lab?-handin.tar.gz
-lab?/
-sol?/
 grade-out
-xc
 fs
 node?.dump
 */_*.[ch]
 *~
+
+#if LAB >= 9
+# Patterns applicable only to the instructor's master source tree
+xc
+lab?/
+sol?/
+conf/lab.mk
+#endif

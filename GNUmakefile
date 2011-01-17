@@ -214,7 +214,8 @@ endif
 # Find all potentially exportable files
 LAB_PATS := COPYRIGHT Makefrag *.c *.h *.S *.ld
 LAB_DIRS := inc boot kern dev lib user
-LAB_FILES := CODING GNUmakefile misc/mergedep.pl misc/grade-functions.sh \
+LAB_FILES := CODING GNUmakefile .gitignore \
+	misc/mergedep.pl misc/grade-functions.sh \
 	misc/gccprefix.sh misc/which-qemu.sh \
 	.gdbinit.tmpl boot/sign.pl conf/env.mk \
 	$(foreach lab,1 2 3 4 5,misc/grade-lab$(lab).sh) \
