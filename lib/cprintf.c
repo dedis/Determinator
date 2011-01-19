@@ -25,9 +25,6 @@
 #include <inc/assert.h>
 
 
-#if LAB < 2
-#define CPUTS_MAX	256	// Max buffer length cputs will accept
-#endif
 // Collect up to CPUTS_MAX-1 characters into a buffer
 // and perform ONE system call to print all of them,
 // in order to make the lines output to the console atomic
