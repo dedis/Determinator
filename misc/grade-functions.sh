@@ -40,7 +40,7 @@ run () {
 	(
 		ulimit -t $timeout
 		exec $qemu -nographic $qemuopts -serial stdio -monitor null \
-			-no-reboot $qemuextra
+			-no-reboot $qemuextra -m 1100M
 	) <$in >grade-out 2>$err &
 	PID=$!
 
