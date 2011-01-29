@@ -23,7 +23,7 @@
 #include <kern/net.h>
 #endif
 
-#if SOL >= 2
+#if LAB >= 9
 #include <dev/pmc.h>
 #endif
 

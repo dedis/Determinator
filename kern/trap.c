@@ -30,7 +30,10 @@
 #include <kern/net.h>
 #endif
 
+#if LAB >= 9
 #include <dev/timer.h>
+#include <dev/pmc.h>
+#endif
 #include <dev/lapic.h>
 #if LAB >= 4
 #include <dev/kbd.h>
@@ -40,9 +43,6 @@
 #include <dev/e100.h>
 #endif
 #endif // LAB >= 2
-#if SOL >= 2
-#include <dev/pmc.h>
-#endif
 
 
 // Interrupt descriptor table.  Must be built at run time because
@@ -270,13 +270,13 @@ trap(trapframe *tf)
 
 #endif // SOL >= 2
 	case T_LTIMER: ;
-		uint64_t t = timer_read(); // update PIT count high bits
-		//cprintf("LTIMER on %d: %lld\n", c->id, (long long)t);
 #if SOL >= 5
 		net_tick();
 #endif
 		lapic_eoi();
 #if LAB >= 9	// Determinator
+		uint64_t t = timer_read(); // update PIT count high bits
+		//cprintf("LTIMER on %d: %lld\n", c->id, (long long)t);
 #if LAB >= 99
 		{	static uint64_t lastt;
 			static int cnt;

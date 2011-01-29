@@ -37,7 +37,6 @@
 
 #if LAB >= 2
 #include <dev/pic.h>
-#include <dev/timer.h>
 #include <dev/lapic.h>
 #include <dev/ioapic.h>
 #if SOL >= 3	// XXX rdtsc calibration
@@ -49,6 +48,9 @@
 #endif	// LAB >= 5
 #if SOL >= 4
 #include <dev/pmc.h>
+#endif
+#if LAB >= 9
+#include <dev/timer.h>
 #endif
 
 

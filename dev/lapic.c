@@ -17,7 +17,9 @@
 
 #include <kern/cpu.h>
 
+#if LAB >= 9
 #include <dev/timer.h>
+#endif
 #include <dev/lapic.h>
 
 
