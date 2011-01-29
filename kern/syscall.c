@@ -193,7 +193,7 @@ do_put(trapframe *tf, uint32_t cmd)
 		usercopy(tf, 0, &cp->sv, tf->regs.ebx, len);
 #else
 		procstate *cs = (procstate*) tf->regs.ebx;
-		memcpy(cp->sv, cs, len);
+		memcpy(&cp->sv, cs, len);
 #endif
 
 		// Make sure process uses user-mode segments and eflag settings
@@ -320,7 +320,7 @@ do_get(trapframe *tf, uint32_t cmd)
 		usercopy(tf, 1, &cp->sv, tf->regs.ebx, len);
 #else
 		procstate *cs = (procstate*) tf->regs.ebx;
-		memcpy(&cs, &cp->sv, len);
+		memcpy(cs, &cp->sv, len);
 #endif
 	}
 
