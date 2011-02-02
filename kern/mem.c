@@ -169,7 +169,9 @@ mem_init(void)
 //   - NULL if no available physical pages.
 //
 // Hint: pi->refs should not be incremented 
+#if LAB >= 2
 // Hint: be sure to use proper mutual exclusion for multiprocessor operation.
+#endif
 pageinfo *
 mem_alloc(void)
 {
