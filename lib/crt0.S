@@ -58,7 +58,12 @@ args_exist:
 	jmp	1b
 2:
 #endif
+#if LAB >= 4
 	call	exit
+#else
+        movl	$SYS_RET, %eax
+        int	$T_SYSCALL
+#endif
 1:	jmp 1b
 
 

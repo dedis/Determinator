@@ -127,6 +127,7 @@ putint(printstate *st, uintmax_t num, int base)
 	putstr(st, buf, p-buf);		// print it with left/right padding
 }
 
+#if LAB >= 9
 #ifndef PIOS_KERNEL	// the kernel doesn't need or want floating-point
 // Print the integer part of a floating-point number
 static char *
@@ -216,6 +217,7 @@ putfinf(printstate *st, const char *str)
 	putstr(st, buf, -1);
 }
 #endif	// ! PIOS_KERNEL
+#endif  // LAB >= 9
 
 // Main function to format and print a string.
 void
@@ -345,6 +347,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			putint(&st, (uintptr_t) va_arg(ap, void *), 16);
 			break;
 
+#if LAB >= 9
 #ifndef PIOS_KERNEL
 		// floating-point
 		case 'f': case 'F':
@@ -369,6 +372,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			break;
 		    }
 #endif	// ! PIOS_KERNEL
+#endif  // LAB >= 9
 
 		// escaped '%' character
 		case '%':

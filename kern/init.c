@@ -57,8 +57,6 @@
 // User-mode stack for user(), below, to run on.
 static char gcc_aligned(16) user_stack[PAGESIZE];
 
-#define ROOTEXE_START _binary_obj_user_sh_start
-
 // Lab 3: ELF executable containing root process, linked into the kernel
 #ifndef ROOTEXE_START
 #if LAB == 3
@@ -66,6 +64,8 @@ static char gcc_aligned(16) user_stack[PAGESIZE];
 #elif LAB == 4
 #define ROOTEXE_START _binary_obj_user_testfs_start
 #elif LAB >= 5
+#define ROOTEXE_START _binary_obj_user_sh_start
+#else
 #define ROOTEXE_START _binary_obj_user_sh_start
 #endif // LAB >= 5
 #endif
@@ -254,8 +254,10 @@ init(void)
 	assert(pte != NULL);
 	root->sv.tf.esp = VM_STACKHI;
 
+#if LAB >= 4
 	// Give the root process an initial file system.
 	file_initroot(root);
+#endif
 
 	proc_ready(root);	// make the root process ready
 	proc_sched();		// run it

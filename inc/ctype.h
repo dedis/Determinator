@@ -1,4 +1,4 @@
-#if LAB >= 9
+#if LAB >= 3
 #ifndef PIOS_INC_CTYPE_H
 #define PIOS_INC_CTYPE_H
 
@@ -24,4 +24,4 @@ static gcc_inline int tolower(int c)	{ return isupper(c) ? c + 0x20 : c; }
 static gcc_inline int toupper(int c)	{ return islower(c) ? c - 0x20 : c; }
 
 #endif /* not PIOS_INC_CTYPE_H */
-#endif // LAB >= 9
+#endif // LAB >= 3
