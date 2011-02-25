@@ -83,7 +83,7 @@ sysrecover(trapframe *ktf, void *recoverdata)
 // Check a user virtual address block for validity:
 // i.e., make sure the complete area specified lies in
 // the user address space between VM_USERLO and VM_USERHI.
-// If not, abort the syscall by sending a T_GPFLT to the parent,
+// If not, abort the syscall by sending a T_PGFLT to the parent,
 // again as if the user program's INT instruction was to blame.
 //
 // Note: Be careful that your arithmetic works correctly

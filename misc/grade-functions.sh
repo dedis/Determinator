@@ -39,8 +39,13 @@ run () {
 	t0=`date +%s.%N 2>/dev/null`
 	(
 		ulimit -t $timeout
+#if LAB >= 2
+		exec $qemu -nographic $qemuopts -serial stdio -monitor null \
+			-no-reboot $qemuextra -m 1100M -smp 2
+#else
 		exec $qemu -nographic $qemuopts -serial stdio -monitor null \
 			-no-reboot $qemuextra -m 1100M
+#endif
 	) <$in >grade-out 2>$err &
 	PID=$!
 
