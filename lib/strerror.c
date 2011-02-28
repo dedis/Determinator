@@ -1,4 +1,5 @@
 #if LAB >= 4
+#include <inc/stdio.h>
 #if LAB >= 9
 #include <inc/errno.h>
 #include <inc/assert.h>

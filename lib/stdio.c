@@ -123,9 +123,11 @@ fwrite(const void *buf, size_t eltsize, size_t count, FILE *fd)
 {
 	ssize_t actual = filedesc_write(fd, buf, eltsize, count);
 
+#if LAB >= 9
 	// Make sure console output gets flushed every one
 	if (isatty(fd - files->fd) && memchr(buf, '\n', eltsize*count))
 		fflush(fd);
+#endif
 		
 	return actual >= 0 ? actual : 0;	// no error indication
 }

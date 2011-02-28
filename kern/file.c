@@ -123,12 +123,12 @@ file_initroot(proc *root)
 					ROUNDUP(filesize, PAGESIZE),
 					SYS_READ | SYS_WRITE);
 		memcpy(FILEDATA(ino), initfiles[i][1], filesize);
+		ino++;
 #if LAB >= 9
 
 		// XXX hack: allow initial files to be bigger than 4MB,
 		// by reserving the other inodes for nonexistent files.
 		int ninos = ROUNDUP(filesize, PTSIZE) / PTSIZE;
-		ino++;
 		while (--ninos > 0) {
 			files->fi[ino].dino = FILEINO_ROOTDIR;
 			sprintf(files->fi[ino].de.d_name, ".%s_%d",

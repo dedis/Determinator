@@ -63,7 +63,9 @@ tfork(uint16_t child)
 		:
 		: "ebx", "ecx", "edx");
 	if (!isparent) {
+#if LAB >= 9
 		files->thself = child;
+#endif
 		return 0;	// in the child
 	}
 
