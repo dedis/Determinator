@@ -46,10 +46,8 @@
 #if LAB >= 5
 #include <dev/pci.h>
 #endif	// LAB >= 5
-#if SOL >= 4
-#include <dev/pmc.h>
-#endif
 #if LAB >= 9
+#include <dev/pmc.h>
 #include <dev/timer.h>
 #endif
 

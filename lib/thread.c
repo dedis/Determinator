@@ -1,4 +1,4 @@
-#if LAB >= 4
+#if LAB >= 9
 /*
  * Simple "thread" fork/join functions for PIOS.
  * Since the PIOS doesn't actually allow multiple threads
@@ -177,4 +177,4 @@ tparallel_end(int master)
 }
 
 #endif // LAB >= 9
-#endif // LAB >= 4
+#endif // LAB >= 9
