@@ -1,4 +1,4 @@
-#if LAB >= 9
+#if LAB >= 5
 /*
  * Simple "thread" fork/join functions for PIOS.
  * Since the PIOS doesn't actually allow multiple threads
@@ -19,9 +19,11 @@
 #include <inc/assert.h>
 #include <inc/syscall.h>
 #include <inc/vm.h>
-#include <inc/pthread.h>
 #include <inc/file.h>
 #include <inc/errno.h>
+#if LAB >= 9
+#include <inc/pthread.h>
+#endif
 
 #define ALLVA		((void*) VM_USERLO)
 #define ALLSIZE		(VM_USERHI - VM_USERLO)
@@ -177,4 +179,4 @@ tparallel_end(int master)
 }
 
 #endif // LAB >= 9
-#endif // LAB >= 9
+#endif // LAB >= 5
