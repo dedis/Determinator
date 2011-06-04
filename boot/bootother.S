@@ -20,11 +20,11 @@
 # at an address in the low 2^16 bytes.
 #
 # Bootothers (in main.c) sends the STARTUPs, one at a time.
-# It puts this code (start) at 0x7000.
+# It puts this code (start) at 0x7000. RAJAT
 # It puts the correct %esp in start-4,
 # and the place to jump to in start-8.
 #
-# This code is identical to bootasm.S except:
+# This code is identical to boot.S except:
 #   - it does not need to enable A20
 #   - it uses the address at start-4 for the %esp
 #   - it jumps to the address at start-8 instead of calling bootmain

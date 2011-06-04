@@ -22,7 +22,7 @@
 
 void debug_warn(const char*, int, const char*, ...);
 void debug_panic(const char*, int, const char*, ...) gcc_noreturn;
-void debug_trace(uint32_t ebp, uint32_t eips[DEBUG_TRACEFRAMES]);
+void debug_trace(uint64_t ebp, uint64_t eips[DEBUG_TRACEFRAMES]);
 void debug_check(void);
 
 #endif /* PIOS_KERN_DEBUG_H_ */

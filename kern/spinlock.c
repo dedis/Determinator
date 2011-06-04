@@ -47,7 +47,7 @@ spinlock_acquire(struct spinlock *lk)
 
 	// Record info about lock acquisition for debugging.
 	lk->cpu = cpu_cur();
-	debug_trace(read_ebp(), lk->eips);
+	debug_trace(read_rbp(), lk->eips);
 #endif // SOL >= 2
 }
 
@@ -129,9 +129,9 @@ void spinlock_check()
 			for(j=0; j<=i && j < DEBUG_TRACEFRAMES ; j++) 
 			{
 				assert(locks[i].eips[j] >=
-					(uint32_t)spinlock_godeep);
+					(uint64_t)spinlock_godeep);
 				assert(locks[i].eips[j] <
-					(uint32_t)spinlock_godeep+100);
+					(uint64_t)spinlock_godeep+100);
 			}
 		}
 

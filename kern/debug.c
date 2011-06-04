@@ -48,10 +48,10 @@ debug_panic(const char *file, int line, const char *fmt,...)
 	va_end(ap);
 
 	// Then print a backtrace of the kernel call chain
-	uint32_t eips[DEBUG_TRACEFRAMES];
-	debug_trace(read_ebp(), eips);
+	uint64_t eips[DEBUG_TRACEFRAMES];
+	debug_trace(read_rbp(), eips);
 	for (i = 0; i < DEBUG_TRACEFRAMES && eips[i] != 0; i++)
-		cprintf("  from %08x\n", eips[i]);
+		cprintf("  from %016x\n", eips[i]);
 
 dead:
 	done();		// enter infinite loop (see kern/init.c)
@@ -72,15 +72,15 @@ debug_warn(const char *file, int line, const char *fmt,...)
 
 // Record the current call stack in eips[] by following the %ebp chain.
 void gcc_noinline
-debug_trace(uint32_t ebp, uint32_t eips[DEBUG_TRACEFRAMES])
+debug_trace(uint64_t rbp, uint64_t eips[DEBUG_TRACEFRAMES])
 {
 #if SOL >= 1
-	const uint32_t *frame = (const uint32_t*)ebp;
+	const uint64_t *frame = (const uint64_t*)rbp;
 	int i;
 
 	for (i = 0; i < 10 && frame; i++) {
 		eips[i] = frame[1];		// saved %eip
-		frame = (uint32_t*)frame[0];	// saved ebp
+		frame = (uint64_t*)frame[0];	// saved rbp
 	}
 	for (; i < 10; i++)	// zero out rest of eips
 		eips[i] = 0;
@@ -90,15 +90,15 @@ debug_trace(uint32_t ebp, uint32_t eips[DEBUG_TRACEFRAMES])
 }
 
 
-static void gcc_noinline f3(int r, uint32_t *e) { debug_trace(read_ebp(), e); }
-static void gcc_noinline f2(int r, uint32_t *e) { r & 2 ? f3(r,e) : f3(r,e); }
-static void gcc_noinline f1(int r, uint32_t *e) { r & 1 ? f2(r,e) : f2(r,e); }
+static void gcc_noinline f3(int r, uint64_t *e) { debug_trace(read_rbp(), e); }
+static void gcc_noinline f2(int r, uint64_t *e) { r & 2 ? f3(r,e) : f3(r,e); }
+static void gcc_noinline f1(int r, uint64_t *e) { r & 1 ? f2(r,e) : f2(r,e); }
 
 // Test the backtrace implementation for correct operation
 void
 debug_check(void)
 {
-	uint32_t eips[4][DEBUG_TRACEFRAMES];
+	uint64_t eips[4][DEBUG_TRACEFRAMES];
 	int r, i;
 
 	// produce several related backtraces...

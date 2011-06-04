@@ -38,7 +38,7 @@ all: obj/host/matmult obj/host/pqsort obj/host/bcrack obj/host/microbench
 $(OBJDIR)/host/%: user/%.c lib/bench.c
 	@echo + ld $@
 	$(V)mkdir -p $(OBJDIR)/host
-	$(V)gcc -g -m32 -O2 -o $@ -I$(TOP) -DLAB=9 -DSOL=9 $^ -lpthread
+	$(V)gcc -g -m64 -O2 -o $@ -I$(TOP) -DLAB=9 -DSOL=9 $^ -lpthread
 
 # Special target to set up PARSEC benchmark programs and data
 # in the 'fs' subdirectory, to get included in the initial file system.

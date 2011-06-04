@@ -14,14 +14,14 @@
 #endif
 
 
-// Global segment descriptor numbers used by the kernel
-#define CPU_GDT_NULL	0x00	// null descriptor (required by x86 processor)
-#define CPU_GDT_KCODE	0x08	// kernel text
-#define CPU_GDT_KDATA	0x10	// kernel data
-#define CPU_GDT_UCODE	0x18	// user text
-#define CPU_GDT_UDATA	0x20	// user data
-#define CPU_GDT_UDTLS	0x28	// user thread local storage data segment
-#define CPU_GDT_TSS	0x30	// task state segment
+// Protected-mode segment selectors in the kernel's GDT
+#define SEG_NULL	    0x00	// null descriptor (required by x86 processor)
+#define SEG_KERN_CS_16	0x08	// 16-bit kernel code segment
+#define SEG_KERN_CS_32	0x10	// 32-bit kernel code segment
+#define SEG_KERN_DS_32	0x18	// 32-bit kernel data segment
+#define SEG_KERN_CS_64	0x20	// 64-bit kernel segment
+#define SEG_USER_CS_64	0x28	// 64-bit user segment
+#define SEG_TSS		    0x30	// Task state segment
 #define CPU_GDT_NDESC	7	// number of GDT entries used, including null
 
 
@@ -102,7 +102,7 @@ extern int cpu_limit;
 // It always resides at the bottom of the page containing the CPU's stack.
 static inline cpu *
 cpu_cur() {
-	cpu *c = (cpu*)ROUNDDOWN(read_esp(), PAGESIZE);
+	cpu *c = (cpu*)ROUNDDOWN(read_rsp(), PAGESIZE);
 	assert(c->magic == CPU_MAGIC);
 	return c;
 }

@@ -39,7 +39,7 @@ void trap_init(void);
 const char *trap_name(int trapno);
 
 // Pretty-print the general-purpose register save area in a trapframe.
-void trap_print_regs(pushregs *regs);
+void trap_print_regs(trapframe *tf);
 
 // Pretty-print the entire contents of a trapframe to the console.
 void trap_print(trapframe *tf);

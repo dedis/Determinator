@@ -92,7 +92,7 @@ PERL	:= perl
 # If we're not using the special "PIOS edition" of GCC,
 # reconfigure the host OS's compiler for our purposes.
 ifneq ($(GCCPREFIX),pios-)
-CFLAGS += -nostdinc -m32
+CFLAGS += -nostdinc -m64
 LDFLAGS += -nostdlib -m elf_i386
 USER_LDFLAGS += -e start -Ttext=0x40000100
 endif

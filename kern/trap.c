@@ -12,6 +12,7 @@
 #include <inc/mmu.h>
 #include <inc/x86.h>
 #include <inc/assert.h>
+#include <inc/trap.h>
 #if LAB >= 9
 #include <inc/fenv.h>
 #endif
@@ -52,7 +53,7 @@ static struct gatedesc idt[256];
 // This "pseudo-descriptor" is needed only by the LIDT instruction,
 // to specify both the size and address of th IDT at once.
 static struct pseudodesc idt_pd = {
-	sizeof(idt) - 1, (uint32_t) idt
+	sizeof(idt) - 1, (uint64_t) idt
 };
 
 
@@ -83,54 +84,54 @@ trap_init_idt(void)
 
 	// install a default handler
 	for (i = 0; i < sizeof(idt)/sizeof(idt[0]); i++)
-		SETGATE(idt[i], 0, CPU_GDT_KCODE, &Xdefault, 0);
+		SETGATE(idt[i], 0, SEG_KERN_CS_64, &Xdefault, 0,0);
 
-	SETGATE(idt[T_DIVIDE], 0, CPU_GDT_KCODE, &Xdivide, 0);
-	SETGATE(idt[T_DEBUG],  0, CPU_GDT_KCODE, &Xdebug,  0);
-	SETGATE(idt[T_NMI],    0, CPU_GDT_KCODE, &Xnmi,    0);
-	SETGATE(idt[T_BRKPT],  0, CPU_GDT_KCODE, &Xbrkpt,  3);
-	SETGATE(idt[T_OFLOW],  0, CPU_GDT_KCODE, &Xoflow,  3);
-	SETGATE(idt[T_BOUND],  0, CPU_GDT_KCODE, &Xbound,  0);
-	SETGATE(idt[T_ILLOP],  0, CPU_GDT_KCODE, &Xillop,  0);
-	SETGATE(idt[T_DEVICE], 0, CPU_GDT_KCODE, &Xdevice, 0);
-	SETGATE(idt[T_DBLFLT], 0, CPU_GDT_KCODE, &Xdblflt, 0);
-	SETGATE(idt[T_TSS],    0, CPU_GDT_KCODE, &Xtss,    0);
-	SETGATE(idt[T_SEGNP],  0, CPU_GDT_KCODE, &Xsegnp,  0);
-	SETGATE(idt[T_STACK],  0, CPU_GDT_KCODE, &Xstack,  0);
-	SETGATE(idt[T_GPFLT],  0, CPU_GDT_KCODE, &Xgpflt,  0);
-	SETGATE(idt[T_PGFLT],  0, CPU_GDT_KCODE, &Xpgflt,  0);
-	SETGATE(idt[T_FPERR],  0, CPU_GDT_KCODE, &Xfperr,  0);
-	SETGATE(idt[T_ALIGN],  0, CPU_GDT_KCODE, &Xalign,  0);
-	SETGATE(idt[T_MCHK],   0, CPU_GDT_KCODE, &Xmchk,   0);
-	SETGATE(idt[T_SIMD],   0, CPU_GDT_KCODE, &Xsimd,   0);
+	SETGATE(idt[T_DIVIDE], 0, SEG_KERN_CS_64, &Xdivide, 0,0);
+	SETGATE(idt[T_DEBUG],  0, SEG_KERN_CS_64, &Xdebug,  0,0);
+	SETGATE(idt[T_NMI],    0, SEG_KERN_CS_64, &Xnmi,    0,0);
+	SETGATE(idt[T_BRKPT],  0, SEG_KERN_CS_64, &Xbrkpt,  3,0);
+	SETGATE(idt[T_OFLOW],  0, SEG_KERN_CS_64, &Xoflow,  3,0);
+	SETGATE(idt[T_BOUND],  0, SEG_KERN_CS_64, &Xbound,  0,0);
+	SETGATE(idt[T_ILLOP],  0, SEG_KERN_CS_64, &Xillop,  0,0);
+	SETGATE(idt[T_DEVICE], 0, SEG_KERN_CS_64, &Xdevice, 0,0);
+	SETGATE(idt[T_DBLFLT], 0, SEG_KERN_CS_64, &Xdblflt, 0,1);
+	SETGATE(idt[T_TSS],    0, SEG_KERN_CS_64, &Xtss,    0,0);
+	SETGATE(idt[T_SEGNP],  0, SEG_KERN_CS_64, &Xsegnp,  0,0);
+	SETGATE(idt[T_STACK],  0, SEG_KERN_CS_64, &Xstack,  0,0);
+	SETGATE(idt[T_GPFLT],  0, SEG_KERN_CS_64, &Xgpflt,  0,0);
+	SETGATE(idt[T_PGFLT],  0, SEG_KERN_CS_64, &Xpgflt,  0,0);
+	SETGATE(idt[T_FPERR],  0, SEG_KERN_CS_64, &Xfperr,  0,0);
+	SETGATE(idt[T_ALIGN],  0, SEG_KERN_CS_64, &Xalign,  0,0);
+	SETGATE(idt[T_MCHK],   0, SEG_KERN_CS_64, &Xmchk,   0,1);
+	SETGATE(idt[T_SIMD],   0, SEG_KERN_CS_64, &Xsimd,   0,0);
 
 #if SOL >= 2
-	SETGATE(idt[T_IRQ0 + 0], 0, CPU_GDT_KCODE, &Xirq0, 0);
-	SETGATE(idt[T_IRQ0 + 1], 0, CPU_GDT_KCODE, &Xirq1, 0);
-	SETGATE(idt[T_IRQ0 + 2], 0, CPU_GDT_KCODE, &Xirq2, 0);
-	SETGATE(idt[T_IRQ0 + 3], 0, CPU_GDT_KCODE, &Xirq3, 0);
-	SETGATE(idt[T_IRQ0 + 4], 0, CPU_GDT_KCODE, &Xirq4, 0);
-	SETGATE(idt[T_IRQ0 + 5], 0, CPU_GDT_KCODE, &Xirq5, 0);
-	SETGATE(idt[T_IRQ0 + 6], 0, CPU_GDT_KCODE, &Xirq6, 0);
-	SETGATE(idt[T_IRQ0 + 7], 0, CPU_GDT_KCODE, &Xirq7, 0);
-	SETGATE(idt[T_IRQ0 + 8], 0, CPU_GDT_KCODE, &Xirq8, 0);
-	SETGATE(idt[T_IRQ0 + 9], 0, CPU_GDT_KCODE, &Xirq9, 0);
-	SETGATE(idt[T_IRQ0 + 10], 0, CPU_GDT_KCODE, &Xirq10, 0);
-	SETGATE(idt[T_IRQ0 + 11], 0, CPU_GDT_KCODE, &Xirq11, 0);
-	SETGATE(idt[T_IRQ0 + 12], 0, CPU_GDT_KCODE, &Xirq12, 0);
-	SETGATE(idt[T_IRQ0 + 13], 0, CPU_GDT_KCODE, &Xirq13, 0);
-	SETGATE(idt[T_IRQ0 + 14], 0, CPU_GDT_KCODE, &Xirq14, 0);
-	SETGATE(idt[T_IRQ0 + 15], 0, CPU_GDT_KCODE, &Xirq15, 0);
+	SETGATE(idt[T_IRQ0 + 0], 0, SEG_KERN_CS_64, &Xirq0, 0,0);
+	SETGATE(idt[T_IRQ0 + 1], 0, SEG_KERN_CS_64, &Xirq1, 0,0);
+	SETGATE(idt[T_IRQ0 + 2], 0, SEG_KERN_CS_64, &Xirq2, 0,0);
+	SETGATE(idt[T_IRQ0 + 3], 0, SEG_KERN_CS_64, &Xirq3, 0,0);
+	SETGATE(idt[T_IRQ0 + 4], 0, SEG_KERN_CS_64, &Xirq4, 0,0);
+	SETGATE(idt[T_IRQ0 + 5], 0, SEG_KERN_CS_64, &Xirq5, 0,0);
+	SETGATE(idt[T_IRQ0 + 6], 0, SEG_KERN_CS_64, &Xirq6, 0,0);
+	SETGATE(idt[T_IRQ0 + 7], 0, SEG_KERN_CS_64, &Xirq7, 0,0);
+	SETGATE(idt[T_IRQ0 + 8], 0, SEG_KERN_CS_64, &Xirq8, 0,0);
+	SETGATE(idt[T_IRQ0 + 9], 0, SEG_KERN_CS_64, &Xirq9, 0,0);
+	SETGATE(idt[T_IRQ0 + 10], 0, SEG_KERN_CS_64, &Xirq10, 0,0);
+	SETGATE(idt[T_IRQ0 + 11], 0, SEG_KERN_CS_64, &Xirq11, 0,0);
+	SETGATE(idt[T_IRQ0 + 12], 0, SEG_KERN_CS_64, &Xirq12, 0,0);
+	SETGATE(idt[T_IRQ0 + 13], 0, SEG_KERN_CS_64, &Xirq13, 0,0);
+	SETGATE(idt[T_IRQ0 + 14], 0, SEG_KERN_CS_64, &Xirq14, 0,0);
+	SETGATE(idt[T_IRQ0 + 15], 0, SEG_KERN_CS_64, &Xirq15, 0,0);
 
 	// Use DPL=3 here because system calls are explicitly invoked
 	// by the user process (with "int $T_SYSCALL").
-	SETGATE(idt[T_SYSCALL], 0, CPU_GDT_KCODE, &Xsyscall, 3);
+	SETGATE(idt[T_SYSCALL], 0, SEG_KERN_CS_64, &Xsyscall, 3,0);
 
 	// Vectors we use for local APIC interrupts
-	SETGATE(idt[T_LTIMER], 0, CPU_GDT_KCODE, &Xltimer, 0);
-	SETGATE(idt[T_LERROR], 0, CPU_GDT_KCODE, &Xlerror, 0);
+	SETGATE(idt[T_LTIMER], 0, SEG_KERN_CS_64, &Xltimer, 0,0);
+	SETGATE(idt[T_LERROR], 0, SEG_KERN_CS_64, &Xlerror, 0,0);
 #if LAB >= 9
-	SETGATE(idt[T_PERFCTR], 0, CPU_GDT_KCODE, &Xperfctr, 0);
+	SETGATE(idt[T_PERFCTR], 0, SEG_KERN_CS_64, &Xperfctr, 0,0);
 #endif
 
 #endif	// SOL >= 2
@@ -193,23 +194,30 @@ const char *trap_name(int trapno)
 }
 
 void
-trap_print_regs(pushregs *regs)
+trap_print_regs(trapframe *tf)
 {
-	cprintf("  edi  0x%08x\n", regs->edi);
-	cprintf("  esi  0x%08x\n", regs->esi);
-	cprintf("  ebp  0x%08x\n", regs->ebp);
-//	cprintf("  oesp 0x%08x\n", regs->oesp);	don't print - useless
-	cprintf("  ebx  0x%08x\n", regs->ebx);
-	cprintf("  edx  0x%08x\n", regs->edx);
-	cprintf("  ecx  0x%08x\n", regs->ecx);
-	cprintf("  eax  0x%08x\n", regs->eax);
+	cprintf("  r15  0x%016x\n", tf->r15);
+	cprintf("  r14  0x%016x\n", tf->r14);
+	cprintf("  r13  0x%016x\n", tf->r13);
+	cprintf("  r12  0x%016x\n", tf->r12);
+	cprintf("  r11  0x%016x\n", tf->r11);
+	cprintf("  r10  0x%016x\n", tf->r10);
+	cprintf("  r9  0x%016x\n", tf->r9);
+	cprintf("  r8  0x%016x\n", tf->r8);
+	cprintf("  rbp  0x%016x\n", tf->rbp);
+	cprintf("  rdi  0x%016x\n", tf->rdi);
+	cprintf("  rsi  0x%016x\n", tf->rsi);
+	cprintf("  rdx  0x%016x\n", tf->rdx);
+	cprintf("  rcx  0x%016x\n", tf->rcx);
+	cprintf("  rbx  0x%016x\n", tf->rbx);
+	cprintf("  rax  0x%016x\n", tf->rax);
 }
 
 void
 trap_print(trapframe *tf)
 {
 	cprintf("TRAP frame at %p\n", tf);
-	trap_print_regs(&tf->regs);
+	trap_print_regs(tf);
 #if LAB >= 9
 	cprintf("  gs   0x----%04x\n", tf->gs);
 	cprintf("  fs   0x----%04x\n", tf->fs);
@@ -218,10 +226,10 @@ trap_print(trapframe *tf)
 	cprintf("  ds   0x----%04x\n", tf->ds);
 	cprintf("  trap 0x%08x %s\n", tf->trapno, trap_name(tf->trapno));
 	cprintf("  err  0x%08x\n", tf->err);
-	cprintf("  eip  0x%08x\n", tf->eip);
+	cprintf("  rip  0x%08x\n", tf->rip);
 	cprintf("  cs   0x----%04x\n", tf->cs);
-	cprintf("  flag 0x%08x\n", tf->eflags);
-	cprintf("  esp  0x%08x\n", tf->esp);
+	cprintf("  flag 0x%08x\n", tf->rflags);
+	cprintf("  rsp  0x%08x\n", tf->rsp);
 	cprintf("  ss   0x----%04x\n", tf->ss);
 }
 
@@ -317,7 +325,7 @@ trap(trapframe *tf)
 #endif
 	case T_IRQ0 + IRQ_SPURIOUS:
 		cprintf("cpu%d: spurious interrupt at %x:%x\n",
-			c->id, tf->cs, tf->eip);
+			c->id, tf->cs, tf->rip);
 		trap_return(tf); // Note: no EOI (see Local APIC manual)
 		break;
 #if LAB >= 9
@@ -327,7 +335,7 @@ trap(trapframe *tf)
 		// instead of just panicking if we see a debug trap
 		// that we didn't cause.
 		assert(tf->cs & 3);
-		assert(tf->eflags & FL_TF);
+		assert(tf->rflags & FL_TF);
 		assert(p->sv.pff & PFF_ICNT);
 		assert(!pmc_get || (p->sv.imax - p->sv.icnt) <= pmc_safety);
 		//cprintf("T_DEBUG eip %x\n", tf->eip);
@@ -361,7 +369,7 @@ trap(trapframe *tf)
 			panic("oops, perf ctr overshoot by %d insns\n",
 				p->sv.icnt - p->sv.imax);
 		if (p->sv.icnt < p->sv.imax) {
-			tf->eflags |= FL_TF;	// single-step the rest
+			tf->rflags |= FL_TF;	// single-step the rest
 			trap_return(tf);
 		}
 		tf->trapno = T_ICNT;
@@ -405,7 +413,7 @@ static void gcc_noreturn
 trap_check_recover(trapframe *tf, void *recoverdata)
 {
 	trap_check_args *args = recoverdata;
-	tf->eip = (uint32_t) args->reip;	// Use recovery EIP on return
+	tf->rip = (uint64_t) args->reip;	// Use recovery EIP on return
 	args->trapno = tf->trapno;		// Return trap number
 	trap_return(tf);
 }
@@ -483,8 +491,16 @@ trap_check(void **argsp)
 	assert(args.trapno == T_BRKPT);
 
 	// Overflow trap
+	// RAJAT
 	args.reip = after_overflow;
-	asm volatile("addl %0,%0; into; after_overflow:" : : "r" (0x70000000));
+	uint64_t rflag_temp = 0;
+	asm volatile("addl %1,%1; pushfq; popq %%rax;" : "=a" (rflag_temp): "r" (0x70000000));
+	rflag_temp &= RFLAGS_OF;
+	if (rflag_temp) {
+		asm volatile("int %0; after_overflow:"::"i" (T_OFLOW));
+	} else {
+		asm volatile("after_overflow:");
+	}
 	assert(args.trapno == T_OFLOW);
 
 	// Bounds trap

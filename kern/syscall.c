@@ -107,7 +107,7 @@ static void checkva(trapframe *utf, uint32_t uva, size_t size)
 // using checkva() above to validate the address range
 // and using sysrecover() to recover from any traps during the copy.
 void usercopy(trapframe *utf, bool copyout,
-			void *kva, uint32_t uva, size_t size)
+			void *kva, uint64_t uva, size_t size)
 {
 	checkva(utf, uva, size);
 
@@ -137,7 +137,7 @@ do_cputs(trapframe *tf, uint32_t cmd)
 	// Print the string supplied by the user: pointer in EBX
 #if SOL >= 3
 	char buf[CPUTS_MAX+1];
-	usercopy(tf, 0, buf, tf->regs.ebx, CPUTS_MAX);
+	usercopy(tf, 0, buf, tf->rbx, CPUTS_MAX);
 	buf[CPUTS_MAX] = 0;	// make sure it's null-terminated
 	cprintf("%s", buf);
 #else	// SOL < 3
@@ -157,7 +157,7 @@ do_put(trapframe *tf, uint32_t cmd)
 
 #if SOL >= 5
 	// First migrate if we need to.
-	uint8_t node = (tf->regs.edx >> 8) & 0xff;
+	uint8_t node = (tf->rdx >> 8) & 0xff;
 	if (node == 0) node = RRNODE(p->home);		// Goin' home
 	if (node != net_node)
 		net_migrate(tf, node, 0);	// abort syscall and migrate
@@ -166,7 +166,7 @@ do_put(trapframe *tf, uint32_t cmd)
 	spinlock_acquire(&p->lock);
 
 	// Find the named child process; create if it doesn't exist
-	uint32_t cn = tf->regs.edx & 0xff;
+	uint32_t cn = tf->rdx & 0xff;
 	proc *cp = p->child[cn];
 	if (!cp) {
 		cp = proc_alloc(p, cn);
@@ -190,7 +190,7 @@ do_put(trapframe *tf, uint32_t cmd)
 
 		// Copy user's trapframe into child process
 #if SOL >= 3
-		usercopy(tf, 0, &cp->sv, tf->regs.ebx, len);
+		usercopy(tf, 0, &cp->sv, tf->rbx, len);
 #else
 		procstate *cs = (procstate*) tf->regs.ebx;
 		memcpy(&cp->sv, cs, len);
@@ -198,15 +198,15 @@ do_put(trapframe *tf, uint32_t cmd)
 
 		// Make sure process uses user-mode segments and eflag settings
 #if LAB >= 9
-		cp->sv.tf.gs = CPU_GDT_UDTLS | 3;
+		cp->sv.tf.gs = SEG_USER_CS_64 | 3;
 		cp->sv.tf.fs = 0;
 #endif
-		cp->sv.tf.ds = CPU_GDT_UDATA | 3;
-		cp->sv.tf.es = CPU_GDT_UDATA | 3;
-		cp->sv.tf.cs = CPU_GDT_UCODE | 3;
-		cp->sv.tf.ss = CPU_GDT_UDATA | 3;
-		cp->sv.tf.eflags &= FL_USER;
-		cp->sv.tf.eflags |= FL_IF;	// enable interrupts
+		cp->sv.tf.ds = SEG_USER_CS_64 | 3;
+		cp->sv.tf.es = SEG_USER_CS_64 | 3;
+		cp->sv.tf.cs = SEG_USER_CS_64 | 3;
+		cp->sv.tf.ss = SEG_USER_CS_64 | 3;
+		cp->sv.tf.rflags &= FL_USER;
+		cp->sv.tf.rflags |= FL_IF;	// enable interrupts
 #if LAB >= 9
 
 		// Child gets to be nondeterministic only if parent is
@@ -216,22 +216,22 @@ do_put(trapframe *tf, uint32_t cmd)
 	}
 
 #if SOL >= 3
-	uint32_t sva = tf->regs.esi;
-	uint32_t dva = tf->regs.edi;
-	uint32_t size = tf->regs.ecx;
+	uint64_t sva = tf->rsi;
+	uint64_t dva = tf->rdi;
+	uint64_t size = tf->rcx;
 	switch (cmd & SYS_MEMOP) {
 	case 0:	// no memory operation
 		break;
 	case SYS_COPY:
 		// validate source region
-		if (PTOFF(sva) || PTOFF(size)
+		if (P1OFF(sva) || P1OFF(size)
 				|| sva < VM_USERLO || sva > VM_USERHI
 				|| size > VM_USERHI-sva)
 			systrap(tf, T_GPFLT, 0);
 		// fall thru...
 	case SYS_ZERO:
 		// validate destination region
-		if (PTOFF(dva) || PTOFF(size)
+		if (P1OFF(dva) || P1OFF(size)
 				|| dva < VM_USERLO || dva > VM_USERHI
 				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
@@ -251,7 +251,7 @@ do_put(trapframe *tf, uint32_t cmd)
 
 	if (cmd & SYS_PERM) {
 		// validate destination region
-		if (PGOFF(dva) || PGOFF(size)
+		if (P4OFF(dva) || P4OFF(size)
 				|| dva < VM_USERLO || dva > VM_USERHI
 				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
@@ -280,7 +280,7 @@ do_get(trapframe *tf, uint32_t cmd)
 
 #if SOL >= 5
 	// First migrate if we need to.
-	uint8_t node = (tf->regs.edx >> 8) & 0xff;
+	uint8_t node = (tf->rdx >> 8) & 0xff;
 	if (node == 0) node = RRNODE(p->home);		// Goin' home
 	if (node != net_node)
 		net_migrate(tf, node, 0);	// abort syscall and migrate
@@ -289,7 +289,7 @@ do_get(trapframe *tf, uint32_t cmd)
 	spinlock_acquire(&p->lock);
 
 	// Find the named child process; DON'T create if it doesn't exist
-	uint32_t cn = tf->regs.edx & 0xff;
+	uint32_t cn = tf->rdx & 0xff;
 	proc *cp = p->child[cn];
 	if (!cp)
 		cp = &proc_null;
@@ -312,36 +312,36 @@ do_get(trapframe *tf, uint32_t cmd)
 		// Hide our instruction counting from user code.
 		// (XXX maintain a virtual TF for the user.)
 		//cp->sv.tf.eflags &= ~FL_TF;
-		assert(!(cp->sv.tf.eflags & FL_TF));
+		assert(!(cp->sv.tf.rflags & FL_TF));
 
 #endif
 		// Copy child process's trapframe into user space
 #if SOL >= 3
-		usercopy(tf, 1, &cp->sv, tf->regs.ebx, len);
+		usercopy(tf, 1, &cp->sv, tf->rbx, len);
 #else
-		procstate *cs = (procstate*) tf->regs.ebx;
+		procstate *cs = (procstate*) tf->rbx;
 		memcpy(cs, &cp->sv, len);
 #endif
 	}
 
 #if SOL >= 3
-	uint32_t sva = tf->regs.esi;
-	uint32_t dva = tf->regs.edi;
-	uint32_t size = tf->regs.ecx;
+	uint64_t sva = tf->rsi;
+	uint64_t dva = tf->rdi;
+	uint64_t size = tf->rcx;
 	switch (cmd & SYS_MEMOP) {
 	case 0:	// no memory operation
 		break;
 	case SYS_COPY:
 	case SYS_MERGE:
 		// validate source region
-		if (PTOFF(sva) || PTOFF(size)
+		if (P1OFF(sva) || P1OFF(size)
 				|| sva < VM_USERLO || sva > VM_USERHI
 				|| size > VM_USERHI-sva)
 			systrap(tf, T_GPFLT, 0);
 		// fall thru...
 	case SYS_ZERO:
 		// validate destination region
-		if (PTOFF(dva) || PTOFF(size)
+		if (P1OFF(dva) || P1OFF(size)
 				|| dva < VM_USERLO || dva > VM_USERHI
 				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
@@ -365,7 +365,7 @@ do_get(trapframe *tf, uint32_t cmd)
 
 	if (cmd & SYS_PERM) {
 		// validate destination region
-		if (PGOFF(dva) || PGOFF(size)
+		if (P4OFF(dva) || P4OFF(size)
 				|| dva < VM_USERLO || dva > VM_USERHI
 				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
@@ -393,15 +393,15 @@ do_time(trapframe *tf)
 {
 	uint64_t t = timer_read();
 	t = t * 1000000000 / TIMER_FREQ;	// convert to nanoseconds
-	tf->regs.edx = t >> 32;
-	tf->regs.eax = t;
+	tf->rdx = t >> 32;
+	tf->rax = t;
 	trap_return(tf);
 }
 
 static void gcc_noreturn
 do_ncpu(trapframe *tf)
 {
-	int newlim = tf->regs.ecx;
+	int newlim = tf->rcx;
 	if (newlim > 0)
 		cpu_limit = newlim;
 	else
@@ -419,7 +419,7 @@ void
 syscall(trapframe *tf)
 {
 	// EAX register holds system call command/flags
-	uint32_t cmd = tf->regs.eax;
+	uint64_t cmd = tf->rax;
 	switch (cmd & SYS_TYPE) {
 	case SYS_CPUTS:	return do_cputs(tf, cmd);
 #if SOL >= 2

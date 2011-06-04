@@ -37,30 +37,30 @@ cpu cpu_boot = {
 		[0] = SEGDESC_NULL,
 
 		// 0x08 - kernel code segment
-		[CPU_GDT_KCODE >> 3] = SEGDESC32(1, STA_X | STA_R, 0x0,
+		[SEG_KERN_CS_16 >> 3] = SEGDESC32(1, STA_X | STA_R, 0L,
 					0xffffffff, 0),
 
 		// 0x10 - kernel data segment
-		[CPU_GDT_KDATA >> 3] = SEGDESC32(1, STA_W, 0x0,
+		[SEG_KERN_CS_32 >> 3] = SEGDESC32(1, STA_W, 0L,
 					0xffffffff, 0),
 #if SOL >= 1
 
 		// 0x18 - user code segment
-		[CPU_GDT_UCODE >> 3] = SEGDESC32(1, STA_X | STA_R,
-					0x00000000, 0xffffffff, 3),
+		[SEG_KERN_DS_32 >> 3] = SEGDESC32(1, STA_X | STA_R,
+					0L, 0xffffffff, 0),
 
 		// 0x20 - user data segment
-		[CPU_GDT_UDATA >> 3] = SEGDESC32(1, STA_W,
-					0x00000000, 0xffffffff, 3),
+		[SEG_KERN_CS_64 >> 3] = SEGDESC32(1, STA_W,
+					0L, 0xffffffff, 0),
 
 #if LAB >= 9
 		// 0x28 - user thread local storage data segment
-		[CPU_GDT_UDTLS >> 3] = SEGDESC32(1, STA_W,
-					0xeffff000, 0xffffffff, 3),
+		[SEG_USER_CS_64 >> 3] = SEGDESC32(1, STA_W,
+					0L, 0xffffffff, 3),
 
 #endif
 		// 0x30 - tss, initialized in cpu_init()
-		[CPU_GDT_TSS >> 3] = SEGDESC_NULL,
+		[SEG_TSS >> 3] = SEGDESC_NULL,
 #endif	// SOL >= 1
 	},
 
@@ -79,17 +79,17 @@ cpu_info()
 
 	char str[12+1];
 	cpuid(0x00, &inf);
-	memcpy(str, &inf.ebx, 12);
+	memcpy(str, &inf.rbx, 12);
 	str[12] = 0;
 	cpuid(0x01, &inf);
 
-	int family = (inf.eax >> 8) & 0xf;
-	int model = (inf.eax >> 4) & 0xf;
-	int stepping = (inf.eax >> 4) & 0xf;
+	int family = (inf.rax >> 8) & 0xf;
+	int model = (inf.rax >> 3) & 0xf;
+	int stepping = (inf.rax >> 3) & 0xf;
 	if (family == 0xf)
-		family += (inf.eax >> 20) & 0xff;
+		family += (inf.rax >> 20) & 0xff;
 	if (family == 6 || family >= 0xf)
-		model |= ((inf.eax >> 16) & 0xf) << 4;
+		model |= ((inf.rax >> 16) & 0xf) << 4;
 
 	cprintf("CPUID: %s %x/%x/%x\n", str, family, model, stepping);
 }
@@ -108,7 +108,7 @@ cpu_setmtrr()
 {
 	cpuinfo inf;
 	cpuid(0x01, &inf);
-	if (!(inf.edx & (1 << 12))) {
+	if (!(inf.rdx & (1 << 12))) {
 		warn("cpu_setmtrr: CPU has no MTRR support?");
 //		return;
 	}
@@ -145,34 +145,36 @@ void cpu_init()
 
 	// Setup the TSS for this cpu so that we get the right stack
 	// when we trap into the kernel from user mode.
-	c->tss.ts_esp0 = (uint32_t) c->kstackhi;
-	c->tss.ts_ss0 = CPU_GDT_KDATA;
+	c->tss.ts_rsp0_31_0 = ((uintptr_t) c->kstackhi) & 0xffffffff;
+	c->tss.ts_rsp0_63_32 = ((uintptr_t) c->kstackhi) >> 32;
 
 	// Initialize the non-constant part of the cpu's GDT:
 	// the TSS descriptor is different for each cpu.
-	c->gdt[CPU_GDT_TSS >> 3] = SEGDESC16(0, STS_T32A, (uint32_t) (&c->tss),
+	c->gdt[SEG_TSS >> 3] = SEGDESC64(0, STS_T64A, (uint64_t) (&c->tss),
 					sizeof(taskstate)-1, 0);
 
 #endif	// SOL >= 1
 	// Load the GDT
 	struct pseudodesc gdt_pd = {
-		sizeof(c->gdt) - 1, (uint32_t) c->gdt };
+		sizeof(c->gdt) - 1, (uint64_t) c->gdt };
 	asm volatile("lgdt %0" : : "m" (gdt_pd));
 
 	// Reload all segment registers.
-	asm volatile("movw %%ax,%%gs" :: "a" (CPU_GDT_UDATA|3));
-	asm volatile("movw %%ax,%%fs" :: "a" (CPU_GDT_UDATA|3));
-	asm volatile("movw %%ax,%%es" :: "a" (CPU_GDT_KDATA));
-	asm volatile("movw %%ax,%%ds" :: "a" (CPU_GDT_KDATA));
-	asm volatile("movw %%ax,%%ss" :: "a" (CPU_GDT_KDATA));
-	asm volatile("ljmp %0,$1f\n 1:\n" :: "i" (CPU_GDT_KCODE)); // reload CS
+	asm volatile("movw %%ax,%%gs" :: "a" (SEG_USER_CS_64 | 3));
+	asm volatile("movw %%ax,%%fs" :: "a" (SEG_USER_CS_64 | 3));
+	asm volatile("movw %%ax,%%es" :: "a" (SEG_KERN_CS_64));
+	asm volatile("movw %%ax,%%ds" :: "a" (SEG_KERN_CS_64));
+	asm volatile("movw %%ax,%%ss" :: "a" (SEG_KERN_CS_64));
+	// RAJAT CHANGED THIS. IS IT CORRECT?
+	//asm volatile("ljmp %0,$1f\n 1:\n" :: "i" (SEG_KERN_CS_64)); // reload CS
+	asm volatile("movw %%ax,%%cs" :: "a" (SEG_KERN_CS_64)); // reload CS
 
 	// We don't need an LDT.
 	asm volatile("lldt %%ax" :: "a" (0));
 #if SOL >= 1
 
 	// Load the TSS (from the GDT)
-	ltr(CPU_GDT_TSS);
+	ltr(SEG_TSS);
 #endif
 }
 
@@ -228,7 +230,7 @@ cpu_bootothers(void)
 	// Write bootstrap code to unused memory at 0x1000.
 	uint8_t *code = (uint8_t*)0x1000;
 	memmove(code, _binary_obj_boot_bootother_start,
-		(uint32_t)_binary_obj_boot_bootother_size);
+		(uint64_t)_binary_obj_boot_bootother_size);
 
 	cpu *c;
 	for(c = &cpu_boot; c; c = c->next){
@@ -238,7 +240,7 @@ cpu_bootothers(void)
 		// Fill in %esp, %eip and start code on cpu.
 		*(void**)(code-4) = c->kstackhi;
 		*(void**)(code-8) = init;
-		lapic_startcpu(c->id, (uint32_t)code);
+		lapic_startcpu(c->id, (uint64_t)code);
 
 		// Wait for cpu to get through bootstrap.
 		while(c->booted == 0)

@@ -7,7 +7,15 @@
  *
  * Derived from the MIT Exokernel and JOS.
  */
-#include <inc/mmu.h>
+
+// Macros to build GDT entries in assembly.
+#define SEG_NULL						\
+	.word 0, 0;						\
+	.byte 0, 0, 0, 0
+#define SEG(type,base,lim)					\
+	.word (((lim) >> 12) & 0xffff), ((base) & 0xffff);	\
+	.byte (((base) >> 16) & 0xff), (0x90 | (type)),		\
+		(0xC0 | (((lim) >> 28) & 0xf)), (((base) >> 24) & 0xff)
 
 # Start the CPU: switch to 32-bit protected mode, jump into C.
 # The BIOS loads this code from the first sector of the hard disk into

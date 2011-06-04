@@ -11,6 +11,7 @@
  * to the University of California by American Telephone and Telegraph
  * Co. or Unix System Laboratories, Inc. and are reproduced herein with
  * the permission of UNIX System Laboratories, Inc.
+ *
  * Adapted for PIOS by Bryan Ford at Yale University.
  */
 
@@ -36,16 +37,16 @@ typedef unsigned int		uint32_t;
 typedef long long		int64_t;
 typedef unsigned long long	uint64_t;
 
-// Pointers and addresses are 32 bits long.
+// Pointers and addresses are 64 bits long.
 // We use pointer types to represent virtual addresses,
 // and [u]intptr_t to represent the numerical values of virtual addresses.
-typedef int			intptr_t;	// pointer-size signed integer
-typedef unsigned		uintptr_t;	// pointer-size unsigned integer
-typedef int			ptrdiff_t;	// difference between pointers
+typedef long long			intptr_t;	// pointer-size signed integer
+typedef unsigned long long		uintptr_t;	// pointer-size unsigned integer
+typedef long long		ptrdiff_t;	// difference between pointers
 
 // size_t is used for memory object sizes, and ssize_t is a signed analog.
-typedef unsigned		size_t;
-typedef int			ssize_t;
+typedef unsigned long long		size_t;
+typedef long long			ssize_t;
 
 // intmax_t and uintmax_t represent the maximum-size integers supported.
 typedef long long		intmax_t;
@@ -93,14 +94,14 @@ typedef int32_t			suseconds_t;
 // Round down to the nearest multiple of n
 #define ROUNDDOWN(a, n)						\
 ({								\
-	uint32_t __a = (uint32_t) (a);				\
+	uint64_t __a = (uint64_t) (a);				\
 	(typeof(a)) (__a - __a % (n));				\
 })
 // Round up to the nearest multiple of n
 #define ROUNDUP(a, n)						\
 ({								\
-	uint32_t __n = (uint32_t) (n);				\
-	(typeof(a)) (ROUNDDOWN((uint32_t) (a) + __n - 1, __n));	\
+	uint64_t __n = (uint64_t) (n);				\
+	(typeof(a)) (ROUNDDOWN((uint64_t) (a) + __n - 1, __n));	\
 })
 
 // Return the offset of 'member' relative to the beginning of a struct type

@@ -63,9 +63,9 @@ pmap_init(void)
 		// doesn't flush these mappings when we reload the PDBR.
 #if SOL >= 3
 		int i;
-		for (i = 0; i < NPDENTRIES; i++)
+		for (i = 0; i < NP4ENTRIES; i++)
 			pmap_bootpdir[i] = (i << PDXSHIFT)
-				| PTE_P | PTE_W | PTE_PS | PTE_G;
+				| PTE_P | PTE_RW | P2E_PS | P1E_G;
 		for (i = PDX(VM_USERLO); i < PDX(VM_USERHI); i++)
 			pmap_bootpdir[i] = PTE_ZERO;	// clear user area
 #else
@@ -195,19 +195,19 @@ pmap_walk(pde_t *pdir, uint32_t va, bool writing)
 		// The permissions here are overly generous, but they can
 		// be further restricted by the permissions in the page table 
 		// entries, if necessary.
-		*pde = mem_pi2phys(pi) | PTE_A | PTE_P | PTE_W | PTE_U;
+		*pde = mem_pi2phys(pi) | PTE_A | PTE_P | PTE_RW | PTE_US;
 	}
 
 	// If the page table is shared and we're writing, copy it first.
 	// Must propagate the read-only status down to the page mappings.
-	if (writing && !(*pde & PTE_W)) {
+	if (writing && !(*pde & PTE_RW)) {
 		if (mem_ptr2pi(ptab)->refcount == 1) {
 			// Page table isn't shared, so we can use in-place;
 			// but must propagate the read-only status
 			// from the PDE level down to all individual PTEs.
 			int i;
 			for (i = 0; i < NPTENTRIES; i++)
-				ptab[i] &= ~PTE_W;
+				ptab[i] &= ~PTE_RW;
 		} else {
 			// Page table is or may still be shared - must copy.
 			pageinfo *pi = mem_alloc();
@@ -223,7 +223,7 @@ pmap_walk(pde_t *pdir, uint32_t va, bool writing)
 			int i;
 			for (i = 0; i < NPTENTRIES; i++) {
 				uint32_t pte = ptab[i];
-				nptab[i] = pte & ~PTE_W;
+				nptab[i] = pte & ~PTE_RW;
 				assert(PGADDR(pte) != 0);
 				if (PGADDR(pte) != PTE_ZERO)
 					mem_incref(mem_phys2pi(PGADDR(pte)));
@@ -232,7 +232,7 @@ pmap_walk(pde_t *pdir, uint32_t va, bool writing)
 			mem_decref(mem_ptr2pi(ptab), pmap_freeptab);
 			ptab = nptab;
 		}
-		*pde = (uint32_t)ptab | PTE_A | PTE_P | PTE_W | PTE_U;
+		*pde = (uint32_t)ptab | PTE_A | PTE_P | PTE_RW | PTE_US;
 	}
 
 	return &ptab[PTX(la)];
@@ -404,7 +404,7 @@ pmap_copy(pde_t *spdir, uint32_t sva, pde_t *dpdir, uint32_t dva,
 			pmap_remove(dpdir, dva, PTSIZE);
 		assert(*dpde == PTE_ZERO);
 
-		*spde &= ~PTE_W;	// remove write permission
+		*spde &= ~PTE_RW;	// remove write permission
 
 		*dpde = *spde;		// copy ptable mapping
 		if (*spde != PTE_ZERO)
@@ -455,7 +455,7 @@ pmap_pagefault(trapframe *tf)
 		cprintf("pmap_pagefault: page for fva %x doesn't exist\n", fva);
 		return;		// page doesn't exist at all - blame user
 	}
-	assert(!(*pte & PTE_W));
+	assert(!(*pte & PTE_RW));
 
 	// Find the "shared" page.  If refcount is 1, we have the only ref!
 	uint32_t pg = PGADDR(*pte);
@@ -470,7 +470,7 @@ pmap_pagefault(trapframe *tf)
 		//	p->pdir, fva, pg, npg);
 		pg = npg;
 	}
-	*pte = pg | SYS_RW | PTE_A | PTE_D | PTE_W | PTE_U | PTE_P;
+	*pte = pg | SYS_RW | PTE_A | P1E_D | PTE_RW | PTE_US | PTE_P;
 
 	// Make sure the old mapping doesn't get used anymore
 	pmap_inval(p->pdir, PGADDR(fva), PAGESIZE);
@@ -507,7 +507,7 @@ pmap_mergepage(pte_t *rpte, pte_t *spte, pte_t *dpte, uint32_t dva)
 			mem_decref(mem_ptr2pi(dpg), mem_free); // drop old ref
 		dpg = npg;
 		*dpte = (uint32_t)npg |
-			SYS_RW | PTE_A | PTE_D | PTE_W | PTE_U | PTE_P;
+			SYS_RW | PTE_A | P1E_D | PTE_RW | PTE_US | PTE_P;
 	}
 
 	// Do a byte-by-byte diff-and-merge into the destination
@@ -591,7 +591,7 @@ pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 				if (PGADDR(*dpte) != PTE_ZERO)
 					mem_decref(mem_phys2pi(PGADDR(*dpte)),
 							mem_free);
-				*spte &= ~PTE_W;
+				*spte &= ~PTE_RW;
 				*dpte = *spte;		// copy ptable mapping
 				mem_incref(mem_phys2pi(PGADDR(*spte)));
 				continue;
@@ -613,7 +613,7 @@ pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
 // Set the nominal permission bits on a range of virtual pages to 'perm'.
 // Adding permission to a nonexistent page maps zero-filled memory.
 // It's OK to add SYS_READ and/or SYS_WRITE permission to a PTE_ZERO mapping;
-// this causes the pmap_zero page to be mapped read-only (PTE_P but not PTE_W).
+// this causes the pmap_zero page to be mapped read-only (PTE_P but not PTE_RW).
 // If the user gives SYS_WRITE permission to a PTE_ZERO mapping,
 // the page fault handler copies the zero page when the first write occurs.
 //
@@ -632,12 +632,12 @@ pmap_setperm(pde_t *pdir, uint32_t va, uint32_t size, int perm)
 	// Determine the nominal and actual bits to set or clear
 	uint32_t pteand, pteor;
 	if (!(perm & SYS_READ))		// clear all permissions
-		pteand = ~(SYS_RW | PTE_W | PTE_P), pteor = 0;
+		pteand = ~(SYS_RW | PTE_RW | PTE_P), pteor = 0;
 	else if (!(perm & SYS_WRITE))	// read-only permission
-		pteand = ~(SYS_WRITE | PTE_W),
-		pteor = (SYS_READ | PTE_U | PTE_P | PTE_A);
-	else	// nominal read/write (but don't add PTE_W to shared mappings!)
-		pteand = ~0, pteor = (SYS_RW | PTE_U | PTE_P | PTE_A | PTE_D);
+		pteand = ~(SYS_WRITE | PTE_RW),
+		pteor = (SYS_READ | PTE_US | PTE_P | PTE_A);
+	else	// nominal read/write (but don't add PTE_RW to shared mappings!)
+		pteand = ~0, pteor = (SYS_RW | PTE_US | PTE_P | PTE_A | P1E_D);
 
 	uint32_t vahi = va + size;
 	while (va < vahi) {
@@ -748,11 +748,11 @@ pmap_check(void)
 		== ptep+PTX(VM_USERLO+PAGESIZE));
 
 	// should be able to change permissions too.
-	assert(pmap_insert(pmap_bootpdir, pi2, VM_USERLO+PAGESIZE, PTE_U));
+	assert(pmap_insert(pmap_bootpdir, pi2, VM_USERLO+PAGESIZE, PTE_US));
 	assert(va2pa(pmap_bootpdir, VM_USERLO+PAGESIZE) == mem_pi2phys(pi2));
 	assert(pi2->refcount == 1);
-	assert(*pmap_walk(pmap_bootpdir, VM_USERLO+PAGESIZE, 0) & PTE_U);
-	assert(pmap_bootpdir[PDX(VM_USERLO)] & PTE_U);
+	assert(*pmap_walk(pmap_bootpdir, VM_USERLO+PAGESIZE, 0) & PTE_US);
+	assert(pmap_bootpdir[PDX(VM_USERLO)] & PTE_US);
 	
 	// should not be able to map at VM_USERLO+PTSIZE
 	// because we need a free page for a page table
@@ -760,7 +760,7 @@ pmap_check(void)
 
 	// insert pi1 at VM_USERLO+PAGESIZE (replacing pi2)
 	assert(pmap_insert(pmap_bootpdir, pi1, VM_USERLO+PAGESIZE, 0));
-	assert(!(*pmap_walk(pmap_bootpdir, VM_USERLO+PAGESIZE, 0) & PTE_U));
+	assert(!(*pmap_walk(pmap_bootpdir, VM_USERLO+PAGESIZE, 0) & PTE_US));
 
 	// should have pi1 at both +0 and +PAGESIZE, pi2 nowhere, ...
 	assert(va2pa(pmap_bootpdir, VM_USERLO+0) == mem_pi2phys(pi1));

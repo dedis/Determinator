@@ -222,9 +222,9 @@ init(void)
 		uint32_t zva = ph->p_va + ph->p_filesz;
 		uint32_t eva = ROUNDUP(ph->p_va + ph->p_memsz, PAGESIZE);
 
-		uint32_t perm = SYS_READ | PTE_P | PTE_U;
+		uint32_t perm = SYS_READ | PTE_P | PTE_US;
 		if (ph->p_flags & ELF_PROG_FLAG_WRITE)
-			perm |= SYS_WRITE | PTE_W;
+			perm |= SYS_WRITE | PTE_RW;
 
 		for(; va < eva; va += PAGESIZE, fa += PAGESIZE) {
 			pageinfo *pi = mem_alloc(); assert(pi != NULL);
@@ -241,16 +241,16 @@ init(void)
 	}
 
 	// Start the process at the entry indicated in the ELF header
-	root->sv.tf.eip = eh->e_entry;
-	root->sv.tf.eflags |= FL_IF;	// enable interrupts
+	root->sv.tf.rip = eh->e_entry;
+	root->sv.tf.rflags |= FL_IF;	// enable interrupts
 
 	// Give the process a 1-page stack in high memory
 	// (the process can then increase its own stack as desired)
 	pageinfo *pi = mem_alloc(); assert(pi != NULL);
 	pte_t *pte = pmap_insert(root->pdir, pi, VM_STACKHI-PAGESIZE,
-				SYS_READ | SYS_WRITE | PTE_P | PTE_U | PTE_W);
+				SYS_READ | SYS_WRITE | PTE_P | PTE_US | PTE_RW);
 	assert(pte != NULL);
-	root->sv.tf.esp = VM_STACKHI;
+	root->sv.tf.rsp = VM_STACKHI;
 
 #if LAB >= 4
 	// Give the root process an initial file system.
@@ -274,8 +274,8 @@ void
 user()
 {
 	cprintf("in user()\n");
-	assert(read_esp() > (uint32_t) &user_stack[0]);
-	assert(read_esp() < (uint32_t) &user_stack[sizeof(user_stack)]);
+	assert(read_rsp() > (uint64_t) &user_stack[0]);
+	assert(read_rsp() < (uint64_t) &user_stack[sizeof(user_stack)]);
 
 #if LAB == 1
 	// Check that we're in user mode and can handle traps from there.

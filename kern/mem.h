@@ -36,7 +36,7 @@
 #define mem_ptr(physaddr)	((void*)(physaddr))
 
 // The converse to the above: given a C pointer, return a physical address.
-#define mem_phys(ptr)		((uint32_t)(ptr))
+#define mem_phys(ptr)		((uint64_t)(ptr))
 
 
 // A pageinfo struct holds metadata on how a particular physical page is used.

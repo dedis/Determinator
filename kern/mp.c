@@ -62,7 +62,7 @@ static struct mp *
 mpsearch(void)
 {
 	uint8_t          *bda;
-	uint32_t            p;
+	uint64_t            p;
 	struct mp      *mp;
 
 	bda = (uint8_t *) 0x400;
