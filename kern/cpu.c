@@ -36,31 +36,31 @@ cpu cpu_boot = {
 		// 0x0 - unused (always faults: for trapping NULL far pointers)
 		[0] = SEGDESC_NULL,
 
-		// 0x08 - kernel code segment
-		[SEG_KERN_CS_16 >> 3] = SEGDESC32(1, STA_X | STA_R, 0L,
+		// 0x10 - kernel code segment
+		[SEG_KERN_CS_16 >> 4] = SEGDESC32(1, STA_X | STA_R, 0L,
 					0xffffffff, 0),
 
-		// 0x10 - kernel data segment
-		[SEG_KERN_CS_32 >> 3] = SEGDESC32(1, STA_W, 0L,
+		// 0x20 - kernel data segment
+		[SEG_KERN_CS_32 >> 4] = SEGDESC32(1, STA_W, 0L,
 					0xffffffff, 0),
 #if SOL >= 1
 
-		// 0x18 - user code segment
-		[SEG_KERN_DS_32 >> 3] = SEGDESC32(1, STA_X | STA_R,
+		// 0x30 - user code segment
+		[SEG_KERN_DS_32 >> 4] = SEGDESC32(1, STA_X | STA_R,
 					0L, 0xffffffff, 0),
 
-		// 0x20 - user data segment
-		[SEG_KERN_CS_64 >> 3] = SEGDESC32(1, STA_W,
+		// 0x40 - user data segment
+		[SEG_KERN_CS_64 >> 4] = SEGDESC32(1, STA_W,
 					0L, 0xffffffff, 0),
 
 #if LAB >= 9
-		// 0x28 - user thread local storage data segment
-		[SEG_USER_CS_64 >> 3] = SEGDESC32(1, STA_W,
+		// 0x50 - user thread local storage data segment
+		[SEG_USER_CS_64 >> 4] = SEGDESC32(1, STA_W,
 					0L, 0xffffffff, 3),
 
 #endif
-		// 0x30 - tss, initialized in cpu_init()
-		[SEG_TSS >> 3] = SEGDESC_NULL,
+		// 0x60 - tss, initialized in cpu_init()
+		[SEG_TSS >> 4] = SEGDESC_NULL,
 #endif	// SOL >= 1
 	},
 
@@ -147,10 +147,12 @@ void cpu_init()
 	// when we trap into the kernel from user mode.
 	c->tss.ts_rsp0_31_0 = ((uintptr_t) c->kstackhi) & 0xffffffff;
 	c->tss.ts_rsp0_63_32 = ((uintptr_t) c->kstackhi) >> 32;
+	c->tss.ts_ist1_31_0 = ((uintptr_t) c->kstackhi) & 0xffffffff;
+	c->tss.ts_ist1_63_32 = ((uintptr_t) c->kstackhi) >> 32;
 
 	// Initialize the non-constant part of the cpu's GDT:
 	// the TSS descriptor is different for each cpu.
-	c->gdt[SEG_TSS >> 3] = SEGDESC64(0, STS_T64A, (uint64_t) (&c->tss),
+	c->gdt[SEG_TSS >> 4] = SEGDESC64(0, STS_T64A, (uint64_t) (&c->tss),
 					sizeof(taskstate)-1, 0);
 
 #endif	// SOL >= 1
@@ -227,7 +229,7 @@ cpu_bootothers(void)
 		return;
 	}
 
-	// Write bootstrap code to unused memory at 0x1000.
+	// Write bootstrap code to unused memory at 0x1000 (start of the 2nd page).
 	uint8_t *code = (uint8_t*)0x1000;
 	memmove(code, _binary_obj_boot_bootother_start,
 		(uint64_t)_binary_obj_boot_bootother_size);
@@ -237,9 +239,9 @@ cpu_bootothers(void)
 		if(c == cpu_cur())  // We''ve started already.
 			continue;
 
-		// Fill in %esp, %eip and start code on cpu.
-		*(void**)(code-4) = c->kstackhi;
-		*(void**)(code-8) = init;
+		// Fill in %rsp, %rip and start code on cpu.
+		*(void**)(code-8) = c->kstackhi;
+		*(void**)(code-16) = init;
 		lapic_startcpu(c->id, (uint64_t)code);
 
 		// Wait for cpu to get through bootstrap.

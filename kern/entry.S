@@ -16,10 +16,6 @@
 #include <kern/cpu.h>
 #endif
 
-#define KERN_CR0	(CR0_PE|CR0_MP|CR0_ET|CR0_WP|CR0_PG)
-#define KERN_CR4	(CR4_PSE|CR4_PAE|CR4_PGE)
-#define KERN_EFER	(EFER_LME|EFER_SCE|EFER_NXE)
-
 #define TSS_SIZE	0x68	// minimum possible size
 // Pad code to an appropriate boundary for speed using NOPs
 #define TEXTALIGN	.p2align 4,,15
@@ -99,12 +95,13 @@ entry32:
 	orl	$KERN_CR4,%eax
 	movl	%eax,%cr4
 
-	// Set up the boot page tables to map the bottom 2MB of memory,
-	// using a single 2MB global (non-TLB-flushed) page translation.
+	// Set up the boot page tables to map the bottom 4KB of memory,
+	// using a single 4KB  global (non-TLB-flushed) page translation.
 	// We map it only at virtual address 0
 	movl	$bootp3tab+(PTE_P|PTE_RW),bootp4tab
 	movl	$bootp2tab+(PTE_P|PTE_RW),bootp3tab
-	movl	$0+(PTE_P|PTE_RW|P2E_PS|P1E_G),bootp2tab
+	movl	$bootp1tab+(PTE_P|PTE_RW),bootp2tab
+	movl	$0+(PTE_P|PTE_RW|P1E_G),bootp1tab
 
 	// load CR3 to point to our boot page table structure
 	movl	$bootp4tab,%eax
@@ -128,11 +125,14 @@ entry64:	// we are now in 64-bit mode.
 	// Load our long-mode GDT, IDT, and TSS
 	// All these are loaded again in init
 	lgdt	kerngdtptr
-	// RAJAT says we do not need this.
-	// IDTR for each CPU loaded in trap_init()
+	// IDTR and TSS for each CPU loaded in trap_init()
 	// lidt	kernidtptr
-	movw	$SEG_TSS,%ax
-	ltr		%ax
+	// ltr	$SEG_TSS
+
+	movw	$SEG_KERN_CS_64,%ax
+	movw	%ax,%ds
+	movw	%ax,%es
+	movw	%ax,%ss
 
 	// initialize stack and frame pointers
 	movq	$start,%rsp	// XXX
@@ -152,18 +152,19 @@ spin:	jmp	spin
 	.p2align 3
 	.globl gdt
 gdt:
-	SEG32(0,0,0,0)				// null segment
-	SEG32(0,0xffff,0x9b,0x0)	// 0x08: 16-bit kernel code segment
-	SEG32(0,0xfffff,0x9b,0xc)	// 0x10: 32-bit kernel code segment
-	SEG32(0,0xfffff,0x93,0xc)	// 0x18: 32-bit kernel data segment
-	SEG32(0,0xfffff,0x9a,0xa)	// 0x20: 64-bit kernel segment
-	SEG32(0,0xfffff,0xfa,0xa)	// 0x28: 64-bit user segment
-								// 0x30: 64-bit task state segment
+	SEG64(0,0,0,0)				// null segment
+	SEG64(0,0xffff,0x9b,0x0)	// 0x10: 16-bit kernel code segment
+	SEG64(0,0xfffff,0x9b,0xc)	// 0x20: 32-bit kernel code segment
+	SEG64(0,0xfffff,0x93,0xc)	// 0x30: 32-bit kernel data segment
+	SEG64(0,0xfffff,0x9a,0xd)	// 0x40: 64-bit kernel segment
+	SEG64(0,0xfffff,0xfa,0xd)	// 0x50: 64-bit user segment
+/*								// 0x60: 64-bit task state segment
 	.word	TSS_SIZE-1			//	limit 15-0
 	.word	tss					//	base 15-0
 	.long	0x00008000 | (STS_T64A << 8)		//	base 31-16, limit 19-16, type
 	.long	0					//	base address 63-32
 	.long	0					//	reserved
+*/
 gdtend:
 
 
@@ -297,8 +298,10 @@ trap_return:
 */
 
 
-// 64-bit Task State Segment
 	.data
+
+/*	// 64-bit Task State Segment
+
 	.p2align 2
 	.globl	tss
 tss:
@@ -309,6 +312,7 @@ tss:
 	.quad	0				// reserved
 	.word	0				// reserved
 	.word	TSS_SIZE			// I/O Map Base Address
+*/
 
 
 // Far pointers for loading the GDT and IDT
@@ -316,20 +320,23 @@ kerngdtptr:
 	.word	gdtend-gdt-1		// limit
 	.quad	gdt			// base (kernel linear address)
 
+/*
 kernidtptr:
 	.word	idtend-idt-1		// limit
 	.quad	idt			// base
-
+*/
 
 // Space for minimal bootstrap page table structures
 	.bss
 	.p2align 12
-	.globl bootp4tab, bootp3tab, bootp2tab
+	.globl bootp4tab, bootp3tab, bootp2tab, bootp1tab
 bootp4tab:
 	.space	4096
 bootp3tab:
 	.space	4096
 bootp2tab:
+	.space	4096
+bootp1tab:
 	.space	4096
 
 

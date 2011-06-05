@@ -74,20 +74,20 @@
 #define P4ROUND(va)	P4TRUNC((uintptr_t)(va) + (P4SIZE - 1))
 
 // Page table entry flags (both 4KB and 2MB page sizes)
-#define PTE_P 	1<<0	// present bit
-#define PTE_RW 	1<<1	// read/write bit
-#define PTE_US 	1<<2	// user/supervisor bit
+#define PTE_P 		1<<0	// present bit
+#define PTE_RW 		1<<1	// read/write bit
+#define PTE_US 		1<<2	// user/supervisor bit
 #define PTE_PWT 	1<<3	// page-level writethrough bit
 #define PTE_PCD 	1<<4	// page-level cache disable bit
-#define PTE_A 	1<<5	// accessed bit
-// The P1E_AVAIL bits aren't used by the kernel or interpreted by the
+#define PTE_A 		1<<5	// accessed bit
+// The PTE_AVAIL bits aren't used by the kernel or interpreted by the
 // hardware, so user processes are allowed to set them arbitrarily.
 #define PTE_AVAIL	0xE00	// Available for software use
-#define PTE_NX 	1<<63	// no execute bit
+#define PTE_NX 		1<<63	// no execute bit
 #define P2E_PS 		1<<7	// page size bit (0 for 4KB, 1 for 2MB)
 #define P1E_D 		1<<6
 #define P1E_PAT 	1<<7
-#define P1E_G 		1<<8
+#define P1E_G 		1<<8	// global page bit
 
 // Only flags in P1E_USER may be used in system calls.
 #define P1E_USER	(P1E_AVAIL | P1E_P | P1E_RW | P1E_US)
@@ -133,6 +133,10 @@
 #define EFER_LME	(1<<8)		// Long Mode Enable
 #define EFER_LMA	(1<<10)		// Long Mode Active
 #define EFER_NXE	(1<<11)		// No-Execute Enable
+
+#define KERN_CR0	(CR0_PE|CR0_MP|CR0_ET|CR0_WP|CR0_PG)
+#define KERN_CR4	(CR4_PSE|CR4_PAE|CR4_PGE)
+#define KERN_EFER	(EFER_LME|EFER_SCE|EFER_NXE)
 
 // RFLAGS register layout
 #define RFLAGS_CF (1<<0)	// Carry Flag
@@ -212,6 +216,7 @@ typedef struct segdesc {
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
     (type), (app), (dpl), 1, (unsigned) (lim) >> 28, 0, 0, 1, 1,	\
     (unsigned) ((base) >> 24) & 0xff, (base) >> 32, 0 }
+
 #define SEGDESC32(app, type, base, lim, dpl) (struct segdesc)		\
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
     (type), (app), (dpl), 1, (unsigned) (lim) >> 28, 0, 0, 1, 1,	\

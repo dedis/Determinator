@@ -15,13 +15,14 @@
 
 
 // Protected-mode segment selectors in the kernel's GDT
+// except for SEG_TSS, one 8-byte code/data segment is followed by one 8-byte null segment
 #define SEG_NULL	    0x00	// null descriptor (required by x86 processor)
-#define SEG_KERN_CS_16	0x08	// 16-bit kernel code segment
-#define SEG_KERN_CS_32	0x10	// 32-bit kernel code segment
-#define SEG_KERN_DS_32	0x18	// 32-bit kernel data segment
-#define SEG_KERN_CS_64	0x20	// 64-bit kernel segment
-#define SEG_USER_CS_64	0x28	// 64-bit user segment
-#define SEG_TSS		    0x30	// Task state segment
+#define SEG_KERN_CS_16	0x10	// 16-bit kernel code segment
+#define SEG_KERN_CS_32	0x20	// 32-bit kernel code segment
+#define SEG_KERN_DS_32	0x30	// 32-bit kernel data segment
+#define SEG_KERN_CS_64	0x40	// 64-bit kernel segment
+#define SEG_USER_CS_64	0x50	// 64-bit user segment
+#define SEG_TSS			0x60	// Task state segment
 #define CPU_GDT_NDESC	7	// number of GDT entries used, including null
 
 

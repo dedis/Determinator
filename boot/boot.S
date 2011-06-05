@@ -97,7 +97,7 @@ gdt:
   SEG(STA_W, 0x0, 0xffffffff)	        # data seg
 
 gdtdesc:
-  .word   0x17                            # sizeof(gdt) - 1
+  .word   (gdtdesc-gdt-1)                            # sizeof(gdt) - 1
   .long   gdt                             # address gdt
 
 #endif /* LAB >= 1 */

@@ -20,7 +20,7 @@
 # at an address in the low 2^16 bytes.
 #
 # Bootothers (in main.c) sends the STARTUPs, one at a time.
-# It puts this code (start) at 0x7000. RAJAT
+# It puts this code (start) at 0x7000. RAJAT says 0x1000
 # It puts the correct %esp in start-4,
 # and the place to jump to in start-8.
 #
@@ -29,10 +29,7 @@
 #   - it uses the address at start-4 for the %esp
 #   - it jumps to the address at start-8 instead of calling bootmain
 
-#define SEG_KCODE 1  // kernel code
-#define SEG_KDATA 2  // kernel data+stack
-
-.code16                       # Assemble for 16-bit mode
+.code16                       	# Assemble for 16-bit mode
 .globl start
 start:
 	cli                         # Disable interrupts
@@ -47,19 +44,19 @@ start:
 	# and segment translation that makes virtual addresses 
 	# identical to physical addresses, so that the 
 	# effective memory map does not change during the switch.
-	lgdt    gdtdesc
+	lgdt    kerngdtptr
 	movl    %cr0, %eax
 	orl     $CR0_PE, %eax
 	movl    %eax, %cr0
 
 	# Jump to next instruction, but in 32-bit code segment.
 	# Switches processor into 32-bit mode.
-	ljmp    $(SEG_KCODE<<3), $start32
+	ljmp    $(SEG_KERN_CS_32), $start32
 
 .code32                       # Assemble for 32-bit mode
 start32:
 	# Set up the protected-mode data segment registers
-	movw    $(SEG_KDATA<<3), %ax    # Our data segment selector
+	movw    $(SEG_KERN_DS_32), %ax    # Our data segment selector
 	movw    %ax, %ds                # -> DS: Data Segment
 	movw    %ax, %es                # -> ES: Extra Segment
 	movw    %ax, %ss                # -> SS: Stack Segment
@@ -67,6 +64,7 @@ start32:
 	movw    %ax, %fs                # -> FS
 	movw    %ax, %gs                # -> GS
 
+	/*
 	# Set up the stack pointer and call into C.
 	movl    start-4, %esp
 	call	*(start-8)
@@ -80,16 +78,64 @@ start32:
 	outw    %ax, %dx
 spin:
 	jmp     spin
+	*/
 
-# Bootstrap GDT
-.p2align 2                                # force 4 byte alignment
+	// enable various paging extensions we want use
+	movl	%cr4,%eax
+	orl	$KERN_CR4,%eax
+	movl	%eax,%cr4
+
+		// load CR3 to point to our boot page table structure
+	movl	$bootp4tab,%eax
+	movl	%eax,%cr3
+
+	// enable long mode (and other EFER features we want)
+	movl	$MSR_EFER,%ecx
+	rdmsr
+	orl		$KERN_EFER,%eax
+	wrmsr
+
+	// enable paging, and thus activate long mode
+	movl	%cr0,%eax
+	orl		$KERN_CR0,%eax
+	movl	%eax,%cr0
+	ljmp	$SEG_KERN_CS_64,$entry64
+
+	.code64
+entry64:	// we are now in 64-bit mode.
+
+	// Load our long-mode GDT, IDT, and TSS
+	// All these are loaded again in init
+	lgdt	kerngdtptr
+
+	movw	$SEG_KERN_CS_64,%ax
+	movw	%ax,%ds
+	movw	%ax,%es
+	movw	%ax,%ss
+
+	// Set up the stack pointer, frame pointer and call into C.
+	movl    start-8, %rsp
+	xorq	%rbp,%rbp
+	call	*(start-16)
+
+	// have not setup Bochs breakpoint
+
+	// should not reach here; if we do, just spin
+spin:	jmp	spin
+
+	.p2align 3
+	.globl gdt
 gdt:
-	SEG_NULL				# null seg
-	SEG(STA_X|STA_R, 0x0, 0xffffffff)	# code seg
-	SEG(STA_W, 0x0, 0xffffffff)		# data seg
+	SEG64(0,0,0,0)				// null segment
+	SEG64(0,0xffff,0x9b,0x0)	// 0x08: 16-bit kernel code segment
+	SEG64(0,0xfffff,0x9b,0xc)	// 0x10: 32-bit kernel code segment
+	SEG64(0,0xfffff,0x93,0xc)	// 0x18: 32-bit kernel data segment
+	SEG64(0,0xfffff,0x9a,0xd)	// 0x20: 64-bit kernel segment
+	SEG64(0,0xfffff,0xfa,0xd)	// 0x28: 64-bit user segment
+gdtend:
 
-gdtdesc:
-	.word   (gdtdesc - gdt - 1)             # sizeof(gdt) - 1
-	.long   gdt                             # address gdt
+kerngdtptr:
+	.word	gdtend-gdt-1		// limit
+	.quad	gdt			// base (kernel linear address)
 
 #endif	// LAB >= 2
