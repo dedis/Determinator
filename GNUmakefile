@@ -63,7 +63,9 @@ endif
 
 # try to infer the correct QEMU
 ifndef QEMU
-QEMU := $(shell sh misc/which-qemu.sh)
+#QEMU := $(shell sh misc/which-qemu.sh)
+QEMU := qemu-system-x86_64
+#QEMU := qemu
 endif
 
 # try to generate unique GDB and network port numbers
@@ -89,14 +91,6 @@ NCC	:= gcc $(CC_VER) -pipe
 TAR	:= gtar
 PERL	:= perl
 
-# If we're not using the special "PIOS edition" of GCC,
-# reconfigure the host OS's compiler for our purposes.
-ifneq ($(GCCPREFIX),pios-)
-CFLAGS += -nostdinc -m32
-LDFLAGS += -nostdlib -m elf_i386
-USER_LDFLAGS += -e start -Ttext=0x40000100
-endif
-
 # Where does GCC have its libgcc.a and libgcc's include directory?
 GCCDIR := $(dir $(shell $(CC) $(CFLAGS) -print-libgcc-file-name))
 
@@ -108,10 +102,17 @@ GCCALTDIR := $(dir $(shell $(CC) -print-libgcc-file-name))
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
 CFLAGS += $(DEFS) $(LABDEFS) -fno-builtin -I$(TOP) -I$(TOP)/inc \
 		-I$(GCCDIR)/include -I$(GCCALTDIR)/include \
-		-MD -Wall -Wno-unused -Werror -gstabs
+		-MD -Wall -Wno-unused -gstabs
+		#-MD -Wall -Wno-unused -Werror -gstabs #comment this line to stop treating warnings as errors.
+#TODO:: Need to add -Werror flag
+BOOT_CFLAGS += $(DEFS) $(LABDEFS) -fno-builtin -I$(TOP) -I$(TOP)/inc \
+		-I$(GCCDIR)/include -I$(GCCALTDIR)/include \
+		-MD -Wall -Wno-unused -gstabs
+		#-MD -Wall -Wno-unused -Werror -gstabs
 ifdef LAB9
 # Optimize by default only in the research (Determinator) system.
 CFLAGS += -O2
+BOOT_CFLAGS += -O2
 endif
 
 # Add -fno-stack-protector if the option exists.
@@ -119,6 +120,23 @@ CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 \
 		&& echo -fno-stack-protector)
 
 LDFLAGS += -L$(OBJDIR)/lib -L$(GCCDIR)
+LDFLAGS += -L$(OBJDIR)/lib -L$(GCCDIR)
+
+# If we're not using the special "PIOS edition" of GCC,
+# reconfigure the host OS's compiler for our purposes.
+ifneq ($(GCCPREFIX),pios-)
+#boot sector is compiled as 32bit code	
+BOOT_CFLAGS += $(CFLAGS) -nostdinc -m32
+BOOT_LDFLAGS += $(LDFLAGS) -nostdlib -m elf_i386	
+
+
+#flags for 64bit	
+CFLAGS += -nostdinc -m64 #-std=c99
+LDFLAGS += -nostdlib -m elf_x86_64
+USER_LDFLAGS += -e start -Ttext=0x40000100
+
+endif
+
 
 # Compiler flags that differ for kernel versus user-level code.
 KERN_CFLAGS += $(CFLAGS) -DPIOS_KERNEL
@@ -130,6 +148,8 @@ USER_LDFLAGS += $(LDFLAGS)
 USER_LDINIT += $(OBJDIR)/lib/crt0.o
 USER_LDDEPS += $(USER_LDINIT) $(OBJDIR)/lib/libc.a
 USER_LDLIBS += $(LDLIBS) -lc -lgcc
+
+
 
 # Lists that the */Makefrag makefile fragments will add to
 OBJDIRS :=
@@ -289,7 +309,7 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
-NCPUS = 2
+NCPUS = 1
 ifdef LAB9
 # Local hack: use more CPUs by default when running on our main test server.
 #NCPUS := $(shell if test `uname -n` = "korz"; then echo 12; else echo 2; fi)
@@ -329,6 +349,7 @@ ifneq ($(LAB),5)
 # Launch QEMU for debugging. Labs 1-4 need only one instance of QEMU.
 qemu-gdb: $(IMAGES) .gdbinit
 	@echo "*** Now run 'gdb'." 1>&2
+	@echo $(GCCPREFIX)
 	$(QEMU) $(QEMUOPTS) -S $(QEMUPORT)
 else
 # Launch QEMU for debugging the 2-node distributed system in Lab 5.

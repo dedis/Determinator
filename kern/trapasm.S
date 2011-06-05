@@ -25,7 +25,7 @@
 	.type name, @function;	/* symbol type is function */		\
 	.align 2;		/* align function definition */		\
 	name:			/* function starts here */		\
-	pushl $(num);							\
+	pushq $(num);							\
 	jmp _alltraps
 
 /* Use TRAPHANDLER_NOEC for traps where the CPU doesn't push an error code.
@@ -37,8 +37,7 @@
 	.type name, @function;						\
 	.align 2;							\
 	name:								\
-	pushl $0;							\
-	pushl $(num);							\
+	pushq $(num);							\
 	jmp _alltraps
 
 .text
@@ -107,11 +106,43 @@ TRAPHANDLER_NOEC(Xdefault, T_DEFAULT)
 .type	_alltraps,@function
 .p2align 4, 0x90		/* 16-byte alignment, nop filled */
 _alltraps:
-	pushl %ds		# build trap frame
-	pushl %es
-	pushl %fs
-	pushl %gs
-	pushal
+/*FIX:: Ishan - 30 May,2011
+  -pushing ds, es is not supported in 64bit since segmentation is disabled. (pg 118 of AMD Vol2)
+	pushw %ds		# build trap frame
+	pushw %es
+ can mov them to ax and then push ? Or should we just forget about it ?
+http://stackoverflow.com/questions/5289316/help-with-es-register-for-x86-to-x86-64-assembly-code-port
+ -replace pushal by series of push ?
+	   pushal = push EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI in that order. (value of ESP pushed is before pushad was called)
+	   notice that we use popal later and do not need ESP value, so no need to push it.
+
+  FIXED:: Ishan - 01 Jun,2011 
+  -moved ds and es registers to ax and then pushed. Prevents leaking extra information to user code.
+  -implemented pushal by series of push
+  -changed the order of pushes to simplify the code.
+  
+ */
+
+	pushq %rax
+	pushq %rcx
+	pushq %rdx
+	pushq %rbx
+	pushq %rbp
+	pushq %rsi
+	pushq %rdi
+
+	//Now we push ds and es. Since directly pushing them is not allowed, we move them to ax and then do the same.
+	movq $0, %rax
+	movw %ds, %ax
+	pushq %rax
+
+	movq $0, %rax
+	movw %es, %ax
+	pushq %rax
+
+	pushq %fs
+	pushq %gs
+
 
 	movl $CPU_GDT_KDATA,%eax # load kernel's data segment
 	movw %ax,%ds
@@ -119,7 +150,7 @@ _alltraps:
 
 	xorl %ebp,%ebp		# don't let debug_trace() walk into user space
 
-	pushl %esp		# pass pointer to this trapframe 
+	pushq %rsp		# pass pointer to this trapframe 
 	call trap		# and call trap (does not return)
 
 1:	jmp 1b			# should never get here; just spin...
@@ -147,13 +178,34 @@ _alltraps:
 .p2align 4, 0x90		/* 16-byte alignment, nop filled */
 trap_return:
 #if SOL >= 1
-	movl	4(%esp),%esp	// reset stack pointer to point to trap frame
-	popal			// restore general-purpose registers except esp
-	popl	%gs		// restore data segment registers
-	popl	%fs
-	popl	%es
-	popl	%ds
-	addl	$8,%esp		// skip trapno and errcode
+	movq	8(%rsp),%rsp	// reset stack pointer to point to trap frame
+
+	/*FIX:: Ishan - 31 May,2011
+	  -popal
+	  -pop into 16bit es and ds regs in 64 bit?
+
+	  FIXED:: Ishan - 01 Jun,2011 
+	  -replaced popal
+	  -popped values into es and ds
+	 */ 
+	popq	%gs		// restore data segment registers
+	popq	%fs
+
+	//pop values into the 16 bit segment registers es and ds by moving them from ax
+	popq %rax
+	movw %ax,%es
+	popq %rax
+	movw %ax,%ds
+
+	popq %rdi
+	popq %rsi
+	popq %rbp
+	popq %rbx
+	popq %rdx
+	popq %rcx
+	popq %rax
+
+	addq	$16,%rsp		// skip trapno and errcode
 	iret			// return from trap handler
 #else // SOL >= 1
 /*

@@ -165,7 +165,14 @@ void cpu_init()
 	asm volatile("movw %%ax,%%es" :: "a" (CPU_GDT_KDATA));
 	asm volatile("movw %%ax,%%ds" :: "a" (CPU_GDT_KDATA));
 	asm volatile("movw %%ax,%%ss" :: "a" (CPU_GDT_KDATA));
-	asm volatile("ljmp %0,$1f\n 1:\n" :: "i" (CPU_GDT_KCODE)); // reload CS
+
+	/*TODO:: Ishan - 30 May,2011
+	  CHECK -Fixed the ljmp by a mov (since no ljmp in x64)
+	 */ 
+
+//	int x=CPU_GDT_KCODE;
+//	asm volatile("ljmp %0,$fl\n fl:\n" :: "a" (CPU_GDT_KCODE)); // reload CS
+	asm volatile("movw %%ax,%%cs" :: "r" (CPU_GDT_KCODE));
 
 	// We don't need an LDT.
 	asm volatile("lldt %%ax" :: "a" (0));

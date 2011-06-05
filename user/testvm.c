@@ -85,6 +85,9 @@ join(int cmd, uint8_t child, int trapexpect)
 void
 gentrap(int trap)
 {
+	/*TODO:: Ishan - 01 Jun,2011
+	  Replace the bound instruction
+	 */ 
 	int bounds[2] = { 1, 3 };
 	switch (trap) {
 	case T_DIVIDE:
@@ -92,9 +95,10 @@ gentrap(int trap)
 	case T_BRKPT:
 		asm volatile("int3");
 	case T_OFLOW:
-		asm volatile("addl %0,%0; into" : : "r" (0x70000000));
+		//asm volatile("addl %0,%0; into" : : "r" (0x70000000));
+		asm volatile("addq %0,%0; jno fl; int $0x04;fl:" : : "r" (0x7000000000000000));
 	case T_BOUND:
-		asm volatile("boundl %0,%1" : : "r" (0), "m" (bounds[0]));
+		//asm volatile("boundl %0,%1" : : "r" (0), "m" (bounds[0]));
 	case T_ILLOP:
 		asm volatile("ud2");	// guaranteed to be undefined
 	case T_GPFLT:

@@ -274,8 +274,8 @@ void
 user()
 {
 	cprintf("in user()\n");
-	assert(read_esp() > (uint32_t) &user_stack[0]);
-	assert(read_esp() < (uint32_t) &user_stack[sizeof(user_stack)]);
+	assert(read_rsp() > (uint32_t) &user_stack[0]);
+	assert(read_rsp() < (uint32_t) &user_stack[sizeof(user_stack)]);
 
 #if LAB == 1
 	// Check that we're in user mode and can handle traps from there.

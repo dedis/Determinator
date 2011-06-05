@@ -30,5 +30,5 @@ ENTRY(lrintl)
 	fldt	4(%esp)
 	subl	$4,%esp
 	fistpl	(%esp)
-	popl	%eax
+	popq	%rax
 	ret

@@ -142,7 +142,7 @@ static void condwakeups(void);
 static gcc_inline int
 selfno(void)
 {
-	int tno = (uint32_t)(VM_STACKHI - read_esp()) / TSTACKSIZE;
+	int tno = (uint32_t)(VM_STACKHI - read_rsp()) / TSTACKSIZE;
 	assert(tno >= 0 && tno < MAXTHREADS);
 	return tno;
 }
@@ -243,7 +243,7 @@ gcc_noreturn void
 pthread_sched(void)
 {
 	assert(tlock == 2);
-	assert(read_esp() > SCHEDSTACKLO);
+	assert(read_rsp() > SCHEDSTACKLO);
 
 	// First restart any threads that have been made ready after blocking.
 	if (readyqhead != NULL) {
@@ -253,14 +253,18 @@ pthread_sched(void)
 		t->qnext = NULL;
 
 		// Resume the thread, still running in the master process.
+		/*FIXME:: Ishan - 31 May,2011
+		  change t->ebp etc to 64 bit regs.
+		  the jmp instruction has been commented here.
+		 */ 
 		asm volatile(
 			"	movl	%0,%%ebp;"	// restore thread's ebp
 			"	movl	%1,%%esp;"	// restore thread's esp
-			"	jmp	*%2;"		// restore thread's eip
+//			"	jmp	*%2;"		// restore thread's eip
 			:
 			: "r" (t->ebp),
-			  "r" (t->esp),
-			  "r" (t->eip));
+			  "r" (t->esp));
+//			  "r" (t->eip));
 		// (asm fragment does not return here)
 	}
 
@@ -402,17 +406,17 @@ tblock(pthread_t t, int newstate)
 	// Save critical registers and invoke scheduler;
 	// this thread will continue if/when it gets unblocked.
 	asm volatile(
-		"	pushl	%%esi;"		// save a few registers
-		"	pushl	%%edi;"
-		"	movl	%%ebp,%0;"	// save thread's frame pointer
-		"	movl	%%esp,%1;"	// save thread's stack pointer
-		"	movl	$1f,%2;"	// start address when unblocked
-		"	movl	%3,%%esp;"	// switch to scheduler stack
+		"	pushq	%%rsi;"		// save a few registers
+		"	pushq	%%rdi;"
+		"	movq	%%rbp,%0;"	// save thread's frame pointer
+		"	movq	%%rsp,%1;"	// save thread's stack pointer
+		"	movq	$1f,%2;"	// start address when unblocked
+		"	movq	%3,%%rsp;"	// switch to scheduler stack
 		"	xorl	%%ebp,%%ebp;"	// clear frame pointer
 		"	jmp	pthread_sched;"	// invoke the scheduler
 		"	.p2align 4,0x90;"
-		"1:	popl	%%edi;"
-		"	popl	%%esi;"
+		"1:	popq	%%rdi;"
+		"	popq	%%rsi;"
 		: "=m" (t->ebp),
 		  "=m" (t->esp),
 		  "=m" (t->eip)
@@ -542,7 +546,7 @@ mret(void)
 if (tlock != 0) {
 	cprintf("mret: oops, tlock == %d in thread %d\n",
 		tlock, t->tno);
-	dump((void*)read_esp(), 0x80);
+	dump((void*)read_rsp(), 0x80);
 }
 	//assert(tlock == 0);
 }
@@ -577,12 +581,13 @@ tinit(pthread_t t)
 // otherwise GCC assumes the (NULL) thread private pointer it reads here
 // can be reused later in tpinit() for accessing (real) thread-private data.
 static gcc_noinline void
-tpgetsize(int *tdatasize, int *tlssize) {
+tpgetsize(intptr_t *tdatasize, intptr_t *tlssize) {
+assert(0);
 	extern __thread char tdata_start[], tbss_start[];
-	*tdatasize = tbss_start - tdata_start;	// size of init'd data
+//	*tdatasize = tbss_start - tdata_start;	// size of init'd data
 
 	assert(THREADPRIV->tlshi == NULL);
-	*tlssize = -(intptr_t)tdata_start;	// complete tls area
+//	*tlssize = -(intptr_t)tdata_start;	// complete tls area
 
 	assert(*tlssize >= *tdatasize);
 }
@@ -600,7 +605,7 @@ tpinit(pthread_t t)
 	memcpy(THREADPRIV->mcall, cmcalls, cmcalle - cmcalls);
 
 	// Figure out how big our GCC thread-local state area needs to be.
-	int tdatasize, tlssize;
+	intptr_t tdatasize, tlssize;
 	tpgetsize(&tdatasize, &tlssize);
 
 	// Allocate a TLS area for this thread.
@@ -1144,6 +1149,8 @@ realloc(void *ptr, size_t newsize)
 void
 free(void *ptr)
 {
+	/* DOUBT:: Empty funtion ?*/
+
 //	int size = *(int*)(ptr-8);
 //	if (size > 1024)
 //		cprintf("thread %d free size %d at %x\n",

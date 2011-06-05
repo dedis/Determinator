@@ -47,7 +47,7 @@ spinlock_acquire(struct spinlock *lk)
 
 	// Record info about lock acquisition for debugging.
 	lk->cpu = cpu_cur();
-	debug_trace(read_ebp(), lk->eips);
+	debug_trace(read_rbp(), lk->eips);
 #endif // SOL >= 2
 }
 

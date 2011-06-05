@@ -30,31 +30,35 @@ start:
 	// If not, push dummy argc/argv arguments.
 	// This happens when we are loaded by the kernel,
 	// because the kernel does not know about passing arguments.
-	pushl $0
-	pushl $0
+	pushq $0
+	pushq $0
 
 args_exist:
 #endif
+
+/*FIXME:: Ishan - 01 Jun,2011
+  -check the logic below.
+ */ 
 #if LAB >= 9		// run initialization functions
 	movl	$__init_array_start,%esi
 1:	cmpl	$__init_array_end,%esi
 	je	2f
 	movl	(%esi),%eax
 	addl	$4,%esi
-	call	*%eax
+	call	*%rax //FIXME
 	jmp	1b
 2:
 #endif
 
 	call	main	// run the program
-	pushl	%eax	// use with main's return value as exit status
+	pushq	%rax	// use with main's return value as exit status
 #if LAB >= 9		// run finalization functions
 	movl	$__fini_array_start,%esi
 1:	cmpl	$__fini_array_end,%esi
 	je	2f
 	movl	(%esi),%eax
 	addl	$4,%esi
-	call	*%eax
+	call	*%rax //FIXME
 	jmp	1b
 2:
 #endif

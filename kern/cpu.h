@@ -102,7 +102,7 @@ extern int cpu_limit;
 // It always resides at the bottom of the page containing the CPU's stack.
 static inline cpu *
 cpu_cur() {
-	cpu *c = (cpu*)ROUNDDOWN(read_esp(), PAGESIZE);
+	cpu *c = (cpu*)ROUNDDOWN(read_rsp(), PAGESIZE);
 	assert(c->magic == CPU_MAGIC);
 	return c;
 }

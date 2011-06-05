@@ -5,8 +5,12 @@
 
 #include "asm.h"
 
+/*FIXME:: Ishan - 01 Jun,2011
+  pushl %ebp -> pushq %rbp
+  other changes ?
+ */ 
 ENTRY(floorf)
-	pushl	%ebp
+	pushq	%rbp
 	movl	%esp,%ebp
 	subl	$8,%esp
 

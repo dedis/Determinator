@@ -48,6 +48,12 @@ typedef struct cpuinfo {
 } cpuinfo;
 
 
+/*TODO:: Ishan - 29 May, 2011 
+  *check if we need functions to write 64 bit values to ports	
+  *check if we need to read eflags or rflags. currently we have function to read rflags only.
+  *may need to add or remove from model specific instructions.
+*/
+
 
 static gcc_inline void
 breakpoint(void)
@@ -176,91 +182,91 @@ ltr(uint16_t sel)
 }
 
 static gcc_inline void
-lcr0(uint32_t val)
+lcr0(uint64_t val)
 {
-	__asm __volatile("movl %0,%%cr0" : : "r" (val));
+	__asm __volatile("movq %0,%%cr0" : : "r" (val));
 }
 
-static gcc_inline uint32_t
+static gcc_inline uint64_t
 rcr0(void)
 {
-	uint32_t val;
-	__asm __volatile("movl %%cr0,%0" : "=r" (val));
+	uint64_t val;
+	__asm __volatile("movq %%cr0,%0" : "=r" (val));
 	return val;
 }
 
-static gcc_inline uint32_t
+static gcc_inline uint64_t
 rcr2(void)
 {
-	uint32_t val;
-	__asm __volatile("movl %%cr2,%0" : "=r" (val));
+	uint64_t val;
+	__asm __volatile("movq %%cr2,%0" : "=r" (val));
 	return val;
 }
 
 static gcc_inline void
-lcr3(uint32_t val)
+lcr3(uint64_t val)
 {
-	__asm __volatile("movl %0,%%cr3" : : "r" (val));
+	__asm __volatile("movq %0,%%cr3" : : "r" (val));
 }
 
-static gcc_inline uint32_t
+static gcc_inline uint64_t
 rcr3(void)
 {
-	uint32_t val;
-	__asm __volatile("movl %%cr3,%0" : "=r" (val));
+	uint64_t val;
+	__asm __volatile("movq %%cr3,%0" : "=r" (val));
 	return val;
 }
 
 static gcc_inline void
-lcr4(uint32_t val)
+lcr4(uint64_t val)
 {
-	__asm __volatile("movl %0,%%cr4" : : "r" (val));
+	__asm __volatile("movq %0,%%cr4" : : "r" (val));
 }
 
-static gcc_inline uint32_t
+static gcc_inline uint64_t
 rcr4(void)
 {
-	uint32_t cr4;
-	__asm __volatile("movl %%cr4,%0" : "=r" (cr4));
+	uint64_t cr4;
+	__asm __volatile("movq %%cr4,%0" : "=r" (cr4));
 	return cr4;
 }
 
 static gcc_inline void
 tlbflush(void)
 {
-	uint32_t cr3;
-	__asm __volatile("movl %%cr3,%0" : "=r" (cr3));
-	__asm __volatile("movl %0,%%cr3" : : "r" (cr3));
+	uint64_t cr3;
+	__asm __volatile("movq %%cr3,%0" : "=r" (cr3));
+	__asm __volatile("movq %0,%%cr3" : : "r" (cr3));
 }
 
-static gcc_inline uint32_t
-read_eflags(void)
+static gcc_inline uint64_t
+read_rflags(void)
 {
-        uint32_t eflags;
-        __asm __volatile("pushfl; popl %0" : "=rm" (eflags));
-        return eflags;
+        uint64_t rflags;
+        __asm __volatile("pushfq; popq %0" : "=rm" (rflags));
+        return rflags;
 }
 
 static gcc_inline void
-write_eflags(uint32_t eflags)
+write_rflags(uint64_t rflags)
 {
-        __asm __volatile("pushl %0; popfl" : : "rm" (eflags));
+        __asm __volatile("pushq %0; popfq" : : "rm" (rflags));
 }
 
-static gcc_inline uint32_t
-read_ebp(void)
+static gcc_inline uint64_t
+read_rbp(void)
 {
-        uint32_t ebp;
-        __asm __volatile("movl %%ebp,%0" : "=rm" (ebp));
-        return ebp;
+        uint64_t rbp;
+        __asm __volatile("movq %%rbp,%0" : "=rm" (rbp));
+        return rbp;
 }
 
-static gcc_inline uint32_t
-read_esp(void)
+static gcc_inline uint64_t
+read_rsp(void)
 {
-        uint32_t esp;
-        __asm __volatile("movl %%esp,%0" : "=rm" (esp));
-        return esp;
+        uint64_t rsp;
+        __asm __volatile("movq %%rsp,%0" : "=rm" (rsp));
+        return rsp;
 }
 
 static gcc_inline uint16_t
@@ -329,7 +335,7 @@ cpuid(uint32_t idx, cpuinfo *info)
 {
 	asm volatile("cpuid" 
 		: "=a" (info->eax), "=b" (info->ebx),
-		  "=c" (info->ecx), "=d" (info->edx)
+	  "=c" (info->ecx), "=d" (info->edx)
 		: "a" (idx));
 }
 
