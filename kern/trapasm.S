@@ -129,7 +129,7 @@ _alltraps:
 	pushw %fs
 	pushw %gs
 
-	movl $CPU_GDT_KDATA,%eax # load kernel's data segment
+	movw $SEG_KERN_CS_64,%ax # load kernel's data segment
 	movw %ax,%ds
 	movw %ax,%es
 

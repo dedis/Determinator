@@ -23,12 +23,12 @@
 
 
 // Page directory entries and page table entries are 32-bit integers.
-typedef uint32_t pde_t;
-typedef uint32_t pte_t;
+typedef uint64_t pde_t;
+typedef uint64_t pte_t;
 
 
 // Bootstrap page directory that identity-maps the kernel's address space.
-extern pde_t pmap_bootpdir[1024];
+extern pde_t pmap_bootpdir[NPENTRIES];
 
 // Statically allocated page that we always keep set to all zeros.
 extern uint8_t pmap_zero[PAGESIZE];
@@ -42,7 +42,7 @@ extern uint8_t pmap_zero[PAGESIZE];
 // A zero mapping with SYS_READ also has PTE_P (present) set,
 // but a zero mapping with SYS_WRITE never has PTE_W (writeable) set -
 // instead the page fault handler creates copies of the zero page on demand.
-#define PTE_ZERO	((uint32_t)pmap_zero)
+#define PTE_ZERO	((uint64_t)pmap_zero)
 
 
 void pmap_init(void);
