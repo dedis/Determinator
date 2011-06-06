@@ -220,6 +220,7 @@ cpu_alloc(void)
 void
 cpu_bootothers(void)
 {
+	extern intptr_t bootp4tab;
 	extern uint8_t _binary_obj_boot_bootother_start[],
 			_binary_obj_boot_bootother_size[];
 
@@ -239,9 +240,10 @@ cpu_bootothers(void)
 		if(c == cpu_cur())  // We''ve started already.
 			continue;
 
-		// Fill in %rsp, %rip and start code on cpu.
+		// Fill in %rsp, %rip, location of page table and start code on cpu.
 		*(void**)(code-8) = c->kstackhi;
 		*(void**)(code-16) = init;
+		*(void**)(code-24) = bootp4tab;
 		lapic_startcpu(c->id, (uint64_t)code);
 
 		// Wait for cpu to get through bootstrap.

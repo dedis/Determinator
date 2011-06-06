@@ -93,7 +93,7 @@ spin:
 	movl	%eax,%cr4
 
 		// load CR3 to point to our boot page table structure
-	movl	$bootp4tab,%eax
+	movl	start-24,%eax
 	movl	%eax,%cr3
 
 	// enable long mode (and other EFER features we want)

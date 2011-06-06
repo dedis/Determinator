@@ -126,9 +126,9 @@ LDFLAGS += -L$(OBJDIR)/lib -L$(GCCDIR)
 # reconfigure the host OS's compiler for our purposes.
 ifneq ($(GCCPREFIX),pios-)
 # boot sector is compiled as 32bit code
-# RAJAT changed this to 64 bit. Change -m64 to -m32 and elf_x86_64 to elf_i386	
-BOOT_CFLAGS += $(CFLAGS) -nostdinc -m64
-BOOT_LDFLAGS += $(LDFLAGS) -nostdlib -m elf_x86_64	
+# RAJAT has removed the -m flags from here and put them in boot/Makefrag	
+BOOT_CFLAGS += $(CFLAGS) -nostdinc #-m32
+BOOT_LDFLAGS += $(LDFLAGS) -nostdlib #-m elf_i386	
 
 
 # flags for 64bit	

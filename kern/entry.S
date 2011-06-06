@@ -29,7 +29,6 @@
 #define KERN_CR0	(CR0_PE|CR0_MP|CR0_ET|CR0_WP|CR0_PG)
 #define KERN_CR4	(CR4_PSE|CR4_PAE|CR4_PGE)
 #define KERN_EFER	(EFER_LME|EFER_SCE|EFER_NXE)
-#define SEG_KERN_CS_64  0x20    // 64-bit kernel code segment
 #define MSR_EFER        0xc0000080      // Extended Feature Enable Register
 #define KERNBASE        0xffffffffc0000000
 

@@ -9,6 +9,10 @@
 # Primary authors: Bryan Ford, Eddie Kohler
 #
 
+# RAJAT put the -m flags individually here in boot/Makefrag because 
+# he wanted boot/bootother.S to compile for 64-bit mode but the 
+# bootloader, ie, boot.S and main.c to compile for 32-bit mode
+
 OBJDIRS += boot
 
 BOOT_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o
@@ -16,27 +20,32 @@ BOOT_OBJS := $(OBJDIR)/boot/boot.o $(OBJDIR)/boot/main.o
 $(OBJDIR)/boot/%.o: boot/%.c
 	@echo + cc -Os $<
 	@mkdir -p $(@D)
-	$(V)$(CC) $(BOOT_CFLAGS) -Os -c -o $@ $<
+	$(V)$(CC) $(BOOT_CFLAGS) -m32 -Os -c -o $@ $<
 
-$(OBJDIR)/boot/%.o: boot/%.S
+$(OBJDIR)/boot/boot.o: boot/boot.S
 	@echo + as $<
 	@mkdir -p $(@D)
-	$(V)$(CC) $(BOOT_CFLAGS) -c -o $@ $<
+	$(V)$(CC) $(BOOT_CFLAGS) -m32 -c -o $@ $<
+
+$(OBJDIR)/boot/bootother.o: boot/bootother.S
+	@echo + as $<
+	@mkdir -p $(@D)
+	$(V)$(CC) $(BOOT_CFLAGS) -m64 -c -o $@ $<
 
 $(OBJDIR)/boot/main.o: boot/main.c
 	@echo + cc -Os $<
-	$(V)$(CC) $(BOOT_CFLAGS) -Os -c -o $(OBJDIR)/boot/main.o boot/main.c
+	$(V)$(CC) $(BOOT_CFLAGS) -m32 -Os -c -o $(OBJDIR)/boot/main.o boot/main.c
 
 $(OBJDIR)/boot/bootblock: $(BOOT_OBJS)
 	@echo + ld boot/bootblock
-	$(V)$(LD) $(BOOT_LDFLAGS) -N -e start -Ttext 0x7C00 -o $@.elf $^
+	$(V)$(LD) $(BOOT_LDFLAGS) -m elf_i386 -N -e start -Ttext 0x7C00 -o $@.elf $^
 	$(V)$(OBJDUMP) -S $@.elf >$@.asm
 	$(V)$(OBJCOPY) -S -O binary $@.elf $@
 	$(V)perl boot/sign.pl $(OBJDIR)/boot/bootblock
 
 $(OBJDIR)/boot/bootother: $(OBJDIR)/boot/bootother.o
 	@echo + ld boot/bootother
-	$(V)$(LD) $(BOOT_LDFLAGS) -N -e start -Ttext 0x1000 -o $@.elf $^
+	$(V)$(LD) $(BOOT_LDFLAGS) -m elf_x86_64 -N -e start -Ttext 0x1000 -o $@.elf $^
 	$(V)$(OBJDUMP) -S $@.elf >$@.asm
 	$(V)$(OBJCOPY) -S -O binary $@.elf $@
 

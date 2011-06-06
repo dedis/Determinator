@@ -107,7 +107,7 @@ static void checkva(trapframe *utf, uint32_t uva, size_t size)
 // using checkva() above to validate the address range
 // and using sysrecover() to recover from any traps during the copy.
 void usercopy(trapframe *utf, bool copyout,
-			void *kva, uint64_t uva, size_t size)
+			void *kva, uint32_t uva, size_t size)
 {
 	checkva(utf, uva, size);
 
@@ -141,7 +141,7 @@ do_cputs(trapframe *tf, uint32_t cmd)
 	buf[CPUTS_MAX] = 0;	// make sure it's null-terminated
 	cprintf("%s", buf);
 #else	// SOL < 3
-	cprintf("%s", (char*)tf->regs.ebx);
+	cprintf("%s", (char*)tf->rbx);
 #endif	// SOL < 3
 
 	trap_return(tf);	// syscall completed
@@ -192,7 +192,7 @@ do_put(trapframe *tf, uint32_t cmd)
 #if SOL >= 3
 		usercopy(tf, 0, &cp->sv, tf->rbx, len);
 #else
-		procstate *cs = (procstate*) tf->regs.ebx;
+		procstate *cs = (procstate*) tf->rbx;
 		memcpy(&cp->sv, cs, len);
 #endif
 
@@ -216,22 +216,22 @@ do_put(trapframe *tf, uint32_t cmd)
 	}
 
 #if SOL >= 3
-	uint64_t sva = tf->rsi;
-	uint64_t dva = tf->rdi;
-	uint64_t size = tf->rcx;
+	uint32_t sva = tf->rsi;
+	uint32_t dva = tf->rdi;
+	uint32_t size = tf->rcx;
 	switch (cmd & SYS_MEMOP) {
 	case 0:	// no memory operation
 		break;
 	case SYS_COPY:
 		// validate source region
-		if (P1OFF(sva) || P1OFF(size)
+		if (PTOFF(sva) || PTOFF(size)
 				|| sva < VM_USERLO || sva > VM_USERHI
 				|| size > VM_USERHI-sva)
 			systrap(tf, T_GPFLT, 0);
 		// fall thru...
 	case SYS_ZERO:
 		// validate destination region
-		if (P1OFF(dva) || P1OFF(size)
+		if (PTOFF(dva) || PTOFF(size)
 				|| dva < VM_USERLO || dva > VM_USERHI
 				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
@@ -251,7 +251,7 @@ do_put(trapframe *tf, uint32_t cmd)
 
 	if (cmd & SYS_PERM) {
 		// validate destination region
-		if (P4OFF(dva) || P4OFF(size)
+		if (PGOFF(dva) || PGOFF(size)
 				|| dva < VM_USERLO || dva > VM_USERHI
 				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
@@ -325,23 +325,23 @@ do_get(trapframe *tf, uint32_t cmd)
 	}
 
 #if SOL >= 3
-	uint64_t sva = tf->rsi;
-	uint64_t dva = tf->rdi;
-	uint64_t size = tf->rcx;
+	uint32_t sva = tf->rsi;
+	uint32_t dva = tf->rdi;
+	uint32_t size = tf->rcx;
 	switch (cmd & SYS_MEMOP) {
 	case 0:	// no memory operation
 		break;
 	case SYS_COPY:
 	case SYS_MERGE:
 		// validate source region
-		if (P1OFF(sva) || P1OFF(size)
+		if (PTOFF(sva) || PTOFF(size)
 				|| sva < VM_USERLO || sva > VM_USERHI
 				|| size > VM_USERHI-sva)
 			systrap(tf, T_GPFLT, 0);
 		// fall thru...
 	case SYS_ZERO:
 		// validate destination region
-		if (P1OFF(dva) || P1OFF(size)
+		if (PTOFF(dva) || PTOFF(size)
 				|| dva < VM_USERLO || dva > VM_USERHI
 				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
@@ -365,7 +365,7 @@ do_get(trapframe *tf, uint32_t cmd)
 
 	if (cmd & SYS_PERM) {
 		// validate destination region
-		if (P4OFF(dva) || P4OFF(size)
+		if (PGOFF(dva) || PGOFF(size)
 				|| dva < VM_USERLO || dva > VM_USERHI
 				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
@@ -419,7 +419,7 @@ void
 syscall(trapframe *tf)
 {
 	// EAX register holds system call command/flags
-	uint64_t cmd = tf->rax;
+	uint32_t cmd = tf->rax;
 	switch (cmd & SYS_TYPE) {
 	case SYS_CPUTS:	return do_cputs(tf, cmd);
 #if SOL >= 2
