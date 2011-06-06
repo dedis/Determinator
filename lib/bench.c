@@ -33,28 +33,28 @@ bench_fork(uint8_t child, void *(*fun)(void *), void *arg)
 	// and generate an appropriate starting eip
 	int isparent;
 	asm volatile(
-		"	movl	%%esi,%0;"
-		"	movl	%%edi,%1;"
-		"	movl	%%ebp,%2;"
-		"	movl	%%esp,%3;"
-		"	movl	$1f,%4;"
+		"	movq	%%rsi,%0;"
+		"	movq	%%rdi,%1;"
+		"	movq	%%rbp,%2;"
+		"	movq	%%rsp,%3;"
+		"	movq	$1f,%4;"
 		"	movl	$1,%5;"
 		"1:	"
-		: "=m" (ps.tf.regs.esi),
-		  "=m" (ps.tf.regs.edi),
-		  "=m" (ps.tf.regs.ebp),
-		  "=m" (ps.tf.esp),
-		  "=m" (ps.tf.eip),
+		: "=m" (ps.tf.rsi),
+		  "=m" (ps.tf.rdi),
+		  "=m" (ps.tf.rbp),
+		  "=m" (ps.tf.rsp),
+		  "=m" (ps.tf.rip),
 		  "=a" (isparent)
 		:
-		: "ebx", "ecx", "edx");
+		: "rbx", "rcx", "rdx");
 	if (!isparent) {	// in the child
 		fun(arg);
 		sys_ret();
 	}
 
 	// Fork the child, copying our entire user address space into it.
-	ps.tf.regs.eax = 0;	// isparent == 0 in the child
+	ps.tf.rax = 0;	// isparent == 0 in the child
 	sys_put(cmd | SYS_REGS | SYS_COPY, child, &ps, ALLVA, ALLVA, ALLSIZE);
 }
 
@@ -71,8 +71,8 @@ bench_join(uint8_t child)
 
 	// Make sure the child exited with the expected trap number
 	if (ps.tf.trapno != trapexpect) {
-		cprintf("  eip  0x%08x\n", ps.tf.eip);
-		cprintf("  esp  0x%08x\n", ps.tf.esp);
+		cprintf("  rip  0x%08x\n", ps.tf.rip);
+		cprintf("  rsp  0x%08x\n", ps.tf.rsp);
 		panic("join: unexpected trap %d, expecting %d\n",
 			ps.tf.trapno, trapexpect);
 	}

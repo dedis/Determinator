@@ -205,8 +205,8 @@ int fileino_flush(int ino);
 
 filedesc *filedesc_alloc(void);
 filedesc *filedesc_open(filedesc *fd, const char *path, int flags, mode_t mode);
-int filedesc_read(filedesc *fd, void *buf, size_t eltsize, size_t count);
-int filedesc_write(filedesc *fd, const void *buf, size_t eltsize, size_t count);
+ssize_t filedesc_read(filedesc *fd, void *buf, size_t eltsize, size_t count);
+ssize_t filedesc_write(filedesc *fd, const void *buf, size_t eltsize, size_t count);
 off_t filedesc_seek(filedesc *fd, off_t ofs, int whence);
 void filedesc_close(filedesc *fd);
 

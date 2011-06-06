@@ -53,21 +53,21 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 	// and generate an appropriate starting eip
 	int isparent;
 	asm volatile(
-		"	movl	%%esi,%0;"
-		"	movl	%%edi,%1;"
-		"	movl	%%ebp,%2;"
-		"	movl	%%esp,%3;"
-		"	movl	$1f,%4;"
+		"	movq	%%rsi,%0;"
+		"	movq	%%rdi,%1;"
+		"	movq	%%rbp,%2;"
+		"	movq	%%rsp,%3;"
+		"	movq	$1f,%4;"
 		"	movl	$1,%5;"
 		"1:	"
-		: "=m" (ps.tf.regs.esi),
-		  "=m" (ps.tf.regs.edi),
-		  "=m" (ps.tf.regs.ebp),
-		  "=m" (ps.tf.esp),
-		  "=m" (ps.tf.eip),
+		: "=m" (ps.tf.rsi),
+		  "=m" (ps.tf.rdi),
+		  "=m" (ps.tf.rbp),
+		  "=m" (ps.tf.rsp),
+		  "=m" (ps.tf.rip),
 		  "=a" (isparent)
 		:
-		: "ebx", "ecx", "edx");
+		: "rbx", "rcx", "rdx");
 	if (!isparent) {	// in the child
 		// Clear our child state array, since we have no children yet.
 		memset(&files->child, 0, sizeof(files->child));
@@ -86,7 +86,7 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 	}
 
 	// Fork the child, copying our entire user address space into it.
-	ps.tf.regs.eax = 0;	// isparent == 0 in the child
+	ps.tf.rax = 0;	// isparent == 0 in the child
 	sys_put(SYS_START | SYS_SNAP | SYS_REGS | SYS_COPY, th,
 		&ps, ALLVA, ALLVA, ALLSIZE);
 
@@ -122,14 +122,14 @@ wait_at_barrier(pthread_t first_child, pthread_barrier_t barrier)
 
 		// Make sure the child exited with the expected trap number
 		if (ps.tf.trapno != T_SYSCALL) {
-			cprintf("  eip  0x%08x\n", ps.tf.eip);
-			cprintf("  esp  0x%08x\n", ps.tf.esp);
+			cprintf("  rip  0x%016x\n", ps.tf.rip);
+			cprintf("  rsp  0x%016x\n", ps.tf.rsp);
 			cprintf("join: unexpected trap %d, expecting %d\n",
 				ps.tf.trapno, T_SYSCALL);
 			errno = EINVAL;
 			return -1;
 		}
-		status = ps.tf.regs.edx;
+		status = ps.tf.rdx;
 
 		// This should be the same barrier;
 		assert(barrier == BARRIER_READ(status));
@@ -169,8 +169,8 @@ pthread_join(pthread_t th, void **out_exitval)
 
 		// Make sure the child exited with the expected trap number
 		if (ps.tf.trapno != T_SYSCALL) {
-			cprintf("  eip  0x%08x\n", ps.tf.eip);
-			cprintf("  esp  0x%08x\n", ps.tf.esp);
+			cprintf("  rip  0x%016x\n", ps.tf.rip);
+			cprintf("  rsp  0x%016x\n", ps.tf.rsp);
 			cprintf("join: unexpected trap %d, expecting %d\n",
 				ps.tf.trapno, T_SYSCALL);
 			status = -1;
@@ -179,7 +179,7 @@ pthread_join(pthread_t th, void **out_exitval)
 			goto done;
 		}
 
-		status = ps.tf.regs.edx;
+		status = ps.tf.rdx;
 
 		// At a barrier?
 		if (status & EXIT_BARRIER) {

@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 		procstate ps;
 		sys_get(SYS_REGS, 0, &ps, 0, 0, 0);
 		cprintf("@ %x: trap %d icnt %d imax %d\n",
-			ps.tf.eip, ps.tf.trapno, ps.icnt, ps.imax);
+			ps.tf.rip, ps.tf.trapno, ps.icnt, ps.imax);
 		if (ps.tf.trapno != T_SYSCALL && ps.tf.trapno != T_ICNT)
 			break;
 

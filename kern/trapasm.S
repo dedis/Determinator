@@ -130,10 +130,8 @@ _alltraps:
 	pushw %gs
 
 	movw $SEG_KERN_CS_64,%ax # load kernel's data segment
-	movw %ax,%ds
-	movw %ax,%es
 
-	xorl %rbp,%rbp		# don't let debug_trace() walk into user space
+	xorq %rbp,%rbp		# don't let debug_trace() walk into user space
 
 	pushq %rsp		# pass pointer to this trapframe
 	call trap		# and call trap (does not return)

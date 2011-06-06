@@ -55,21 +55,21 @@ pid_t fork(void)
 	// and generate an appropriate starting eip
 	int isparent;
 	asm volatile(
-		"	movl	%%esi,%0;"
-		"	movl	%%edi,%1;"
-		"	movl	%%ebp,%2;"
-		"	movl	%%esp,%3;"
-		"	movl	$1f,%4;"
+		"	movq	%%rsi,%0;"
+		"	movq	%%rdi,%1;"
+		"	movq	%%rbp,%2;"
+		"	movq	%%rsp,%3;"
+		"	movq	$1f,%4;"
 		"	movl	$1,%5;"
 		"1:	"
-		: "=m" (ps.tf.regs.esi),
-		  "=m" (ps.tf.regs.edi),
-		  "=m" (ps.tf.regs.ebp),
-		  "=m" (ps.tf.esp),
-		  "=m" (ps.tf.eip),
+		: "=m" (ps.tf.rsi),
+		  "=m" (ps.tf.rdi),
+		  "=m" (ps.tf.rbp),
+		  "=m" (ps.tf.rsp),
+		  "=m" (ps.tf.rip),
 		  "=a" (isparent)
 		:
-		: "ebx", "ecx", "edx");
+		: "rbx", "rcx", "rdx");
 	if (!isparent) {
 #if LAB >= 9
 		files->thself = pid;
@@ -88,7 +88,7 @@ pid_t fork(void)
 	}
 
 	// Copy our entire user address space into the child and start it.
-	ps.tf.regs.eax = 0;	// isparent == 0 in the child
+	ps.tf.rax = 0;	// isparent == 0 in the child
 	sys_put(SYS_REGS | SYS_COPY | SYS_START, pid, &ps,
 		ALLVA, ALLVA, ALLSIZE);
 
@@ -138,8 +138,8 @@ waitpid(pid_t pid, int *status, int options)
 		if (ps.tf.trapno != T_SYSCALL) {
 			// Yes - terminate the child WITHOUT reconciling,
 			// since the child's results are probably invalid.
-			warn("child %d took trap %d, eip %x\n",
-				pid, ps.tf.trapno, ps.tf.eip);
+			warn("child %d took trap %d, rip %x\n",
+				pid, ps.tf.trapno, ps.tf.rip);
 			if (status != NULL)
 				*status = WSIGNALED | ps.tf.trapno;
 

@@ -6,7 +6,7 @@
 #include "asm.h"
 
 ENTRY(truncl)
-	pushl	%ebp
+	pushq	%rbp
 	movl	%esp,%ebp
 	subl	$8,%esp
 

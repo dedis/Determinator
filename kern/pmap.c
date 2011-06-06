@@ -59,13 +59,13 @@ pmap_init(void)
 		// but only accessible in kernel mode (not in user mode).
 		// The easiest way to do this is to use 4MB page mappings.
 		// Since these page mappings never change on context switches,
-		// we can also mark them global (PTE_G) so the processor
+		// we can also mark them global (P1E_G) so the processor
 		// doesn't flush these mappings when we reload the PDBR.
 #if SOL >= 3
 		int i;
 		for (i = 0; i < NPDENTRIES; i++)
 			pmap_bootpdir[i] = (i << PDXSHIFT)
-				| PTE_P | PTE_RW | PTE_PS | PTE_G;
+				| PTE_P | PTE_RW | P2E_PS | P1E_G;
 		for (i = PDX(VM_USERLO); i < PDX(VM_USERHI); i++)
 			pmap_bootpdir[i] = PTE_ZERO;	// clear user area
 #else
@@ -470,7 +470,7 @@ pmap_pagefault(trapframe *tf)
 		//	p->pdir, fva, pg, npg);
 		pg = npg;
 	}
-	*pte = pg | SYS_RW | PTE_A | PTE_D | PTE_RW | PTE_US | PTE_P;
+	*pte = pg | SYS_RW | PTE_A | P1E_D | PTE_RW | PTE_US | PTE_P;
 
 	// Make sure the old mapping doesn't get used anymore
 	pmap_inval(p->pdir, PGADDR(fva), PAGESIZE);
@@ -507,7 +507,7 @@ pmap_mergepage(pte_t *rpte, pte_t *spte, pte_t *dpte, uint32_t dva)
 			mem_decref(mem_ptr2pi(dpg), mem_free); // drop old ref
 		dpg = npg;
 		*dpte = (uint32_t)npg |
-			SYS_RW | PTE_A | PTE_D | PTE_RW | PTE_US | PTE_P;
+			SYS_RW | PTE_A | P1E_D | PTE_RW | PTE_US | PTE_P;
 	}
 
 	// Do a byte-by-byte diff-and-merge into the destination
@@ -637,7 +637,7 @@ pmap_setperm(pde_t *pdir, uint32_t va, uint32_t size, int perm)
 		pteand = ~(SYS_WRITE | PTE_RW),
 		pteor = (SYS_READ | PTE_US | PTE_P | PTE_A);
 	else	// nominal read/write (but don't add PTE_RW to shared mappings!)
-		pteand = ~0, pteor = (SYS_RW | PTE_US | PTE_P | PTE_A | PTE_D);
+		pteand = ~0, pteor = (SYS_RW | PTE_US | PTE_P | PTE_A | P1E_D);
 
 	uint32_t vahi = va + size;
 	while (va < vahi) {

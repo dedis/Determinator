@@ -49,11 +49,11 @@ enum __sse_support __has_sse =
 	__SSE_UNK;
 #endif
 
-#define	getfl(x)	__asm __volatile("pushfl\n\tpopl %0" : "=mr" (*(x)))
-#define	setfl(x)	__asm __volatile("pushl %0\n\tpopfl" : : "g" (x))
-#define	cpuid_dx(x)	__asm __volatile("pushl %%ebx\n\tmovl $1, %%eax\n\t"  \
-					 "cpuid\n\tpopl %%ebx"		      \
-					: "=d" (*(x)) : : "eax", "ecx")
+#define	getfl(x)	__asm __volatile("pushfq\n\tpopq %0" : "=rm" (*(x)))
+#define	setfl(x)	__asm __volatile("pushq %0\n\tpopfq" : : "g" (x))
+#define	cpuid_dx(x)	__asm __volatile("pushq %%rbx\n\tmovq $1, %%rax\n\t"  \
+					 "cpuid\n\tpopq %%rbx"		      \
+					: "=d" (*(x)) : : "rax", "rcx")
 
 /*
  * Test for SSE support on this processor.  We need to do this because
@@ -64,7 +64,7 @@ enum __sse_support __has_sse =
 int
 __test_sse(void)
 {
-	int flag, nflag;
+	uint64_t flag, nflag;
 	int dx_features;
 
 	/* Am I a 486? */

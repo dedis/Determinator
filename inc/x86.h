@@ -48,6 +48,12 @@ typedef struct cpuinfo {
 } cpuinfo;
 
 
+/*TODO:: Ishan - 29 May, 2011 
+  *check if we need functions to write 64 bit values to ports	
+  *check if we need to read eflags or rflags. currently we have function to read rflags only.
+  *may need to add or remove from model specific instructions.
+*/
+
 
 static gcc_inline void
 breakpoint(void)

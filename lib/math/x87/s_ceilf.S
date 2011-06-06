@@ -6,9 +6,9 @@
 #include "asm.h"
 
 ENTRY(ceilf)
-	pushl	%ebp
-	movl	%esp,%ebp
-	subl	$8,%esp
+	pushq	%rbp
+	movq	%rsp,%rbp
+	subq	$8,%rsp
 
 	fstcw	-4(%ebp)		/* store fpu control word */
 	movw	-4(%ebp),%dx

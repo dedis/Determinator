@@ -28,7 +28,7 @@ typedef uint64_t pte_t;
 
 
 // Bootstrap page directory that identity-maps the kernel's address space.
-extern pde_t pmap_bootpdir[NPENTRIES];
+extern pde_t pmap_bootpdir[1024];
 
 // Statically allocated page that we always keep set to all zeros.
 extern uint8_t pmap_zero[PAGESIZE];

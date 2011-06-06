@@ -39,26 +39,26 @@ fork(int cmd, uint8_t child)
 	// and generate an appropriate starting eip
 	int isparent;
 	asm volatile(
-		"	movl	%%esi,%0;"
-		"	movl	%%edi,%1;"
-		"	movl	%%ebp,%2;"
-		"	movl	%%esp,%3;"
-		"	movl	$1f,%4;"
+		"	movq	%%rsi,%0;"
+		"	movq	%%rdi,%1;"
+		"	movq	%%rbp,%2;"
+		"	movq	%%rsp,%3;"
+		"	movq	$1f,%4;"
 		"	movl	$1,%5;"
 		"1:	"
-		: "=m" (ps.tf.regs.esi),
-		  "=m" (ps.tf.regs.edi),
-		  "=m" (ps.tf.regs.ebp),
-		  "=m" (ps.tf.esp),
-		  "=m" (ps.tf.eip),
+		: "=m" (ps.tf.rsi),
+		  "=m" (ps.tf.rdi),
+		  "=m" (ps.tf.rbp),
+		  "=m" (ps.tf.rsp),
+		  "=m" (ps.tf.rip),
 		  "=a" (isparent)
 		:
-		: "ebx", "ecx", "edx");
+		: "rbx", "rcx", "rdx");
 	if (!isparent)
 		return 0;	// in the child
 
 	// Fork the child, copying our entire user address space into it.
-	ps.tf.regs.eax = 0;	// isparent == 0 in the child
+	ps.tf.rax = 0;	// isparent == 0 in the child
 	sys_put(cmd | SYS_REGS | SYS_COPY, child, &ps, ALLVA, ALLVA, ALLSIZE);
 
 	return 1;
@@ -75,8 +75,8 @@ join(int cmd, uint8_t child, int trapexpect)
 
 	// Make sure the child exited with the expected trap number
 	if (ps.tf.trapno != trapexpect) {
-		cprintf("  eip  0x%08x\n", ps.tf.eip);
-		cprintf("  esp  0x%08x\n", ps.tf.esp);
+		cprintf("  rip  0x%016x\n", ps.tf.rip);
+		cprintf("  rsp  0x%016x\n", ps.tf.rsp);
 		panic("join: unexpected trap %d, expecting %d\n",
 			ps.tf.trapno, trapexpect);
 	}
@@ -85,6 +85,9 @@ join(int cmd, uint8_t child, int trapexpect)
 void
 gentrap(int trap)
 {
+	/*TODO:: Ishan - 01 Jun,2011
+	  Replace the bound instruction
+	 */ 
 	int bounds[2] = { 1, 3 };
 	switch (trap) {
 	case T_DIVIDE:
@@ -92,9 +95,10 @@ gentrap(int trap)
 	case T_BRKPT:
 		asm volatile("int3");
 	case T_OFLOW:
-		asm volatile("addl %0,%0; into" : : "r" (0x70000000));
+		//asm volatile("addl %0,%0; into" : : "r" (0x70000000));
+		asm volatile("addq %0,%0; jno fl; int $0x04;fl:" : : "r" (0x7000000000000000));
 	case T_BOUND:
-		asm volatile("boundl %0,%1" : : "r" (0), "m" (bounds[0]));
+		//asm volatile("boundl %0,%1" : : "r" (0), "m" (bounds[0]));
 	case T_ILLOP:
 		asm volatile("ud2");	// guaranteed to be undefined
 	case T_GPFLT:

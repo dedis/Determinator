@@ -507,7 +507,7 @@ net_txpullrp(uint8_t rqnode, uint32_t rr, int pglev, int part, void *pg)
 				rrs[i] = pte;
 				continue;
 			}
-			if (pte & PTE_G) {	// Kernel portion of pdir
+			if (pte & P1E_G) {	// Kernel portion of pdir
 				rrs[i] = 0;
 				continue;
 			}
@@ -655,7 +655,7 @@ net_pullpte(proc *p, uint32_t *pte, int pglevel)
 	if (RRADDR(rr) == 0) {
 		*pte = PTE_ZERO | (rr & RR_RW);
 		if (rr & SYS_READ)
-			*pte |= PTE_P | PTE_U;	// make it readable
+			*pte |= PTE_P | PTE_US;	// make it readable
 		return 1;
 	}
 
@@ -669,7 +669,7 @@ net_pullpte(proc *p, uint32_t *pte, int pglevel)
 		*pte = mem_pi2phys(pi) | (rr & RR_RW);
 		ptefixed:
 		if (pglevel > PGLEV_PAGE || rr & SYS_READ)
-			*pte |= PTE_P | PTE_U;	// make it readable
+			*pte |= PTE_P | PTE_US;	// make it readable
 		return 1;
 	}
 
@@ -688,7 +688,7 @@ net_pullpte(proc *p, uint32_t *pte, int pglevel)
 	mem_incref(pi);
 	*pte = mem_pi2phys(pi) | (rr & RR_RW);
 	if (pglevel > PGLEV_PAGE || rr & SYS_READ)
-		*pte |= PTE_P | PTE_U;	// make it readable (but read-only)
+		*pte |= PTE_P | PTE_US;	// make it readable (but read-only)
 
 	mem_rrtrack(rr, pi);		// Track page's origin for future reuse
 	pi->shared = 1 << (RRNODE(rr) - 1);	// and that it's shared

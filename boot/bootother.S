@@ -8,8 +8,6 @@
  * Derived from the MIT Exokernel and JOS.
  */
 
-#include <inc/mmu.h>
-
 # Each non-boot CPU ("AP") is started up in response to a STARTUP
 # IPI from the boot CPU.  Section B.4.2 of the Multi-Processor
 # Specification says that the AP will start in real mode with CS:IP
@@ -28,6 +26,15 @@
 #   - it does not need to enable A20
 #   - it uses the address at start-4 for the %esp
 #   - it jumps to the address at start-8 instead of calling bootmain
+
+
+#include <inc/mmu.h>
+
+.set SEG_KERN_CS_16, 0x10
+.set SEG_KERN_CS_32, 0x20
+.set SEG_KERN_DS_32, 0x30
+.set SEG_KERN_CS_64, 0x40
+.set SEG_USER_CS_64, 0x50
 
 .code16                       	# Assemble for 16-bit mode
 .globl start
@@ -99,10 +106,10 @@ spin:
 	movl	%cr0,%eax
 	orl		$KERN_CR0,%eax
 	movl	%eax,%cr0
-	ljmp	$SEG_KERN_CS_64,$entry64
+	ljmp	$SEG_KERN_CS_64,$start64
 
-	.code64
-entry64:	// we are now in 64-bit mode.
+.code64
+start64:	// we are now in 64-bit mode.
 
 	// Load our long-mode GDT, IDT, and TSS
 	// All these are loaded again in init
@@ -114,7 +121,7 @@ entry64:	// we are now in 64-bit mode.
 	movw	%ax,%ss
 
 	// Set up the stack pointer, frame pointer and call into C.
-	movl    start-8, %rsp
+	movq    start-8, %rsp
 	xorq	%rbp,%rbp
 	call	*(start-16)
 
@@ -127,11 +134,11 @@ spin:	jmp	spin
 	.globl gdt
 gdt:
 	SEG64(0,0,0,0)				// null segment
-	SEG64(0,0xffff,0x9b,0x0)	// 0x08: 16-bit kernel code segment
-	SEG64(0,0xfffff,0x9b,0xc)	// 0x10: 32-bit kernel code segment
-	SEG64(0,0xfffff,0x93,0xc)	// 0x18: 32-bit kernel data segment
-	SEG64(0,0xfffff,0x9a,0xd)	// 0x20: 64-bit kernel segment
-	SEG64(0,0xfffff,0xfa,0xd)	// 0x28: 64-bit user segment
+	SEG64(0,0xffff,0x9b,0x0)	// 0x10: 16-bit kernel code segment
+	SEG64(0,0xfffff,0x9b,0xc)	// 0x20: 32-bit kernel code segment
+	SEG64(0,0xfffff,0x93,0xc)	// 0x30: 32-bit kernel data segment
+	SEG64(0,0xfffff,0x9a,0xd)	// 0x40: 64-bit kernel segment
+	SEG64(0,0xfffff,0xfa,0xd)	// 0x50: 64-bit user segment
 gdtend:
 
 kerngdtptr:

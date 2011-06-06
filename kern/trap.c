@@ -55,6 +55,9 @@ static struct gatedesc idt[256];
 static struct pseudodesc idt_pd = {
 	sizeof(idt) - 1, (uint64_t) idt
 };
+/*TODO:: Ishan - 30 May,2011
+  FIXME:: Need to use -std=c99 to fix this (instead of ansi i.e. c89).
+ */ 
 
 
 static void
@@ -490,9 +493,21 @@ trap_check(void **argsp)
 	asm volatile("int3; after_breakpoint:");
 	assert(args.trapno == T_BRKPT);
 
+	/*FIX:: Ishan - 30 May,2011
+		http://www.logix.cz/michal/doc/i386/chp03-05.htm (Sec 3.5.3) tells more about the `into' and `bound' opcodes.
+		they aren't supported in 64 bit mode.
+
+	   FIXED:: Ishan - 01 Jun,2011 
+		-//asm volatile("addl %0,%0; into; after_overflow:" : : "r" (0x70000000));
+		  into replaced by jo and jno
+		-commented the bound trap  
+	 */ 
+
 	// Overflow trap
-	// RAJAT
 	args.reip = after_overflow;
+
+	/*
+	// RAJAT's solution. not being used due to a strange "symbol 'after_overflow already defined" error
 	uint64_t rflag_temp = 0;
 	asm volatile("addl %1,%1; pushfq; popq %%rax;" : "=a" (rflag_temp): "r" (0x70000000));
 	rflag_temp &= RFLAGS_OF;
@@ -501,13 +516,17 @@ trap_check(void **argsp)
 	} else {
 		asm volatile("after_overflow:");
 	}
+	*/
+
+	// ISHAN's solution
+	asm volatile("addq %0,%0;jo overflow; jno after_overflow; overflow: int $0x04 ;after_overflow:" : : "r" (0x7000000000000000));
 	assert(args.trapno == T_OFLOW);
 
 	// Bounds trap
-	args.reip = after_bound;
+	/*args.reip = after_bound;
 	int bounds[2] = { 1, 3 };
 	asm volatile("boundl %0,%1; after_bound:" : : "r" (0), "m" (bounds[0]));
-	assert(args.trapno == T_BOUND);
+	assert(args.trapno == T_BOUND);*/
 
 	// Illegal instruction trap
 	args.reip = after_illegal;
