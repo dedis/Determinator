@@ -25,6 +25,39 @@
  *
  */
 
+// page number field of address
+#define PPN(la)		(((uintptr_t) (la)) >> PTXSHIFT)
+#define VPN(la)		PPN(la)		// used to index into vpt[]
+
+// page directory index
+#define PDX(la)		((((uintptr_t) (la)) >> PDXSHIFT) & 0x3FF)
+#define VPD(la)		PDX(la)		// used to index into vpd[]
+
+// page table index
+#define PTX(la)		((((uintptr_t) (la)) >> PTXSHIFT) & 0x3FF)
+
+// linear address components
+#define PGADDR(la)	((uintptr_t) (la) & ~0xFFF)	// address of page
+#define PGOFF(la)	((uintptr_t) (la) & 0xFFF)	// offset in page
+
+#define PTADDR(la)	((uintptr_t) (la) & ~0x3FFFFF)	// address of page table
+#define PTOFF(la)	((uintptr_t) (la) & 0x3FFFFF)	// offset in page table
+
+// Page directory and page table constants.
+#define NPDENTRIES	1024		// PDEs per page directory
+#define NPTENTRIES	1024		// PTEs per page table
+
+#define PAGESIZE	4096		// bytes mapped by a page
+#define PAGESHIFT	12		// log2(PAGESIZE)
+
+#define PTSIZE		(PAGESIZE*NPTENTRIES)	// bytes mapped by a PDE
+#define PTSHIFT		22		// log2(PTSIZE)
+
+#define PTXSHIFT	12		// offset of PTX in a linear address
+#define PDXSHIFT	22		// offset of PDX in a linear address
+
+/*
+RAJAT has commented these out for now. Now he is fixing the page table stuff and then he will enable this
 // An x86-64 address is split into six fields:
 //	- the sign extension area in bits 63-48.
 //	- four 9-bit page table index fields in bits 47-12.
@@ -72,6 +105,7 @@
 #define P2ROUND(va)	P2TRUNC((uintptr_t)(va) + (P2SIZE - 1))
 #define P3ROUND(va)	P3TRUNC((uintptr_t)(va) + (P3SIZE - 1))
 #define P4ROUND(va)	P4TRUNC((uintptr_t)(va) + (P4SIZE - 1))
+*/
 
 // Page table entry flags (both 4KB and 2MB page sizes)
 #define PTE_P 		1<<0	// present bit
