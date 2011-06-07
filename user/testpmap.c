@@ -141,7 +141,7 @@ duplicate_range(int startva, int dupeva, int nbytes) {
 	 env->env_id, startva, startva+nbytes, dupeva, dupeva+nbytes);
   int xva, r, k;
   for (xva = 0, k = 0; xva < nbytes; xva += PAGESIZE, k+=PAGESIZE) { 
-    if ((r = sys_mem_map(0, startva+xva, 0, dupeva+xva, PTE_P | PTE_U | PTE_W | PTE_USER)) < 0) {
+    if ((r = sys_mem_map(0, startva+xva, 0, dupeva+xva, PTE_P | PTE_U | PTE_W | PTE_UER)) < 0) {
       cprintf ("[%08x] duplicate_range FAILURE: %e\n", env->env_id, r);
       return r;
     }

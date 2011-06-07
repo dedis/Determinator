@@ -28,7 +28,7 @@ typedef struct spinlock {
 	const char *file;	// Source file where spinlock_init() was called
 	int line;		// Line number of spinlock_init()
 	struct cpu *cpu;	// The cpu holding the lock.
-	uint64_t eips[DEBUG_TRACEFRAMES]; // Call stack that locked the lock.
+	uintptr_t eips[DEBUG_TRACEFRAMES]; // Call stack that locked the lock.
 } spinlock;
 
 #define spinlock_init(lk)	spinlock_init_(lk, __FILE__, __LINE__)

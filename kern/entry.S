@@ -26,12 +26,6 @@
 #define MULTIBOOT_HEADER_FLAGS (MULTIBOOT_MEMORY_INFO | MULTIBOOT_PAGE_ALIGN)
 #define CHECKSUM (-(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS))
 
-#define KERN_CR0	(CR0_PE|CR0_MP|CR0_ET|CR0_WP|CR0_PG)
-#define KERN_CR4	(CR4_PSE|CR4_PAE|CR4_PGE)
-#define KERN_EFER	(EFER_LME|EFER_SCE|EFER_NXE)
-#define MSR_EFER        0xc0000080      // Extended Feature Enable Register
-#define KERNBASE        0xffffffffc0000000
-
 ###################################################################
 # entry point
 ###################################################################
@@ -125,10 +119,10 @@ entry32:
 	// Set up the boot page tables to map the bottom 4KB of memory,
 	// using a single 4KB  global (non-TLB-flushed) page translation.
 	// We map it only at virtual address 0
-	movl	$bootp3tab+(PTE_P|PTE_RW),bootp4tab
-	movl	$bootp2tab+(PTE_P|PTE_RW),bootp3tab
-	movl	$bootp1tab+(PTE_P|PTE_RW),bootp2tab
-	movl	$0+(PTE_P|PTE_RW|P1E_G),bootp1tab
+	movl	$bootp3tab+(PTE_P|PTE_W),bootp4tab
+	movl	$bootp2tab+(PTE_P|PTE_W),bootp3tab
+	movl	$bootp1tab+(PTE_P|PTE_W),bootp2tab
+	movl	$0+(PTE_P|PTE_W|P1E_G),bootp1tab
 
 	// load CR3 to point to our boot page table structure
 	movl	$bootp4tab,%eax

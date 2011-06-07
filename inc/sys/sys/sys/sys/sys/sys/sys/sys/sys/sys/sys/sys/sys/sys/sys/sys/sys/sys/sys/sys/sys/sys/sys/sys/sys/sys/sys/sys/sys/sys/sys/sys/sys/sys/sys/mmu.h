@@ -109,8 +109,8 @@ RAJAT has commented these out for now. Now he is fixing the page table stuff and
 
 // Page table entry flags (both 4KB and 2MB page sizes)
 #define PTE_P 		1<<0	// present bit
-#define PTE_RW 		1<<1	// read/write bit
-#define PTE_US 		1<<2	// user/supervisor bit
+#define PTE_W 		1<<1	// read/write bit
+#define PTE_U 		1<<2	// user/supervisor bit
 #define PTE_PWT 	1<<3	// page-level writethrough bit
 #define PTE_PCD 	1<<4	// page-level cache disable bit
 #define PTE_A 		1<<5	// accessed bit

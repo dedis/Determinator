@@ -70,7 +70,7 @@ void lapic_eoi(void);
 void lapic_errintr(void);
 
 // Send a message to start an Application Processor (AP) running at addr.
-void lapic_startcpu(uint8_t apicid, uint64_t addr);
+void lapic_startcpu(uint8_t apicid, uintptr_t addr);
 
 
 #endif /* !PIOS_DEV_LAPIC_H */

@@ -45,8 +45,8 @@ typedef unsigned long long		uintptr_t;	// pointer-size unsigned integer
 typedef long long		ptrdiff_t;	// difference between pointers
 
 // size_t is used for memory object sizes, and ssize_t is a signed analog.
-typedef unsigned long long		size_t;
-typedef long long			ssize_t;
+typedef uintptr_t	size_t;
+typedef intptr_t	ssize_t;
 
 // intmax_t and uintmax_t represent the maximum-size integers supported.
 typedef long long		intmax_t;
@@ -94,14 +94,14 @@ typedef int32_t			suseconds_t;
 // Round down to the nearest multiple of n
 #define ROUNDDOWN(a, n)						\
 ({								\
-	uint64_t __a = (uint64_t) (a);				\
+	uintptr_t __a = (uintptr_t) (a);				\
 	(typeof(a)) (__a - __a % (n));				\
 })
 // Round up to the nearest multiple of n
 #define ROUNDUP(a, n)						\
 ({								\
-	uint64_t __n = (uint64_t) (n);				\
-	(typeof(a)) (ROUNDDOWN((uint64_t) (a) + __n - 1, __n));	\
+	uintptr_t __n = (uintptr_t) (n);				\
+	(typeof(a)) (ROUNDDOWN((uintptr_t) (a) + __n - 1, __n));	\
 })
 
 // Return the offset of 'member' relative to the beginning of a struct type

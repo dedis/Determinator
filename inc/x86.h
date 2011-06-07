@@ -14,8 +14,7 @@
 #include <types.h>
 #include <cdefs.h>
 
-
-// EFLAGS register
+// RFLAGS register
 #define FL_CF		0x00000001	// Carry Flag
 #define FL_PF		0x00000004	// Parity Flag
 #define FL_AF		0x00000010	// Auxiliary carry Flag

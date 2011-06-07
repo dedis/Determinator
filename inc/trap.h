@@ -73,10 +73,10 @@
 // and the processor pushes esp and ss
 // only when taking a trap from user mode (privilege level >0).
 typedef struct trapframe {
-	uint16_t gs; uint16_t padding_gs1;  uint16_t padding_gs2;  uint16_t padding_gs3;
-	uint16_t fs; uint16_t padding_fs1;  uint16_t padding_fs2;  uint16_t padding_fs3;
-	uint16_t es; uint16_t padding_es1;  uint16_t padding_es2;  uint16_t padding_es3;
-	uint16_t ds; uint16_t padding_ds1;  uint16_t padding_ds2;  uint16_t padding_ds3;
+	uint16_t gs; uint16_t padding_gs[3];
+	uint16_t fs; uint16_t padding_fs[3];
+	uint16_t es; uint16_t padding_es[3];
+	uint16_t ds; uint16_t padding_ds[3];
 	uint64_t r15;
 	uint64_t r14;
 	uint64_t r13;
@@ -97,17 +97,19 @@ typedef struct trapframe {
 	// format from here on determined by x86 hardware architecture
 	uint64_t err;
 	uintptr_t rip;
-	uint16_t cs;  uint16_t padding_cs1;  uint16_t padding_cs2;  uint16_t padding_cs3;
+	uint16_t cs;  uint16_t padding_cs[3];
 	uint64_t rflags;
 
 	// included whether or not crossing rings, e.g., user to kernel
 	uintptr_t rsp;
-	uint16_t ss;  uint16_t padding_ss1;  uint16_t padding_ss2;  uint16_t padding_ss3;
+	uint16_t ss;  uint16_t padding_ss[3];
 } trapframe;
 
 // size of trapframe pushed when called from user and kernel mode, respectively
-#define trapframe_usize sizeof(trapframe)	// full trapframe struct
-#define trapframe_ksize sizeof(trapframe)	// full trapframe struct
+// usize==ksize in 64-bit mode because rsp and ss are pushed by the processor
+// irrespective of whether there is a privilege level change or not
+#define trapframe_usize sizeof(trapframe)
+#define trapframe_ksize sizeof(trapframe)
 
 
 // Floating-point/MMX/XMM register save area format,

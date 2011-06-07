@@ -109,8 +109,8 @@ RAJAT has commented these out for now. Now he is fixing the page table stuff and
 
 // Page table entry flags (both 4KB and 2MB page sizes)
 #define PTE_P 		1<<0	// present bit
-#define PTE_RW 		1<<1	// read/write bit
-#define PTE_US 		1<<2	// user/supervisor bit
+#define PTE_W 		1<<1	// read/write bit
+#define PTE_U 		1<<2	// user/supervisor bit
 #define PTE_PWT 	1<<3	// page-level writethrough bit
 #define PTE_PCD 	1<<4	// page-level cache disable bit
 #define PTE_A 		1<<5	// accessed bit
@@ -172,30 +172,10 @@ RAJAT has commented these out for now. Now he is fixing the page table stuff and
 #define KERN_CR4	(CR4_PSE|CR4_PAE|CR4_PGE)
 #define KERN_EFER	(EFER_LME|EFER_SCE|EFER_NXE)
 
-// RFLAGS register layout
-#define RFLAGS_CF (1<<0)	// Carry Flag
-#define RFLAGS_PF (1<<2)	// Parity Flag
-#define RFLAGS_AF (1<<4)	// Auxiliary Flag
-#define RFLAGS_ZF (1<<6)	// Zero Flag
-#define RFLAGS_SF (1<<7)	// Sign Flag
-#define RFLAGS_TF (1<<8)	// Trap Flag
-#define RFLAGS_IF (1<<9)	// Interrupt Flag
-#define RFLAGS_DF (1<<10)	// Direction Flag
-#define RFLAGS_OF (1<<11)	// Overflow Flag
-#define RFLAGS_IOPL 0x3000	// I/O Privilege Level
-#define RFLAGS_NT (1<<14)	// Nested Task
-#define RFLAGS_RF (1<<16)	// Resume Flag
-#define RFLAGS_VM (1<<17)	// Virtual 8086 Mode
-#define RFLAGS_AC (1<<18)	// Alignment Check
-#define RFLAGS_VIF (1<<19)	// Virtual Interrupt Flag
-#define RFLAGS_VIP (1<<20)	// Virtual Interrupt Pending
-#define RFLAGS_ID (1<<21)	// ID Flag
-
 // Page fault error codes
 #define PFE_PR		0x1	// Page fault caused by protection violation
 #define PFE_WR		0x2	// Page fault caused by a write
 #define PFE_U		0x4	// Page fault occured while in user mode
-
 
 
 
@@ -292,33 +272,21 @@ typedef struct segdesc {
 
 // Task state segment format, as defined by the x86-64 architecture.
 typedef struct taskstate {
-	unsigned ts_padding1 : 32;
-	unsigned ts_rsp0_31_0 : 32;  // Stack pointers and segment selectors
-	unsigned ts_rsp0_63_32 : 32;
-	unsigned ts_rsp1_31_0 : 32;
-	unsigned ts_rsp1_63_32 : 32;
-	unsigned ts_rsp2_31_0 : 32;
-	unsigned ts_rsp2_63_32 : 32;
-	unsigned ts_padding2 : 32;
-	unsigned ts_padding3 : 32;
-	unsigned ts_ist1_31_0 : 32;
-	unsigned ts_ist1_63_32 : 32;
-	unsigned ts_ist2_31_0 : 32;
-	unsigned ts_ist2_63_32 : 32;
-	unsigned ts_ist3_31_0 : 32;
-	unsigned ts_ist3_63_32 : 32;
-	unsigned ts_ist4_31_0 : 32;
-	unsigned ts_ist4_63_32 : 32;
-	unsigned ts_ist5_31_0 : 32;
-	unsigned ts_ist5_63_32 : 32;
-	unsigned ts_ist6_31_0 : 32;
-	unsigned ts_ist6_63_32 : 32;
-	unsigned ts_ist7_31_0 : 32;
-	unsigned ts_ist7_63_32 : 32;
-	unsigned ts_padding4 : 32;
-	unsigned ts_padding5 : 32;
-	unsigned ts_padding6 : 16;
-	unsigned ts_iomb : 16;	// I/O map base address
+	uint32_t ts_padding1;
+	uint64_t ts_rsp0;
+	uint64_t ts_rsp1;
+	uint64_t ts_rsp2;
+	uint64_t ts_padding2;
+	uint64_t ts_ist1;
+	uint64_t ts_ist2;
+	uint64_t ts_ist3;
+	uint64_t ts_ist4;
+	uint64_t ts_ist5;
+	uint64_t ts_ist6;
+	uint64_t ts_ist7;
+	uint64_t ts_padding3;
+	uint16_t ts_padding4;
+	uint16_t ts_iomb;	// I/O map base address
 } taskstate;
 
 // Gate descriptors for interrupts and traps
@@ -326,14 +294,14 @@ typedef struct gatedesc {
 	unsigned gd_off_15_0 : 16;   // low 16 bits of offset in segment
 	unsigned gd_ss : 16;         // target selector
 	unsigned gd_ist : 3;		 // must be 0 for call gate
-	unsigned gd_args : 5;        // # args, 0 for interrupt/trap gates
+	unsigned gd_resv1 : 5;        // # args, 0 for interrupt/trap gates
 	unsigned gd_type : 4;        // type(STS_{CG64,IG64,TG64})
 	unsigned gd_s : 1;           // must be 0 (system)
 	unsigned gd_dpl : 2;         // descriptor(meaning new) privilege level
 	unsigned gd_p : 1;           // Present
 	unsigned gd_off_31_16 : 16;	 // high bits of offset in segment
 	unsigned gd_off_63_32 : 32;
-	unsigned gd_resv1 : 32;
+	unsigned gd_resv2 : 32;
 } gatedesc;
 
 // Set up a normal interrupt/trap gate descriptor.
@@ -345,39 +313,39 @@ typedef struct gatedesc {
 //	  this interrupt/trap gate explicitly using an int instruction.
 #define SETGATE(gate, istrap, sel, off, dpl,ist)			\
 {								\
-	(gate).gd_off_15_0 = (uint64_t) (off) & 0xffff;		\
+	(gate).gd_off_15_0 = (uintptr_t) (off) & 0xffff;		\
 	(gate).gd_ss = (sel);					\
 	(gate).gd_ist = (ist);						\
-	(gate).gd_args = 0;					\
+	(gate).gd_resv1 = 0;					\
 	(gate).gd_type = (istrap) ? STS_TG64 : STS_IG64;	\
 	(gate).gd_s = 0;					\
 	(gate).gd_dpl = (dpl);					\
 	(gate).gd_p = 1;					\
-	(gate).gd_off_31_16 = ((uint64_t) (off) >> 16) & 0xffff;		\
-	(gate).gd_off_63_32 = (uint64_t) (off) >> 32;		\
-	(gate).gd_resv1 = 0;					\
+	(gate).gd_off_31_16 = ((uintptr_t) (off) >> 16) & 0xffff;		\
+	(gate).gd_off_63_32 = (uintptr_t) (off) >> 32;		\
+	(gate).gd_resv2 = 0;					\
 }
 
 // Set up a call gate descriptor.
 #define SETCALLGATE(gate, ss, off, dpl)           	        \
 {								\
-	(gate).gd_off_15_0 = (uint64_t) (off) & 0xffff;		\
+	(gate).gd_off_15_0 = (uintptr_t) (off) & 0xffff;		\
 	(gate).gd_ss = (ss);					\
 	(gate).gd_ist = 0;					\
-	(gate).gd_args = 0;					\
+	(gate).gd_resv1 = 0;					\
 	(gate).gd_type = STS_CG64;				\
 	(gate).gd_s = 0;					\
 	(gate).gd_dpl = (dpl);					\
 	(gate).gd_p = 1;					\
-	(gate).gd_off_31_16 = ((uint64_t) (off) >> 16) & 0xffff;		\
-	(gate).gd_off_63_32 = (uint64_t) (off) >> 32;		\
-	(gate).gd_resv1 = 0;					\
+	(gate).gd_off_31_16 = ((uintptr_t) (off) >> 16) & 0xffff;		\
+	(gate).gd_off_63_32 = (uintptr_t) (off) >> 32;		\
+	(gate).gd_resv2 = 0;					\
 }
 
 // Pseudo-descriptors used for LGDT, LLDT and LIDT instructions.
 struct pseudodesc {
 	uint16_t		pd_lim;		// Limit
-	uint64_t gcc_packed	pd_base;	// Base - NOT 4-byte aligned!
+	uintptr_t gcc_packed	pd_base;	// Base - NOT 4-byte aligned!
 };
 typedef struct pseudodesc pseudodesc;
 

@@ -222,9 +222,9 @@ init(void)
 		uint32_t zva = ph->p_va + ph->p_filesz;
 		uint32_t eva = ROUNDUP(ph->p_va + ph->p_memsz, PAGESIZE);
 
-		uint32_t perm = SYS_READ | PTE_P | PTE_US;
+		uint32_t perm = SYS_READ | PTE_P | PTE_U;
 		if (ph->p_flags & ELF_PROG_FLAG_WRITE)
-			perm |= SYS_WRITE | PTE_RW;
+			perm |= SYS_WRITE | PTE_W;
 
 		for(; va < eva; va += PAGESIZE, fa += PAGESIZE) {
 			pageinfo *pi = mem_alloc(); assert(pi != NULL);
@@ -248,7 +248,7 @@ init(void)
 	// (the process can then increase its own stack as desired)
 	pageinfo *pi = mem_alloc(); assert(pi != NULL);
 	pte_t *pte = pmap_insert(root->pdir, pi, VM_STACKHI-PAGESIZE,
-				SYS_READ | SYS_WRITE | PTE_P | PTE_US | PTE_RW);
+				SYS_READ | SYS_WRITE | PTE_P | PTE_U | PTE_W);
 	assert(pte != NULL);
 	root->sv.tf.rsp = VM_STACKHI;
 

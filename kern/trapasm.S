@@ -122,7 +122,7 @@ _alltraps:
 	pushq %r13
 	pushq %r14
 	pushq %r15
-	movw %ds,%ax
+	movw %ds,%ax	// pushw cs/ds/es/ss instructions are invalid in 64-bit mode
 	pushw %ax
 	movw %es,%ax
 	pushw %ax
@@ -165,7 +165,7 @@ trap_return:
 	popw %gs
 	popw %fs
 	popw %ax
-	movw %ax,%es
+	movw %ax,%es	// popw cs/ds/es/ss instructions are invalid in 64-bit mode
 	popw %ax
 	movw %ax,%ds
 	popq %r15

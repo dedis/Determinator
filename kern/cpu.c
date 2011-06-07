@@ -36,25 +36,25 @@ cpu cpu_boot = {
 		// 0x0 - unused (always faults: for trapping NULL far pointers)
 		[0] = SEGDESC_NULL,
 
-		// 0x10 - kernel code segment
+		// 0x10 - 16-bit kernel code segment
 		[SEG_KERN_CS_16 >> 4] = SEGDESC32(1, STA_X | STA_R, 0L,
 					0xffffffff, 0),
 
-		// 0x20 - kernel data segment
+		// 0x20 - 32-bit kernel code segment
 		[SEG_KERN_CS_32 >> 4] = SEGDESC32(1, STA_W, 0L,
 					0xffffffff, 0),
 #if SOL >= 1
 
-		// 0x30 - user code segment
+		// 0x30 - 32-bit kernel data segment
 		[SEG_KERN_DS_32 >> 4] = SEGDESC32(1, STA_X | STA_R,
 					0L, 0xffffffff, 0),
 
-		// 0x40 - user data segment
+		// 0x40 - 64-bit kernel segment (both CS and DS)
 		[SEG_KERN_CS_64 >> 4] = SEGDESC32(1, STA_W,
 					0L, 0xffffffff, 0),
 
 #if LAB >= 9
-		// 0x50 - user thread local storage data segment
+		// 0x50 - 64-bit user segment (both CS and DS)
 		[SEG_USER_CS_64 >> 4] = SEGDESC32(1, STA_W,
 					0L, 0xffffffff, 3),
 
@@ -145,10 +145,8 @@ void cpu_init()
 
 	// Setup the TSS for this cpu so that we get the right stack
 	// when we trap into the kernel from user mode.
-	c->tss.ts_rsp0_31_0 = ((uintptr_t) c->kstackhi) & 0xffffffff;
-	c->tss.ts_rsp0_63_32 = ((uintptr_t) c->kstackhi) >> 32;
-	c->tss.ts_ist1_31_0 = ((uintptr_t) c->kstackhi) & 0xffffffff;
-	c->tss.ts_ist1_63_32 = ((uintptr_t) c->kstackhi) >> 32;
+	c->tss.ts_rsp0 = (uintptr_t) c->kstackhi;
+	c->tss.ts_ist1 = (uintptr_t) c->kstackhi;
 
 	// Initialize the non-constant part of the cpu's GDT:
 	// the TSS descriptor is different for each cpu.
@@ -220,7 +218,7 @@ cpu_alloc(void)
 void
 cpu_bootothers(void)
 {
-	extern intptr_t bootp4tab;
+	extern intptr_t bootp4tab[];
 	extern uint8_t _binary_obj_boot_bootother_start[],
 			_binary_obj_boot_bootother_size[];
 
@@ -244,7 +242,7 @@ cpu_bootothers(void)
 		*(void**)(code-8) = c->kstackhi;
 		*(void**)(code-16) = init;
 		*(void**)(code-24) = bootp4tab;
-		lapic_startcpu(c->id, (uint64_t)code);
+		lapic_startcpu(c->id, (uintptr_t)code);
 
 		// Wait for cpu to get through bootstrap.
 		while(c->booted == 0)

@@ -137,7 +137,7 @@ microdelay(int us)
 // Start additional processor running bootstrap code at addr.
 // See Appendix B of MultiProcessor Specification.
 void
-lapic_startcpu(uint8_t apicid, uint64_t addr)
+lapic_startcpu(uint8_t apicid, uintptr_t addr)
 {
 	int i;
 	uint16_t *wrv;
