@@ -46,6 +46,13 @@ typedef struct cpuinfo {
 	uint64_t	rcx;
 } cpuinfo;
 
+// Used for executing ljmp (known as far jump in the x86-64 ISA) in 64-bit mode
+// Using the JMP FAR mem16:32 form
+struct farptr32 {
+	uint16_t cs;
+	uint32_t gcc_packed rip;
+};
+
 
 /*TODO:: Ishan - 29 May, 2011 
   *check if we need functions to write 64 bit values to ports	

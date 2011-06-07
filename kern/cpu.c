@@ -150,13 +150,13 @@ void cpu_init()
 
 	// Initialize the non-constant part of the cpu's GDT:
 	// the TSS descriptor is different for each cpu.
-	c->gdt[SEG_TSS >> 4] = SEGDESC64(0, STS_T64A, (uint64_t) (&c->tss),
+	c->gdt[SEG_TSS >> 4] = SEGDESC64(0, STS_T64A, (uintptr_t) (&c->tss),
 					sizeof(taskstate)-1, 0);
 
 #endif	// SOL >= 1
 	// Load the GDT
 	struct pseudodesc gdt_pd = {
-		sizeof(c->gdt) - 1, (uint64_t) c->gdt };
+		sizeof(c->gdt) - 1, (uintptr_t) c->gdt };
 	asm volatile("lgdt %0" : : "m" (gdt_pd));
 
 	// Reload all segment registers.
@@ -165,14 +165,13 @@ void cpu_init()
 	asm volatile("movw %%ax,%%es" :: "a" (SEG_KERN_CS_64));
 	asm volatile("movw %%ax,%%ds" :: "a" (SEG_KERN_CS_64));
 	asm volatile("movw %%ax,%%ss" :: "a" (SEG_KERN_CS_64));
-	// RAJAT CHANGED THIS. IS IT CORRECT?
-	//asm volatile("ljmp %0,$1f\n 1:\n" :: "i" (SEG_KERN_CS_64)); // reload CS
-	asm volatile("movw %%ax,%%cs" :: "a" (SEG_KERN_CS_64)); // reload CS
-
+	// asm volatile("ljmp %0,$1f\n 1:\n" :: "i" (SEG_KERN_CS_64)); // reload CS
+	struct farptr32 fp;
+	asm volatile("movw %1,(%0); movl $1f,2(%0); ljmp %2\n 1:\n" : :
+			"r" (&fp), "i" (SEG_KERN_CS_64), "m" (fp));		// reload CS
 	// We don't need an LDT.
 	asm volatile("lldt %%ax" :: "a" (0));
 #if SOL >= 1
-
 	// Load the TSS (from the GDT)
 	ltr(SEG_TSS);
 #endif
