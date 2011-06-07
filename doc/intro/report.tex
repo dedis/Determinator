@@ -1,0 +1,70 @@
+\newcommand\showchange{TT}%{TT FL}%
+%\documentclass[preprint]{../../share/sigplanconf}
+\documentclass[pdftex]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Including standard latex packages
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{stmaryrd}            %more math symbols
+\usepackage{amsmath}             %ams math
+\usepackage{amsfonts}            %ams fonts
+\usepackage{amssymb}             %amsmath
+\usepackage{mathrsfs}            % \mathscr
+\usepackage{latexsym}            %latex symbols
+\usepackage[pdftex]{graphicx}    %grahpicx
+\usepackage{tabularx}
+\usepackage{subfigure}
+\usepackage{cite}	% sort citation numbers
+\usepackage{url}
+
+\usepackage[all]{xy}             %various figures
+\usepackage[amsmath,thmmarks]{ntheorem}%theorems
+\usepackage[pdftex,bookmarks]{hyperref}
+\iffalse \hypersetup{
+    CJKbookmarks,%
+    colorlinks,%
+    citecolor=green,%
+    filecolor=magenta,%
+    linkcolor=green,%
+    urlcolor=green,%
+    hyperindex,%
+    plainpages=false,%
+    pdfstartview=FitH
+}\fi
+
+\if\showchange
+\usepackage[usenames,dvipsnames]{color}
+\newcommand\bluet[1]{\textcolor{blue}{#1}}
+\newcommand\redt[1]{\textcolor{red}{#1}}
+\else
+\newcommand\bluet[1]{#1}
+\newcommand\redt[1]{#1}
+\fi
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Including all the local shared latex packages and macros
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\renewcommand{\ttdefault}{cmtt}
+\let\cmttdfl\ttdefault          %what for?
+\let\cmsfdfl\sfdefault          %what for?
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THE START OF THE MAIN DOCUMENT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\title{Foundation of PIOS}
+%\authorinfo{Yu Zhang}
+\author{Yu Zhang (Clara)\\clarazhang@gmail.com}
+%{School of Computer Science and Technology, University of Science and Technology of China, Hefei, Anhui 230026, China\\ Software Security Lab., Suzhou Institute for Advanced Study, University of Science and Technology of China, \\ Suzhou, Jiangsu 215123, China\\yuzhang@ustc.edu.cn}
+
+\maketitle
+% turn on page numbers
+%\pagestyle{empty}
+\pagenumbering{arabic}
+\input local
+\input build32
+%\input flow
+%\input amd64
+%\input os64
+%\input pios64
+\end{document}

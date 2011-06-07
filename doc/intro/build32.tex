@@ -1,0 +1,230 @@
+\href{http://wiki.qemu.org/download/qemu-doc.html#pcsys_005fmonitor}{QEMU}
+\section{Building PIOS (Determinator)}
+Note that PIOS (the instructional kernel used in \href{http://zoo.cs.yale.edu/classes/cs422}{CS422}) and Determinator (the research kernel) currently share the same git source repository but exist in separate, parallel branches of that repository. The master (default) branch is the instructional PIOS, whereas the dcm branch holds the Determinator research kernel.
+
+To get the Determinator source code, make sure your SSH public key has been installed in our gitosis repository as described in SSH keys, then type:
+
+\begin{verbatim}
+$ git clone git@dedis.cs.yale.edu:pios
+$ git checkout -b dcm origin/dcm
+\end{verbatim}
+
+Now look over the README file in the root directory of the source tree you git, except be aware that this README was written for PIOS (the instructional kernel) rather than Determinator. In particular, to build the full Determinator system correctly, you will need to configure it for LAB=9 SOL=9 (instead of the suggested lab 4 or 5 as described in the README for PIOS), as follows:
+
+\verb|make LAB=9 SOL=9 labsetup|
+
+You may not yet be able to build Determinator successfully, however. Building Determinator requires using a pios-gcc toolchain that was created with modifications specifically for PIOS/Determinator, as described below.
+
+\subsection{Determinator build tools: prerequisite packages}
+Before building binutils and gcc, make sure you have the following prerequisite packages installed:
+\begin{itemize}
+\item \href{http://gmplib.org/}{gmp 4.1+}
+\item \href{http://www.mpfr.org/}{mpfr 2.3.2+}
+\item unifdef: \codet{sudo apt-get install unifdef}
+\item makeinfo: \codet{sudo apt-get install texinfo}
+\end{itemize}
+
+If building on 64-bit Linux, make sure you have the 32-bit Linux headers installed. On Debian-based distributions, install libc6-dev-i386.
+
+\subsection{Building binutils and gcc for Determinator}
+The PIOS specific binutils and gcc may be obtained and built as follows.
+\begin{enumerate}
+\item Check out copies of the pios branch of the local gcc and binutils repositories:
+
+\begin{verbatim}
+$ git clone -b pios git@korz.cs.yale.edu:binutils
+$ git clone -b pios git@korz.cs.yale.edu:gcc
+\end{verbatim}
+
+\item Configure the binutils and gcc source trees for target pios and install them in the directory .../pios/xc where .../pios/ is the root of your PIOS/Determinator source tree. xc means cross-compiler, and the Determinator makefiles expect the cross compiler to install some includes in xc/pios/include and some libraries in xc/pios/lib.
+
+\begin{verbatim}
+$ mkdir binutils/obj
+$ cd binutils/obj
+$ ../configure --target=pios --prefix=.../pios/xc --disable-werror
+$ make && make install
+$ mkdir ../../gcc/obj
+$ cd ../../gcc/obj
+$ ../configure --target=pios --prefix=.../pios/xc --disable-werror
+ --enable-languages=c
+$ make && make install
+\end{verbatim}
+
+If you run into errors while compiling gcc about not being able to find stddef.h or some other standard header file, it may be because you have not built PIOS yet. The gcc compilation process looks in your PIOS source tree for those header files. Go into your PIOS/Determinator source tree and make:
+
+\verb|$ make LAB=9 SOL=9 labsetup && make|
+
+Then, \verb|make clean && make && make install| again in your gcc source tree.
+
+\item Either put the .../pios/xc/bin/ directory in your PATH or add symlinks from /usr/local/bin to all the binaries in that directory.
+
+\item Try to \verb|make clean; make install| again in the PIOS/Determinator directory.
+\end{enumerate}
+
+\subsection{Scripts in PIOS}
+\subsubsection{Special dev files}
+\begin{itemize}
+\item \verb|/dev/zero|: a special file in Unix-like operating systems that provides as many null characters (ASCII NUL, 0x00) as are read from it. One of the typical uses is to provide a character stream for initializing data storage.
+\item \verb|/dev/null|: a special file that discards all data written to it (but reports that the write operation succeeded) and provides no data to any process that reads from it (yielding EOF immediately).
+\end{itemize}
+\subsubsection{Tips of Makefile}
+\begin{description}
+\item [Commands] If commands in Makefile are led by \verb|@|, they will be executed without printing verbose commands.
+\item [Functions] Some \href{http://www.gnu.org/s/hello/manual/make/Text-Functions.html}{functions} used in PIOS Makefiles are introduced below.
+\begin{itemize}
+\item \verb|$(wildcard pattern...)|: Wildcard expansion happens automatically in rules. But wildcard expansion does not normally take place when a variable is set, or inside the arguments of a function. If you want to do wildcard expansion in such places, you need to use the {\em wildcard} function. 
+\item \verb|$(subst from, to, text)|: Performs a textual replacement on the {\em text} text: each occurrence of {\em from} is replaced by {\em to}. 
+\item \verb|$(patsubst pattern, replacement,text)|: Finds whitespace-separated words in {\em text} that match {\em pattern} and replaces them with {\em replacement}. `\%' in {\em pattern} or {\em replacement} acts as a wildcard.
+
+e.g. \verb|$(patsubst %.c,%.o,$(wildcard *.c))|
+\\\indent It first get a list of all the C source files in a directory, and then change the list into a list of object files.
+\item \verb|$(addprefix prefix, names...)|: The value of {\em prefix} is prepended to the front of each individual name of {\em names} separated by whitespace and the resulting larger names are concatenated with single spaces between them. 
+\end{itemize}
+\item [Automatic Variables] See \href{http://www.gnu.org/software/make/manual/make.html#Automatic-Variables}{GNU}.
+\begin{itemize}
+  \item \verb|$@| The file name of the target of the rule.
+  \item \verb|$(@D)| The directory part of the file name of the target, with the trailing slash removed.
+  \item \verb|$<| The name of the first prerequisite.
+  \item \verb|$^| The names of all the prerequisites, with spaces between them.
+\end{itemize}
+\end{description}
+
+\subsubsection{GNUmakefile}
+\begin{itemize}
+\item Environment configuration: see \verb|conf/env.mk, conf/lab.mk|
+\item Cross-compiler toolchain: infer the prefix of cross-compiler toolchain (GCCPREFIX) by running \verb|misc/gccprefix.sh|. The cross-compiler toolchain is installed as `pios-*' or `i386-elf-*'. If the host tools (gcc, objdump, and so on) compile for a 32-bit x86 ELF target, that will be detected as well.
+\item QEMU: infer the correct QEMU by running \verb|misc/which-qemu.sh| if QEMU is not defined.
+\item GDB and network port numbers: generated by performing\\ \verb|expr `id -u` % 5000 + n|,\\ where n is 25000 and 30000 respectively.
+\item QEMUPORT: an option to enable the GDB stub and specify its port number to qemu.
+
+\verb|-s -p $(GDBPORT)| for qemu versions $<=0.10$, and \\
+\verb|-gdb tcp::$(GDBPORT)| for later qemu versions.
+\item Compilation Options (see \href{http://linux.die.net/man/1/gcc}{gcc}, \href{http://linux.die.net/man/1/ld}{ld}): \\
+\verb|CFLAGS += -nostdinc -m32| ...\\
+\verb|LDFLAGS += -nostdlib -m elf_i386| ...\\
+Compiler flags that differ for kernel versus user-level code.\\
+\verb|KERN_CFLAGS += $(CFLAGS) -DPIOS_KERNEL | ...\\
+\verb|KERN_LDFLAGS += $(LDFLAGS) -nostdlib -Ttext=0x00100000 -L$(GCCDIR)|\\
+\verb|KERN_LDLIBS += $(LDLIBS) -lgcc|\\
+~\\
+\verb|USER_CFLAGS += $(CFLAGS) -DPIOS_USER|\\
+\verb|USER_LDFLAGS += $(LDFLAGS)|\\
+\verb|USER_LDINIT += $(OBJDIR)/lib/crt0.o|\\
+\verb|USER_LDDEPS += $(USER_LDINIT) $(OBJDIR)/lib/libc.a|\\
+\verb|USER_LDLIBS += $(LDLIBS) -lc -lgcc|\\
+\item Makefrags for subdirectories, including boot, kern, lib, user.
+\item Set NCPUS, number of CPUs.
+\item Set QEMUOPTS \verb|-smp $(NCPUS) -hda $(OBJDIR)/kern/kernel.img|\\ \verb| -serial mon:stdio -k en-us -m 1100M|
+\item Targets in the Makefile
+
+\begin{itemize}
+\item \verb|labsetup| set values of macros LAB and SOL, and write them to conf/lab.mk.
+\item \verb|export-lab%|, \verb|export-sol%| or \verb|export-prep%|(where \% is a wildcard character, e.g. 1~5,9): export the student lab handout and solution trees.
+
+\verb|misc/mklab.pl| is used to construct various trees.
+\item \verb|build-lab%|, \verb|build-sol%| or \verb|build-prep%| build the corresponding student lab handout or solution tree.
+\item \verb|qemu|, \verb|qemu-nox|, \verb|qemu-gdb|, \verb|qemu-gdb-nox|: the first two launch QEMU and run PIOS with/without a virtual VGA display, the last two launch QEMU for debugging with/without a virtual VGA display.
+\end{itemize}
+\end{itemize}
+
+\subsubsection{boot/Makefrag}
+\begin{itemize}
+\item Compile \verb|boot.S, main.c| into \verb|boot.o, main.o|
+\item Link a number of object files into an elf file using (\href{http://linux.die.net/man/1/ld}{ld}):\\
+    \verb|ld -nostdlib -m elf_i386 -L$(OBJDIR)/lib -L$(GCCDIR) -N|\\\verb|-e start -Ttext 0x7C00 -o $(OBJDIR)/bootblock.elf|\\\verb| boot.o main.o|\\
+    \verb|-nostdlib|: Only search library directories explicitly specified on the command line.\\
+    \verb|-m elf_i386|: Emulate the emulation linker. You can list the available emulations with the --verbose or -V options.\\
+    \verb|-e start|: Use \verb|start| as the explicit symbol for beginning execution of your program, rather than the default entry point.\\
+    \verb|-Ttext 0x7C00|: Locate \verb|.text| section in the output file at the absolute address 0x7C00.
+\item Output source code intermixed with disassembly from boot.elf to boot.asm using \href{http://linux.die.net/man/1/objdump}{objdump}.\\ \verb|objdump -S bootblock.elf >bootblock.asm|
+\item Copy the contents of an object file to another using \href{http://linux.die.net/man/1/objcopy}{objcopy}.\\
+    \verb|objcopy -S -O binary bootblock.elf bootblock|\\
+    \verb|-S|: Do not copy relocation and symbol information from the source file.
+    \verb|-O binary|: Generate a raw binary file by using an output target of binary.
+
+\item \verb|perl boot/sign.pl bootblock|: Pad the bootblock to the require 512 byte sector size and attaches the boot magic ``signature'' (0x55aa - means bootable) at the end.
+\end{itemize}
+
+\subsubsection{kern/Makefrag}
+\begin{itemize}
+\item Related macros: 
+\begin{itemize}
+\item \verb|KERN_SRCFILES|: the list of kernel source files 
+\item \verb|KERN_INITFILES|: files to comprise the kernel's initial file system
+\item \verb|KERN_FSFILES|: files found in the 'fs' subdirectory
+\item \verb|KERN_BINFILES|: binary program images to embed within the kernel (for each file $f$ in \verb|KERN_INITFILES|, its binary program image is \verb|user/|$f$ )
+\item \verb|KERN_OBJFILES|: kernel object files generated from C (.c) and assembly (.S) source files 
+\end{itemize}
+\item Create \verb|$(OBJDIR)/kern/initfiles.h| from \verb|KERN_INITFILES| while \verb|LAB>=4|, in which the \verb|'/','.', '-'| are replaced by \verb|'_'|. This target is the pre-task of \verb|$(OBJDIR)/kern/file.o|.
+\item Compile \verb|kern/*.c| to \verb|$(OBJDIR)/kern/*.o|
+\item Compile \verb|dev/*.c| to \verb|$(OBJDIR)/dev/*.o|
+\item Compile \verb|lib/*.c| to \verb|$(OBJDIR)/kern/*.o|, mainly on standard I/O.
+\item Link the kernel itself from its object and binary files.
+\begin{verbatim}
+ld -o $@ $(KERN_LDFLAGS) $(KERN_OBJFILES) $(KERN_LDLIBS)
+   verb| -b binary $(KERN_BINFILES)
+objdump -S $@ > $@.asm
+nm -n $@ > $@.sym
+\end{verbatim}
+where \verb|$@| is \verb|$(OBJDIR)/kern/kernel|, and its source code intermixed with disassembly and symbols are generated by \href{http://linux.die.net/man/1/objdump}{objdump} and \href{http://linux.die.net/man/1/nm}{nm}, respectively.\verb|-n| in \verb|nm| represents sorting symbols numerically by their addresses, rather than alphabetically by their names. 
+\item Build the kernel disk image using \href{http://linux.die.net/man/1/dd}{dd} (convert and copy a file)
+\begin{verbatim}
+dd if=/dev/zero of=$(OBJDIR)/kern/kernel.img~ count=10000\
+ 2 >/dev/null
+dd if=$(OBJDIR)/boot/bootblock of=$(OBJDIR)/kern/kernel.img~\
+  conv=notrunc 2>/dev/null
+dd if=$(OBJDIR)/kern/kernel of=$(OBJDIR)/kern/kernel.img~\
+  seek=1 conv=notrunc 2>/dev/null
+mv $(OBJDIR)/kern/kernel.img~ $(OBJDIR)/kern/kernel.img
+\end{verbatim}
+\begin{itemize}
+\item \verb|if=FILE|: read from FILE instead of stdin
+\item \verb|of=FILE|: write to FILE instead of stdout
+\item \verb|count=BLOCKS|: copy only BLOCKS input blocks
+\item \verb|conv=CONVS|: convert the file as per the comma separated symbol list. \codet{CONVS} may be \codet{notrunc}(do not truncate the output file),....
+\item \verb|skip=BLOCKS|: skip BLOCKS ibs-sized blocks at start of input
+\end{itemize}
+\item Copy \verb|fs/%| to \verb|$(OBJDIR)/user/%|.
+\end{itemize}
+
+\subsubsection{lib/Makefrag}
+\begin{itemize}
+\item Related macros: 
+\begin{itemize}
+\item \verb|LIB_SRCFILES|: source files comprising the minimal PIOS C library
+\item \verb|LIB_OBJFILES|: object files generated from C (.c) and assembly (.S) source files 
+\end{itemize}
+\item Compile \verb|lib/*.c| to \verb|$(OBJDIR)/lib/*.o|
+\item Compile \verb|lib/*.S| to \verb|$(OBJDIR)/lib/*.o|
+\item Create archives \verb|$(OBJDIR)/lib/libc.a| from \verb|$(OBJDIR)/lib/*.o|
+
+\verb|ar r $@ $(LIB_OBJFILES)|, where \verb|$@| is \verb|$(OBJDIR)/lib/libc.a|, \codet{r} means inserting files with replacement.
+\end{itemize}
+
+\codet{Rules building a target install tree for a GCC (cross-)compiler.} 
+\begin{itemize}
+\item Related macros: 
+\begin{itemize}
+\item \verb|XCDIR := xc/pios|
+\item \verb|XC_INCFILES|: the list of file names in \verb|inc/*.h| 
+\item \verb|XC_DEPS|: the list of file names by prefixing \verb|$(XCDIR)/include/| to each file name in \verb|XC_INCFILES|, \verb|xc/pios/include/sys| and \verb|libc.a|, \verb|libm.a|, \verb|libg.a|, \verb|libpthread.a| and \verb|crt0.o| in |\verb|xc/pios/lib| directory.
+\end{itemize}
+\item Make symlinks \verb|$(XCDIR)/include/sys| to \verb|$(XCDIR)/include/|.
+\item Copy \verb|$(OBJDIR)/lib/libc.a| to \verb|$(XCDIR)/lib/lib%.a|.
+\item Copy \verb|$(OBJDIR)/lib/crt%.o| to \verb|$(XCDIR)/lib/crt%.o|.
+\end{itemize}
+
+\subsubsection{user/Makefrag}
+\begin{itemize}
+\item Related macros
+\begin{itemize}
+\item \verb|USER_CFLAGS|: defined in GNUmakefile.
+\\\verb|$(CFLAGS) -DPIOS_USER -DPIOS_SPMC|
+\item \verb|USER_LDINIT += $(OBJDIR)/lib/crt0.o|, defined in GNUmakefile.
+\item \verb|USER_LDDEPS += $(USER_LDINIT) $(OBJDIR)/lib/libc.a|, defined in GNUmakefile.
+\item \verb|USER_LDLIBS += $(LDLIBS) -lc -lgcc|, defined in GNUmakefile.
+\end{itemize}
+\item Compile \verb|user/*.c| to \verb|$(OBJDIR)/user/*.o|
+\item Link and create executable files.
+\end{itemize}
+
