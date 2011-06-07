@@ -68,12 +68,12 @@ pmc_intelinit(void)
 {
 	cpuinfo inf;
 	cpuid(0x0a, &inf);
-	int ver = inf.rax & 0xff;
-	int npmc = (inf.rax >> 8) & 0xff;
-	int width = (inf.rax >> 16) & 0xff;
-	int veclen = (inf.rax >> 24) & 0xff;
-	int nfix = inf.rdx & 0x1f;
-	int fixwidth = (inf.rdx >> 5) & 0xff;
+	int ver = inf.eax & 0xff;
+	int npmc = (inf.eax >> 8) & 0xff;
+	int width = (inf.eax >> 16) & 0xff;
+	int veclen = (inf.eax >> 24) & 0xff;
+	int nfix = inf.edx & 0x1f;
+	int fixwidth = (inf.edx >> 5) & 0xff;
 
 	cprintf("PMC ver %d npmc %d width %d nfix %d fixwidth %d\n",
 		ver, npmc, width, nfix, fixwidth);
@@ -126,7 +126,7 @@ pmc_amdinit(void)
 {
 	cpuinfo inf;
 	cpuid(0x01, &inf);
-	int family = ((inf.rax >> 8) & 0xf) + ((inf.rax >> 20) & 0xff);
+	int family = ((inf.eax >> 8) & 0xf) + ((inf.eax >> 20) & 0xff);
 	if (family < 0x0f || family > 0x10) {
 		warn("pmc_amdinit: unrecognized AMD family %x", family);
 		return;
@@ -151,9 +151,9 @@ pmc_init(void)
 
 	cpuinfo inf;
 	cpuid(0, &inf);
-	if (memcmp(&inf.rbx, "GenuineIntel", 12) == 0)
+	if (memcmp(&inf.ebx, "GenuineIntel", 12) == 0)
 		pmc_intelinit();
-	else if (memcmp(&inf.rbx, "AuthenticAMD", 12) == 0)
+	else if (memcmp(&inf.ebx, "AuthenticAMD", 12) == 0)
 		pmc_amdinit();
 
 	if (!pmc_avail)

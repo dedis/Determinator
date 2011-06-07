@@ -79,17 +79,17 @@ cpu_info()
 
 	char str[12+1];
 	cpuid(0x00, &inf);
-	memcpy(str, &inf.rbx, 12);
+	memcpy(str, &inf.ebx, 12);
 	str[12] = 0;
 	cpuid(0x01, &inf);
 
-	int family = (inf.rax >> 8) & 0xf;
-	int model = (inf.rax >> 3) & 0xf;
-	int stepping = (inf.rax >> 3) & 0xf;
+	int family = (inf.eax >> 8) & 0xf;
+	int model = (inf.eax >> 3) & 0xf;
+	int stepping = (inf.eax >> 3) & 0xf;
 	if (family == 0xf)
-		family += (inf.rax >> 20) & 0xff;
+		family += (inf.eax >> 20) & 0xff;
 	if (family == 6 || family >= 0xf)
-		model |= ((inf.rax >> 16) & 0xf) << 4;
+		model |= ((inf.eax >> 16) & 0xf) << 4;
 
 	cprintf("CPUID: %s %x/%x/%x\n", str, family, model, stepping);
 }
@@ -108,7 +108,7 @@ cpu_setmtrr()
 {
 	cpuinfo inf;
 	cpuid(0x01, &inf);
-	if (!(inf.rdx & (1 << 12))) {
+	if (!(inf.edx & (1 << 12))) {
 		warn("cpu_setmtrr: CPU has no MTRR support?");
 //		return;
 	}
@@ -167,8 +167,8 @@ void cpu_init()
 	asm volatile("movw %%ax,%%ss" :: "a" (SEG_KERN_CS_64));
 	// asm volatile("ljmp %0,$1f\n 1:\n" :: "i" (SEG_KERN_CS_64)); // reload CS
 	struct farptr32 fp;
-	asm volatile("movw %1,(%0); movl $1f,2(%0); ljmp %2\n 1:\n" : :
-			"r" (&fp), "i" (SEG_KERN_CS_64), "m" (fp));		// reload CS
+	asm volatile("movw %1,(%0); movl $1f,2(%0); ljmp (%0)\n 1:\n" : :
+			"r" (&fp), "i" (SEG_KERN_CS_64));		// reload CS
 	// We don't need an LDT.
 	asm volatile("lldt %%ax" :: "a" (0));
 #if SOL >= 1

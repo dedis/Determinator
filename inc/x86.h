@@ -40,10 +40,10 @@
 
 // Struct containing information returned by the CPUID instruction
 typedef struct cpuinfo {
-	uint64_t	rax;
-	uint64_t	rbx;
-	uint64_t	rdx;
-	uint64_t	rcx;
+	uint32_t	eax;
+	uint32_t	ebx;
+	uint32_t	edx;
+	uint32_t	ecx;
 } cpuinfo;
 
 // Used for executing ljmp (known as far jump in the x86-64 ISA) in 64-bit mode
@@ -372,8 +372,8 @@ static gcc_inline void
 cpuid(uint32_t idx, cpuinfo *info)
 {
 	asm volatile("cpuid" 
-		: "=a" (info->rax), "=b" (info->rbx),
-		  "=c" (info->rcx), "=d" (info->rdx)
+		: "=a" (info->eax), "=b" (info->ebx),
+		  "=c" (info->ecx), "=d" (info->edx)
 		: "a" (idx));
 }
 
