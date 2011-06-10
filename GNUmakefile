@@ -119,14 +119,13 @@ endif
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 \
 		&& echo -fno-stack-protector)
 
-LDFLAGS += -L$(OBJDIR)/lib -L$(GCCDIR)
-LDFLAGS += -L$(OBJDIR)/lib -L$(GCCDIR)
+LDFLAGS += -L$(OBJDIR)/lib -L$(GCCDIR) -L$(GCCDIR)/64
 
 # If we're not using the special "PIOS edition" of GCC,
 # reconfigure the host OS's compiler for our purposes.
 ifneq ($(GCCPREFIX),pios-)
-# boot sector is compiled as 32bit code
-# RAJAT has removed the -m flags from here and put them in boot/Makefrag	
+# RAJAT has removed the -m flags from here and put them in boot/Makefrag
+# boot sector is compiled as 32-bit code
 BOOT_CFLAGS += $(CFLAGS) -nostdinc #-m32
 BOOT_LDFLAGS += $(LDFLAGS) -nostdlib #-m elf_i386	
 
