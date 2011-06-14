@@ -98,7 +98,7 @@ static void gcc_noinline f1(int r, uintptr_t *e) { r & 1 ? f2(r,e) : f2(r,e); }
 void
 debug_check(void)
 {
-	uint64_t eips[4][DEBUG_TRACEFRAMES];
+	uintptr_t eips[4][DEBUG_TRACEFRAMES];
 	int r, i;
 
 	// produce several related backtraces...
