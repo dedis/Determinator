@@ -28,7 +28,6 @@
 
 #include <dev/nvram.h>
 
-
 size_t mem_max;			// Maximum physical address
 size_t mem_npage;		// Total number of physical memory pages
 
@@ -57,7 +56,28 @@ mem_init(void)
 	size_t basemem = ROUNDDOWN(nvram_read16(NVRAM_BASELO)*1024, PAGESIZE);
 	size_t extmem = ROUNDDOWN(nvram_read16(NVRAM_EXTLO)*1024, PAGESIZE);
 
-	warn("Assuming we have 1GB of memory!");
+
+//prepare registers to make an int 0x15 e820 call to determine physical memory.	
+//refer to link: http://www.uruk.org/orig-grub/mem64mb.html	
+
+	struct e820_mem_map e820_mem_array[MEM_MAP_MAX];	
+	uint16_t mem_map_entries = detect_memory_e820(e820_mem_array);
+	uint16_t temp_ctr;
+	uint64_t total_ram_size = 0;
+	for(temp_ctr=0;temp_ctr<mem_map_entries;temp_ctr++)
+	{
+		//the memory should be usable!
+		assert(e820_mem_array[temp_ctr].type == E820TYPE_MEMORY || e820_mem_array[temp_ctr].type == E820TYPE_ACPI); 
+
+		cprintf("%lld %lld %d\n",e820_mem_array[temp_ctr].base,e820_mem_array[temp_ctr].size,
+				e820_mem_array[temp_ctr].type);
+		total_ram_size += e820_mem_array[temp_ctr].size;
+	}
+
+	cprintf("Physical memory: %dK available\n",total_ram_size/(1024));
+//	cprintf("entries: %d\n",mem_map_entries);
+
+/*	warn("Assuming we have 1GB of memory!");
 	extmem = 1024*1024*1024 - MEM_EXT;	// assume 1GB total memory
 
 	// The maximum physical address is the top of extended memory.
@@ -69,7 +89,14 @@ mem_init(void)
 	cprintf("Physical memory: %dK available, ", (int)(mem_max/1024));
 	cprintf("base = %dK, extended = %dK\n",
 		(int)(basemem/1024), (int)(extmem/1024));
+	
+*/
+	//maximum physical address is the last entry base + size
+	//FIXME::this assumes the entries are sorted by base --- VALID ??
+	mem_max = (int) e820_mem_array[mem_map_entries-1].base + (int) e820_mem_array[mem_map_entries-1].size - 1;
 
+	//total no of pages
+	mem_npage = (int)total_ram_size / PAGESIZE;
 
 #if SOL >= 1
 	// Now that we know the size of physical memory,
@@ -94,9 +121,32 @@ mem_init(void)
 #endif
 	pageinfo **freetail = &mem_freelist;
 	int i;
+	int j;
+	int lies_in_free_region = 0;
+	int page_start;
+	int page_end;
+	int base;
+	int size;
+
 	for (i = 0; i < mem_npage; i++) {
 		// Off-limits until proven otherwise.
 		int inuse = 1;
+		lies_in_free_region = 0;
+		
+		//check if the page lies in usable memory by referring to e820 map.
+		for(j=0;j<mem_map_entries;j++) {
+			//check if page starting address & page ending address lie in the range [base base+size-1]
+			page_start = i*PAGESIZE;
+			page_end = page_start + PAGESIZE - 1;
+			base = e820_mem_array[j].base;
+			size = e820_mem_array[j].size;
+			if (page_start >= base && page_end <= base+size-1) {
+				lies_in_free_region = 1;
+				break;
+			}
+		}
+		if(!lies_in_free_region)
+			continue;
 
 		// The bottom basemem bytes are free except page 0 and 1.
 		if (i > 1 && i < basemem / PAGESIZE)
@@ -157,6 +207,111 @@ mem_init(void)
 
 	// Check to make sure the page allocator seems to work correctly.
 	mem_check();
+}
+
+int detect_memory_e820(struct e820_mem_map *e820_mem_array)
+{
+	struct bios_regs regs; 
+	
+	//variables for e820 memory map
+	uint32_t *e820_base_low = (uint32_t*)(BIOS_BUFF_DI);
+	uint32_t *e820_base_high = (uint32_t*)(BIOS_BUFF_DI+4);
+	uint32_t *e820_size_low = (uint32_t*)(BIOS_BUFF_DI+8);
+	uint32_t *e820_size_high = (uint32_t*)(BIOS_BUFF_DI+12);
+	uint32_t *e820_type = (uint32_t*)(BIOS_BUFF_DI + 16);
+	
+	int e820_ctr = 0;
+
+	regs.int_no = 0x15; //interrupt number
+	regs.eax = 0x0000e820; //BIOS function to call
+	regs.ebx = 0x00000000; //must be set to 0 for initial call
+	regs.edx = SMAP; //must be set to SMAP value.
+	regs.ecx = 0x00000018; //ask the BIOS to fill 24 bytes (24 is the buffer size as needed by ACPI 3.x).
+	regs.es = BIOS_BUFF_ES; //segment number of the buffer the BIOS fills
+	regs.edi = BIOS_BUFF_DI;//offset of the buffer BIOS fills (es and di determine buffer address).
+	regs.ds = 0x0000; //ds is not needed
+	regs.esi = 0x00000000; //esi is not needed
+	regs.cf = 0; //initialize this to 0 so that we enter the while loop.
+
+
+	bios_call(&regs); //the first call
+
+	while(regs.ebx!=0 && regs.cf == 0 && regs.eax == SMAP) //the BIOS fills just 20 bytes for this call
+	{
+		//cprintf("\n(%d %x %d %d || %d [%d %d] [%d %d])\n",ctr++,regs.eax,regs.ebx,regs.ecx,*e820_type,
+		//cprintf("%d [%d %d] [%d %d])\n",*e820_type,
+		//		*e820_base_low,*e820_base_high,*e820_size_low,*e820_size_high);
+
+		//read the e820 memory map
+		assert(regs.es == BIOS_BUFF_ES && regs.edi == BIOS_BUFF_DI); //check if bios has trashed these registers
+									     //we use these macros to read memory map
+		// check for usable memory
+		if (*e820_type == E820TYPE_MEMORY || *e820_type == E820TYPE_ACPI) 
+		{
+			assert(e820_ctr < MEM_MAP_MAX); 
+
+			e820_mem_array[e820_ctr].base = ((uint64_t)(*e820_base_high)<<32) + (*e820_base_low);
+			e820_mem_array[e820_ctr].size = ((uint64_t)(*e820_size_high)<<32) + (*e820_size_low);
+			e820_mem_array[e820_ctr].type = (*e820_type);
+			e820_ctr++;
+		}
+
+		//prepare for next call
+		regs.int_no = 0x15; //interrupt number
+		regs.eax = 0x0000e820; //BIOS function to call
+		regs.edx = SMAP; //must be set to SMAP value.
+		regs.ecx = 0x00000018; //ask the BIOS to fill 24 bytes (24 is the buffer size as needed by ACPI 3.x).
+		regs.es = BIOS_BUFF_ES; //segment number of the buffer the BIOS fills
+		regs.edi = BIOS_BUFF_DI;//offset of the buffer BIOS fills (es and di determine buffer address).
+		regs.ds = 0x0000; //ds is not needed
+		regs.esi = 0x00000000; //esi is not needed
+
+		bios_call(&regs);
+	}
+
+	if(regs.eax!=SMAP) {
+		warn("\nBIOS does not support e820 call!\n");
+	}
+
+	return e820_ctr;
+}
+
+//FIXME:: patch the int instruction in boot/bootother.S
+void bios_call(struct bios_regs *inp)
+{
+	uint8_t *lowmem_start_byte_ptr = (uint8_t*)lowmem_bootother_vec;
+	uint16_t *lowmem_start_int16_ptr = (uint16_t*)lowmem_bootother_vec;
+	uint32_t *lowmem_start_int32_ptr = (uint32_t*)lowmem_bootother_vec;
+
+	//now pass register values using pointers
+	*(lowmem_start_byte_ptr+(INT_NO)/sizeof(lowmem_start_byte_ptr)) = inp->int_no;
+	*(lowmem_start_byte_ptr+(CF)/sizeof(lowmem_start_byte_ptr)) = inp->cf;
+	*(lowmem_start_int16_ptr+(ES)/sizeof(lowmem_start_int16_ptr)) = inp->es;
+	*(lowmem_start_int16_ptr+(DS)/sizeof(lowmem_start_int16_ptr)) = inp->ds;
+	*(lowmem_start_int32_ptr+(EDI)/sizeof(lowmem_start_int32_ptr)) = inp->edi;
+	*(lowmem_start_int32_ptr+(ESI)/sizeof(lowmem_start_int32_ptr)) = inp->esi;
+	*(lowmem_start_int32_ptr+(EDX)/sizeof(lowmem_start_int32_ptr)) = inp->edx;
+	*(lowmem_start_int32_ptr+(ECX)/sizeof(lowmem_start_int32_ptr)) = inp->ecx;
+	*(lowmem_start_int32_ptr+(EBX)/sizeof(lowmem_start_int32_ptr)) = inp->ebx;
+	*(lowmem_start_int32_ptr+(EAX)/sizeof(lowmem_start_int32_ptr)) = inp->eax;
+
+//	warn("BIOS CALLED\n");
+//	cprintf("ebx is %d\n",*(lowmem_start_int32_ptr+(EBX)/sizeof(lowmem_start_int32_ptr)));
+	asm volatile("call *0x1004");
+//	warn("BIOS CALL RETURNED\n");
+
+	//copy the values back into the regs structure.
+	inp->int_no = *(lowmem_start_byte_ptr+(INT_NO)/sizeof(lowmem_start_byte_ptr));
+	inp->cf = *(lowmem_start_byte_ptr+(CF)/sizeof(lowmem_start_byte_ptr));
+	inp->es = *(lowmem_start_int16_ptr+(ES)/sizeof(lowmem_start_int16_ptr));
+	inp->ds = *(lowmem_start_int16_ptr+(DS)/sizeof(lowmem_start_int16_ptr));
+	inp->edi = *(lowmem_start_int32_ptr+(EDI)/sizeof(lowmem_start_int32_ptr));
+	inp->esi = *(lowmem_start_int32_ptr+(ESI)/sizeof(lowmem_start_int32_ptr));
+	inp->edx = *(lowmem_start_int32_ptr+(EDX)/sizeof(lowmem_start_int32_ptr));
+	inp->ecx = *(lowmem_start_int32_ptr+(ECX)/sizeof(lowmem_start_int32_ptr));
+	inp->ebx = *(lowmem_start_int32_ptr+(EBX)/sizeof(lowmem_start_int32_ptr));
+	inp->eax = *(lowmem_start_int32_ptr+(EAX)/sizeof(lowmem_start_int32_ptr));
+
 }
 
 //

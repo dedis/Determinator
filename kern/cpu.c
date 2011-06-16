@@ -227,8 +227,8 @@ cpu_bootothers(void)
 
 	// Write bootstrap code to unused memory at 0x1000.
 	uint8_t *code = (uint8_t*)0x1000;
-	memmove(code, _binary_obj_boot_bootother_start,
-		(uint32_t)_binary_obj_boot_bootother_size);
+	//memmove(code, _binary_obj_boot_bootother_start,
+	//	(uint32_t)_binary_obj_boot_bootother_size);
 
 	cpu *c;
 	for(c = &cpu_boot; c; c = c->next){
@@ -238,7 +238,9 @@ cpu_bootothers(void)
 		// Fill in %esp, %eip and start code on cpu.
 		*(void**)(code-4) = c->kstackhi;
 		*(void**)(code-8) = init;
+		uint8_t *bootother = (uint8_t*)0x1010;
 		lapic_startcpu(c->id, (uint32_t)code);
+		//lapic_startcpu(c->id, (uint32_t)bootother);
 
 		// Wait for cpu to get through bootstrap.
 		while(c->booted == 0)

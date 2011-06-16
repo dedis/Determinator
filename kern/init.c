@@ -90,6 +90,13 @@ init(void)
 	// Can't call cprintf until after we do this!
 	cons_init();
 
+	//copy the low memory bootothers code.
+	extern uint8_t _binary_obj_boot_bootother_start[],
+			_binary_obj_boot_bootother_size[];
+	uint8_t *code = (uint8_t*)lowmem_bootother_vec;
+	memmove(code, _binary_obj_boot_bootother_start,
+		(uint32_t)_binary_obj_boot_bootother_size);
+
 #if LAB == 1
 	// Lab 1: test cprintf and debug_trace
 	cprintf("1234 decimal is %o octal!\n", 1234);
