@@ -16,6 +16,9 @@
 # error "This is a kernel header; user programs should not #include it"
 #endif
 
+
+/* Macros common to C and asm code */
+
 //SMAP value as needed by e820 bios call
 #define SMAP 0x534D4150
 
@@ -42,11 +45,13 @@
 #define REAL_STACK_HI 0xBB8 //3000
 #define GDT_MEM_LOC 0xC18 //3096
 #define IDT_MEM_LOC 0xC08 //3080
-#define PAGING_BIT    0xBF8 //3064 (could have been something else, but the ++0x1 pattern was easier to calculate!)
+#define PAGING_BIT  0xBF8 //3064 (could have been something else, but the ++0x1 pattern was easier to calculate!)
 #define PROT_ESP    0xBE8 //3048
 
 
 #else 
+/*ASSEMBLER MACROS END*/
+
 
 #include <inc/types.h>
 #include <inc/assert.h>

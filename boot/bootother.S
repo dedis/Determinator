@@ -152,10 +152,9 @@ bioscall:
 	lidt realidtptr
 
 	//patch the int instruction
-	//FIXME:: Patching doesnt work!
-//	movw $start,%bp 
-//	movb INT_NO(%bp),%al
-//	movb %al,int_call+1
+	movw $start,%bp 
+	movb INT_NO(%bp),%al
+	movb %al,int_call+1
 
 	//disable protection bit
 	movl %cr0,%eax
@@ -197,7 +196,7 @@ bioscall:
 	//XXX: Use interrupt vector at $start+INT_NO !!
 	cli
 int_call:
-	int $0x15
+	int $0
 
 
 	//move the register values back to the struct

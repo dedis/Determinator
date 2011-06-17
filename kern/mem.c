@@ -69,8 +69,8 @@ mem_init(void)
 		//the memory should be usable!
 		assert(e820_mem_array[temp_ctr].type == E820TYPE_MEMORY || e820_mem_array[temp_ctr].type == E820TYPE_ACPI); 
 
-		cprintf("%lld %lld %d\n",e820_mem_array[temp_ctr].base,e820_mem_array[temp_ctr].size,
-				e820_mem_array[temp_ctr].type);
+//		cprintf("%lld %lld %d\n",e820_mem_array[temp_ctr].base,e820_mem_array[temp_ctr].size,
+//				e820_mem_array[temp_ctr].type);
 		total_ram_size += e820_mem_array[temp_ctr].size;
 	}
 
@@ -134,7 +134,7 @@ mem_init(void)
 		lies_in_free_region = 0;
 		
 		//check if the page lies in usable memory by referring to e820 map.
-		for(j=0;j<mem_map_entries;j++) {
+		for(j=mem_map_entries-1;j>=0;j--) {
 			//check if page starting address & page ending address lie in the range [base base+size-1]
 			page_start = i*PAGESIZE;
 			page_end = page_start + PAGESIZE - 1;
@@ -231,7 +231,7 @@ int detect_memory_e820(struct e820_mem_map *e820_mem_array)
 	regs.edi = BIOS_BUFF_DI;//offset of the buffer BIOS fills (es and di determine buffer address).
 	regs.ds = 0x0000; //ds is not needed
 	regs.esi = 0x00000000; //esi is not needed
-	regs.cf = 0; //initialize this to 0 so that we enter the while loop.
+	regs.cf = 0x00; //initialize this to 0 so that we enter the while loop.
 
 
 	bios_call(&regs); //the first call
@@ -284,8 +284,8 @@ void bios_call(struct bios_regs *inp)
 	uint32_t *lowmem_start_int32_ptr = (uint32_t*)lowmem_bootother_vec;
 
 	//now pass register values using pointers
-	*(lowmem_start_byte_ptr+(INT_NO)/sizeof(lowmem_start_byte_ptr)) = inp->int_no;
-	*(lowmem_start_byte_ptr+(CF)/sizeof(lowmem_start_byte_ptr)) = inp->cf;
+	*(lowmem_start_byte_ptr+(INT_NO)) = inp->int_no;
+	*(lowmem_start_byte_ptr+(CF)) = inp->cf;
 	*(lowmem_start_int16_ptr+(ES)/sizeof(lowmem_start_int16_ptr)) = inp->es;
 	*(lowmem_start_int16_ptr+(DS)/sizeof(lowmem_start_int16_ptr)) = inp->ds;
 	*(lowmem_start_int32_ptr+(EDI)/sizeof(lowmem_start_int32_ptr)) = inp->edi;
@@ -295,14 +295,12 @@ void bios_call(struct bios_regs *inp)
 	*(lowmem_start_int32_ptr+(EBX)/sizeof(lowmem_start_int32_ptr)) = inp->ebx;
 	*(lowmem_start_int32_ptr+(EAX)/sizeof(lowmem_start_int32_ptr)) = inp->eax;
 
-//	warn("BIOS CALLED\n");
-//	cprintf("ebx is %d\n",*(lowmem_start_int32_ptr+(EBX)/sizeof(lowmem_start_int32_ptr)));
+	//FIXME:: Use the macro 
 	asm volatile("call *0x1004");
-//	warn("BIOS CALL RETURNED\n");
 
 	//copy the values back into the regs structure.
-	inp->int_no = *(lowmem_start_byte_ptr+(INT_NO)/sizeof(lowmem_start_byte_ptr));
-	inp->cf = *(lowmem_start_byte_ptr+(CF)/sizeof(lowmem_start_byte_ptr));
+	inp->int_no = *(lowmem_start_byte_ptr+(INT_NO));
+	inp->cf = *(lowmem_start_byte_ptr+(CF));
 	inp->es = *(lowmem_start_int16_ptr+(ES)/sizeof(lowmem_start_int16_ptr));
 	inp->ds = *(lowmem_start_int16_ptr+(DS)/sizeof(lowmem_start_int16_ptr));
 	inp->edi = *(lowmem_start_int32_ptr+(EDI)/sizeof(lowmem_start_int32_ptr));
