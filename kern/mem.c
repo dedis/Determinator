@@ -134,7 +134,7 @@ mem_init(void)
 		lies_in_free_region = 0;
 		
 		//check if the page lies in usable memory by referring to e820 map.
-		for(j=mem_map_entries-1;j>=0;j--) {
+		for(j=mem_map_entries-1;j>=0;j--) { //run the counter backwards so that we 'break' more times!
 			//check if page starting address & page ending address lie in the range [base base+size-1]
 			page_start = i*PAGESIZE;
 			page_end = page_start + PAGESIZE - 1;
