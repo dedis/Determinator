@@ -70,10 +70,10 @@ file_initroot(proc *root)
 	// Make sure the root process's page directory is loaded,
 	// so that we can write into the root process's file area directly.
 	cpu_cur()->proc = root;
-	lcr3(mem_phys(root->pdir));
+	lcr3(mem_phys(root->pml4));
 
 	// Enable read/write access on the file metadata area
-	pmap_setperm(root->pdir, FILESVA, ROUNDUP(sizeof(filestate), PAGESIZE),
+	pmap_setperm(root->pml4, FILESVA, ROUNDUP(sizeof(filestate), PAGESIZE),
 				SYS_READ | SYS_WRITE);
 	memset(files, 0, sizeof(*files));
 
@@ -98,8 +98,8 @@ file_initroot(proc *root)
 
 	// Set the whole console input area to be read/write,
 	// so we won't have to worry about perms in cons_io().
-	pmap_setperm(root->pdir, (uintptr_t)FILEDATA(FILEINO_CONSIN),
-				PTSIZE, SYS_READ | SYS_WRITE);
+	pmap_setperm(root->pml4, (uintptr_t)FILEDATA(FILEINO_CONSIN),
+				PDSIZE(1), SYS_READ | SYS_WRITE);
 
 	// Set up the initial files in the root process's file system.
 	// Some script magic in kern/Makefrag creates obj/kern/initfiles.h,
@@ -119,7 +119,7 @@ file_initroot(proc *root)
 		files->fi[ino].dino = FILEINO_ROOTDIR;
 		files->fi[ino].mode = S_IFREG;
 		files->fi[ino].size = filesize;
-		pmap_setperm(root->pdir, (uintptr_t)FILEDATA(ino),
+		pmap_setperm(root->pml4, (uintptr_t)FILEDATA(ino),
 					ROUNDUP(filesize, PAGESIZE),
 					SYS_READ | SYS_WRITE);
 		memcpy(FILEDATA(ino), initfiles[i][1], filesize);
@@ -128,7 +128,7 @@ file_initroot(proc *root)
 
 		// XXX hack: allow initial files to be bigger than 4MB,
 		// by reserving the other inodes for nonexistent files.
-		int ninos = ROUNDUP(filesize, PTSIZE) / PTSIZE;
+		int ninos = ROUNDUP(filesize, PDSIZE(1)) / PDSIZE(1);
 		while (--ninos > 0) {
 			files->fi[ino].dino = FILEINO_ROOTDIR;
 			sprintf(files->fi[ino].de.d_name, ".%s_%d",

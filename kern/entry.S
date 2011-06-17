@@ -122,7 +122,7 @@ entry32:
 	movl	$bootp3tab+(PTE_P|PTE_W),bootp4tab
 	movl	$bootp2tab+(PTE_P|PTE_W),bootp3tab
 	movl	$bootp1tab+(PTE_P|PTE_W),bootp2tab
-	movl	$0+(PTE_P|PTE_W|P1E_G),bootp1tab
+	movl	$0+(PTE_P|PTE_W|PTE_G),bootp1tab
 
 	// load CR3 to point to our boot page table structure
 	movl	$bootp4tab,%eax

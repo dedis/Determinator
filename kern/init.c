@@ -235,7 +235,7 @@ init(void)
 				memmove(mem_pi2ptr(pi), fa, zva-va);
 			} else			// all-zero page
 				memset(mem_pi2ptr(pi), 0, PAGESIZE);
-			pte_t *pte = pmap_insert(root->pdir, pi, va, perm);
+			pte_t *pte = pmap_insert(root->pml4, pi, va, perm);
 			assert(pte != NULL);
 		}
 	}
@@ -247,7 +247,7 @@ init(void)
 	// Give the process a 1-page stack in high memory
 	// (the process can then increase its own stack as desired)
 	pageinfo *pi = mem_alloc(); assert(pi != NULL);
-	pte_t *pte = pmap_insert(root->pdir, pi, VM_STACKHI-PAGESIZE,
+	pte_t *pte = pmap_insert(root->pml4, pi, VM_STACKHI-PAGESIZE,
 				SYS_READ | SYS_WRITE | PTE_P | PTE_U | PTE_W);
 	assert(pte != NULL);
 	root->sv.tf.rsp = VM_STACKHI;

@@ -6,6 +6,8 @@
  * See section "MIT License" in the file LICENSES for licensing terms.
  *
  * Derived from the MIT Exokernel and JOS.
+ * Adapted for PIOS by Bryan Ford at Yale University.
+ * Adapted for 64-bit PIOS by Yu Zhang.
  */
 
 #ifndef PIOS_INC_MMU_H
@@ -25,123 +27,128 @@
  *
  */
 
-// page number field of address
-#define PPN(la)		(((uintptr_t) (la)) >> PTXSHIFT)
-#define VPN(la)		PPN(la)		// used to index into vpt[]
-
-// page directory index
-#define PDX(la)		((((uintptr_t) (la)) >> PDXSHIFT) & 0x3FF)
-#define VPD(la)		PDX(la)		// used to index into vpd[]
-
-// page table index
-#define PTX(la)		((((uintptr_t) (la)) >> PTXSHIFT) & 0x3FF)
-
-// linear address components
-#define PGADDR(la)	((uintptr_t) (la) & ~0xFFF)	// address of page
-#define PGOFF(la)	((uintptr_t) (la) & 0xFFF)	// offset in page
-
-#define PTADDR(la)	((uintptr_t) (la) & ~0x3FFFFF)	// address of page table
-#define PTOFF(la)	((uintptr_t) (la) & 0x3FFFFF)	// offset in page table
-
-// Page directory and page table constants.
-#define NPDENTRIES	1024		// PDEs per page directory
-#define NPTENTRIES	1024		// PTEs per page table
-
-#define PAGESIZE	4096		// bytes mapped by a page
-#define PAGESHIFT	12		// log2(PAGESIZE)
-
-#define PTSIZE		(PAGESIZE*NPTENTRIES)	// bytes mapped by a PDE
-#define PTSHIFT		22		// log2(PTSIZE)
-
-#define PTXSHIFT	12		// offset of PTX in a linear address
-#define PDXSHIFT	22		// offset of PDX in a linear address
-
-/*
-RAJAT has commented these out for now. Now he is fixing the page table stuff and then he will enable this
 // An x86-64 address is split into six fields:
-//	- the sign extension area in bits 63-48.
-//	- four 9-bit page table index fields in bits 47-12.
-//	- the page offset field in bits 11-0.
+//      - the sign extension area in bits 63-48.
+//      - four 9-bit page table index fields in bits 47-12.
+//      - the page offset field in bits 11-0.
 // The following macros aid in manipulating these addresses.
 
 // Page directory and page table constants.
+// entries per page map root (64-bit: pml4)
+#define NPRENTRIES	256		// PML4Es per page map level-4
+// entries per page table/page directory/page directory pointer
+#define NPTENTRIES	512 
+#define NPTBITS		9		// log2(NPTENTRIES)
+#define NPTLVLS     	3           	// page table depth -1 
 
+// page size
 #define PAGESIZE	4096		// bytes mapped by a page
-#define PAGESHIFT	12			// log2(PAGESIZE)
+#define PAGESHIFT	12		// log2(PAGESIZE)
 
-#define NPENTRIES	512
+//
+// In 64-bit PIOS, the type of linear address is intptr_t.
+// Currently the valid range of linear addresses is [0, 2^47-1].
+// The layout of linear address space is shown in inc/vm.h.
+// 
+// A linear address 'la' has a six-part structure as follows:
+// Index
+// +---6---+-----9-----+-----9-----+-----9-----+-----9-----+----12----+
+// | Sign  |    PML4   |    PDP    | Page Dir  | Page Table|  Offset  |
+// |  Ext. |   Index   |   Index   |   Index   |   Index   |  in Page |
+// |(all 0)| PDX(3,la)/ \PDX(2,la)/ \PDX(1,la)/ \PDX(0,la)/ \PGOFF(la)/
+// +-------+-----------+-----------+-----------+-----------+----------+
+//          \----------------- PPN(la) -------------------/ 
+//
+// The PDX, PGOFF, and PPN macros decompose linear addresses as shown.
+//
+// +-------+-----------+-----------+-----------+-----------+----------+
+//         \---------------- PDADDR(0,la) -----------------|PDOFF(0,la)
+//         \------------- PDADDR(1,la) --------|----- PDOFF(1,la) ----/
+//         \----- PDADDR(2,la) ----|---------- PDOFF(2,la) -----------/
+//         PDADDR(3,la)|---------------- PDOFF(3,la) -----------------/
+//
+// The PDADDR and PDOFF macros are used to construct a page/PT/PD/PDP region
+// -aligned linear address and an offset within a page/PT/PD/PDP region
+// from la. 
 
-// Bit-shifts for each field
-#define P4SHIFT		39
-#define P3SHIFT		30
-#define P2SHIFT		21
-#define P1SHIFT		12
+// index info:         
+//   n = 0 => page table 
+//   n = 1 => page directory
+//   n = 2 => page directory pointer
+//   n = 3 => page map level 4
+#define PDXMASK         ((1 << NPTBITS) - 1)
+// In 32-bit: PTXSHIFT, PDXSHIFT
+#define PDSHIFT(n)      (12 + NPTBITS * (n))
+// In 32-bit: PTX(la), PDX(la)
+#define PDX(n, la)      ((((uintptr_t) (la)) >> PDSHIFT(n)) & PDXMASK)
+#define PGOFF(la)	((intptr_t) (la) & 0xFFF)	// offset in page
+// page number field of address
+#define PPN(la)		(((uintptr_t) (la)) >> PAGESHIFT)
+// bytes info:
+//   n = 0 => bytes mapped by a PTE, == PAGESIZE
+//   n = 1 => bytes mapped by a PDE, 32-bit: PTSIZE 
+//   n = 2 => bytes mapped by a PDPE
+//   n = 3 => bytes mapped by a PML4E 
+#define PDSIZE(n)	(1<<PDSHIFT(n))
+#define PTSIZE		(1<<PDSHIFT(1))
 
-// Cover sizes for each mapping level
-#define P4SIZE		(1L << P4SHIFT)
-#define P3SIZE		(1L << P3SHIFT)
-#define P2SIZE		(1L << P2SHIFT)
-#define P1SIZE		(1L << P1SHIFT)
+// linear address components
+#define PGADDR(la)	((intptr_t) (la) & ~0xFFF)	// address of page
+//   n = 0 => address/offset of page, 32-bit: PGADDR(la), PGOFF(la)
+//   n = 1 => address/offset of page table, 32-bit: PTADDR(la), PTOFF(la) 
+//   n = 2 => address/offset of page-directory table 
+//   n = 3 => address/offset of page-directory-pointer table 
+#define PDADDR(n, la)	((intptr_t) (la) & ~((0x1 << PDSHIFT(n)) - 1))
+#define PDOFF(n, la)	((intptr_t) (la) & ((0x1 << PDSHIFT(n)) -1))
+#define PTOFF(la)	PDOFF(1, la)
 
-// Page table index extractors
-#define P4X(va)		((((uintptr_t)(va)) >> P4SHIFT) & 0x1ff)
-#define P3X(va)		((((uintptr_t)(va)) >> P3SHIFT) & 0x1ff)
-#define P2X(va)		((((uintptr_t)(va)) >> P2SHIFT) & 0x1ff)
-#define P1X(va)		((((uintptr_t)(va)) >> P1SHIFT) & 0x1ff)
+// TODO: the following may be deleted after finishing 4 level page mapping
+// page directory index
+//#define VPD(la)		PDX(la)		// used to index into vpd[]
+//#define VPN(la)		PPN(la)		// used to index into vpt[]
+// end of TODO
 
-// Offset extractors
-#define P4OFF(va)	(((uintptr_t)(va)) & (P4SIZE - 1))
-#define P3OFF(va)	(((uintptr_t)(va)) & (P3SIZE - 1))
-#define P2OFF(va)	(((uintptr_t)(va)) & (P2SIZE - 1))
-#define P1OFF(va)	(((uintptr_t)(va)) & (P1SIZE - 1))	// offset in physical page
+// Page map tables (PML4/PDP/PD/PT) and entries (PML4E/PDPE/PDE/PTE)
+// base address and flags in a PTE/PDE/PDPE/PML4E pte
+#define PTE_ADDR(pmte) 	((uintptr_t) (pmte) & 0x000FFFFFFFFFF000)
+#define PTE_FLAGS(pmte) ((uintptr_t) (pmte) & 0xFFF0000000000FFF)
 
-// Truncate (downward) and round (upward) macros
-#define P1TRUNC(va)	((uintptr_t)(va) & ~(P1SIZE - 1))
-#define P2TRUNC(va)	((uintptr_t)(va) & ~(P2SIZE - 1))
-#define P3TRUNC(va)	((uintptr_t)(va) & ~(P3SIZE - 1))
-#define P4TRUNC(va)	((uintptr_t)(va) & ~(P4SIZE - 1))
-
-#define P1ROUND(va)	P1TRUNC((uintptr_t)(va) + (P1SIZE - 1))
-#define P2ROUND(va)	P2TRUNC((uintptr_t)(va) + (P2SIZE - 1))
-#define P3ROUND(va)	P3TRUNC((uintptr_t)(va) + (P3SIZE - 1))
-#define P4ROUND(va)	P4TRUNC((uintptr_t)(va) + (P4SIZE - 1))
-*/
-
-// Page table entry flags (both 4KB and 2MB page sizes)
-#define PTE_P 		1<<0	// present bit
-#define PTE_W 		1<<1	// read/write bit
-#define PTE_U 		1<<2	// user/supervisor bit
-#define PTE_PWT 	1<<3	// page-level writethrough bit
-#define PTE_PCD 	1<<4	// page-level cache disable bit
-#define PTE_A 		1<<5	// accessed bit
+// PML4/PDP/PD/PT entry flags.
+#define PTE_P           0x001   // Present
+#define PTE_W           0x002   // Writeable
+#define PTE_U           0x004   // User-accessible
+#define PTE_PWT         0x008   // Write-Through
+#define PTE_PCD         0x010   // Cache-Disable
+#define PTE_A           0x020   // Accessed
+#define PTE_D           0x040   // Dirty
+#define PTE_PS          0x080   // Page Size, in PD/PDP/PML4
+#define PTE_PAT         0x080   // Page Attribute Table (only in PTEs)
+#define PTE_G           0x100   // Global
 // The PTE_AVAIL bits aren't used by the kernel or interpreted by the
 // hardware, so user processes are allowed to set them arbitrarily.
+// Mask for RWX permissions. Individual settings macros SYS_{PERM,READ,WRITE,RW,
+// EXECUTE,RWX} in inc/syscall.h
 #define PTE_AVAIL	0xE00	// Available for software use
-#define PTE_NX 		1<<63	// no execute bit
-#define P2E_PS 		1<<7	// page size bit (0 for 4KB, 1 for 2MB)
-#define P1E_D 		1<<6
-#define P1E_PAT 	1<<7
-#define P1E_G 		1<<8	// global page bit
+#define PTE_NX 		1<<63	// No execute
 
-// Only flags in P1E_USER may be used in system calls.
-#define P1E_USER	(P1E_AVAIL | P1E_P | P1E_RW | P1E_US)
+// Only flags in PTE_USER may be used in system calls.
+#define PTE_USER	(PTE_AVAIL | PTE_P | PTE_W | PTE_U)
 
-// CR0 register layout
-#define CR0_PE		(1<<0)		// Protection Enabled
-#define CR0_MP		(1<<1)		// Monitor Coprocessor
-#define CR0_EM		(1<<2)		// Emulation
-#define CR0_TS		(1<<3)		// Task Switched
-#define CR0_ET		(1<<4)		// Extension Type
-#define CR0_NE		(1<<5)		// Numeric Error
-#define CR0_WP		(1<<16)		// Write Protect
-#define CR0_AM		(1<<18)		// Alignment Mask
-#define CR0_NW		(1<<29)		// Not Writethrough
-#define CR0_CD		(1<<30)		// Cache Disable
-#define CR0_PG		(1<<31)		// Paging
+// Control Register flags
+#define CR0_PE          0x00000001      // Protection Enable
+#define CR0_MP          0x00000002      // Monitor coProcessor
+#define CR0_EM          0x00000004      // Emulation
+#define CR0_TS          0x00000008      // Task Switched
+#define CR0_ET          0x00000010      // Extension Type
+#define CR0_NE          0x00000020      // Numeric Errror
+#define CR0_WP          0x00010000      // Write Protect
+#define CR0_AM          0x00040000      // Alignment Mask
+#define CR0_NW          0x20000000      // Not Writethrough
+#define CR0_CD          0x40000000      // Cache Disable
+#define CR0_PG          0x80000000      // Paging
 
-// CR3 register layout
-#define CR3_PWT		(1<<3)		// Page_Level Writethrough
-#define CR3_PCD		(1<<4)		// Page-level Cache Disable
+#define CR3_PWT		0x8		// Page_Level Writethrough
+#define CR3_PCD		0x10		// Page-level Cache Disable
 
 #define CR4_VME		0x00000001	// V86 Mode Extensions
 #define CR4_PVI		0x00000002	// Protected-Mode Virtual Interrupts
@@ -163,11 +170,12 @@ RAJAT has commented these out for now. Now he is fixing the page table stuff and
 #define MSR_KGSBASE	0xc0000102	// Kernel GS Base for SWAPGS
 
 // EFER register layout
-#define EFER_SCE	(1<<0)		// System Call Extensions
-#define EFER_LME	(1<<8)		// Long Mode Enable
-#define EFER_LMA	(1<<10)		// Long Mode Active
-#define EFER_NXE	(1<<11)		// No-Execute Enable
+#define EFER_SCE	0x0		// System-Call Extensions
+#define EFER_LME	0x100		// Long Mode Enable
+#define EFER_LMA	0x400		// Long Mode Active
+#define EFER_NXE	0x800		// No-Execute Enable
 
+// settings that have to be made to enter 64-bit mode
 #define KERN_CR0	(CR0_PE|CR0_MP|CR0_ET|CR0_WP|CR0_PG)
 #define KERN_CR4	(CR4_PSE|CR4_PAE|CR4_PGE)
 #define KERN_EFER	(EFER_LME|EFER_SCE|EFER_NXE)
@@ -190,12 +198,12 @@ RAJAT has commented these out for now. Now he is fixing the page table stuff and
 /*
  * Macros to build GDT entries in assembly.
  */
-#define SEG32(base,limit,type,size) \
+#define SEG32(type,base,limit,dpl) \
 	.word	(limit) & 0xffff, (base) & 0xffff; \
 	.byte	((base) >> 16) & 0xff, type, \
-		((size) << 4) | ((limit) >> 16), ((base) >> 24) & 0xff
-#define SEG64(base,limit,type,size) \
-	SEG32(base,limit,type,size); \
+		((dpl) << 4) | ((limit) >> 16), ((base) >> 24) & 0xff
+#define SEG64(type,base,limit,dpl) \
+	SEG32(type,base,limit,dpl); \
 	.long	(base >> 32), 0
 
 #else	// not __ASSEMBLER__
@@ -259,9 +267,6 @@ typedef struct segdesc {
 #define STS_TG64	0xF	    // 64-bit Trap Gate
 
 
-
-
-
 /*
  *
  *	Part 3.  Traps.
@@ -273,23 +278,14 @@ typedef struct segdesc {
 // Task state segment format, as defined by the x86-64 architecture.
 typedef struct taskstate {
 	uint32_t ts_padding1;
-	uint64_t ts_rsp0;
-	uint64_t ts_rsp1;
-	uint64_t ts_rsp2;
-	uint64_t ts_padding2;
-	uint64_t ts_ist1;
-	uint64_t ts_ist2;
-	uint64_t ts_ist3;
-	uint64_t ts_ist4;
-	uint64_t ts_ist5;
-	uint64_t ts_ist6;
-	uint64_t ts_ist7;
+	uint64_t ts_rsp[3];	// Stack pointer for CPL 0, 1, 2
+	uint64_t ts_ist[8];	// Note: tss_ist[0] is ignored
 	uint64_t ts_padding3;
 	uint16_t ts_padding4;
 	uint16_t ts_iomb;	// I/O map base address
 } taskstate;
 
-// Gate descriptors for interrupts and traps
+// Gate descriptors for interrupts and traps (legacy mode only)
 typedef struct gatedesc {
 	unsigned gd_off_15_0 : 16;   // low 16 bits of offset in segment
 	unsigned gd_ss : 16;         // target selector
@@ -304,7 +300,7 @@ typedef struct gatedesc {
 	unsigned gd_resv2 : 32;
 } gatedesc;
 
-// Set up a normal interrupt/trap gate descriptor.
+// Set up a normal interrupt/trap gate descriptor (legacy mode only).
 // - istrap: 1 for a trap (= exception) gate, 0 for an interrupt gate.
 // - sel: Code segment selector for interrupt/trap handler
 // - off: Offset in code segment for interrupt/trap handler

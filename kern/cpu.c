@@ -145,8 +145,8 @@ void cpu_init()
 
 	// Setup the TSS for this cpu so that we get the right stack
 	// when we trap into the kernel from user mode.
-	c->tss.ts_rsp0 = (uintptr_t) c->kstackhi;
-	c->tss.ts_ist1 = (uintptr_t) c->kstackhi;
+	c->tss.ts_rsp[0] = (uintptr_t) c->kstackhi;
+	c->tss.ts_ist[1] = (uintptr_t) c->kstackhi;
 
 	// Initialize the non-constant part of the cpu's GDT:
 	// the TSS descriptor is different for each cpu.

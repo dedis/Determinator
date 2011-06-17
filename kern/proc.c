@@ -91,11 +91,11 @@ proc_alloc(proc *p, uint32_t cn)
 #endif
 
 #if SOL >= 3
-	// Allocate a page directory for this process
-	cp->pdir = pmap_newpdir();
-	cp->rpdir = pmap_newpdir();
-	if (!cp->pdir || !cp->rpdir) {
-		if (cp->pdir) pmap_freepdir(mem_ptr2pi(cp->pdir));
+	// Allocate a page map level-4 for this process
+	cp->pml4 = pmap_newpmap();
+	cp->rpml4 = pmap_newpmap();
+	if (!cp->pml4 || !cp->rpml4) {
+		if (cp->pml4) pmap_freepmap(mem_ptr2pi(cp->pml4));
 		return NULL;
 	}
 #endif	// SOL >= 3
@@ -293,7 +293,7 @@ proc_run(proc *p)
 #endif	// LAB >= 9
 #if SOL >= 3
 	// Switch to the new process's address space.
-	lcr3(mem_phys(p->pdir));
+	lcr3(mem_phys(p->pml4));
 
 #endif
 	trap_return(&p->sv.tf);

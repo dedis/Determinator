@@ -61,20 +61,21 @@ typedef struct proc {
 #if LAB >= 3
 
 	// Virtual memory state for this process.
-	pde_t		*pdir;		// Working page directory
-	pde_t		*rpdir;		// Reference page directory
+
+	pte_t		*pml4;		// Working page map level-4
+	pte_t		*rpml4;		// Reference page map level-4
 #if LAB >= 5
 
 	// Network and process migration state.
-	uint32_t	home;		// RR to proc's home node and addr
-	uint32_t	rrpdir;		// RR to migration source's page dir
+	intptr_t	home;		// RR to proc's home node and addr
+	intptr_t	rrpml4;		// RR to migration source's page map 
 	uint8_t		migrdest;	// Destination we're migrating to
 	struct proc	*migrnext;	// Next on list of migrating procs
 
 	// Remote reference pulling state.
 	struct proc	*pullnext;	// Next on list of page-pulling procs
-	uint32_t	pullva;		// Where we are pulling in our addr spc
-	uint32_t	pullrr;		// Current RR we are pulling
+	intptr_t	pullva;		// Where we are pulling in our addr spc
+	intptr_t	pullrr;		// Current RR we are pulling
 	void		*pullpg;	// Local page we are pulling into
 	uint8_t		pglev;		// Level: 0=page, 1=page table, 2=pdir
 	uint8_t		arrived;	// Bits 0-2: which parts have arrived

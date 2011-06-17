@@ -22,13 +22,13 @@
 #include <kern/mem.h>
 
 
-// Page directory entries and page table entries are 32-bit integers.
-typedef uint64_t pde_t;
-typedef uint64_t pte_t;
+// PML4/PDP/PD/PT entries are 64-bit integers.
+typedef intptr_t pte_t;
 
 
-// Bootstrap page directory that identity-maps the kernel's address space.
-extern pde_t pmap_bootpdir[1024];
+// Bootstrap page map root that identity-maps the kernel's address space.
+// For 64-bit the root is a page map level-4 with NPRENTRIES entries.
+extern pte_t pmap_bootpmap[NPRENTRIES];
 
 // Statically allocated page that we always keep set to all zeros.
 extern uint8_t pmap_zero[PAGESIZE];
@@ -42,22 +42,23 @@ extern uint8_t pmap_zero[PAGESIZE];
 // A zero mapping with SYS_READ also has PTE_P (present) set,
 // but a zero mapping with SYS_WRITE never has PTE_W (writeable) set -
 // instead the page fault handler creates copies of the zero page on demand.
-#define PTE_ZERO	((uint64_t)pmap_zero)
+#define PTE_ZERO	((intptr_t)pmap_zero)
 
 
 void pmap_init(void);
-pte_t *pmap_newpdir(void);
-void pmap_freepdir(pageinfo *pdirpi);
+pte_t *pmap_newpmap(void);
+void pmap_freepmap(pageinfo *pml4pi);
+void pmap_freepmap_level(pageinfo *pmap, int pmlevel);
 void pmap_freeptab(pageinfo *ptabpi);
-pte_t *pmap_walk(pde_t *pdir, uint32_t uva, bool writing);
-pte_t *pmap_insert(pde_t *pdir, pageinfo *pi, uint32_t uva, int perm);
-void pmap_remove(pde_t *pdir, uint32_t uva, size_t size);
-void pmap_inval(pde_t *pdir, uint32_t uva, size_t size);
-int pmap_copy(pde_t *spdir, uint32_t sva, pde_t *dpdir, uint32_t dva,
+pte_t *pmap_walk(pte_t *pml4, intptr_t uva, bool writing);
+pte_t *pmap_insert(pte_t *pml4, pageinfo *pi, intptr_t uva, int perm);
+void pmap_remove(pte_t *pml4, intptr_t uva, size_t size);
+void pmap_inval(pte_t *pml4, intptr_t uva, size_t size);
+int pmap_copy(pte_t *spml4, intptr_t sva, pte_t *dpml4, intptr_t dva,
 		size_t size);
-int pmap_merge(pde_t *rpdir, pde_t *spdir, uint32_t sva,
-		pde_t *dpdir, uint32_t dva, size_t size);
-int pmap_setperm(pde_t *pdir, uint32_t va, uint32_t size, int perm);
+int pmap_merge(pte_t *rpml4, pte_t *spdir, intptr_t sva,
+		pte_t *dpml4, intptr_t dva, size_t size);
+int pmap_setperm(pte_t *pml4, intptr_t va, size_t size, int perm);
 void pmap_pagefault(trapframe *tf);
 void pmap_check(void);
 

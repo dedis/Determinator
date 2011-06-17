@@ -1,64 +1,54 @@
 #if LAB >= 3
 /*
- * User-visible virtual memory layout definitions for PIOS.
- *
- * Copyright (C) 2010 Yale University.
- * See section "MIT License" in the file LICENSES for licensing terms.
- *
- * Primary author: Bryan Ford
+ * User-visible virtual memory layout definitions for 64-bit PIOS.
+ * Yu Zhang (clara)
  */
 
 #ifndef PIOS_INC_VM_H
 #define PIOS_INC_VM_H
 
 //
-// The PIOS kernel divides the 4GB linear (post-segmentation) address space
-// into three parts:
+// The PIOS kernel divides the 2^64B linear address space
+// into four parts:
 //
-// - The low 1GB contains fixed direct mappings of physical memory,
-//   representing the address space in which the kernel operates.
-//   This way the kernel's address space effectively remains the same
-//   both before and after it initializes the MMU and enables paging.
-//   (It also means we can use at most 1GB of physical memory!)
-//
-// - The next 2.75GB contains the running process's user-level address space.
-//   This is the only address range user-mode processes can access or map.
-//
-// - The top 256MB once again contains direct mappings of physical memory,
-//   giving the kernel access to the high I/O region, e.g., the local APIC.
 //
 // Kernel's linear address map: 	              Permissions
 //                                                    kernel/user
 //
-//    4 Gig ---------> +==============================+
+//    2^63-1---------> +==============================+
 //                     |                              | RW/--
-//                     |    High 32-bit I/O region    | RW/--
+//                     |    Unused                    | RW/--
 //                     |                              | RW/--
-//    VM_USERHI -----> +==============================+ 0xf0000000
+//    VM_USERHI -----> +==============================+ 0x0000800000000000
 //                     |                              | RW/RW
 //                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 //                     :              .               :
 //                     :              .               :
 //                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
-//                     |                              | RW/RW
-//                     |  User address space (2.75GB) | RW/RW
+//                     |       (2^17-1) GB            | RW/RW
+//                     |User address space (128TB-4GB)| RW/RW
 //                     |        (see inc/vm.h)        | RW/RW
 //                     |                              | RW/RW
-//    VM_USERLO -----> +==============================+ 0x40000000
+//    VM_USERLO -----> +==============================+ 0x100000000 (4GB)
 //                     |                              | RW/--
 //                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 //                     :              .               :
 //                     :              .               :
 //                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 //                     |                              | RW/--
-//                     |    Physical memory (1GB)     | RW/--
+//                     |    Physical memory           | RW/--
 //                     |    incl. I/O, kernel, ...    | RW/--
 //                     |                              | RW/--
-//    0 -------------> +==============================+
+//    0 -------------> +==============================+ 0x0
+//                     |                              | RW/--
+//                     |    Unused                    | RW/--
+//                     |                              | RW/--
+//    -2^63 --- -----> +==============================+ 0xffffffffffffffff
 //
-#define	VM_USERHI	0xf0000000
-#define	VM_USERLO	0x40000000
-
+#define	VM_USERHI	0x800000000000
+#define	VM_USERLO	0x100000000
+#define ALLVA		((void *)VM_USERLO)
+#define ALLSIZE         (VM_USERHI - VM_USERLO)
 
 //
 // Within the user-space region, user processes are technically free
@@ -69,62 +59,81 @@
 // (and ultimately between the PIOS kernel and the root process).
 //
 //                     |                              |
-//    VM_USERHI, ----> +==============================+ 0xf0000000
+//    VM_USERHI, ----> +==============================+ 0x800000000000
 #if LAB >= 9
 //    VM_PRIVHI        |                              |
-//                     |     Thread-private state     |
+//                     |     Thread-private state     |    (1TB)
 //                     |                              |
-//    VM_PRIVLO,       +------------------------------+ 0xe0000000
+//    VM_PRIVLO,       +------------------------------+ 0x7f0000000000
 #endif
 //    VM_STACKHI       |                              |
-//                     |          User stack          |
+//                     |          User stack          |    (1TB)
 //                     |                              |
-//    VM_STACKLO,      +------------------------------+ 0xd0000000
+//    VM_STACKLO,      +------------------------------+ 0x7e0000000000
 //    VM_SCRATCHHI     |                              |
 //                     |    Scratch address space     |
-//                     | for file reconciliation etc. |
+//                     | for file reconciliation etc. |    (1TB)
 //                     |                              |
-//    VM_SCRATCHLO, -> +------------------------------+ 0xc0000000
+//    VM_SCRATCHLO, -> +------------------------------+ 0x7d0000000000
+//                     |                              |
+#if LAB >= 9
+//    VM_SPMCHI        +------------------------------+ 0x700000000000
+//                     |                              |
+//                     |      SPMC Regions            |    
+//                     |                              | 
+//    VM_SPMCLO,       +------------------------------+ 0x300000000000
+#endif
 //    VM_FILEHI        |                              |
-//                     |      File system and         |
+//                     |      File system and         |    (16TB)
 //                     |   process management state   |
 //                     |                              |
-//    VM_FILELO, ----> +------------------------------+ 0x80000000
+//    VM_FILELO, ----> +------------------------------+ 0x200000000000
 //    VM_SHAREHI       |                              |
 //                     |  General-purpose use space   |
-//                     | shared between user threads: |
+//                     | shared between user threads: |    (31TB)
 //                     |   program text, data, heap   |
 //                     |                              |
-//    VM_SHARELO, ---> +==============================+ 0x40000000
-//    VM_USERLO        |                              |
+//    VM_SHARELO, ---> +------------------------------+ 0x010000000000
+//                     |                              |
+//    VM_USERLO   ---> +==============================+ 0x000100000000(4GB)
+
 
 #if LAB >= 9
 // Standard area for state that is always thread-private,
 // regardless of the user-level threading model in use.
-#define VM_PRIVHI	0xf0000000
-#define VM_PRIVLO	0xe0000000
+#define VM_PRIVHI	0x800000000000
+#define VM_PRIVLO	0x7f0000000000
 
 // Standard area for the user-space stack:
 // may or may not be thread-private depending on threading model.
-#define VM_STACKHI	0xe0000000
+#define VM_STACKHI	0x7f0000000000
 #else	// LAB < 9 (PIOS) - no thread-private area
-#define VM_STACKHI	0xf0000000
+#define VM_STACKHI	0x800000000000
 #endif	// LAB < 9
-#define VM_STACKLO	0xd0000000
+#define VM_STACKLO	0x7e0000000000
 
 // Scratch address space region for general use (e.g., by exec)
-#define VM_SCRATCHHI	0xd0000000
-#define VM_SCRATCHLO	0xc0000000
+#define VM_SCRATCHHI	0x7e0000000000
+#define VM_SCRATCHLO	0x7d0000000000
+
+#if LAB >= 9
+#ifdef PIOS_SPMC
+// Address spce area for SPMC(single producer multiple-consumer) system
+#define VM_SPMCHI	0x700000000000
+#define VM_SPMCLO	0x300000000000
+#endif
+#endif
 
 // Address space area for file system and Unix process state
-#define VM_FILEHI	0xc0000000
-#define VM_FILELO	0x80000000
+#define VM_FILEHI	0x300000000000
+#define VM_FILELO	0x200000000000
 
 // General-purpose address space shared between "threads"
 // created via SYS_SNAP/SYS_MERGE.
-#define VM_SHAREHI	0x80000000
-#define VM_SHARELO	0x40000000
-
+#define VM_SHAREHI	0x200000000000
+#define VM_SHARELO	0x010000000000
+#define SHAREVA         ((void*) VM_SHARELO)
+#define SHARESIZE       (VM_SHAREHI - VM_SHARELO)
 
 #endif /* !PIOS_INC_VM_H */
 #endif // LAB >= 3

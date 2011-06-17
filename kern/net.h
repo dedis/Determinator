@@ -95,7 +95,7 @@ typedef struct net_migrq {
 	net_ethhdr	eth;
 	net_msgtype	type;	// = NET_MIGRQ
 	uint32_t	home;	// Remote ref for proc's home node & physaddr
-	uint32_t	pdir;	// Remote ref for proc's page directory
+	intptr_t	pml4;	// Remote ref for proc's page map
 	procstate	save;	// Process's saved user-visible state
 } net_migrq;
 
@@ -109,7 +109,7 @@ typedef struct net_migrp {
 typedef struct net_pullrq {
 	net_ethhdr	eth;
 	net_msgtype	type;	// = NET_PULLRQ
-	uint32_t	rr;	// Remote ref to pdir, ptab, or page
+	intptr_t	rr;	// Remote ref to pdir, ptab, or page
 	uint8_t		pglev;	// 0=page, 1=page table, 2=page directory
 	uint8_t		need;	// Bits 2-0: which parts of page are needed
 } net_pullrq;
@@ -122,7 +122,7 @@ typedef struct net_pullrq {
 typedef struct net_pullrphdr {
 	net_ethhdr	eth;
 	net_msgtype	type;	// = NET_PULLRP
-	uint32_t	rr;	// Remote reference
+	intptr_t	rr;	// Remote reference
 	int		part;	// Which part of the page this is: 0, 1, or 2
 	char		data[0]; // Variable-length payload follows pullrphdr
 } net_pullrphdr;

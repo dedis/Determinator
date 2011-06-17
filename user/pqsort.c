@@ -253,7 +253,7 @@ testpqsort(int array_size, int nthread)
 	uint64_t td = bench_time();
 	uint64_t tt = (td - ts);
 
-	printf("array_size: %d\tavg. time: %lld\n", array_size, tt/NITER);
+	printf("array_size: %d\tavg. time: %ld\n", array_size, tt/NITER);
 }
 
 int

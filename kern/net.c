@@ -257,7 +257,7 @@ net_txmigrq(proc *p)
 	net_ethsetup(&rq.eth, p->migrdest);
 	rq.type = NET_MIGRQ;
 	rq.home = p->home;
-	rq.pdir = RRCONS(net_node, mem_phys(p->pdir), 0);
+	rq.pml4 = RRCONS(net_node, mem_phys(p->pml4), 0);
 	rq.save = p->sv;
 	net_tx(&rq, sizeof(rq), NULL, 0);
 #else	// ! SOL >= 5
@@ -298,7 +298,7 @@ void net_rxmigrq(net_migrq *migrq)
 
 	// Copy the CPU state and pdir RR into our proc struct
 	p->sv = migrq->save;
-	p->rrpdir = migrq->pdir;
+	p->rrpml4 = migrq->pml4;
 	p->pullva = VM_USERLO;	// pull all user space from USERLO to USERHI
 
 	// Acknowledge the migration request so the source node stops resending
@@ -306,14 +306,14 @@ void net_rxmigrq(net_migrq *migrq)
 
 	// Free the proc's old page directory and allocate a fresh one.
 	// (The old pdir will hang around until all shared copies disappear.)
-	mem_decref(mem_ptr2pi(p->pdir), pmap_freepdir);
-	p->pdir = pmap_newpdir();	assert(p->pdir);
+	mem_decref(mem_ptr2pi(p->pml4), pmap_freepmap);
+	p->pml4 = pmap_newpmap();	assert(p->pml4);
 
 	// Now we need to pull over the page directory next,
 	// before we can do anything else.
 	// Just pull it straight into our proc's page directory;
 	// XXX first free old contents of pdir
-	net_pull(p, p->rrpdir, p->pdir, PGLEV_PDIR);
+	net_pull(p, p->rrpml4, p->pml4, PGLEV_PDIR);
 }
 
 // Transmit a migration reply to a given node, for a given proc's home RR
@@ -507,7 +507,7 @@ net_txpullrp(uint8_t rqnode, uint32_t rr, int pglev, int part, void *pg)
 				rrs[i] = pte;
 				continue;
 			}
-			if (pte & P1E_G) {	// Kernel portion of pdir
+			if (pte & PTE_G) {	// Kernel portion of pdir
 				rrs[i] = 0;
 				continue;
 			}
@@ -598,12 +598,12 @@ net_rxpullrp(net_pullrphdr *rp, int len)
 
 	// If this was a page directory, reinitialize the kernel portions.
 	if (p->pglev == PGLEV_PDIR) {
-		uint32_t *pdir = p->pullpg;
+		intptr_t *pml4 = p->pullpg;
 		int i;
-		for (i = 0; i < NPDENTRIES; i++) {
-			if (i == PDX(VM_USERLO))	// skip user area
-				i = PDX(VM_USERHI);
-			pdir[i] = pmap_bootpdir[i];
+		for (i = 0; i < NPTENTRIES; i++) {
+			if (i == PDX(3, VM_USERLO))	// skip user area
+				i = PDX(3, VM_USERHI);
+			pml4[i] = pmap_bootpmap[i];
 		}
 	}
 
@@ -612,21 +612,21 @@ net_rxpullrp(net_pullrphdr *rp, int len)
 	while (p->pullva < VM_USERHI) {
 
 		// Pull or traverse PDE to find page table.
-		uint32_t *pde = &p->pdir[PDX(p->pullva)];
+		pte_t *pde = &p->pml4[PDX(3,p->pullva)];
 		if (*pde & PTE_REMOTE) {	// Need to pull remote ptab?
 			if (!net_pullpte(p, pde, PGLEV_PTAB))
 				return; // Wait for the pull to complete.
 		}
 		assert(!(*pde & PTE_REMOTE));
 		if (PGADDR(*pde) == PTE_ZERO) {		// Skip empty PDEs
-			p->pullva = PTADDR(p->pullva + PTSIZE);
+			p->pullva = PDADDR(1, p->pullva + PDSIZE(1));
 			continue;
 		}
 		assert(PGADDR(*pde) != 0);
 		uint32_t *ptab = mem_ptr(PGADDR(*pde));
 
 		// Pull or traverse PTE to find page.
-		uint32_t *pte = &ptab[PTX(p->pullva)];
+		uint32_t *pte = &ptab[PDX(0, p->pullva)];
 		if (*pte & PTE_REMOTE) {	// Need to pull remote page?
 			if (!net_pullpte(p, pte, PGLEV_PAGE))
 				return;	// Wait for the pull to complete.

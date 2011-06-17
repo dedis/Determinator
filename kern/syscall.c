@@ -107,7 +107,7 @@ static void checkva(trapframe *utf, uint32_t uva, size_t size)
 // using checkva() above to validate the address range
 // and using sysrecover() to recover from any traps during the copy.
 void usercopy(trapframe *utf, bool copyout,
-			void *kva, uint32_t uva, size_t size)
+			void *kva, intptr_t uva, size_t size)
 {
 	checkva(utf, uva, size);
 
@@ -117,7 +117,7 @@ void usercopy(trapframe *utf, bool copyout,
 	assert(c->recover == NULL);
 	c->recover = sysrecover;
 
-	//pmap_inval(proc_cur()->pdir, VM_USERLO, VM_USERHI-VM_USERLO);
+	//pmap_inval(proc_cur()->pml4, VM_USERLO, VM_USERHI-VM_USERLO);
 
 	if (copyout)
 		memmove((void*)uva, kva, size);
@@ -238,10 +238,10 @@ do_put(trapframe *tf, uint32_t cmd)
 
 		switch (cmd & SYS_MEMOP) {
 		case SYS_ZERO:	// zero memory and clear permissions
-			pmap_remove(cp->pdir, dva, size);
+			pmap_remove(cp->pml4, dva, size);
 			break;
 		case SYS_COPY:	// copy from local src to dest in child
-			pmap_copy(p->pdir, sva, cp->pdir, dva, size);
+			pmap_copy(p->pml4, sva, cp->pml4, dva, size);
 			break;
 		}
 		break;
@@ -255,12 +255,12 @@ do_put(trapframe *tf, uint32_t cmd)
 				|| dva < VM_USERLO || dva > VM_USERHI
 				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
-		if (!pmap_setperm(cp->pdir, dva, size, cmd & SYS_RW))
+		if (!pmap_setperm(cp->pml4, dva, size, cmd & SYS_RW))
 			panic("pmap_put: no memory to set permissions");
 	}
 
 	if (cmd & SYS_SNAP)	// Snapshot child's state
-		pmap_copy(cp->pdir, VM_USERLO, cp->rpdir, VM_USERLO,
+		pmap_copy(cp->pml4, VM_USERLO, cp->rpml4, VM_USERLO,
 				VM_USERHI-VM_USERLO);
 
 #endif	// SOL >= 3
@@ -348,14 +348,14 @@ do_get(trapframe *tf, uint32_t cmd)
 
 		switch (cmd & SYS_MEMOP) {
 		case SYS_ZERO:	// zero memory and clear permissions
-			pmap_remove(p->pdir, dva, size);
+			pmap_remove(p->pml4, dva, size);
 			break;
 		case SYS_COPY:	// copy from local src to dest in child
-			pmap_copy(cp->pdir, sva, p->pdir, dva, size);
+			pmap_copy(cp->pml4, sva, p->pml4, dva, size);
 			break;
 		case SYS_MERGE:	// merge from local src to dest in child
-			pmap_merge(cp->rpdir, cp->pdir, sva,
-					p->pdir, dva, size);
+			pmap_merge(cp->rpml4, cp->pml4, sva,
+					p->pml4, dva, size);
 			break;
 		}
 		break;
@@ -369,7 +369,7 @@ do_get(trapframe *tf, uint32_t cmd)
 				|| dva < VM_USERLO || dva > VM_USERHI
 				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
-		if (!pmap_setperm(p->pdir, dva, size, cmd & SYS_RW))
+		if (!pmap_setperm(p->pml4, dva, size, cmd & SYS_RW))
 			panic("pmap_get: no memory to set permissions");
 	}
 
