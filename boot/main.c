@@ -59,12 +59,24 @@ bootmain(void)
 	// load each program segment (ignores ph flags)
 	ph = (proghdr *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
 	eph = ph + ELFHDR->e_phnum;
-	for (; ph < eph; ph++)
+	for (; ph < eph; ph++) {
+		// skip loading the STACK segment
+		if (ph->p_memsz == 0x0)
+			continue;
+		// temporary hack to load the first segment
+		if (ph->p_va == 0x0) {
+			ph->p_va = 0x100000;
+			ph->p_offset=0x100000;
+			ph->p_pa=0x100000;
+			ph->p_memsz -= 0x100000;
+			ph->p_filesz -= 0x100000;
+		}
 		readseg(ph->p_va, ph->p_memsz, ph->p_offset);
+	}
 
 	// call the entry point from the ELF header
 	// note: does not return!
-	((void (*)(void)) (ELFHDR->e_entry & 0xFFFFFF))();
+	((void (*)(void)) ((uint32_t)ELFHDR->e_entry & 0xFFFFFF))();
 
 bad:
 	outw(0x8A00, 0x8A00);

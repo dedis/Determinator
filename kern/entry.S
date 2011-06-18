@@ -166,6 +166,7 @@ entry64:	// we are now in 64-bit mode.
 spin:	jmp	spin
 
 
+	.data
 
 // Temporary 32-bit GDT for switching to protected mode, then long mode.
 // Place it in our text segment to ensure that it stays
@@ -318,8 +319,6 @@ trap_return:
 1:	jmp	1b				// must not reach here; if it does, just spin
 */
 
-
-	.data
 
 /*	// 64-bit Task State Segment
 
