@@ -16,7 +16,7 @@
 #include <kern/cpu.h>
 #endif
 
-#define TSS_SIZE	0x68	// minimum possible size
+// #define TSS_SIZE	0x68	// minimum possible size
 // Pad code to an appropriate boundary for speed using NOPs
 #define TEXTALIGN	.p2align 4,,15
 
@@ -56,33 +56,6 @@ start: _start:
 	# Set the stack pointer
 	movl	$(cpu_boot+4096),%esp
 #endif
-	// enable various paging extensions we want use
-	movl	%cr4,%eax
-	orl	$KERN_CR4,%eax
-	movl	%eax,%cr4
-
-	// enable long mode (and other EFER features we want)
-	movl	$MSR_EFER,%ecx
-	rdmsr
-	orl	$KERN_EFER,%eax
-	wrmsr
-
-	// enable paging, and thus activate long mode
-	movl	%cr0,%eax
-	orl	$KERN_CR0,%eax
-	movl	%eax,%cr0
-	//ljmp	$SEG_KERN_CS_64,$1f-KERNBASE
-	ljmp	$SEG_KERN_CS_64,$loopI
-
-	.code64
-
-loopI:	jmp loopI	
-
-	# now to C code
-	call	init
-
-	# Should never get here, but in case we do, just spin.
-1:	jmp	1b
 */
 
 .globl		start,_start
@@ -95,13 +68,14 @@ entry32:
 
 	// activate our own protected-mode GDT
 	lgdt	kerngdtptr
-
+	
 	// load our protected mode data segment registers
 	movw	$SEG_KERN_DS_32,%ax
 	movw	%ax,%ds
 	movw	%ax,%es
 	movw	%ax,%ss
 
+	/*
 	// clear our bss segment
 	// (now that we have enough addressing reach to access it)
 	xorl	%eax,%eax
@@ -110,6 +84,7 @@ entry32:
 	subl	%edi,%ecx
 	shrl	$2,%ecx
 	rep stosl
+	*/
 
 	// enable various paging extensions we want use
 	movl	%cr4,%eax
@@ -131,12 +106,12 @@ entry32:
 	// enable long mode (and other EFER features we want)
 	movl	$MSR_EFER,%ecx
 	rdmsr
-	orl		$KERN_EFER,%eax
+	orl	$KERN_EFER,%eax
 	wrmsr
 
 	// enable paging, and thus activate long mode
 	movl	%cr0,%eax
-	orl		$KERN_CR0,%eax
+	orl	$KERN_CR0,%eax
 	movl	%eax,%cr0
 	ljmp	$SEG_KERN_CS_64,$entry64
 
@@ -174,13 +149,13 @@ spin:	jmp	spin
 	.p2align 3
 	.globl gdt
 gdt:
-	SEG64(0,0,0,0)				// null segment
-	SEG64(0,0xffff,0x9b,0x0)	// 0x10: 16-bit kernel code segment
-	SEG64(0,0xfffff,0x9b,0xc)	// 0x20: 32-bit kernel code segment
-	SEG64(0,0xfffff,0x93,0xc)	// 0x30: 32-bit kernel data segment
-	SEG64(0,0xfffff,0x9a,0xd)	// 0x40: 64-bit kernel segment
-	SEG64(0,0xfffff,0xfa,0xd)	// 0x50: 64-bit user segment
-/*								// 0x60: 64-bit task state segment
+	SEGNULL				// null segment
+	SEG64(0,0xffff,0xa,0,0)		// 0x10: 16-bit kernel code segment
+	SEG64(0,0xfffff,0xa,0,0)	// 0x20: 32-bit kernel code segment
+	SEG64(0,0xfffff,0x2,0,0)	// 0x30: 32-bit kernel data segment
+	SEG64(0,0xfffff,0xa,0,1)	// 0x40: 64-bit kernel segment
+	SEG64(0,0xfffff,0xa,3,1)	// 0x50: 64-bit user segment
+/*							// 0x60: 64-bit task state segment
 	.word	TSS_SIZE-1			//	limit 15-0
 	.word	tss					//	base 15-0
 	.long	0x00008000 | (STS_T64A << 8)		//	base 31-16, limit 19-16, type

@@ -37,26 +37,26 @@ cpu cpu_boot = {
 		[0] = SEGDESC_NULL,
 
 		// 0x10 - 16-bit kernel code segment
-		[SEG_KERN_CS_16 >> 4] = SEGDESC32(1, STA_X | STA_R, 0L,
-					0xffffffff, 0),
+		[SEG_KERN_CS_16 >> 4] = SEGDESC64(1, STA_X | STA_R, 0L,
+					0xffffffff, 0, 0),
 
 		// 0x20 - 32-bit kernel code segment
-		[SEG_KERN_CS_32 >> 4] = SEGDESC32(1, STA_W, 0L,
-					0xffffffff, 0),
+		[SEG_KERN_CS_32 >> 4] = SEGDESC64(1, STA_X | STA_R, 0L,
+					0xffffffff, 0, 0),
 #if SOL >= 1
 
 		// 0x30 - 32-bit kernel data segment
-		[SEG_KERN_DS_32 >> 4] = SEGDESC32(1, STA_X | STA_R,
-					0L, 0xffffffff, 0),
+		[SEG_KERN_DS_32 >> 4] = SEGDESC64(1, STA_W,
+					0L, 0xffffffff, 0, 0),
 
 		// 0x40 - 64-bit kernel segment (both CS and DS)
-		[SEG_KERN_CS_64 >> 4] = SEGDESC32(1, STA_W,
-					0L, 0xffffffff, 0),
+		[SEG_KERN_CS_64 >> 4] = SEGDESC64(1, STA_X | STA_R,
+					0L, 0xffffffff, 0, 1),
 
 #if LAB >= 9
 		// 0x50 - 64-bit user segment (both CS and DS)
-		[SEG_USER_CS_64 >> 4] = SEGDESC32(1, STA_W,
-					0L, 0xffffffff, 3),
+		[SEG_USER_CS_64 >> 4] = SEGDESC64(1, STA_X | STA_R,
+					0L, 0xffffffff, 3, 1),
 
 #endif
 		// 0x60 - tss, initialized in cpu_init()
@@ -151,7 +151,7 @@ void cpu_init()
 	// Initialize the non-constant part of the cpu's GDT:
 	// the TSS descriptor is different for each cpu.
 	c->gdt[SEG_TSS >> 4] = SEGDESC64(0, STS_T64A, (uintptr_t) (&c->tss),
-					sizeof(taskstate)-1, 0);
+					sizeof(taskstate)-1, 0, 1);
 
 #endif	// SOL >= 1
 	// Load the GDT

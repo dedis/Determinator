@@ -37,6 +37,7 @@
 .set SEG_USER_CS_64, 0x50
 
 .code16                       	# Assemble for 16-bit mode
+.text
 .globl start
 start:
 	cli                         # Disable interrupts
@@ -130,15 +131,16 @@ start64:	// we are now in 64-bit mode.
 	// should not reach here; if we do, just spin
 spin:	jmp	spin
 
+
+	.data
 	.p2align 3
-	.globl gdt
 gdt:
-	SEG64(0,0,0,0)				// null segment
-	SEG64(0,0xffff,0x9b,0x0)	// 0x10: 16-bit kernel code segment
-	SEG64(0,0xfffff,0x9b,0xc)	// 0x20: 32-bit kernel code segment
-	SEG64(0,0xfffff,0x93,0xc)	// 0x30: 32-bit kernel data segment
-	SEG64(0,0xfffff,0x9a,0xd)	// 0x40: 64-bit kernel segment
-	SEG64(0,0xfffff,0xfa,0xd)	// 0x50: 64-bit user segment
+        SEGNULL                         // null segment
+        SEG64(0,0xffff,0xa,0,0)         // 0x10: 16-bit kernel code segment
+        SEG64(0,0xfffff,0xa,0,0)        // 0x20: 32-bit kernel code segment
+        SEG64(0,0xfffff,0x2,0,0)        // 0x30: 32-bit kernel data segment
+        SEG64(0,0xfffff,0xa,0,1)        // 0x40: 64-bit kernel segment
+        SEG64(0,0xfffff,0xa,3,1)        // 0x50: 64-bit user segment
 gdtend:
 
 kerngdtptr:

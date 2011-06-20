@@ -198,12 +198,15 @@
 /*
  * Macros to build GDT entries in assembly.
  */
-#define SEG32(type,base,limit,dpl) \
-	.word	(limit) & 0xffff, (base) & 0xffff; \
-	.byte	((base) >> 16) & 0xff, type, \
-		((dpl) << 4) | ((limit) >> 16), ((base) >> 24) & 0xff
-#define SEG64(type,base,limit,dpl) \
-	SEG32(type,base,limit,dpl); \
+
+#define SEGNULL		\
+	.long 0,0,0,0
+#define SEG32(base,limit,type,dpl,l)                                      \
+        .word (((limit) >> 12) & 0xffff), ((base) & 0xffff);      \
+        .byte (((base) >> 16) & 0xff), (0x90 | (type) | ((dpl)<<5)),         \
+                (0x80 | ((((~(l)) << 1) | (l)) << 5) | (((limit) >> 28) & 0xf)), (((base) >> 24) & 0xff)
+#define SEG64(base,limit,type,dpl,l) \
+	SEG32(base,limit,type,dpl,l); \
 	.long	(base >> 32), 0
 
 #else	// not __ASSEMBLER__
@@ -221,7 +224,7 @@ typedef struct segdesc {
 	unsigned sd_p : 1;          // Present
 	unsigned sd_lim_19_16 : 4;  // High bits of segment limit
 	unsigned sd_avl : 1;        // Unused (available for software use)
-	unsigned sd_rsv1 : 1;       // Reserved
+	unsigned sd_l : 1;	    // Long mode bit (1 = 64 bit mode, 0 = legacy mdoe)
 	unsigned sd_db : 1;         // 0 = 16-bit segment, 1 = 32-bit segment
 	unsigned sd_g : 1;          // Granularity: limit scaled by 4K when set
 	unsigned sd_base_31_24 : 8; // High bits of segment base address
@@ -234,9 +237,9 @@ typedef struct segdesc {
 // Segment that is loadable but faults when used
 #define SEGDESC_FAULT	(struct segdesc){ 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0 }
 // Normal segment
-#define SEGDESC64(app, type, base, lim, dpl) (struct segdesc)		\
+#define SEGDESC64(app, type, base, lim, dpl, l) (struct segdesc)		\
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
-    (type), (app), (dpl), 1, (unsigned) (lim) >> 28, 0, 0, 1, 1,	\
+    (type), (app), (dpl), 1, (unsigned) (lim) >> 28, 0, (l), ~(l), 1,	\
     (unsigned) ((base) >> 24) & 0xff, (base) >> 32, 0 }
 
 #define SEGDESC32(app, type, base, lim, dpl) (struct segdesc)		\
