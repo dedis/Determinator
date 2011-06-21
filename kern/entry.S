@@ -68,12 +68,14 @@ entry32:
 
 	// activate our own protected-mode GDT
 	lgdt	kerngdtptr
-	
+
 	// load our protected mode data segment registers
 	movw	$SEG_KERN_DS_32,%ax
 	movw	%ax,%ds
 	movw	%ax,%es
 	movw	%ax,%ss
+	movw	%ax,%fs
+	movw	%ax,%gs
 
 	/*
 	// clear our bss segment
@@ -120,7 +122,7 @@ entry64:	// we are now in 64-bit mode.
 
 	// Load our long-mode GDT, IDT, and TSS
 	// All these are loaded again in init
-	lgdt	kerngdtptr
+	// lgdt	kerngdtptr
 	// IDTR and TSS for each CPU loaded in trap_init()
 	// lidt	kernidtptr
 	// ltr	$SEG_TSS
@@ -141,8 +143,6 @@ entry64:	// we are now in 64-bit mode.
 spin:	jmp	spin
 
 
-	.data
-
 // Temporary 32-bit GDT for switching to protected mode, then long mode.
 // Place it in our text segment to ensure that it stays
 // in the lowest 64KB real-mode segment.
@@ -150,12 +150,11 @@ spin:	jmp	spin
 	.globl gdt
 gdt:
 	SEGNULL				// null segment
-	SEG64(0,0xffff,0xa,0,0)		// 0x10: 16-bit kernel code segment
-	SEG64(0,0xfffff,0xa,0,0)	// 0x20: 32-bit kernel code segment
-	SEG64(0,0xfffff,0x2,0,0)	// 0x30: 32-bit kernel data segment
-	SEG64(0,0xfffff,0xa,0,1)	// 0x40: 64-bit kernel segment
-	SEG64(0,0xfffff,0xa,3,1)	// 0x50: 64-bit user segment
-/*							// 0x60: 64-bit task state segment
+	SEG64(0,0xfffff,0xa,0,0)	// 0x10: 32-bit kernel code segment
+	SEG64(0,0xfffff,0x2,0,0)	// 0x20: 32-bit kernel data segment
+	SEG64(0,0xfffff,0xa,0,1)	// 0x30: 64-bit kernel segment
+	SEG64(0,0xfffff,0xa,3,1)	// 0x40: 64-bit user segment
+/*						// 0x50: 64-bit task state segment
 	.word	TSS_SIZE-1			//	limit 15-0
 	.word	tss					//	base 15-0
 	.long	0x00008000 | (STS_T64A << 8)		//	base 31-16, limit 19-16, type
@@ -163,6 +162,11 @@ gdt:
 	.long	0					//	reserved
 */
 gdtend:
+
+.data
+kerngdtptr:
+        .word   gdtend-gdt-1            // limit
+        .quad   gdt                     // base (kernel linear address)
 
 
 /*
@@ -292,10 +296,9 @@ trap_return:
 	addq	$8,%rsp		// skip trapno and errcode
 	iretq				// return from trap handler
 1:	jmp	1b				// must not reach here; if it does, just spin
-*/
 
 
-/*	// 64-bit Task State Segment
+	// 64-bit Task State Segment
 
 	.p2align 2
 	.globl	tss
@@ -307,15 +310,8 @@ tss:
 	.quad	0				// reserved
 	.word	0				// reserved
 	.word	TSS_SIZE			// I/O Map Base Address
-*/
 
-
-// Far pointers for loading the GDT and IDT
-kerngdtptr:
-	.word	gdtend-gdt-1		// limit
-	.quad	gdt			// base (kernel linear address)
-
-/*
+// Far pointers for loading the IDT
 kernidtptr:
 	.word	idtend-idt-1		// limit
 	.quad	idt			// base

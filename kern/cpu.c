@@ -36,9 +36,11 @@ cpu cpu_boot = {
 		// 0x0 - unused (always faults: for trapping NULL far pointers)
 		[0] = SEGDESC_NULL,
 
+/*
 		// 0x10 - 16-bit kernel code segment
 		[SEG_KERN_CS_16 >> 4] = SEGDESC64(1, STA_X | STA_R, 0L,
 					0xffffffff, 0, 0),
+*/
 
 		// 0x20 - 32-bit kernel code segment
 		[SEG_KERN_CS_32 >> 4] = SEGDESC64(1, STA_X | STA_R, 0L,

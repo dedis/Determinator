@@ -1,5 +1,5 @@
 obj
-# .gdbinit
+.gdbinit
 lab?-handin.tar.gz
 grade-out
 fs

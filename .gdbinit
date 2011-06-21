@@ -1,23 +1,4 @@
-set $lastcs = -1
-
-define hook-stop
-  # There doesn't seem to be a good way to detect if we're in 16- or
-  # 32-bit mode, but we always run with CS == 8 in 32-bit mode.
-  if $cs == 8 || $cs == 27
-    if $lastcs != 8 && $lastcs != 27
-      set architecture i386
-    end
-    x/i $pc
-  else
-    if $lastcs == -1 || $lastcs == 8 || $lastcs == 27
-      set architecture i8086
-    end
-    # Translate the segment:offset into a physical address
-    printf "[%4x:%4x] ", $cs, $eip
-    x/i $cs*16+$eip
-  end
-  set $lastcs = $cs
-end
+set architecture i386:x86-64
 
 echo + target remote localhost:26022\n
 target remote localhost:26022
