@@ -61,16 +61,6 @@ bootmain(void)
 	eph = ph + ELFHDR->e_phnum;
 	for (; ph < eph; ph++) {
 		// skip loading the STACK segment
-		if (ph->p_memsz == 0x0)
-			continue;
-		// temporary hack to load the first segment
-		if (ph->p_va == 0x0) {
-			ph->p_va = 0x100000;
-			ph->p_offset=0x100000;
-			ph->p_pa=0x100000;
-			ph->p_memsz -= 0x100000;
-			ph->p_filesz -= 0x100000;
-		}
 		readseg(ph->p_va, ph->p_memsz, ph->p_offset);
 	}
 

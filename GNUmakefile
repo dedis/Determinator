@@ -125,7 +125,7 @@ LDFLAGS += -L$(OBJDIR)/lib -L$(GCCDIR) -L$(GCCDIR)/64
 
 # Compiler flags that differ for kernel versus user-level code.
 KERN_CFLAGS += $(CFLAGS) -DPIOS_KERNEL
-KERN_LDFLAGS += $(LDFLAGS) -nostdlib -Ttext=0x00100000 -L$(GCCDIR)
+KERN_LDFLAGS += $(LDFLAGS) -nostdlib -Ttext=0x00100000 -L$(GCCDIR) -z max-page-size=0x4000
 KERN_LDLIBS += $(LDLIBS) -lgcc
 
 USER_CFLAGS += $(CFLAGS) -DPIOS_USER
