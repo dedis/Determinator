@@ -53,14 +53,6 @@ struct farptr32 {
 	uint32_t gcc_packed rip;
 };
 
-
-/*TODO:: Ishan - 29 May, 2011 
-  *check if we need functions to write 64 bit values to ports	
-  *check if we need to read eflags or rflags. currently we have function to read rflags only.
-  *may need to add or remove from model specific instructions.
-*/
-
-
 static gcc_inline void
 breakpoint(void)
 {
@@ -400,8 +392,8 @@ cli(void)
 }
 
 #if LAB >= 5
-// Byte-swap a 32-bit word to convert to/from big-endian byte order.
-// (Reverses the order of the 4 bytes comprising the word.)
+// Byte-swap a 64-bit word to convert to/from big-endian byte order.
+// (Reverses the order of the 8 bytes comprising the word.)
 static gcc_inline uint64_t
 bswap(uint64_t v)
 {
@@ -434,7 +426,7 @@ wrmsr(int32_t msr, uint64_t val)
 }
 
 // Read performanc-monitoring counters.
-static gcc_inline uint32_t
+static gcc_inline uint64_t
 rdpmc(int32_t ctr)
 {
         uint64_t v;

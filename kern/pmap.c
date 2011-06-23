@@ -80,9 +80,7 @@ pmap_init(void)
 	// so we don't have to play any special tricks as in other kernels.
 
 	// Enable 4MB pages and global pages.
-	// TODO: need to be modified according to AMD64 SPEC.
-	uint32_t cr4 = rcr4();
-	cr4 |= CR4_PSE | CR4_PGE;
+	uintptr_t cr4 = rcr4();
 #if SOL >= 2
 	cr4 |= CR4_OSFXSR | CR4_OSXMMEXCPT; // enable 128-bit XMM instructions
 #endif
@@ -91,9 +89,8 @@ pmap_init(void)
 	// Install the bootstrap page map level-4 into the PDBR.
 	lcr3(mem_phys(pmap_bootpmap));
 
-	// Turn on paging.
-	uint32_t cr0 = rcr0();
-	cr0 |= CR0_PE|CR0_PG|CR0_AM|CR0_WP|CR0_NE|CR0_TS|CR0_MP|CR0_TS;
+	uintptr_t cr0 = rcr0();
+	cr0 |= CR0_AM|CR0_NE|CR0_TS;
 	cr0 &= ~(CR0_EM);
 	lcr0(cr0);
 
