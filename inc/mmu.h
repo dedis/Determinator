@@ -170,7 +170,7 @@
 #define MSR_KGSBASE	0xc0000102	// Kernel GS Base for SWAPGS
 
 // EFER register layout
-#define EFER_SCE	0x0		// System-Call Extensions
+#define EFER_SCE	0x1		// System-Call Extensions
 #define EFER_LME	0x100		// Long Mode Enable
 #define EFER_LMA	0x400		// Long Mode Active
 #define EFER_NXE	0x800		// No-Execute Enable
