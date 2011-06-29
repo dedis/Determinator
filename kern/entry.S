@@ -10,15 +10,12 @@
  * Adapted for PIOS by Bryan Ford at Yale University.
  */
 
-#if LAB >= 3
-#include <inc/trap.h>
 #include <inc/mmu.h>
 #include <kern/cpu.h>
-#endif
 
-// #define TSS_SIZE	0x68	// minimum possible size
+// #define TSS_SIZE	0x68
 // Pad code to an appropriate boundary for speed using NOPs
-#define TEXTALIGN	.p2align 4,,15
+// #define TEXTALIGN	.p2align 4,0x90
 
 #define MULTIBOOT_PAGE_ALIGN  (1<<0)
 #define MULTIBOOT_MEMORY_INFO (1<<1)
@@ -27,43 +24,22 @@
 #define CHECKSUM (-(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS))
 
 ###################################################################
-# entry point
+# kernel entry point
+# boot loader leaves us in 32-bit mode
 ###################################################################
-.code32
 .text
 
 # The Multiboot header
-.align 4
+.p2align 2
 .long MULTIBOOT_HEADER_MAGIC
 .long MULTIBOOT_HEADER_FLAGS
 .long CHECKSUM
 
-/*
-.globl		start,_start
+.code32
+.globl	start,_start
 start: _start:
-
 	movw	$0x1234,0x472			# warm boot BIOS flag
 
-	# Clear the frame pointer register (EBP)
-	# so that once we get into debugging C code,
-	# stack backtraces will be terminated properly.
-	movl	$0x0,%ebp			# nuke frame pointer
-
-#if LAB >= 3
-	# Leave a few words on the stack for the user trap frame
-	movl	$(cpu_boot+4096-SIZEOF_STRUCT_TRAPFRAME),%esp
-#else
-	# Set the stack pointer
-	movl	$(cpu_boot+4096),%esp
-#endif
-*/
-
-.globl		start,_start
-start: _start:
-
-// A MultiBoot boot loader starts us out in 32-bit protected mode.
-	.code32
-entry32:
 	cld
 
 	// activate our own protected-mode GDT
@@ -133,7 +109,10 @@ entry64:	// we are now in 64-bit mode.
 	movw	%ax,%ss
 
 	// initialize stack and frame pointers
-	movq	$start,%rsp	// XXX
+	movq	$start,%rsp
+	# Clear the frame pointer register (RBP)
+        # so that once we get into debugging C code,
+        # stack backtraces will be terminated properly.
 	xorq	%rbp,%rbp
 
 	// now to C code
