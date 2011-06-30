@@ -92,12 +92,11 @@ protcseg:
   movw    $SEG_KERN_DS_32, %ax    # Our data segment selector
   movw    %ax, %ds                # -> DS: Data Segment
   movw    %ax, %es                # -> ES: Extra Segment
-//  movw    %ax, %fs                # -> FS
-//  movw    %ax, %gs                # -> GS
   movw    %ax, %ss                # -> SS: Stack Segment
   
   # Set up the stack pointer and call into C.
   movl    $start, %esp
+  movl    $start, %ebp
   call bootmain
 
   # If bootmain returns (it shouldn't), loop.
