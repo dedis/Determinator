@@ -201,12 +201,12 @@
 
 #define SEGNULL		\
 	.long 0,0,0,0
-#define SEG32(base,limit,type,dpl,l)                                      \
+#define SEG32(base,limit,type,dpl,mode)                                      \
         .word (((limit) >> 12) & 0xffff), ((base) & 0xffff);      \
         .byte (((base) >> 16) & 0xff), (0x90 | (type) | ((dpl)<<5)),         \
-                (0x80 | ((((~(l)) << 1) | (l)) << 5) | (((limit) >> 28) & 0xf)), (((base) >> 24) & 0xff)
-#define SEG64(base,limit,type,dpl,l) \
-	SEG32(base,limit,type,dpl,l); \
+                (0x80 | ((((~(mode)) << 1) | (mode)) << 5) | (((limit) >> 28) & 0xf)), (((base) >> 24) & 0xff)
+#define SEG64(base,limit,type,dpl,mode) \
+	SEG32(base,limit,type,dpl,mode); \
 	.long	(base >> 32), 0
 
 #else	// not __ASSEMBLER__
@@ -237,9 +237,9 @@ typedef struct segdesc {
 // Segment that is loadable but faults when used
 #define SEGDESC_FAULT	(struct segdesc){ 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0 }
 // Normal segment
-#define SEGDESC64(app, type, base, lim, dpl, l) (struct segdesc)		\
+#define SEGDESC64(app, type, base, lim, dpl, mode) (struct segdesc)		\
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
-    (type), (app), (dpl), 1, (unsigned) (lim) >> 28, 0, (l), ~(l), 1,	\
+    (type), (app), (dpl), 1, (unsigned) (lim) >> 28, 0, (mode), ~(mode), 1,	\
     (unsigned) ((base) >> 24) & 0xff, (base) >> 32, 0 }
 
 #define SEGDESC32(app, type, base, lim, dpl) (struct segdesc)		\
