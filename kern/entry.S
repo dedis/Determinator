@@ -97,10 +97,12 @@ entry64:	// we are now in 64-bit mode.
 	// lidt	kernidtptr
 	// ltr	$SEG_TSS
 
-	movw	$SEG_KERN_CS_64,%ax
+	movw	$SEG_KERN_DS_64,%ax
 	movw	%ax,%ds
 	movw	%ax,%es
 	movw	%ax,%ss
+	movw	%ax,%fs
+	movw	%ax,%gs
 
 	// initialize stack and frame pointers
 	movq	$start,%rsp
@@ -125,8 +127,9 @@ gdt:
 	SEGNULL				// null segment
 	SEG64(0,0xfffff,0xa,0,0)	// 0x10: 32-bit kernel code segment
 	SEG64(0,0xfffff,0x2,0,0)	// 0x20: 32-bit kernel data segment
-	SEG64(0,0xfffff,0xa,0,1)	// 0x30: 64-bit kernel segment
-	SEG64(0,0xfffff,0xa,3,1)	// 0x40: 64-bit user segment
+	SEG64(0,0xfffff,0xa,0,1)	// 0x30: 64-bit kernel code segment
+	SEG64(0,0xfffff,0x2,0,1)	// 0x40: 64-bit kernel data segment
+	SEG64(0,0xfffff,0xa,3,1)	// 0x50: 64-bit user segment
 gdtend:
 
 	.data

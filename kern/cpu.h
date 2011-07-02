@@ -19,10 +19,11 @@
 #define SEG_NULL	    0x00	// null descriptor (required by x86 processor)
 #define SEG_KERN_CS_32	0x10	// 32-bit kernel code segment
 #define SEG_KERN_DS_32	0x20	// 32-bit kernel data segment
-#define SEG_KERN_CS_64	0x30	// 64-bit kernel segment
-#define SEG_USER_CS_64	0x40	// 64-bit user segment
-#define SEG_TSS			0x50	// Task state segment
-#define CPU_GDT_NDESC	6	// number of GDT entries used, including null
+#define SEG_KERN_CS_64	0x30	// 64-bit kernel code segment
+#define SEG_KERN_DS_64  0x40	// 64-bit kernel data segment
+#define SEG_USER_CS_64	0x50	// 64-bit user segment
+#define SEG_TSS			0x60	// Task state segment
+#define CPU_GDT_NDESC	7	// number of GDT entries used, including null
 
 
 #ifndef __ASSEMBLER__

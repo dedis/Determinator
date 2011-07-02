@@ -55,6 +55,9 @@ cpu cpu_boot = {
 		[SEG_KERN_CS_64 >> 4] = SEGDESC64(1, STA_X | STA_R,
 					0L, 0xffffffff, 0, 1),
 
+		[SEG_KERN_DS_64 >> 4] = SEGDESC64(1, STA_W,
+					0L, 0xffffffff, 0, 1),
+
 #if LAB >= 9
 		// 0x50 - 64-bit user segment (both CS and DS)
 		[SEG_USER_CS_64 >> 4] = SEGDESC64(1, STA_X | STA_R,
