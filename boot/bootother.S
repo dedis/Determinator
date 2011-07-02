@@ -6,6 +6,8 @@
  * See section "MIT License" in the file LICENSES for licensing terms.
  *
  * Derived from the MIT Exokernel and JOS.
+ * Adapted for 64-bit PIOS by Rajat Goyal at Indian Institute of 
+ * Techonology Delhi
  */
 
 # Each non-boot CPU ("AP") is started up in response to a STARTUP
@@ -30,10 +32,10 @@
 
 #include <inc/mmu.h>
 
-.set SEG_KERN_CS_16, 0x10
-.set SEG_KERN_CS_32, 0x20
-.set SEG_KERN_DS_32, 0x30
-.set SEG_KERN_CS_64, 0x40
+.set SEG_KERN_CS_32, 0x10
+.set SEG_KERN_DS_32, 0x20
+.set SEG_KERN_CS_64, 0x30
+.set SEG_KERN_DS_64, 0x40
 .set SEG_USER_CS_64, 0x50
 
 .code16                       	# Assemble for 16-bit mode
@@ -59,12 +61,12 @@ start:
 
 	# Jump to next instruction, but in 32-bit code segment.
 	# Switches processor into 32-bit mode.
-	ljmp    $(SEG_KERN_CS_32), $start32
+	ljmp    $SEG_KERN_CS_32, $start32
 
 .code32                       # Assemble for 32-bit mode
 start32:
 	# Set up the protected-mode data segment registers
-	movw    $(SEG_KERN_DS_32), %ax    # Our data segment selector
+	movw    $SEG_KERN_DS_32, %ax    # Our data segment selector
 	movw    %ax, %ds                # -> DS: Data Segment
 	movw    %ax, %es                # -> ES: Extra Segment
 	movw    %ax, %ss                # -> SS: Stack Segment
@@ -93,19 +95,19 @@ spin:
 	orl	$KERN_CR4,%eax
 	movl	%eax,%cr4
 
-		// load CR3 to point to our boot page table structure
+	// load CR3 to point to our boot page table structure
 	movl	start-24,%eax
 	movl	%eax,%cr3
 
 	// enable long mode (and other EFER features we want)
 	movl	$MSR_EFER,%ecx
 	rdmsr
-	orl		$KERN_EFER,%eax
+	orl	$KERN_EFER,%eax
 	wrmsr
 
 	// enable paging, and thus activate long mode
 	movl	%cr0,%eax
-	orl		$KERN_CR0,%eax
+	orl	$KERN_CR0,%eax
 	movl	%eax,%cr0
 	ljmp	$SEG_KERN_CS_64,$start64
 
@@ -114,12 +116,14 @@ start64:	// we are now in 64-bit mode.
 
 	// Load our long-mode GDT, IDT, and TSS
 	// All these are loaded again in init
-	lgdt	kerngdtptr
+	// lgdt	kerngdtptr
 
-	movw	$SEG_KERN_CS_64,%ax
+	movw	$SEG_KERN_DS_64,%ax
 	movw	%ax,%ds
 	movw	%ax,%es
 	movw	%ax,%ss
+	movw	%ax,%fs
+	movw	%ax,%gs
 
 	// Set up the stack pointer, frame pointer and call into C.
 	movq    start-8, %rsp
@@ -136,10 +140,10 @@ spin:	jmp	spin
 	.p2align 3
 gdt:
         SEGNULL                         // null segment
-        SEG64(0,0xffff,0xa,0,0)         // 0x10: 16-bit kernel code segment
-        SEG64(0,0xfffff,0xa,0,0)        // 0x20: 32-bit kernel code segment
-        SEG64(0,0xfffff,0x2,0,0)        // 0x30: 32-bit kernel data segment
-        SEG64(0,0xfffff,0xa,0,1)        // 0x40: 64-bit kernel segment
+        SEG64(0,0xfffff,0xa,0,0)        // 0x10: 32-bit kernel code segment
+        SEG64(0,0xfffff,0x2,0,0)        // 0x20: 32-bit kernel data segment
+        SEG64(0,0xfffff,0xa,0,1)        // 0x30: 64-bit kernel code segment
+	SEG64(0,0xfffff,0x2,0,1)	// 0x40: 64-bit kernel data segment
         SEG64(0,0xfffff,0xa,3,1)        // 0x50: 64-bit user segment
 gdtend:
 
