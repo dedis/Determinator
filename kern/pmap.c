@@ -71,36 +71,31 @@ pmap_init(void)
 	}
 
 	// On x86, segmentation maps a VA to a LA (linear addr) and
-	// paging maps the LA to a PA.  i.e., VA => LA => PA.  If paging is
-	// turned off the LA is used as the PA.  There is no way to
-	// turn off segmentation.  At the moment we turn on paging,
-	// the code we're executing must be in an identity-mapped memory area
-	// where LA == PA according to the page mapping structures.
-	// In PIOS this is always the case for the kernel's address space,
-	// so we don't have to play any special tricks as in other kernels.
+        // paging maps the LA to a PA.  i.e., VA => LA => PA.  If paging is
+        // turned off the LA is used as the PA.  There is no way to
+        // turn off segmentation.  At the moment we turn on paging,
+        // the code we're executing must be in an identity-mapped memory area
+        // where LA == PA according to the page mapping structures.
+        // In PIOS this is always the case for the kernel's address space,
+        // so we don't have to play any special tricks as in other kernels.
 
-	// Enable 4MB pages and global pages.
-	// TODO: need to be modified according to AMD64 SPEC.
-	uint32_t cr4 = rcr4();
-	cr4 |= CR4_PSE | CR4_PGE;
+        // Enable 4MB pages and global pages.
+        uintptr_t cr4 = rcr4();
 #if SOL >= 2
-	cr4 |= CR4_OSFXSR | CR4_OSXMMEXCPT; // enable 128-bit XMM instructions
+        cr4 |= CR4_OSFXSR | CR4_OSXMMEXCPT; // enable 128-bit XMM instructions
 #endif
-	lcr4(cr4);
+        lcr4(cr4);
 
-	// Install the bootstrap page map level-4 into the PDBR.
-	lcr3(mem_phys(pmap_bootpmap));
+        // Install the bootstrap page map level-4 into the PDBR.
+        lcr3(mem_phys(pmap_bootpmap));
 
-	// Turn on paging.
-	uint32_t cr0 = rcr0();
-	cr0 |= CR0_PE|CR0_PG|CR0_AM|CR0_WP|CR0_NE|CR0_TS|CR0_MP|CR0_TS;
-	cr0 &= ~(CR0_EM);
-	lcr0(cr0);
+        uintptr_t cr0 = rcr0();
+        cr0 |= CR0_AM|CR0_NE|CR0_TS;
+        cr0 &= ~(CR0_EM);
+        lcr0(cr0);
 
-	// If we survived the lcr0, we're running with paging enabled.
-	// Now check the page table management functions below.
-	if (cpu_onboot())
-		pmap_check();
+        if (cpu_onboot())
+                pmap_check();
 }
 
 //
