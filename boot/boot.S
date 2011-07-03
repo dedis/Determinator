@@ -6,6 +6,7 @@
  * See section "MIT License" in the file LICENSES for licensing terms.
  *
  * Derived from the MIT Exokernel and JOS.
+ * Adapted for 64-bit PIOS by Rajat Goyal at IIT Delhi
  */
 
 /*

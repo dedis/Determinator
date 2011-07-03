@@ -7,7 +7,7 @@
  *
  * Derived from the MIT Exokernel and JOS.
  * Adapted for PIOS by Bryan Ford at Yale University.
- * Adapted for 64-bit PIOS by Yu Zhang.
+ * Adapted for 64-bit PIOS by Yu Zhang and Rajat Goyal
  */
 
 #ifndef PIOS_INC_MMU_H
@@ -35,7 +35,7 @@
 
 // Page directory and page table constants.
 // entries per page map root (64-bit: pml4)
-#define NPRENTRIES	256		// PML4Es per page map level-4
+#define NPRENTRIES	512		// PML4Es per page map level-4
 // entries per page table/page directory/page directory pointer
 #define NPTENTRIES	512 
 #define NPTBITS		9		// log2(NPTENTRIES)

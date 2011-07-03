@@ -6,8 +6,7 @@
  * See section "MIT License" in the file LICENSES for licensing terms.
  *
  * Derived from the MIT Exokernel and JOS.
- * Adapted for 64-bit PIOS by Rajat Goyal at Indian Institute of 
- * Techonology Delhi
+ * Adapted for 64-bit PIOS by Rajat Goyal at IIT Delhi
  */
 
 # Each non-boot CPU ("AP") is started up in response to a STARTUP
@@ -145,10 +144,9 @@ gdt:
         SEG64(0,0xfffff,0xa,0,1)        // 0x30: 64-bit kernel code segment
 	SEG64(0,0xfffff,0x2,0,1)	// 0x40: 64-bit kernel data segment
         SEG64(0,0xfffff,0xa,3,1)        // 0x50: 64-bit user segment
-gdtend:
 
 kerngdtptr:
-	.word	gdtend-gdt-1		// limit
+	.word	kerngdtptr-gdt-1	// limit
 	.quad	gdt			// base (kernel linear address)
 
 #endif	// LAB >= 2

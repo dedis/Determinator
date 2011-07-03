@@ -78,6 +78,11 @@ init(void)
 {
 	extern char start[], edata[], end[];
 
+#if LAB >= 3
+        // Initialize the paged virtual memory system.
+        pmap_init();
+#endif
+
 	// Before anything else, complete the ELF loading process.
 	// Clear all uninitialized global data (BSS) in our program,
 	// ensuring that all static/global variables start out zero.
@@ -107,11 +112,6 @@ init(void)
 	if (cpu_onboot())
 		spinlock_check();
 
-#if LAB >= 3
-	// Initialize the paged virtual memory system.
-	pmap_init();
-
-#endif
 	// Find and start other processors in a multiprocessor system
 	mp_init();		// Find info about processors in system
 	pic_init();		// setup the legacy PIC (mainly to disable it)

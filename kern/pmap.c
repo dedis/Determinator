@@ -27,7 +27,7 @@
 
 // Statically allocated page directory mapping the kernel's address space.
 // We use this as a template for all pdirs for user-level processes.
-pte_t pmap_bootpmap[NPRENTRIES] gcc_aligned(PAGESIZE);
+extern pte_t pmap_bootpmap[NPRENTRIES]; // gcc_aligned(PAGESIZE);
 
 // Statically allocated page that we always keep set to all zeros.
 uint8_t pmap_zero[PAGESIZE] gcc_aligned(PAGESIZE);
@@ -86,8 +86,10 @@ pmap_init(void)
 #endif
         lcr4(cr4);
 
-        // Install the bootstrap page map level-4 into the PDBR.
-        lcr3(mem_phys(pmap_bootpmap));
+        // Already done in kern/entry.S for boot CPU
+	// and boot/bootothers.S for AP CPUs
+	// Install the bootstrap page map level-4 into the PDBR.
+        // lcr3(mem_phys(pmap_bootpmap));
 
         uintptr_t cr0 = rcr0();
         cr0 |= CR0_AM|CR0_NE|CR0_TS;

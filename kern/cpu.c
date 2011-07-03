@@ -7,6 +7,7 @@
  * See section "MIT License" in the file LICENSES for licensing terms.
  *
  * Primary author: Bryan Ford
+ * Adapted for 64-bit PIOS by Rajat Goyal at IIT Delhi
  */
 
 #include <inc/assert.h>
@@ -222,7 +223,7 @@ cpu_alloc(void)
 void
 cpu_bootothers(void)
 {
-	extern intptr_t bootp4tab[];
+	extern intptr_t pmap_bootpmap[];
 	extern uint8_t _binary_obj_boot_bootother_start[],
 			_binary_obj_boot_bootother_size[];
 
@@ -245,7 +246,7 @@ cpu_bootothers(void)
 		// Fill in %rsp, %rip, location of page table and start code on cpu.
 		*(void**)(code-8) = c->kstackhi;
 		*(void**)(code-16) = init;
-		*(void**)(code-24) = bootp4tab;
+		*(void**)(code-24) = pmap_bootpmap;
 		lapic_startcpu(c->id, (uintptr_t)code);
 
 		// Wait for cpu to get through bootstrap.

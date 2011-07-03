@@ -64,9 +64,15 @@ start: _start:
 	orl	$KERN_CR4,%eax
 	movl	%eax,%cr4
 
-	// Set up the boot page tables to identity map the bottom 4GB of memory,
+	// map the low 2MB memory using a single 2MB global
+	// (non-TLB-flushed) page
+	movl $bootp3tab+(PTE_P|PTE_W),pmap_bootpmap
+	movl $bootp2tab+(PTE_P|PTE_W),bootp3tab
+	movl $0+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab
+
+/*	// Set up the boot page tables to identity map the bottom 4GB of memory,
 	// which is the kernel VM region, using 2MB global (non-TLB-flushed) pages
-	movl $bootp3tab+(PTE_P|PTE_W),bootp4tab
+	movl $bootp3tab+(PTE_P|PTE_W),pmap_bootpmap
 
 	movl $bootp2tab0+(PTE_P|PTE_W),bootp3tab
         movl $bootp2tab1+(PTE_P|PTE_W),bootp3tab+8
@@ -129,10 +135,11 @@ start: _start:
         movl %eax,(%ebx)
         loop 1b
         movl $(3<<30)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab3
+*/
 
 
 	// load CR3 to point to our boot page table structure
-	movl	$bootp4tab,%eax
+	movl	$pmap_bootpmap,%eax
 	movl	%eax,%cr3
 
 	// enable long mode (and other EFER features we want)
@@ -171,69 +178,6 @@ entry64:	// we are now in 64-bit mode.
         # stack backtraces will be terminated properly.
 	xorq	%rbp,%rbp
 
-/*
-	// initialize page table structures to identity map kernel VM region (0-4GB)
-	movq $bootp2tab1+(PTE_P|PTE_W),bootp3tab+8
-	movq $bootp2tab2+(PTE_P|PTE_W),bootp3tab+16
-	movq $bootp2tab3+(PTE_P|PTE_W),bootp3tab+24
-
-	movq $511,%rcx
-	movq $0,%r15
-1:	movq %rcx,%r15
-	salq $21,%r15
-        addq $(PTE_P|PTE_W|PTE_G|PTE_PS),%r15
-	movq %rcx,%r14
-	salq $3,%r14
-	addq $bootp2tab0,%r14
-	movq %r15,(%r14)
-	loop 1b
-
-	movq $511,%rcx
-        movq $0,%r15
-1:      movq %rcx,%r15
-        salq $21,%r15
-	movq $1,%r13
-	salq $30,%r13
-	addq %r13,%r15
-        addq $(PTE_P|PTE_W|PTE_G|PTE_PS),%r15
-        movq %rcx,%r14
-        salq $3,%r14
-        addq $bootp2tab1,%r14
-        movq %r15,(%r14)
-        loop 1b
-	movq $(1<<30)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab1
-
-	movq $511,%rcx
-        movq $0,%r15
-1:      movq %rcx,%r15
-        salq $21,%r15
-        movq $2,%r13
-        salq $30,%r13
-        addq %r13,%r15
-        addq $(PTE_P|PTE_W|PTE_G|PTE_PS),%r15
-        movq %rcx,%r14
-        salq $3,%r14
-        addq $bootp2tab2,%r14
-        movq %r15,(%r14)
-        loop 1b
-	movq $(2<<30)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab2
-
-	movq $511,%rcx
-        movq $0,%r15
-1:      movq %rcx,%r15
-        salq $21,%r15
-        movq $3,%r13
-        salq $30,%r13
-        addq %r13,%r15
-        addq $(PTE_P|PTE_W|PTE_G|PTE_PS),%r15
-        movq %rcx,%r14
-        salq $3,%r14
-        addq $bootp2tab3,%r14
-        movq %r15,(%r14)
-        loop 1b
-        movq $(3<<30)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab3
-*/
-
 	// now to C code
 	call	init
 
@@ -264,18 +208,14 @@ kerngdtptr:
 // Space for minimal bootstrap page table structures
 	.bss
 	.p2align 12
-	.globl bootp4tab, bootp3tab, bootp2tab0, bootp2tab1, bootp2tab2, bootp2tab3
-bootp4tab:
+	.globl pmap_bootpmap, bootp3tab, bootp2tab, bootp1tab
+pmap_bootpmap:
 	.space	4096
 bootp3tab:
 	.space	4096
-bootp2tab0:
+bootp2tab:
 	.space	4096
-bootp2tab1:
-	.space	4096
-bootp2tab2:
-	.space	4096
-bootp2tab3:
-	.space	4096
+bootp1tab:
+	.space  4096
 
 #endif // LAB >= 1
