@@ -27,7 +27,8 @@
 
 // Statically allocated page directory mapping the kernel's address space.
 // We use this as a template for all pdirs for user-level processes.
-extern pte_t pmap_bootpmap[NPRENTRIES]; // gcc_aligned(PAGESIZE);
+// pte_t pmap_bootpmap[NPRENTRIES] gcc_aligned(PAGESIZE);
+extern pte_t pmap_bootpmap[NPRENTRIES];
 
 // Statically allocated page that we always keep set to all zeros.
 uint8_t pmap_zero[PAGESIZE] gcc_aligned(PAGESIZE);
@@ -47,6 +48,18 @@ uint8_t pmap_zero[PAGESIZE] gcc_aligned(PAGESIZE);
 // (addresses outside of the range between VM_USERLO and VM_USERHI).
 // The user part of the address space remains all PTE_ZERO until later.
 //
+
+/*
+void
+pmap_init_boot(void) {
+		extern char _end[];
+                int i = 0;
+                for (i = 0; i < NPRENTRIES; i++)
+                        pmap_bootpmap[i] = ((intptr_t)i << PDSHIFT(NPTLVLS))
+                                | PTE_P | PTE_W | PTE_G;
+}
+*/
+
 void
 pmap_init(void)
 {
@@ -79,7 +92,6 @@ pmap_init(void)
         // In PIOS this is always the case for the kernel's address space,
         // so we don't have to play any special tricks as in other kernels.
 
-        // Enable 4MB pages and global pages.
         uintptr_t cr4 = rcr4();
 #if SOL >= 2
         cr4 |= CR4_OSFXSR | CR4_OSXMMEXCPT; // enable 128-bit XMM instructions

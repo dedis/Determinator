@@ -25,12 +25,13 @@
 # boot loader leaves us in 32-bit mode
 ###################################################################
 
-.text
-# The Multiboot header
-.p2align 2
-.long MULTIBOOT_HEADER_MAGIC
-.long MULTIBOOT_HEADER_FLAGS
-.long CHECKSUM
+	.text
+	# The Multiboot header
+	.p2align 2
+multiboot_header:
+	.long MULTIBOOT_HEADER_MAGIC
+	.long MULTIBOOT_HEADER_FLAGS
+	.long CHECKSUM
 
 .code32
 .globl	start,_start
@@ -64,11 +65,17 @@ start: _start:
 	orl	$KERN_CR4,%eax
 	movl	%eax,%cr4
 
+//	call pmap_init_boot
+
 	// map the low 2MB memory using a single 2MB global
 	// (non-TLB-flushed) page
+	// map till 0x800000 exclusive (smallest 2MB aligned address greater than _end = 0x7060d0)
 	movl $bootp3tab+(PTE_P|PTE_W),pmap_bootpmap
 	movl $bootp2tab+(PTE_P|PTE_W),bootp3tab
 	movl $0+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab
+	movl $(1<<21)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab+8
+	movl $(2<<21)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab+16
+	movl $(3<<21)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab+24
 
 /*	// Set up the boot page tables to identity map the bottom 4GB of memory,
 	// which is the kernel VM region, using 2MB global (non-TLB-flushed) pages
