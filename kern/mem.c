@@ -64,8 +64,9 @@ mem_init(void)
 	uint16_t mem_map_entries = detect_memory_e820(e820_mem_array);
 	uint16_t temp_ctr;
 	uint64_t total_ram_size = 0;
-	uint64_t max_base = -1; //max_base and max_size are used to calculate mem_max
-	uint64_t max_size = -1;
+	uint64_t max_base = 0; //max_base and max_size are used to calculate mem_max
+	uint64_t max_size = 0;
+
 	for(temp_ctr=0;temp_ctr<mem_map_entries;temp_ctr++)
 	{
 		//the memory should be usable!
@@ -79,7 +80,6 @@ mem_init(void)
 		}
 
 	}
-
 	cprintf("Physical memory: %dK available\n",total_ram_size/(1024));
 //	cprintf("entries: %d\n",mem_map_entries);
 
@@ -87,8 +87,9 @@ mem_init(void)
 	mem_max = (int)max_base + (int)max_size - 1;
 
 	//total no of pages
-	mem_npage = (int)total_ram_size / PAGESIZE;
-
+	//mem_npage = (int)total_ram_size / PAGESIZE;
+	mem_npage = (int)mem_max / PAGESIZE; //there are many pages in between that cannot be used.
+					     //hence we initialize all the ref counts to 1
 #if SOL >= 1
 	// Now that we know the size of physical memory,
 	// reserve enough space for the pageinfo array
@@ -123,11 +124,11 @@ mem_init(void)
 	int region_end;
 	int k;
 
-	/*for(i=0;i<mem_npage;i++) {
+	for(i=0;i<mem_npage;i++) {
 		mem_pageinfo[i].refcount = 1;
 	}
 
-	i = 2;
+	//i = 2;
 	int inuse = 1;
 	for(j=0;j<mem_map_entries;j++) {
 
@@ -140,7 +141,6 @@ mem_init(void)
 		// here B indicates "not-free" and F indicates "free"
 		// we need to check if the memory map region lies in the "F" region
 		// if it does not, we try to clamp it so that it does.
-
 		
 		region_start = e820_mem_array[j].base;
 		region_end = region_start + e820_mem_array[j].size - 1;
@@ -163,64 +163,24 @@ mem_init(void)
 			region_start = mem_phys(freemem);
 		}
 
-	//	assert(region_start >=e820_mem_array[j].base && region_end <=e820_mem_array[j].base + e820_mem_array[j].size -1 
-	//			&& region_start <= region_end);
+		//need to start and end at page boundaries.
+		region_start = ROUNDUP(region_start, PAGESIZE);
+		region_end = ROUNDDOWN(region_end, PAGESIZE);
 
 		for(k=region_start;k<region_end;k+=PAGESIZE) {
+
+			//get the page index into the page info table
+			i = k/PAGESIZE;
+			assert(i<mem_npage);
 			//alloc the page
 			mem_pageinfo[i].refcount = 0;
-			//if (!inuse)
-			{
-				// Add the page to the end of the free list.
-				*freetail = &mem_pageinfo[i];
-				freetail = &mem_pageinfo[i].free_next;
-			}
-			i++;
-		}
-
-	}
-
-	*freetail = NULL;	// null-terminate the freelist
-	cprintf("i is %d\n",i);
-			assert(i<mem_npage);*/
-
-	for (i = 0; i < mem_npage; i++) {
-		// Off-limits until proven otherwise.
-		int inuse = 1;
-		lies_in_free_region = 0;
-		
-		//check if the page lies in usable memory by referring to e820 map.
-		for(j=mem_map_entries-1;j>=0;j--) { //run the counter backwards so that we 'break' more times!
-			//check if page starting address & page ending address lie in the range [base base+size-1]
-			page_start = i*PAGESIZE;
-			page_end = page_start + PAGESIZE - 1;
-			base = e820_mem_array[j].base;
-			size = e820_mem_array[j].size;
-			if (page_start >= base && page_end <= base+size-1) {
-				lies_in_free_region = 1;
-				break;
-			}
-		}
-		if(lies_in_free_region) {
-
-			// The bottom basemem bytes are free except page 0 and 1.
-			if (i > 1 && i < basemem / PAGESIZE)
-				inuse = 0;
-
-			// The IO hole and the kernel abut.
-
-			// The memory past the kernel is free.
-			if (i >= mem_phys(freemem) / PAGESIZE)
-				inuse = 0;
-		}
-
-		mem_pageinfo[i].refcount = inuse;
-		if (!inuse) {
 			// Add the page to the end of the free list.
 			*freetail = &mem_pageinfo[i];
 			freetail = &mem_pageinfo[i].free_next;
 		}
+
 	}
+
 	*freetail = NULL;	// null-terminate the freelist
 
 #else /* not SOL >= 1 */
@@ -281,11 +241,10 @@ int detect_memory_e820(struct e820_mem_map e820_mem_array[MEM_MAP_MAX])
 	regs.ebx = 0x00000000; //must be set to 0 for initial call
 	regs.cf = 0x00; //initialize this to 0
 
-
 	do
 	{
 		regs.int_no = 0x15; //interrupt number
-		regs.eax = 0x0000e820; //BIOS function to call
+		regs.eax = 0xe820; //BIOS function to call
 		regs.edx = SMAP; //must be set to SMAP value.
 		regs.ecx = 0x00000018; //ask the BIOS to fill 24 bytes (24 is the buffer size as needed by ACPI 3.x).
 		regs.es = BIOS_BUFF_ES; //segment number of the buffer the BIOS fills
@@ -322,37 +281,20 @@ int detect_memory_e820(struct e820_mem_map e820_mem_array[MEM_MAP_MAX])
 
 void bios_call(struct bios_regs *inp)
 {
-	uint8_t *lowmem_start_byte_ptr = (uint8_t*)lowmem_bootother_vec;
-	uint16_t *lowmem_start_int16_ptr = (uint16_t*)lowmem_bootother_vec;
-	uint32_t *lowmem_start_int32_ptr = (uint32_t*)lowmem_bootother_vec;
+	struct bios_regs *lowmem_bios_regs = (struct bios_regs *)(lowmem_bootother_vec - sizeof(struct bios_regs));
 
-	//now pass register values using pointers
-	*(lowmem_start_byte_ptr+(BIOSCALL_INT_NO)) = inp->int_no;
-	*(lowmem_start_byte_ptr+(BIOSCALL_CF)) = inp->cf;
-	*(lowmem_start_int16_ptr+(BIOSCALL_ES)/sizeof(lowmem_start_int16_ptr)) = inp->es;
-	*(lowmem_start_int16_ptr+(BIOSCALL_DS)/sizeof(lowmem_start_int16_ptr)) = inp->ds;
-	*(lowmem_start_int32_ptr+(BIOSCALL_EDI)/sizeof(lowmem_start_int32_ptr)) = inp->edi;
-	*(lowmem_start_int32_ptr+(BIOSCALL_ESI)/sizeof(lowmem_start_int32_ptr)) = inp->esi;
-	*(lowmem_start_int32_ptr+(BIOSCALL_EDX)/sizeof(lowmem_start_int32_ptr)) = inp->edx;
-	*(lowmem_start_int32_ptr+(BIOSCALL_ECX)/sizeof(lowmem_start_int32_ptr)) = inp->ecx;
-	*(lowmem_start_int32_ptr+(BIOSCALL_EBX)/sizeof(lowmem_start_int32_ptr)) = inp->ebx;
-	*(lowmem_start_int32_ptr+(BIOSCALL_EAX)/sizeof(lowmem_start_int32_ptr)) = inp->eax;
+	assert(BIOSREGS_SIZE == sizeof(struct bios_regs));
 
+	//now copy register values to low memory
+	*lowmem_bios_regs = *inp;
+	cprintf("");
+	
 	//FIXME:: Use the macro 
 	asm volatile("call *0x1004");
 
 	//copy the values back into the regs structure.
-	inp->int_no = *(lowmem_start_byte_ptr+(BIOSCALL_INT_NO));
-	inp->cf = *(lowmem_start_byte_ptr+(BIOSCALL_CF));
-	inp->es = *(lowmem_start_int16_ptr+(BIOSCALL_ES)/sizeof(lowmem_start_int16_ptr));
-	inp->ds = *(lowmem_start_int16_ptr+(BIOSCALL_DS)/sizeof(lowmem_start_int16_ptr));
-	inp->edi = *(lowmem_start_int32_ptr+(BIOSCALL_EDI)/sizeof(lowmem_start_int32_ptr));
-	inp->esi = *(lowmem_start_int32_ptr+(BIOSCALL_ESI)/sizeof(lowmem_start_int32_ptr));
-	inp->edx = *(lowmem_start_int32_ptr+(BIOSCALL_EDX)/sizeof(lowmem_start_int32_ptr));
-	inp->ecx = *(lowmem_start_int32_ptr+(BIOSCALL_ECX)/sizeof(lowmem_start_int32_ptr));
-	inp->ebx = *(lowmem_start_int32_ptr+(BIOSCALL_EBX)/sizeof(lowmem_start_int32_ptr));
-	inp->eax = *(lowmem_start_int32_ptr+(BIOSCALL_EAX)/sizeof(lowmem_start_int32_ptr));
-
+	*inp = *lowmem_bios_regs;
+	return;
 }
 
 //

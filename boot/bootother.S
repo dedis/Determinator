@@ -109,12 +109,12 @@ bioscall:
 	pushl %edi
 	pushl %ebp
 
-	movl $PROT_ESP,%eax
-	movl %esp,0x0(%eax)
+	movl $(BIOSCALL_MEM_START+PROT_ESP),%eax
+	movl %esp,(%eax)
 
 	//save the protected mode IDT and GDT
-	sidt IDT_MEM_LOC
-	sgdt GDT_MEM_LOC
+	sidt BIOSCALL_MEM_START+IDT_MEM_LOC
+	sgdt BIOSCALL_MEM_START+GDT_MEM_LOC
 
 	//start the transition into real mode
 	cli
@@ -147,15 +147,15 @@ bioscall:
 	lidt realidtptr
 
 	//patch the int instruction
-	movw $start,%bp 
-	movb BIOSCALL_INT_NO(%bp),%al
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_INT_NO),%bp 
+	movb (%bp),%al
 	movb %al,int_call+1
+
 
 	//disable protection bit
 	movl %cr0,%eax
 	andl $~CR0_PE,%eax
 	movl %eax,%cr0
-
 
 	ljmp $0,$1f
 
@@ -173,17 +173,23 @@ bioscall:
 	//set up the real mode sp
 	movw REAL_STACK_HI,%sp
 	
-	//setup for the bios call
-	movw $start,%bp 
 	//load the registers needed by the BIOS
-	movl BIOSCALL_EAX(%bp),%eax
-	movl BIOSCALL_EBX(%bp),%ebx
-	movl BIOSCALL_ECX(%bp),%ecx
-	movl BIOSCALL_EDX(%bp),%edx
-	movl BIOSCALL_ESI(%bp),%esi
-	movl BIOSCALL_EDI(%bp),%edi
-	movw BIOSCALL_DS(%bp),%ds
-	movw BIOSCALL_ES(%bp),%es
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_EAX),%bp
+	movl (%bp),%eax
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_EBX),%bp
+	movl (%bp),%ebx
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_ECX),%bp
+	movl (%bp),%ecx
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_EDX),%bp
+	movl (%bp),%edx
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_ESI),%bp
+	movl (%bp),%esi
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_EDI),%bp
+	movl (%bp),%edi
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_DS),%bp
+	movw (%bp),%ds
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_ES),%bp
+	movw (%bp),%es
 
 	//make the bios call
 	cli
@@ -192,27 +198,35 @@ int_call:
 
 
 	//move the register values back to the struct
-	movw $start,%bp 
-	movl %eax,BIOSCALL_EAX(%bp)
-	movl %ebx,BIOSCALL_EBX(%bp)
-	movl %ecx,BIOSCALL_ECX(%bp)
-	movl %edx,BIOSCALL_EDX(%bp)
-	movl %esi,BIOSCALL_ESI(%bp)
-	movl %edi,BIOSCALL_EDI(%bp)
-	movw %ds,BIOSCALL_DS(%bp)
-	movw %es,BIOSCALL_ES(%bp)
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_EAX),%bp
+	movl %eax,(%bp)
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_EBX),%bp
+	movl %ebx,(%bp)
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_ECX),%bp
+	movl %ecx,(%bp)
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_EDX),%bp
+	movl %edx,(%bp)
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_ESI),%bp
+	movl %esi,(%bp)
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_EDI),%bp
+	movl %edi,(%bp)
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_DS),%bp
+	movw %ds,(%bp)
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_ES),%bp
+	movw %es,(%bp)
 
 	//check the carry flag
 	setc %al
-	movb %al,BIOSCALL_CF(%bp)
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_CF),%bp
+	movb %al,(%bp)
 
 	//prepare to go back in 32 bit
 //	cli
 
 	//load the protected mode gdt	
 	//lgdt gdtdesc
-	lidt IDT_MEM_LOC
-	lgdt GDT_MEM_LOC
+	lidt BIOSCALL_MEM_START+IDT_MEM_LOC
+	lgdt BIOSCALL_MEM_START+GDT_MEM_LOC
 
 
 	// re-enter protected mode
@@ -241,8 +255,8 @@ int_call:
 
 
 	//restore protected mode stack
-	movl $PROT_ESP,%eax
-	movl 0x0(%eax),%esp
+	movl $(BIOSCALL_MEM_START+PROT_ESP),%eax
+	movl (%eax),%esp
 
 
 	popl %ebp

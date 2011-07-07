@@ -22,18 +22,20 @@
 //SMAP value as needed by e820 bios call
 #define SMAP 0x534D4150
 
-//offsets for registers used as input to bios calls
-//offsets are in bits (helps in assembly)
-#define BIOSCALL_INT_NO -8
-#define BIOSCALL_ES -24
-#define BIOSCALL_DS -40
-#define BIOSCALL_EDI -72
-#define BIOSCALL_ESI -104
-#define BIOSCALL_EDX -136
-#define BIOSCALL_ECX -168
-#define BIOSCALL_EBX -200
-#define BIOSCALL_EAX -232
-#define BIOSCALL_CF  -240
+//offsets for registers used as input to bios calls (refer to struct bios_regs)
+//offsets are in bytes
+#define BIOSREGS_SIZE 30 //size in bytes
+#define BIOSREGS_LOC 0x1000
+#define BIOSREGS_EAX 0
+#define BIOSREGS_EBX 4
+#define BIOSREGS_ECX 8
+#define BIOSREGS_EDX 12
+#define BIOSREGS_ESI 16
+#define BIOSREGS_EDI 20
+#define BIOSREGS_DS 24
+#define BIOSREGS_ES 26
+#define BIOSREGS_INT_NO 28
+#define BIOSREGS_CF  29
 
 //memory locations to store bios buffer (buffer filled by the bios is <= 24 bytes as per ACPI 3.x)
 #define BIOS_BUFF_ES 0x0
@@ -43,10 +45,14 @@
 
 //memory locations needed during bios call to save stuff 
 #define REAL_STACK_HI 0xBB8 //3000
-#define GDT_MEM_LOC 0xC18 //3096
-#define IDT_MEM_LOC 0xC08 //3080
-#define PAGING_BIT  0xBF8 //3064 (could have been something else, but the ++0x1 pattern was easier to calculate!)
-#define PROT_ESP    0xBE8 //3048
+
+#define BIOSCALL_MEM_START 0xBE8 //this is where we start saving the gdt,idt,esp etc. during a bios call
+				// the location is chosen arbitrarily.
+//offsets into the MEM_START area for various fields (in bytes)
+#define PROT_ESP    0 //3048
+#define PAGING_BIT  4 //3052
+#define IDT_MEM_LOC 8 //3056 (idt needs 6 bytes)
+#define GDT_MEM_LOC 14 //3062
 
 
 #else 
@@ -199,7 +205,7 @@ struct bios_regs {
 	uint8_t    int_no;
 	uint8_t    cf; //read-only memory to see carry flag.
 
-};
+}__attribute__((packed));
 
 
 void bios_call(struct bios_regs *inp);
