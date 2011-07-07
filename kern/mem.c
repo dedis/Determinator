@@ -47,49 +47,45 @@ mem_init(void)
 	if (!cpu_onboot())	// only do once, on the boot CPU
 		return;
 
-	// Determine how much base (<640K) and extended (>1MB) memory
+	// Determine how much base (<640K)
 	// is available in the system (in bytes),
 	// by reading the PC's BIOS-managed nonvolatile RAM (NVRAM).
 	// The NVRAM tells us how many kilobytes there are.
 	// Since the count is 16 bits, this gives us up to 64MB of RAM;
 	// additional RAM beyond that would have to be detected another way.
 	size_t basemem = ROUNDDOWN(nvram_read16(NVRAM_BASELO)*1024, PAGESIZE);
-	size_t extmem = ROUNDDOWN(nvram_read16(NVRAM_EXTLO)*1024, PAGESIZE);
 
+	//prepare registers to make an int 0x15 e820 call
+	//to determine physical memory.	
+	//refer to link: http://www.uruk.org/orig-grub/mem64mb.html	
 
-//prepare registers to make an int 0x15 e820 call to determine physical memory.	
-//refer to link: http://www.uruk.org/orig-grub/mem64mb.html	
-
-	struct e820_mem_map e820_mem_array[MEM_MAP_MAX];	
-	uint16_t mem_map_entries = detect_memory_e820(e820_mem_array);
+	struct e820_mem_map mem_array[MEM_MAP_MAX];	
+	uint16_t mem_map_entries = detect_memory_e820(mem_array);
 	uint16_t temp_ctr;
 	uint64_t total_ram_size = 0;
-	uint64_t max_base = 0; //max_base and max_size are used to calculate mem_max
-	uint64_t max_size = 0;
+	mem_max = 0;
+	int i;
+	int j;
+	int k;
 
-	for(temp_ctr=0;temp_ctr<mem_map_entries;temp_ctr++)
+	for(i=0;i<mem_map_entries;i++)
 	{
 		//the memory should be usable!
-		assert(e820_mem_array[temp_ctr].type == E820TYPE_MEMORY || e820_mem_array[temp_ctr].type == E820TYPE_ACPI); 
+		assert(mem_array[i].type == E820TYPE_MEMORY 
+				|| mem_array[i].type == E820TYPE_ACPI); 
 		
-		total_ram_size += e820_mem_array[temp_ctr].size;
-		
-		if(max_base < e820_mem_array[temp_ctr].base) {
-			max_base = e820_mem_array[temp_ctr].base;
-			max_size = e820_mem_array[temp_ctr].size;
-		}
+		total_ram_size += mem_array[i].size;
+
+		mem_max = MAX(mem_max,mem_array[i].base+mem_array[i].size);
 
 	}
 	cprintf("Physical memory: %dK available\n",total_ram_size/(1024));
-//	cprintf("entries: %d\n",mem_map_entries);
-
-	//maximum physical address is the max_base + max_size
-	mem_max = (int)max_base + (int)max_size - 1;
 
 	//total no of pages
-	//mem_npage = (int)total_ram_size / PAGESIZE;
-	mem_npage = (int)mem_max / PAGESIZE; //there are many pages in between that cannot be used.
-					     //hence we initialize all the ref counts to 1
+	mem_npage = (int)mem_max / PAGESIZE; //there are many pages in between
+					     //that cannot be used.
+					     //hence we initialize all the
+	                                    //ref counts to 1 (in later code)
 #if SOL >= 1
 	// Now that we know the size of physical memory,
 	// reserve enough space for the pageinfo array
@@ -112,44 +108,32 @@ mem_init(void)
 	spinlock_init(&mem_freelock);
 #endif
 	pageinfo **freetail = &mem_freelist;
-	int i;
-	int j;
-	int lies_in_free_region = 0;
-	int page_start;
-	int page_end;
-	int base;
-	int size;
-
-	int region_start;
-	int region_end;
-	int k;
-
+	
 	for(i=0;i<mem_npage;i++) {
 		mem_pageinfo[i].refcount = 1;
 	}
 
-	//i = 2;
-	int inuse = 1;
-	for(j=0;j<mem_map_entries;j++) {
-
-		//The memory layout is as under
-		// -----------------------------------------------
-		// | p0 | p1 | p2 | ... | basemem | kernel | free
-		// -----------------------------------------------
-		// | B  | B  | F  | F   |           B      | F
-		// -----------------------------------------------
-		// here B indicates "not-free" and F indicates "free"
-		// we need to check if the memory map region lies in the "F" region
-		// if it does not, we try to clamp it so that it does.
+	for(i=0;i<mem_map_entries;i++) {
 		
-		region_start = e820_mem_array[j].base;
-		region_end = region_start + e820_mem_array[j].size - 1;
+		int region_start;
+		int region_end;
+
+	//The memory layout is as unider
+	// -------------------------------------------------
+	// | p0 | p1 | p2 | ... | basemem | kernel | freemem
+	// -------------------------------------------------
+	// | B  | B  | F  | F   |           B      | F
+	// -------------------------------------------------
+	// here B indicates "not-free" and F indicates "free"
+	// we need to check if the memory map region lies in the "F" region
+	// if it does not, we try to clamp it so that it does.
+		
+		region_start = mem_array[i].base;
+		region_end = region_start + mem_array[i].size;
 
 		if(region_end < mem_phys(freemem) && region_start >= basemem) {
 			continue; //this region containts the kernel etc.
 		}
-		if(region_end <= 2*PAGESIZE)
-			continue; //this region is in the lower memory (pages 0 and 1 are not for use)
 
 		if(region_start < 2*PAGESIZE ) {
 			region_start = 2*PAGESIZE;
@@ -159,7 +143,8 @@ mem_init(void)
 		else if (region_start < basemem && region_end > basemem) {
 			region_end = basemem;
 		}
-		else if (region_start < mem_phys(freemem) && region_end > mem_phys(freemem)) {
+		else if (region_start < mem_phys(freemem) 
+				&& region_end > mem_phys(freemem)) {
 			region_start = mem_phys(freemem);
 		}
 
@@ -167,16 +152,17 @@ mem_init(void)
 		region_start = ROUNDUP(region_start, PAGESIZE);
 		region_end = ROUNDDOWN(region_end, PAGESIZE);
 
-		for(k=region_start;k<region_end;k+=PAGESIZE) {
+		for(j=region_start;j<region_end;j+=PAGESIZE) {
 
 			//get the page index into the page info table
-			i = k/PAGESIZE;
-			assert(i<mem_npage);
+			int page_no;
+			page_no = j/PAGESIZE;
+			assert(page_no<mem_npage);
 			//alloc the page
-			mem_pageinfo[i].refcount = 0;
+			mem_pageinfo[page_no].refcount = 0;
 			// Add the page to the end of the free list.
-			*freetail = &mem_pageinfo[i];
-			freetail = &mem_pageinfo[i].free_next;
+			*freetail = &mem_pageinfo[page_no];
+			freetail = &mem_pageinfo[page_no].free_next;
 		}
 
 	}
@@ -206,7 +192,6 @@ mem_init(void)
 	//     but YOU decide where to place the pageinfo array.
 	// Change the code to reflect this.
 	pageinfo **freetail = &mem_freelist;
-	int i;
 	for (i = 0; i < mem_npage; i++) {
 		// A free page has no references to it.
 		mem_pageinfo[i].refcount = 0;
@@ -225,7 +210,7 @@ mem_init(void)
 	mem_check();
 }
 
-int detect_memory_e820(struct e820_mem_map e820_mem_array[MEM_MAP_MAX])
+int detect_memory_e820(struct e820_mem_map mem_array[MEM_MAP_MAX])
 {
 	struct bios_regs regs; 
 	
@@ -246,25 +231,31 @@ int detect_memory_e820(struct e820_mem_map e820_mem_array[MEM_MAP_MAX])
 		regs.int_no = 0x15; //interrupt number
 		regs.eax = 0xe820; //BIOS function to call
 		regs.edx = SMAP; //must be set to SMAP value.
-		regs.ecx = 0x00000018; //ask the BIOS to fill 24 bytes (24 is the buffer size as needed by ACPI 3.x).
-		regs.es = BIOS_BUFF_ES; //segment number of the buffer the BIOS fills
-		regs.edi = BIOS_BUFF_DI;//offset of the buffer BIOS fills (es and di determine buffer address).
+		regs.ecx = 0x00000018; //ask the BIOS to fill 24 bytes 
+		                //(24 is the buffer size as needed by ACPI 3.x).
+		regs.es = BIOS_BUFF_ES; //segment number of the buffer
+		                        //the BIOS fills
+		regs.edi = BIOS_BUFF_DI;//offset of the buffer BIOS fills
+		                        //(es and di determine buffer address).
 		regs.ds = 0x0000; //ds is not needed
 		regs.esi = 0x00000000; //esi is not needed
 
 		bios_call(&regs);
 
 		//read the e820 memory map
-		assert(regs.es == BIOS_BUFF_ES && regs.edi == BIOS_BUFF_DI); //check if bios has trashed these registers
-									     //we use these macros to read memory map
+
+		//check if bios has trashed these registers
+  	        //we use these macros to read memory map
+		assert(regs.es == BIOS_BUFF_ES && regs.edi == BIOS_BUFF_DI);
+		
 		// check for usable memory
 		if (*e820_type == E820TYPE_MEMORY || *e820_type == E820TYPE_ACPI) 
 		{
 			assert(e820_ctr < MEM_MAP_MAX); 
 
-			e820_mem_array[e820_ctr].base = ((uint64_t)(*e820_base_high)<<32) + (*e820_base_low);
-			e820_mem_array[e820_ctr].size = ((uint64_t)(*e820_size_high)<<32) + (*e820_size_low);
-			e820_mem_array[e820_ctr].type = (*e820_type);
+			mem_array[e820_ctr].base = ((uint64_t)(*e820_base_high)<<32) + (*e820_base_low);
+			mem_array[e820_ctr].size = ((uint64_t)(*e820_size_high)<<32) + (*e820_size_low);
+			mem_array[e820_ctr].type = (*e820_type);
 			e820_ctr++;
 		}
 
