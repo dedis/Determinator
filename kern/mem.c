@@ -281,7 +281,6 @@ int detect_memory_e820(struct e820_mem_map e820_mem_array[MEM_MAP_MAX])
 	regs.ebx = 0x00000000; //must be set to 0 for initial call
 	regs.cf = 0x00; //initialize this to 0
 
-	bios_call(&regs); //the first call
 
 	do
 	{
