@@ -116,11 +116,6 @@ bioscall:
 	sidt IDT_MEM_LOC
 	sgdt GDT_MEM_LOC
 
-	movl SMAP,%edx
-	movl $24,%ecx
-	movl $0,%ebx
-
-
 	//start the transition into real mode
 	cli
 
@@ -153,7 +148,7 @@ bioscall:
 
 	//patch the int instruction
 	movw $start,%bp 
-	movb INT_NO(%bp),%al
+	movb BIOSCALL_INT_NO(%bp),%al
 	movb %al,int_call+1
 
 	//disable protection bit
@@ -181,19 +176,16 @@ bioscall:
 	//setup for the bios call
 	movw $start,%bp 
 	//load the registers needed by the BIOS
-	movl EAX(%bp),%eax
-	movl EBX(%bp),%ebx
-	movl ECX(%bp),%ecx
-	movl EDX(%bp),%edx
-	movl ESI(%bp),%esi
-	movl EDI(%bp),%edi
-	movw DS(%bp),%ds
-	movw ES(%bp),%es
-
-	
+	movl BIOSCALL_EAX(%bp),%eax
+	movl BIOSCALL_EBX(%bp),%ebx
+	movl BIOSCALL_ECX(%bp),%ecx
+	movl BIOSCALL_EDX(%bp),%edx
+	movl BIOSCALL_ESI(%bp),%esi
+	movl BIOSCALL_EDI(%bp),%edi
+	movw BIOSCALL_DS(%bp),%ds
+	movw BIOSCALL_ES(%bp),%es
 
 	//make the bios call
-	//XXX: Use interrupt vector at $start+INT_NO !!
 	cli
 int_call:
 	int $0
@@ -201,18 +193,18 @@ int_call:
 
 	//move the register values back to the struct
 	movw $start,%bp 
-	movl %eax,EAX(%bp)
-	movl %ebx,EBX(%bp)
-	movl %ecx,ECX(%bp)
-	movl %edx,EDX(%bp)
-	movl %esi,ESI(%bp)
-	movl %edi,EDI(%bp)
-	movw %ds,DS(%bp)
-	movw %es,ES(%bp)
+	movl %eax,BIOSCALL_EAX(%bp)
+	movl %ebx,BIOSCALL_EBX(%bp)
+	movl %ecx,BIOSCALL_ECX(%bp)
+	movl %edx,BIOSCALL_EDX(%bp)
+	movl %esi,BIOSCALL_ESI(%bp)
+	movl %edi,BIOSCALL_EDI(%bp)
+	movw %ds,BIOSCALL_DS(%bp)
+	movw %es,BIOSCALL_ES(%bp)
 
 	//check the carry flag
 	setc %al
-	movb %al,CF(%bp)
+	movb %al,BIOSCALL_CF(%bp)
 
 	//prepare to go back in 32 bit
 //	cli

@@ -24,16 +24,16 @@
 
 //offsets for registers used as input to bios calls
 //offsets are in bits (helps in assembly)
-#define INT_NO -8
-#define ES -24
-#define DS -40
-#define EDI -72
-#define ESI -104
-#define EDX -136
-#define ECX -168
-#define EBX -200
-#define EAX -232
-#define CF  -240
+#define BIOSCALL_INT_NO -8
+#define BIOSCALL_ES -24
+#define BIOSCALL_DS -40
+#define BIOSCALL_EDI -72
+#define BIOSCALL_ESI -104
+#define BIOSCALL_EDX -136
+#define BIOSCALL_ECX -168
+#define BIOSCALL_EBX -200
+#define BIOSCALL_EAX -232
+#define BIOSCALL_CF  -240
 
 //memory locations to store bios buffer (buffer filled by the bios is <= 24 bytes as per ACPI 3.x)
 #define BIOS_BUFF_ES 0x0
@@ -183,7 +183,7 @@ struct e820_mem_map {
 
 #define MEM_MAP_MAX 10
 
-int detect_memory_e820(struct e820_mem_map *m); //returns number of memory map entries
+int detect_memory_e820(struct e820_mem_map m[MEM_MAP_MAX]); //returns number of memory map entries
 
 
 //Register values as needed by BIOS calls.
