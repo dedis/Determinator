@@ -6,6 +6,7 @@
  * See section "MIT License" in the file LICENSES for licensing terms.
  *
  * Primary author: Bryan Ford
+ * Adapted for 64-bit PIOS by Rajat Goyal at IIT Delhi
  */
 #ifndef PIOS_KERN_SEG_H
 #define PIOS_KERN_SEG_H
@@ -14,16 +15,17 @@
 #endif
 
 
-// Protected-mode segment selectors in the kernel's GDT
-// except for SEG_TSS, one 8-byte code/data segment is followed by one 8-byte null segment
-#define SEG_NULL	    0x00	// null descriptor (required by x86 processor)
+// Segment selectors in the kernel's GDT
+// Except for SEG_TSS, one 8-byte code/data segment is followed by one 8-byte null segment
+#define SEG_NULL	0x00	// null descriptor (required by x86 processor)
 #define SEG_KERN_CS_32	0x10	// 32-bit kernel code segment
 #define SEG_KERN_DS_32	0x20	// 32-bit kernel data segment
 #define SEG_KERN_CS_64	0x30	// 64-bit kernel code segment
 #define SEG_KERN_DS_64  0x40	// 64-bit kernel data segment
-#define SEG_USER_CS_64	0x50	// 64-bit user segment
-#define SEG_TSS			0x60	// Task state segment
-#define CPU_GDT_NDESC	7	// number of GDT entries used, including null
+#define SEG_USER_CS_64	0x50	// 64-bit user code segment
+#define SEG_USER_DS_64  0x60	// 64-bit user data segment
+#define SEG_TSS		0x70	// Task state segment
+#define CPU_GDT_NDESC	8	// number of GDT entries used, including null
 
 
 #ifndef __ASSEMBLER__

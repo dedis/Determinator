@@ -43,29 +43,34 @@ cpu cpu_boot = {
 					0xffffffff, 0, 0),
 */
 
-		// 0x20 - 32-bit kernel code segment
-		[SEG_KERN_CS_32 >> 4] = SEGDESC64(1, STA_X | STA_R, 0L,
-					0xffffffff, 0, 0),
+		// 0x10 - 32-bit kernel code segment
+		[SEG_KERN_CS_32 >> 4] = SEGDESC64(1, STA_X | STA_R, 
+					0L, 0xffffffff, 0, 0),
 #if SOL >= 1
 
-		// 0x30 - 32-bit kernel data segment
+		// 0x20 - 32-bit kernel data segment
 		[SEG_KERN_DS_32 >> 4] = SEGDESC64(1, STA_W,
 					0L, 0xffffffff, 0, 0),
 
-		// 0x40 - 64-bit kernel segment (both CS and DS)
+		// 0x30 - 64-bit kernel code segment
 		[SEG_KERN_CS_64 >> 4] = SEGDESC64(1, STA_X | STA_R,
 					0L, 0xffffffff, 0, 1),
 
+		// 0x40 - 64-bit kernel data segment
 		[SEG_KERN_DS_64 >> 4] = SEGDESC64(1, STA_W,
 					0L, 0xffffffff, 0, 1),
 
 #if LAB >= 9
-		// 0x50 - 64-bit user segment (both CS and DS)
+		// 0x50 - 64-bit user code segment
 		[SEG_USER_CS_64 >> 4] = SEGDESC64(1, STA_X | STA_R,
 					0L, 0xffffffff, 3, 1),
 
+		// 0x60 - 64-bit user data segment
+                [SEG_USER_DS_64 >> 4] = SEGDESC64(1, STA_W,
+                                        0L, 0xffffffff, 3, 1),
+
 #endif
-		// 0x60 - tss, initialized in cpu_init()
+		// 0x70 - tss, initialized in cpu_init()
 		[SEG_TSS >> 4] = SEGDESC_NULL,
 #endif	// SOL >= 1
 	},

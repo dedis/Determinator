@@ -11,6 +11,7 @@
  */
 
 
+#include <inc/types.h>
 #include <inc/x86.h>
 #include <inc/mmu.h>
 #include <inc/cdefs.h>
@@ -49,16 +50,27 @@ uint8_t pmap_zero[PAGESIZE] gcc_aligned(PAGESIZE);
 // The user part of the address space remains all PTE_ZERO until later.
 //
 
-/*
-void
+int
 pmap_init_boot(void) {
-		extern char _end[];
-                int i = 0;
-                for (i = 0; i < NPRENTRIES; i++)
-                        pmap_bootpmap[i] = ((intptr_t)i << PDSHIFT(NPTLVLS))
-                                | PTE_P | PTE_W | PTE_G;
+	// page table entries created in 32-bit mode in preparation
+	// for entry into 64-bit mode
+	// memory till 0x800000 exclusive (smallest page aligned address
+	// greater than _end = 0x7090d0) mapped using 4KB global pages 
+	// (non-TLB-flushed) only
+	extern pte_t bootp3tab[NPTENTRIES];
+	extern pte_t bootp2tab[NPTENTRIES];
+	extern pte_t bootp1tab[4*NPTENTRIES];
+	pmap_bootpmap[0] = (pte_t)bootp3tab + (PTE_P | PTE_W);
+	bootp3tab[0] = (pte_t)bootp2tab + (PTE_P | PTE_W);
+	int i;
+	for (i = 0; i < 4; i++) {
+		bootp2tab[i] = (pte_t)&bootp1tab[i*NPTENTRIES] + (PTE_P | PTE_W);
+	}
+        for (i = 0; i < 4*NPTENTRIES; i++) {
+	        bootp1tab[i] = (pte_t)(i << PAGESHIFT) + (PTE_P | PTE_W | PTE_G);
+	}
+	return 0;
 }
-*/
 
 void
 pmap_init(void)

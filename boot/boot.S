@@ -110,15 +110,12 @@ spin:
 .p2align 2                                # force 4 byte alignment
 gdt:
   SEG_NULL				# null seg
-  SEG(0xA, 0x0, 0xffffffff)	# code seg
+  SEG(0xA, 0x0, 0xffffffff)		# code seg
   SEG(0x2, 0x0, 0xffffffff)	        # data seg
 */
 
 // NEW GDT
-// Temporary 32-bit GDT for switching to protected mode, then long mode.
-// Place it in our text segment to ensure that it stays
-// in the lowest 64KB real-mode segment.
-        .p2align 3
+.p2align 3
 gdt:
         SEGNULL                         // null segment
         SEG64(0,0xfffff,0xa,0,0)        // 0x10: 32-bit kernel code segment

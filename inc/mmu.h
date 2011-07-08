@@ -203,8 +203,9 @@
 	.long 0,0,0,0
 #define SEG32(base,limit,type,dpl,mode)                                      \
         .word (((limit) >> 12) & 0xffff), ((base) & 0xffff);      \
-        .byte (((base) >> 16) & 0xff), (0x90 | (type) | ((dpl)<<5)),         \
-                (0x80 | ((((~(mode)) << 1) | (mode)) << 5) | (((limit) >> 28) & 0xf)), (((base) >> 24) & 0xff)
+        .byte (((base) >> 16) & 0xff), (0x90 | (type) | ((dpl)<<5)),     \
+             (0x80 | ((((~(mode)) << 1) | (mode)) << 5) |         \
+	     (((limit) >> 28) & 0xf)), (((base) >> 24) & 0xff)
 #define SEG64(base,limit,type,dpl,mode) \
 	SEG32(base,limit,type,dpl,mode); \
 	.long	(base >> 32), 0
@@ -242,9 +243,9 @@ typedef struct segdesc {
     (type), (app), (dpl), 1, (unsigned) (lim) >> 28, 0, (mode), ~(mode), 1,	\
     (unsigned) ((base) >> 24) & 0xff, (base) >> 32, 0 }
 
-#define SEGDESC32(app, type, base, lim, dpl) (struct segdesc)		\
+#define SEGDESC32(app, type, base, lim, dpl, mode) (struct segdesc)		\
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
-    (type), (app), (dpl), 1, (unsigned) (lim) >> 28, 0, 0, 1, 1,	\
+    (type), (app), (dpl), 1, (unsigned) (lim) >> 28, 0, (mode), ~(mode), 1,	\
     (unsigned) (base) >> 24, 0, 0 }
 #define SEGDESC16(app, type, base, lim, dpl) (struct segdesc)		\
 { (lim) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,		\

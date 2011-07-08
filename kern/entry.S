@@ -65,85 +65,18 @@ start: _start:
 	orl	$KERN_CR4,%eax
 	movl	%eax,%cr4
 
-//	call pmap_init_boot
+	call pmap_init_boot
 
-	// map the low 2MB memory using a single 2MB global
-	// (non-TLB-flushed) page
-	// map till 0x800000 exclusive (smallest 2MB aligned address greater than _end = 0x7060d0)
+/*	// map till 0x800000 exclusive (0x800000 is the smallest
+	// 2MB aligned address greater than _end = 0x7060d0)
+	// only 2MB global (non-TLB-flushed) pages are used
 	movl $bootp3tab+(PTE_P|PTE_W),pmap_bootpmap
 	movl $bootp2tab+(PTE_P|PTE_W),bootp3tab
 	movl $0+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab
 	movl $(1<<21)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab+8
 	movl $(2<<21)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab+16
 	movl $(3<<21)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab+24
-
-/*	// Set up the boot page tables to identity map the bottom 4GB of memory,
-	// which is the kernel VM region, using 2MB global (non-TLB-flushed) pages
-	movl $bootp3tab+(PTE_P|PTE_W),pmap_bootpmap
-
-	movl $bootp2tab0+(PTE_P|PTE_W),bootp3tab
-        movl $bootp2tab1+(PTE_P|PTE_W),bootp3tab+8
-        movl $bootp2tab2+(PTE_P|PTE_W),bootp3tab+16
-        movl $bootp2tab3+(PTE_P|PTE_W),bootp3tab+24
-
-        movl $511,%ecx
-        movl $0,%eax
-1:      movl %ecx,%eax
-        sall $21,%eax
-        addl $(PTE_P|PTE_W|PTE_G|PTE_PS),%eax
-        movl %ecx,%ebx
-        sall $3,%ebx
-        addl $bootp2tab0,%ebx
-        movl %eax,(%ebx)
-        loop 1b
-	movl $0+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab0
-
-        movl $511,%ecx
-        movl $0,%eax
-1:      movl %ecx,%eax
-        sall $21,%eax
-        movl $1,%edx
-        sall $30,%edx
-        addl %edx,%eax
-        addl $(PTE_P|PTE_W|PTE_G|PTE_PS),%eax
-        movl %ecx,%ebx
-        sall $3,%ebx
-        addl $bootp2tab1,%ebx
-        movl %eax,(%ebx)
-        loop 1b
-        movl $(1<<30)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab1
-
-        movl $511,%ecx
-        movl $0,%eax
-1:      movl %ecx,%eax
-        sall $21,%eax
-        movl $2,%edx
-        sall $30,%edx
-        addl %edx,%eax
-        addl $(PTE_P|PTE_W|PTE_G|PTE_PS),%eax
-        movl %ecx,%ebx
-        sall $3,%ebx
-        addl $bootp2tab2,%ebx
-        movl %eax,(%ebx)
-        loop 1b
-	movl $(2<<30)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab2
-
-        movl $511,%ecx
-        movl $0,%eax
-1:      movl %ecx,%eax
-        sall $21,%eax
-        movl $3,%edx
-        sall $30,%edx
-        addl %edx,%eax
-        addl $(PTE_P|PTE_W|PTE_G|PTE_PS),%eax
-        movl %ecx,%ebx
-        sall $3,%ebx
-        addl $bootp2tab3,%ebx
-        movl %eax,(%ebx)
-        loop 1b
-        movl $(3<<30)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab3
 */
-
 
 	// load CR3 to point to our boot page table structure
 	movl	$pmap_bootpmap,%eax
@@ -179,7 +112,7 @@ entry64:	// we are now in 64-bit mode.
 	movw	%ax,%gs
 
 	// initialize stack and frame pointers
-	movq	$start,%rsp
+	movq	$multiboot_header,%rsp
 	# Clear the frame pointer register (RBP)
         # so that once we get into debugging C code,
         # stack backtraces will be terminated properly.
@@ -203,7 +136,8 @@ gdt:
 	SEG64(0,0xfffff,STA_W,0,0)		// 0x20: 32-bit kernel data segment
 	SEG64(0,0xfffff,STA_X | STA_R,0,1)	// 0x30: 64-bit kernel code segment
 	SEG64(0,0xfffff,STA_W,0,1)		// 0x40: 64-bit kernel data segment
-	SEG64(0,0xfffff,STA_X | STA_R,3,1)	// 0x50: 64-bit user segment
+	SEG64(0,0xfffff,STA_X | STA_R,3,1)	// 0x50: 64-bit user code segment
+	SEG64(0,0xfffff,STA_W,3,1)		// 0x60: 64-bit user data segment
 gdtend:
 
 	.data
@@ -223,6 +157,6 @@ bootp3tab:
 bootp2tab:
 	.space	4096
 bootp1tab:
-	.space  4096
+	.space  4*4096
 
 #endif // LAB >= 1

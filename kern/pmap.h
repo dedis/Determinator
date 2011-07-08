@@ -23,7 +23,7 @@
 
 
 // PML4/PDP/PD/PT entries are 64-bit integers.
-typedef intptr_t pte_t;
+typedef uintptr_t pte_t;
 
 
 // Bootstrap page map root that identity-maps the kernel's address space.
