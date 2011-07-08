@@ -26,8 +26,6 @@
 #include <kern/net.h>
 #endif
 
-#include <dev/nvram.h>
-
 size_t mem_max;			// Maximum physical address
 size_t mem_npage;		// Total number of physical memory pages
 
@@ -47,26 +45,16 @@ mem_init(void)
 	if (!cpu_onboot())	// only do once, on the boot CPU
 		return;
 
-	// Determine how much base (<640K)
-	// is available in the system (in bytes),
-	// by reading the PC's BIOS-managed nonvolatile RAM (NVRAM).
-	// The NVRAM tells us how many kilobytes there are.
-	// Since the count is 16 bits, this gives us up to 64MB of RAM;
-	// additional RAM beyond that would have to be detected another way.
-	size_t basemem = ROUNDDOWN(nvram_read16(NVRAM_BASELO)*1024, PAGESIZE);
-
-	//prepare registers to make an int 0x15 e820 call
-	//to determine physical memory.	
-	//refer to link: http://www.uruk.org/orig-grub/mem64mb.html	
+	// make an int 0x15, e820 call
+	// to determine physical memory.	
+	// refer to link: http://www.uruk.org/orig-grub/mem64mb.html	
 
 	struct e820_mem_map mem_array[MEM_MAP_MAX];	
 	uint16_t mem_map_entries = detect_memory_e820(mem_array);
 	uint16_t temp_ctr;
 	uint64_t total_ram_size = 0;
 	mem_max = 0;
-	int i;
-	int j;
-	int k;
+	int i,j,k;
 
 	for(i=0;i<mem_map_entries;i++)
 	{
@@ -115,36 +103,25 @@ mem_init(void)
 
 	for(i=0;i<mem_map_entries;i++) {
 		
-		int region_start;
-		int region_end;
+		//The memory layout is as under
+		// -------------------------------------------------
+		// | p0 | p1 | p2 | ... | basemem | kernel | freemem
+		// -------------------------------------------------
+		// | B  | B  | F  | F   |           B      | F
+		// -------------------------------------------------
+		// here B indicates "not-free" and F indicates "free"
+		// we need to check if the memory map region lies in 
+		// the "F" region if it does not, 
+		// we try to clamp it so that it does.
 
-	//The memory layout is as unider
-	// -------------------------------------------------
-	// | p0 | p1 | p2 | ... | basemem | kernel | freemem
-	// -------------------------------------------------
-	// | B  | B  | F  | F   |           B      | F
-	// -------------------------------------------------
-	// here B indicates "not-free" and F indicates "free"
-	// we need to check if the memory map region lies in the "F" region
-	// if it does not, we try to clamp it so that it does.
-		
-		region_start = mem_array[i].base;
-		region_end = region_start + mem_array[i].size;
-
-		if(region_end < mem_phys(freemem) && region_start >= basemem) {
-			continue; //this region containts the kernel etc.
-		}
+		int region_start = mem_array[i].base;
+		int region_end = region_start + mem_array[i].size;
 
 		if(region_start < 2*PAGESIZE ) {
 			region_start = 2*PAGESIZE;
-				if(region_end > basemem)
-					region_end = basemem;
-		}
-		else if (region_start < basemem && region_end > basemem) {
-			region_end = basemem;
 		}
 		else if (region_start < mem_phys(freemem) 
-				&& region_end > mem_phys(freemem)) {
+				&& region_end > mem_phys(start)) {
 			region_start = mem_phys(freemem);
 		}
 
@@ -158,7 +135,7 @@ mem_init(void)
 			int page_no;
 			page_no = j/PAGESIZE;
 			assert(page_no<mem_npage);
-			//alloc the page
+			//mark the page as unused
 			mem_pageinfo[page_no].refcount = 0;
 			// Add the page to the end of the free list.
 			*freetail = &mem_pageinfo[page_no];
@@ -249,7 +226,8 @@ int detect_memory_e820(struct e820_mem_map mem_array[MEM_MAP_MAX])
 		assert(regs.es == BIOS_BUFF_ES && regs.edi == BIOS_BUFF_DI);
 		
 		// check for usable memory
-		if (*e820_type == E820TYPE_MEMORY || *e820_type == E820TYPE_ACPI) 
+		if (*e820_type == E820TYPE_MEMORY 
+				|| *e820_type == E820TYPE_ACPI) 
 		{
 			assert(e820_ctr < MEM_MAP_MAX); 
 
@@ -272,16 +250,18 @@ int detect_memory_e820(struct e820_mem_map mem_array[MEM_MAP_MAX])
 
 void bios_call(struct bios_regs *inp)
 {
-	struct bios_regs *lowmem_bios_regs = (struct bios_regs *)(lowmem_bootother_vec - sizeof(struct bios_regs));
+	struct bios_regs *lowmem_bios_regs = 
+		(struct bios_regs *)
+			(lowmem_bootother_vec - sizeof(struct bios_regs));
 
+	//just a check to see if the struct and macro are updated and in sync
 	assert(BIOSREGS_SIZE == sizeof(struct bios_regs));
 
 	//now copy register values to low memory
 	*lowmem_bios_regs = *inp;
-	cprintf("");
 	
-	//FIXME:: Use the macro 
-	asm volatile("call *0x1004");
+	asm volatile("call *0x1004": : :
+			"eax","ebx","ecx","edx","esi","memory");
 
 	//copy the values back into the regs structure.
 	*inp = *lowmem_bios_regs;
