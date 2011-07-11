@@ -25,10 +25,10 @@
 // PML4/PDP/PD/PT entries are 64-bit integers.
 typedef uintptr_t pte_t;
 
-
-// Bootstrap page map root that identity-maps the kernel's address space.
-// For 64-bit the root is a page map level-4 with NPRENTRIES entries.
-extern pte_t pmap_bootpmap[NPRENTRIES];
+// Statically allocated page directory mapping the kernel's address space.
+// We use this as a template for all pdirs for user-level processes.
+pte_t pmap_bootpmap[NPRENTRIES] gcc_aligned(PAGESIZE);
+// extern pte_t pmap_bootpmap[NPRENTRIES];
 
 // Statically allocated page that we always keep set to all zeros.
 extern uint8_t pmap_zero[PAGESIZE];

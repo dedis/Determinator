@@ -81,8 +81,9 @@ init(void)
 	// Before anything else, complete the ELF loading process.
 	// Clear all uninitialized global data (BSS) in our program,
 	// ensuring that all static/global variables start out zero.
-	if (cpu_onboot())
-		memset(edata, 0, end - edata);
+	// REMOVED : done in kern/entry.S
+	// if (cpu_onboot())
+	//	memset(edata, 0, end - edata);
 
 	// Initialize the console.
 	// Can't call cprintf until after we do this!

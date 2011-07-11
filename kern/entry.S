@@ -13,6 +13,10 @@
 
 #include <inc/mmu.h>
 #include <kern/cpu.h>
+#if LAB >= 3
+#include <inc/trap.h>
+#endif
+
 
 #define MULTIBOOT_PAGE_ALIGN  (1<<0)
 #define MULTIBOOT_MEMORY_INFO (1<<1)
@@ -65,21 +69,31 @@ start: _start:
 	orl	$KERN_CR4,%eax
 	movl	%eax,%cr4
 
-	call pmap_init_boot
+	// identity map VM till 0x800000 exclusive (kernel end _end = 0x7090d0)
+	// only 4KB global (non-TLB-flushed) pages are used
+	movl $bootp3tab+(PTE_P|PTE_W),bootp4tab
 
-/*	// map till 0x800000 exclusive (0x800000 is the smallest
-	// 2MB aligned address greater than _end = 0x7060d0)
-	// only 2MB global (non-TLB-flushed) pages are used
-	movl $bootp3tab+(PTE_P|PTE_W),pmap_bootpmap
 	movl $bootp2tab+(PTE_P|PTE_W),bootp3tab
-	movl $0+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab
-	movl $(1<<21)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab+8
-	movl $(2<<21)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab+16
-	movl $(3<<21)+(PTE_P|PTE_W|PTE_G|PTE_PS),bootp2tab+24
-*/
+
+	movl $bootp1tab+(PTE_P|PTE_W),bootp2tab
+	movl $bootp1tab+(8*512)+(PTE_P|PTE_W),bootp2tab+8
+	movl $bootp1tab+(2*8*512)+(PTE_P|PTE_W),bootp2tab+16
+	movl $bootp1tab+(3*8*512)+(PTE_P|PTE_W),bootp2tab+24
+
+	movl $bootp1tab,%edx
+	xorl %eax,%eax
+1:	movl %eax,%ecx
+	addl $1,%eax
+	shll $12,%ecx
+	addl $(PTE_P|PTE_W|PTE_G),%ecx
+	movl %ecx,(%edx)
+	addl $0x8,%edx
+	cmpl $0x800,%eax
+	jne 1b
+	
 
 	// load CR3 to point to our boot page table structure
-	movl	$pmap_bootpmap,%eax
+	movl	$bootp4tab,%eax
 	movl	%eax,%cr3
 
 	// enable long mode (and other EFER features we want)
@@ -111,8 +125,14 @@ entry64:	// we are now in 64-bit mode.
 	movw	%ax,%fs
 	movw	%ax,%gs
 
-	// initialize stack and frame pointers
-	movq	$multiboot_header,%rsp
+#if LAB >= 3
+        # Leave a few words on the stack for the user trap frame
+        movq    $(cpu_boot+4096-SIZEOF_STRUCT_TRAPFRAME),%rsp
+#else
+        # Set the stack pointer
+        movq    $(cpu_boot+4096),%rsp
+#endif
+	
 	# Clear the frame pointer register (RBP)
         # so that once we get into debugging C code,
         # stack backtraces will be terminated properly.
@@ -146,16 +166,17 @@ kerngdtptr:
         .quad   gdt                     // base (kernel linear address)
 
 
-// Space for minimal bootstrap page table structures
+// Space for page table structures
 	.bss
 	.p2align 12
-	.globl pmap_bootpmap, bootp3tab, bootp2tab, bootp1tab
-pmap_bootpmap:
+	.globl bootp4tab, bootp3tab, bootp2tab, bootp1tab
+bootp4tab:
 	.space	4096
 bootp3tab:
 	.space	4096
 bootp2tab:
 	.space	4096
+// allocating space for four 1-level page tables
 bootp1tab:
 	.space  4*4096
 

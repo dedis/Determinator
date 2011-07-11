@@ -228,7 +228,7 @@ cpu_alloc(void)
 void
 cpu_bootothers(void)
 {
-	extern intptr_t pmap_bootpmap[];
+	extern uintptr_t pmap_bootpmap[];
 	extern uint8_t _binary_obj_boot_bootother_start[],
 			_binary_obj_boot_bootother_size[];
 
