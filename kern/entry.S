@@ -169,7 +169,7 @@ kerngdtptr:
 // Space for page table structures
 	.bss
 	.p2align 12
-	.globl bootp4tab, bootp3tab, bootp2tab, bootp1tab
+	.globl bootp4tab
 bootp4tab:
 	.space	4096
 bootp3tab:

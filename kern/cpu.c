@@ -90,7 +90,9 @@ cpu_info()
 
 	char str[12+1];
 	cpuid(0x00, &inf);
+cprintf("reached beginning of memcpy in cpu_info\n");
 	memcpy(str, &inf.ebx, 12);
+cprintf("reached end of memcpy in cpu_info\n");
 	str[12] = 0;
 	cpuid(0x01, &inf);
 
@@ -150,8 +152,11 @@ void cpu_init()
 
 #if SOL >= 1
 #if SOL >= 9
-	if (cpu_onboot())
+cprintf("cpu_onboot()is:%d\n", cpu_onboot());
+	if (cpu_onboot()) {
+cprintf("cpu_onboot is true\n");
 		cpu_info();
+	}
 #endif
 
 	// Setup the TSS for this cpu so that we get the right stack

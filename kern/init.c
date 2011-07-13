@@ -152,18 +152,18 @@ init(void)
 	// Conjure up a trapframe and "return" to it to enter user mode.
 	static trapframe utf = {
 #if LAB >= 9
-		gs: CPU_GDT_UDTLS | 3,
+		gs: SEG_USER_DS_64 | 3,
 #else
 		gs: 0,
 #endif
-		fs: 0,
-		ds: CPU_GDT_UDATA | 3,
-		es: CPU_GDT_UDATA | 3,
-		eip: (uint32_t) user,
-		cs: CPU_GDT_UCODE | 3,
-		eflags: FL_IOPL_3,	// let user() output to console
-		esp: (uint32_t) &user_stack[PAGESIZE],
-		ss: CPU_GDT_UDATA | 3,
+		fs: SEG_USER_DS_64 | 3,
+		ds: SEG_USER_DS_64 | 3,
+		es: SEG_USER_DS_64 | 3,
+		rip: (uintptr_t) user,
+		cs: SEG_USER_CS_64 | 3,
+		rflags: FL_IOPL_3,	// let user() output to console
+		rsp: (uintptr_t) &user_stack[PAGESIZE],
+		ss: SEG_KERN_DS_64 | 3,
 	};
 	trap_return(&utf);
 #elif SOL == 2
