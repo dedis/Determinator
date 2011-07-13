@@ -90,10 +90,8 @@ cpu_info()
 
 	char str[12+1];
 	cpuid(0x00, &inf);
-cprintf("reached beginning of memcpy in cpu_info\n");
-	memcpy(str, &inf.ebx, 12);
-cprintf("reached end of memcpy in cpu_info\n");
-	str[12] = 0;
+	memcpy(str, &inf.ebx, 12); // str = AuthenticAMD or GenuineIntel
+	str[12] = '\0';
 	cpuid(0x01, &inf);
 
 	int family = (inf.eax >> 8) & 0xf;
@@ -152,9 +150,7 @@ void cpu_init()
 
 #if SOL >= 1
 #if SOL >= 9
-cprintf("cpu_onboot()is:%d\n", cpu_onboot());
 	if (cpu_onboot()) {
-cprintf("cpu_onboot is true\n");
 		cpu_info();
 	}
 #endif
@@ -176,11 +172,11 @@ cprintf("cpu_onboot is true\n");
 	asm volatile("lgdt %0" : : "m" (gdt_pd));
 
 	// Reload all segment registers.
-	asm volatile("movw %%ax,%%gs" :: "a" (SEG_USER_CS_64 | 3));
-	asm volatile("movw %%ax,%%fs" :: "a" (SEG_USER_CS_64 | 3));
-	asm volatile("movw %%ax,%%es" :: "a" (SEG_KERN_CS_64));
-	asm volatile("movw %%ax,%%ds" :: "a" (SEG_KERN_CS_64));
-	asm volatile("movw %%ax,%%ss" :: "a" (SEG_KERN_CS_64));
+	asm volatile("movw %%ax,%%gs" :: "a" (SEG_USER_DS_64 | 3));
+	asm volatile("movw %%ax,%%fs" :: "a" (SEG_USER_DS_64 | 3));
+	asm volatile("movw %%ax,%%es" :: "a" (SEG_KERN_DS_64));
+	asm volatile("movw %%ax,%%ds" :: "a" (SEG_KERN_DS_64));
+	asm volatile("movw %%ax,%%ss" :: "a" (SEG_KERN_DS_64));
 	// asm volatile("ljmp %0,$1f\n 1:\n" :: "i" (SEG_KERN_CS_64)); // reload CS
 	struct farptr32 fp;
 	asm volatile("movw %1,(%0); movl $1f,2(%0); ljmp (%0)\n 1:\n" : :
