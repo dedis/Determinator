@@ -7,6 +7,7 @@
  *
  * Derived from the MIT Exokernel and JOS.
  * Adapted for PIOS by Bryan Ford at Yale University.
+ * Adapted for 64-bit PIOS by Rajat Goyal at IIT Delhi.
  */
 
 #ifndef PIOS_INC_TRAP_H
@@ -73,10 +74,10 @@
 // and the processor pushes esp and ss
 // only when taking a trap from user mode (privilege level >0).
 typedef struct trapframe {
-	uint16_t gs; uint16_t padding_gs[3];
-	uint16_t fs; uint16_t padding_fs[3];
-	uint16_t es; uint16_t padding_es[3];
-	uint16_t ds; uint16_t padding_ds[3];
+	uint16_t gs;  uint16_t padding_gs[3];
+	uint16_t fs;  uint16_t padding_fs[3];
+	uint16_t es;  uint16_t padding_es[3];
+	uint16_t ds;  uint16_t padding_ds[3];
 	uint64_t r15;
 	uint64_t r14;
 	uint64_t r13;
@@ -95,7 +96,7 @@ typedef struct trapframe {
 	uint64_t trapno;
 
 	// format from here on determined by x86 hardware architecture
-	uint64_t err;
+	uint32_t err; uint32_t padding_err;
 	uintptr_t rip;
 	uint16_t cs;  uint16_t padding_cs[3];
 	uint64_t rflags;

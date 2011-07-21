@@ -125,6 +125,7 @@ entry64:	// we are now in 64-bit mode.
 	movw	%ax,%fs
 	movw	%ax,%gs
 
+/* RAJAT : why is this needed?
 #if LAB >= 3
         # Leave a few words on the stack for the user trap frame
         movq    $(cpu_boot+4096-SIZEOF_STRUCT_TRAPFRAME),%rsp
@@ -132,6 +133,9 @@ entry64:	// we are now in 64-bit mode.
         # Set the stack pointer
         movq    $(cpu_boot+4096),%rsp
 #endif
+*/
+
+	movq    $(cpu_boot+4096),%rsp
 	
 	# Clear the frame pointer register (RBP)
         # so that once we get into debugging C code,

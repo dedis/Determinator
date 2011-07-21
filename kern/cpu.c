@@ -36,13 +36,7 @@ cpu cpu_boot = {
 	gdt: {
 		// 0x0 - unused (always faults: for trapping NULL far pointers)
 		[0] = SEGDESC_NULL,
-
-/*
-		// 0x10 - 16-bit kernel code segment
-		[SEG_KERN_CS_16 >> 4] = SEGDESC64(1, STA_X | STA_R, 0L,
-					0xffffffff, 0, 0),
-*/
-
+		
 		// 0x10 - 32-bit kernel code segment
 		[SEG_KERN_CS_32 >> 4] = SEGDESC64(1, STA_X | STA_R, 
 					0L, 0xffffffff, 0, 0),
@@ -101,8 +95,10 @@ cpu_info()
 		family += (inf.eax >> 20) & 0xff;
 	if (family == 6 || family >= 0xf)
 		model |= ((inf.eax >> 16) & 0xf) << 4;
-
-	cprintf("CPUID: %s %x/%x/%x\n", str, family, model, stepping);
+// TODO: RAJAT
+// str is not being printed for some reason
+//	cprintf("CPUID: %s %x/%x/%x\n", str, family, model, stepping);
+	cprintf("CPUID: %x/%x/%x\n", family, model, stepping);
 }
 
 #define MTRRcap			0x00fe
@@ -150,19 +146,19 @@ void cpu_init()
 
 #if SOL >= 1
 #if SOL >= 9
-	if (cpu_onboot()) {
+	if (cpu_onboot())
 		cpu_info();
-	}
 #endif
 
 	// Setup the TSS for this cpu so that we get the right stack
 	// when we trap into the kernel from user mode.
 	c->tss.ts_rsp[0] = (uintptr_t) c->kstackhi;
 	c->tss.ts_ist[1] = (uintptr_t) c->kstackhi;
+	c->tss.ts_iomb = sizeof(taskstate);
 
 	// Initialize the non-constant part of the cpu's GDT:
 	// the TSS descriptor is different for each cpu.
-	c->gdt[SEG_TSS >> 4] = SEGDESC64(0, STS_T64A, (uintptr_t) (&c->tss),
+	c->gdt[SEG_TSS >> 4] = SEGDESC64_nogran(0, STS_T64A, (uintptr_t) (&c->tss),
 					sizeof(taskstate)-1, 0, 1);
 
 #endif	// SOL >= 1
@@ -171,18 +167,24 @@ void cpu_init()
 		sizeof(c->gdt) - 1, (uintptr_t) c->gdt };
 	asm volatile("lgdt %0" : : "m" (gdt_pd));
 
+/*	// Does not need to be done in 64-bit PIOS
+	// Gegment selectors loaded in kern/entry.S and boot/bootothers.S
+	// after loading the GDTR
+
 	// Reload all segment registers.
-	asm volatile("movw %%ax,%%gs" :: "a" (SEG_USER_DS_64 | 3));
-	asm volatile("movw %%ax,%%fs" :: "a" (SEG_USER_DS_64 | 3));
+	asm volatile("movw %%ax,%%gs" :: "a" (SEG_KERN_DS_64));
+	asm volatile("movw %%ax,%%fs" :: "a" (SEG_KERN_DS_64));
 	asm volatile("movw %%ax,%%es" :: "a" (SEG_KERN_DS_64));
 	asm volatile("movw %%ax,%%ds" :: "a" (SEG_KERN_DS_64));
 	asm volatile("movw %%ax,%%ss" :: "a" (SEG_KERN_DS_64));
-	// asm volatile("ljmp %0,$1f\n 1:\n" :: "i" (SEG_KERN_CS_64)); // reload CS
+	// not working
 	struct farptr32 fp;
 	asm volatile("movw %1,(%0); movl $1f,2(%0); ljmp (%0)\n 1:\n" : :
 			"r" (&fp), "i" (SEG_KERN_CS_64));		// reload CS
+*/
 	// We don't need an LDT.
 	asm volatile("lldt %%ax" :: "a" (0));
+
 #if SOL >= 1
 	// Load the TSS (from the GDT)
 	ltr(SEG_TSS);

@@ -7,6 +7,7 @@
  *
  * Derived from the MIT Exokernel and JOS.
  * Adapted for PIOS by Bryan Ford at Yale University.
+ * Adapted for 64-bit PIOS by Rajat Goyal at IIT Delhi.
  */
 
 #include <inc/mmu.h>
@@ -65,7 +66,6 @@ TRAPHANDLER_NOEC(Xmchk,   T_MCHK)
 TRAPHANDLER_NOEC(Xsimd,   T_SIMD)
 
 #if SOL >= 2
-
 /* ISA device interrupts */
 TRAPHANDLER_NOEC(Xirq0,   T_IRQ0+0)	// IRQ_PIT
 TRAPHANDLER_NOEC(Xirq1,   T_IRQ0+1)	// IRQ_KBD
@@ -83,15 +83,16 @@ TRAPHANDLER_NOEC(Xirq12,  T_IRQ0+12)
 TRAPHANDLER_NOEC(Xirq13,  T_IRQ0+13)
 TRAPHANDLER_NOEC(Xirq14,  T_IRQ0+14)	// IRQ_IDE
 TRAPHANDLER_NOEC(Xirq15,  T_IRQ0+15)
-
 TRAPHANDLER_NOEC(Xsyscall, T_SYSCALL)	// System call
 TRAPHANDLER_NOEC(Xltimer,  T_LTIMER)	// Local APIC timer
 TRAPHANDLER_NOEC(Xlerror,  T_LERROR)	// Local APIC error
+
 #if LAB >= 9
 TRAPHANDLER_NOEC(Xperfctr,  T_PERFCTR)	// Performance counter interrupt
 #endif
 
 #endif	// SOL >= 2
+
 /* default handler -- not for any specific trap */
 TRAPHANDLER_NOEC(Xdefault, T_DEFAULT)
 
@@ -129,7 +130,9 @@ _alltraps:
 	pushw %fs
 	pushw %gs
 
-	movw $SEG_KERN_CS_64,%ax # load kernel's data segment
+	movw $SEG_KERN_DS_64,%ax # load kernel's data segment
+	movw %ax,%ds
+	movw %ax,%es
 
 	xorq %rbp,%rbp		# don't let debug_trace() walk into user space
 
@@ -161,7 +164,7 @@ _alltraps:
 .p2align 4, 0x90		/* 16-byte alignment, nop filled */
 trap_return:
 #if SOL >= 1
-	movq	8(%rsp),%rsp	// reset stack pointer to point to trap frame
+	movq 0x8(%rsp),%rsp	// reset stack pointer to point to trap frame
 	popw %gs
 	popw %fs
 	popw %ax
@@ -183,8 +186,8 @@ trap_return:
 	popq %rcx
 	popq %rbx
 	popq %rax
-	addq $8,%rsp		// skip trapno and errcode
-	iretq				// return from trap handler
+	addq $0x10,%rsp		// skip trapno and errcode
+	iretq			// return from trap handler
 #else // SOL >= 1
 /*
  * Lab 1: Your code here for trap_return

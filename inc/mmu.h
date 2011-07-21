@@ -216,21 +216,21 @@
 
 // Segment Descriptors
 typedef struct segdesc {
-	unsigned sd_lim_15_0 : 16;  // Low bits of segment limit
-	unsigned sd_base_15_0 : 16; // Low bits of segment base address
-	unsigned sd_base_23_16 : 8; // Middle bits of segment base address
-	unsigned sd_type : 4;       // Segment type (see STS_ constants)
-	unsigned sd_s : 1;          // 0 = system, 1 = application
-	unsigned sd_dpl : 2;        // Descriptor Privilege Level
-	unsigned sd_p : 1;          // Present
-	unsigned sd_lim_19_16 : 4;  // High bits of segment limit
-	unsigned sd_avl : 1;        // Unused (available for software use)
-	unsigned sd_l : 1;	    // Long mode bit (1 = 64 bit mode, 0 = legacy mdoe)
-	unsigned sd_db : 1;         // 0 = 16-bit segment, 1 = 32-bit segment
-	unsigned sd_g : 1;          // Granularity: limit scaled by 4K when set
-	unsigned sd_base_31_24 : 8; // High bits of segment base address
-	unsigned sd_base_63_32 : 32;
-	unsigned sd_rsv2 : 32;
+	unsigned sd_lim_15_0 : 16;   // Low bits of segment limit
+	unsigned sd_base_15_0 : 16;  // Low bits of segment base address
+	unsigned sd_base_23_16 : 8;  // Middle bits of segment base address
+	unsigned sd_type : 4;        // Segment type (see STS_ constants)
+	unsigned sd_s : 1;           // 0 = system, 1 = application
+	unsigned sd_dpl : 2;         // Descriptor Privilege Level
+	unsigned sd_p : 1;           // Present
+	unsigned sd_lim_19_16 : 4;   // High bits of segment limit
+	unsigned sd_avl : 1;         // Unused (available for software use)
+	unsigned sd_l : 1;	     // Long mode bit (1 = 64 bit mode, 0 = legacy mdoe)
+	unsigned sd_db : 1;          // 0 = 16-bit segment, 1 = 32-bit segment
+	unsigned sd_g : 1;           // Granularity: limit scaled by 4K when set
+	unsigned sd_base_31_24 : 8;  // High bits of segment base address
+	unsigned sd_base_63_32 : 32; // Highest bits of segment base address
+	unsigned sd_rsv : 32;
 } segdesc;
 
 // Null segment
@@ -241,6 +241,10 @@ typedef struct segdesc {
 #define SEGDESC64(app, type, base, lim, dpl, mode) (struct segdesc)		\
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
     (type), (app), (dpl), 1, (unsigned) (lim) >> 28, 0, (mode), ~(mode), 1,	\
+    (unsigned) ((base) >> 24) & 0xff, (base) >> 32, 0 }
+#define SEGDESC64_nogran(app, type, base, lim, dpl, mode) (struct segdesc)             \
+{ (lim) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,       \
+    (type), (app), (dpl), 1, (unsigned) ((lim) >> 16) & 0xf, 0, (mode), ~(mode), 0,     \
     (unsigned) ((base) >> 24) & 0xff, (base) >> 32, 0 }
 
 #define SEGDESC32(app, type, base, lim, dpl, mode) (struct segdesc)		\
@@ -293,15 +297,15 @@ typedef struct taskstate {
 typedef struct gatedesc {
 	unsigned gd_off_15_0 : 16;   // low 16 bits of offset in segment
 	unsigned gd_ss : 16;         // target selector
-	unsigned gd_ist : 3;		 // must be 0 for call gate
-	unsigned gd_resv1 : 5;        // # args, 0 for interrupt/trap gates
+	unsigned gd_ist : 3;	     // must be 0 for call gate
+	unsigned gd_resv1 : 5;       // # args, 0 for interrupt/trap gates
 	unsigned gd_type : 4;        // type(STS_{CG64,IG64,TG64})
 	unsigned gd_s : 1;           // must be 0 (system)
 	unsigned gd_dpl : 2;         // descriptor(meaning new) privilege level
 	unsigned gd_p : 1;           // Present
-	unsigned gd_off_31_16 : 16;	 // high bits of offset in segment
-	unsigned gd_off_63_32 : 32;
-	unsigned gd_resv2 : 32;
+	unsigned gd_off_31_16 : 16;  // high bits of offset in segment
+	unsigned gd_off_63_32 : 32;  // highest bits of offset in segment
+	unsigned gd_resv2 : 32;	     // reserved
 } gatedesc;
 
 // Set up a normal interrupt/trap gate descriptor (legacy mode only).

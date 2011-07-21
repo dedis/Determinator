@@ -443,7 +443,7 @@ proc_check(void)
 			trap_check_args *args = recovargs;
 			cprintf("recover from trap %d\n",
 				child_state.tf.trapno);
-			child_state.tf.rip = (uint64_t) args->reip;
+			child_state.tf.rip = (uint64_t) args->rrip;
 			args->trapno = child_state.tf.trapno;
 		} else
 			assert(child_state.tf.trapno == T_SYSCALL);

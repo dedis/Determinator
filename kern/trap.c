@@ -48,17 +48,13 @@
 
 // Interrupt descriptor table.  Must be built at run time because
 // shifted function addresses can't be represented in relocation records.
-static struct gatedesc idt[256];
+static struct gatedesc idt[256] gcc_aligned(16);
 
 // This "pseudo-descriptor" is needed only by the LIDT instruction,
 // to specify both the size and address of th IDT at once.
 static struct pseudodesc idt_pd = {
 	sizeof(idt) - 1, (uintptr_t) idt
 };
-/*TODO:: Ishan - 30 May,2011
-  FIXME:: Need to use -std=c99 to fix this (instead of ansi i.e. c89).
- */ 
-
 
 static void
 trap_init_idt(void)
@@ -151,7 +147,7 @@ trap_init(void)
 	// initialize the IDT.  Other CPUs will share the same IDT.
 	if (cpu_onboot())
 		trap_init_idt();
-
+	
 	// Load the IDT into this processor's IDT register.
 	asm volatile("lidt %0" : : "m" (idt_pd));
 
@@ -205,8 +201,8 @@ trap_print_regs(trapframe *tf)
 	cprintf("  r12  0x%016x\n", tf->r12);
 	cprintf("  r11  0x%016x\n", tf->r11);
 	cprintf("  r10  0x%016x\n", tf->r10);
-	cprintf("  r9  0x%016x\n", tf->r9);
-	cprintf("  r8  0x%016x\n", tf->r8);
+	cprintf("  r9   0x%016x\n", tf->r9);
+	cprintf("  r8   0x%016x\n", tf->r8);
 	cprintf("  rbp  0x%016x\n", tf->rbp);
 	cprintf("  rdi  0x%016x\n", tf->rdi);
 	cprintf("  rsi  0x%016x\n", tf->rsi);
@@ -222,18 +218,18 @@ trap_print(trapframe *tf)
 	cprintf("TRAP frame at %p\n", tf);
 	trap_print_regs(tf);
 #if LAB >= 9
-	cprintf("  gs   0x----%04x\n", tf->gs);
-	cprintf("  fs   0x----%04x\n", tf->fs);
+	cprintf("  gs   0x------------%04x\n", tf->gs);
+	cprintf("  fs   0x------------%04x\n", tf->fs);
 #endif
-	cprintf("  es   0x----%04x\n", tf->es);
-	cprintf("  ds   0x----%04x\n", tf->ds);
-	cprintf("  trap 0x%08x %s\n", tf->trapno, trap_name(tf->trapno));
-	cprintf("  err  0x%08x\n", tf->err);
+	cprintf("  es   0x------------%04x\n", tf->es);
+	cprintf("  ds   0x------------%04x\n", tf->ds);
+	cprintf("  trap 0x%016x %s\n", tf->trapno, trap_name(tf->trapno));
+	cprintf("  err  0x--------%08x\n", tf->err);
 	cprintf("  rip  0x%016x\n", tf->rip);
-	cprintf("  cs   0x----%04x\n", tf->cs);
+	cprintf("  cs   0x------------%04x\n", tf->cs);
 	cprintf("  flag 0x%016x\n", tf->rflags);
 	cprintf("  rsp  0x%016x\n", tf->rsp);
-	cprintf("  ss   0x----%04x\n", tf->ss);
+	cprintf("  ss   0x------------%04x\n", tf->ss);
 }
 
 void gcc_noreturn
@@ -411,13 +407,14 @@ trap(trapframe *tf)
 
 
 // Helper function for trap_check_recover(), below:
-// handles "anticipated" traps by simply resuming at a new EIP.
+// handles "anticipated" traps by simply resuming at a new RIP.
 static void gcc_noreturn
 trap_check_recover(trapframe *tf, void *recoverdata)
 {
 	trap_check_args *args = recoverdata;
-	tf->rip = (uint64_t) args->reip;	// Use recovery EIP on return
+	tf->rip = (uint64_t) args->rrip;	// Use recovery RIP on return
 	args->trapno = tf->trapno;		// Return trap number
+trap_print(tf);
 	trap_return(tf);
 }
 
@@ -479,35 +476,24 @@ trap_check(void **argsp)
 	// Be careful when using && to take the address of a label:
 	// some versions of GCC (4.4.2 at least) will incorrectly try to
 	// eliminate code it thinks is _only_ reachable via such a pointer.
-	args.reip = after_div0;
+	args.rrip = after_div0;
 	asm volatile("div %0,%0; after_div0:" : : "r" (0));
 	assert(args.trapno == T_DIVIDE);
-
 	// Make sure we got our correct stack back with us.
 	// The asm ensures gcc uses ebp/esp to get the cookie.
-	asm volatile("" : : : "eax","ebx","ecx","edx","esi","edi");
+	asm volatile("" : : : "rax","rbx","rcx","rdx","rsi","rdi");
 	assert(cookie == 0xfeedface);
 
 	// Breakpoint trap
-	args.reip = after_breakpoint;
+	args.rrip = after_breakpoint;
 	asm volatile("int3; after_breakpoint:");
 	assert(args.trapno == T_BRKPT);
 
-	/*FIX:: Ishan - 30 May,2011
-		http://www.logix.cz/michal/doc/i386/chp03-05.htm (Sec 3.5.3) tells more about the `into' and `bound' opcodes.
-		they aren't supported in 64 bit mode.
-
-	   FIXED:: Ishan - 01 Jun,2011 
-		-//asm volatile("addl %0,%0; into; after_overflow:" : : "r" (0x70000000));
-		  into replaced by jo and jno
-		-commented the bound trap  
-	 */ 
-
 	// Overflow trap
-	args.reip = after_overflow;
+	args.rrip = after_overflow;
 
 	/*
-	// RAJAT's solution. not being used due to a strange "symbol 'after_overflow already defined" error
+	// RAJAT's solution. not being used due to a strange "symbol 'after_overflow' already defined" error
 	uint64_t rflag_temp = 0;
 	asm volatile("addl %1,%1; pushfq; popq %%rax;" : "=a" (rflag_temp): "r" (0x70000000));
 	rflag_temp &= FL_OF;
@@ -524,25 +510,25 @@ trap_check(void **argsp)
 
 	/*
 	// Bounds trap
-	args.reip = after_bound;
+	args.rrip = after_bound;
 	int bounds[2] = { 1, 3 };
 	asm volatile("boundl %0,%1; after_bound:" : : "r" (0), "m" (bounds[0]));
 	assert(args.trapno == T_BOUND);
 	*/
 
 	// Illegal instruction trap
-	args.reip = after_illegal;
+	args.rrip = after_illegal;
 	asm volatile("ud2; after_illegal:");	// guaranteed to be undefined
 	assert(args.trapno == T_ILLOP);
 
 	// General protection fault due to invalid segment load
-	args.reip = after_gpfault;
+	args.rrip = after_gpfault;
 	asm volatile("movl %0,%%fs; after_gpfault:" : : "r" (-1));
 	assert(args.trapno == T_GPFLT);
 
 	// General protection fault due to privilege violation
 	if (read_cs() & 3) {
-		args.reip = after_priv;
+		args.rrip = after_priv;
 		asm volatile("lidt %0; after_priv:" : : "m" (idt_pd));
 		assert(args.trapno == T_GPFLT);
 	}

@@ -26,7 +26,7 @@
 // There are two versions of the trap recovery code:
 // one in kern/trap.c (used twice), the other in kern/proc.c.
 typedef struct trap_check_args {
-	void *reip;		// In: EIP at which to resume trapping code
+	void *rrip;		// In: RIP at which to resume trapping code
 	int trapno;		// Out: trap number from trapframe
 } trap_check_args;
 
