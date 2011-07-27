@@ -167,7 +167,11 @@ _alltraps:
 .p2align 4, 0x90		/* 16-byte alignment, nop filled */
 trap_return:
 #if SOL >= 1
+/*	RAJAT : seems wrong; doesn't attain desired effect
+		should be "(%rdi)" instead of "0x8(%rsp)"
 	movq 0x8(%rsp),%rsp	# reset stack pointer to point to trap frame
+*/
+	movq (%rdi),%rsp
 //	movq %r15,%rsp		# METHOD 2 for the above resetting
 	popq %gs
 	popq %fs

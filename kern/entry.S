@@ -134,8 +134,7 @@ entry64:	// we are now in 64-bit mode.
         movq    $(cpu_boot+4096),%rsp
 #endif
 */
-
-	movq    $(cpu_boot+4096),%rsp
+	movq    $(cpu_boot+KSTACKSIZE),%rsp
 	
 	# Clear the frame pointer register (RBP)
         # so that once we get into debugging C code,

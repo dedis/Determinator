@@ -28,6 +28,7 @@
 #define SEG_TSS		0x70	// Task state segment
 #define CPU_GDT_NDESC	8	// number of GDT entries used, including null
 
+#define KSTACKSIZE 4*PAGESIZE
 
 #ifndef __ASSEMBLER__
 
@@ -36,7 +37,6 @@
 #include <inc/x86.h>
 #include <inc/mmu.h>
 #include <inc/trap.h>
-
 
 // Per-CPU kernel state structure.
 // Exactly one page (4096 bytes) in size.
@@ -83,7 +83,7 @@ typedef struct cpu {
 	char		kstacklo[1];
 
 	// High end (starting point) of the kernel stack.
-	char gcc_aligned(PAGESIZE) kstackhi[0];
+	char gcc_aligned(KSTACKSIZE) kstackhi[0];
 } cpu;
 
 #define CPU_MAGIC	0x98765432	// cpu.magic should always = this
@@ -106,7 +106,7 @@ extern int cpu_limit;
 // It always resides at the bottom of the page containing the CPU's stack.
 static inline cpu *
 cpu_cur() {
-	cpu *c = (cpu*)ROUNDDOWN(read_rsp(), PAGESIZE);
+	cpu *c = (cpu*)ROUNDDOWN(read_rsp(), KSTACKSIZE);
 	assert(c->magic == CPU_MAGIC);
 	return c;
 }
