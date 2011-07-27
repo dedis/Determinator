@@ -137,7 +137,7 @@ _alltraps:
 
 	xorq %rbp,%rbp		# don't let debug_trace() walk into user space
 	
-	movq %rsp,%r15		# save %rsp; used to restore stack pointer during trap return
+	movq %rsp,%r15		# save %rsp; can be used to restore stack pointer during trap return
 	pushq %rsp		# pass pointer to this trapframe
 
 	call trap		# and call trap (does not return)
@@ -167,8 +167,8 @@ _alltraps:
 .p2align 4, 0x90		/* 16-byte alignment, nop filled */
 trap_return:
 #if SOL >= 1
-	movq 0x8(%rsp),%rsp	// reset stack pointer to point to trap frame
-//	movq %r15,%rsp		# reset stack pointer to point to trap frame
+	movq 0x8(%rsp),%rsp	# reset stack pointer to point to trap frame
+//	movq %r15,%rsp		# METHOD 2 for the above resetting
 	popq %gs
 	popq %fs
 	popq %rax
