@@ -414,7 +414,6 @@ trap_check_recover(trapframe *tf, void *recoverdata)
 	trap_check_args *args = recoverdata;
 	tf->rip = (uint64_t) args->rrip;	// Use recovery RIP on return
 	args->trapno = tf->trapno;		// Return trap number
-trap_print(tf);
 	trap_return(tf);
 }
 

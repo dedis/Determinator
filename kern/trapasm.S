@@ -123,20 +123,23 @@ _alltraps:
 	pushq %r13
 	pushq %r14
 	pushq %r15
+	xorq %rax,%rax
 	movw %ds,%ax	// pushw cs/ds/es/ss instructions are invalid in 64-bit mode
-	pushw %ax
+	pushq %rax
 	movw %es,%ax
-	pushw %ax
-	pushw %fs
-	pushw %gs
+	pushq %rax
+	pushq %fs
+	pushq %gs
 
 	movw $SEG_KERN_DS_64,%ax # load kernel's data segment
 	movw %ax,%ds
 	movw %ax,%es
 
 	xorq %rbp,%rbp		# don't let debug_trace() walk into user space
-
+	
+	movq %rsp,%r15		# save %rsp; used to restore stack pointer during trap return
 	pushq %rsp		# pass pointer to this trapframe
+
 	call trap		# and call trap (does not return)
 
 1:	jmp 1b			# should never get here; just spin...
@@ -165,11 +168,12 @@ _alltraps:
 trap_return:
 #if SOL >= 1
 	movq 0x8(%rsp),%rsp	// reset stack pointer to point to trap frame
-	popw %gs
-	popw %fs
-	popw %ax
+//	movq %r15,%rsp		# reset stack pointer to point to trap frame
+	popq %gs
+	popq %fs
+	popq %rax
 	movw %ax,%es	// popw cs/ds/es/ss instructions are invalid in 64-bit mode
-	popw %ax
+	popq %rax
 	movw %ax,%ds
 	popq %r15
 	popq %r14
