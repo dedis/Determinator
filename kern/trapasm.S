@@ -128,8 +128,10 @@ _alltraps:
 	pushq %rax
 	movw %es,%ax
 	pushq %rax
-	pushq %fs
-	pushq %gs
+	movw %fs,%ax
+	pushq %rax
+	movw %gs,%ax
+	pushq %rax
 
 	movw $SEG_KERN_DS_64,%ax # load kernel's data segment
 	movw %ax,%ds
@@ -138,6 +140,7 @@ _alltraps:
 	xorq %rbp,%rbp		# don't let debug_trace() walk into user space
 	
 	movq %rsp,%r15		# save %rsp; can be used to restore stack pointer during trap return
+				# can be done only if %r15 is not being used in the trap handling code
 	pushq %rsp		# pass pointer to this trapframe
 
 	call trap		# and call trap (does not return)
@@ -173,10 +176,13 @@ trap_return:
 */
 	movq (%rdi),%rsp
 //	movq %r15,%rsp		# METHOD 2 for the above resetting
-	popq %gs
-	popq %fs
+
 	popq %rax
-	movw %ax,%es	// popw cs/ds/es/ss instructions are invalid in 64-bit mode
+	movw %ax,%gs
+	popq %rax
+	movw %ax,%fs
+	popq %rax
+	movw %ax,%es		# popw cs/ds/es/ss instructions are invalid in 64-bit mode
 	popq %rax
 	movw %ax,%ds
 	popq %r15
