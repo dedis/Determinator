@@ -141,7 +141,8 @@ _alltraps:
 	
 	movq %rsp,%r15		# save %rsp; can be used to restore stack pointer during trap return
 				# can be done only if %r15 is not being used in the trap handling code
-	pushq %rsp		# pass pointer to this trapframe
+	movq %rsp,%rdi		# WWY: pass rsp to argument via rdi instead of stack
+//	pushq %rsp		# pass pointer to this trapframe
 
 	call trap		# and call trap (does not return)
 
@@ -174,7 +175,7 @@ trap_return:
 		should be "(%rdi)" instead of "0x8(%rsp)"
 	movq 0x8(%rsp),%rsp	# reset stack pointer to point to trap frame
 */
-	movq (%rdi),%rsp
+	movq %rdi,%rsp
 //	movq %r15,%rsp		# METHOD 2 for the above resetting
 
 	popq %rax

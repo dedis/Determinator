@@ -147,9 +147,11 @@ trap_init(void)
 	// initialize the IDT.  Other CPUs will share the same IDT.
 	if (cpu_onboot())
 		trap_init_idt();
+	cprintf("idt init\n");
 	
 	// Load the IDT into this processor's IDT register.
 	asm volatile("lidt %0" : : "m" (idt_pd));
+	cprintf("idt reg init\n");
 
 	// Check for the correct IDT and trap handler operation.
 	if (cpu_onboot())
@@ -238,6 +240,7 @@ trap(trapframe *tf)
 	// The user-level environment may have set the DF flag,
 	// and some versions of GCC rely on DF being clear.
 	asm volatile("cld" ::: "cc");
+	cprintf("trap no is %x\n", tf->trapno);
 
 #if SOL >= 3
 	// If this is a page fault, first handle lazy copying automatically.
@@ -414,7 +417,6 @@ trap_check_recover(trapframe *tf, void *recoverdata)
 	trap_check_args *args = recoverdata;
 	tf->rip = (uint64_t) args->rrip;	// Use recovery RIP on return
 	args->trapno = tf->trapno;		// Return trap number
-trap_print(tf);
 	trap_return(tf);
 }
 

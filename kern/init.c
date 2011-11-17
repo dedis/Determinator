@@ -97,11 +97,14 @@ init(void)
 #endif	// LAB == 1
 	// Initialize and load the bootstrap CPU's GDT, TSS, and IDT.
 	cpu_init();
+	cprintf("cpu init\n");
 	trap_init();
+	cprintf("trap init\n");
 
 	// Physical memory detection/initialization.
 	// Can't call mem_alloc until after we do this!
 	mem_init();
+	cprintf("mem init\n");
 
 #if LAB >= 2
 	// Lab 2: check spinlock implementation
@@ -110,33 +113,45 @@ init(void)
 
 #if LAB >= 3
         // Initialize the paged virtual memory system.
-        pmap_init();
+	pmap_init();
+	cprintf("pmap init\n");
 #endif
 
 	// Find and start other processors in a multiprocessor system
 	mp_init();		// Find info about processors in system
+	cprintf("mp init\n");
 	pic_init();		// setup the legacy PIC (mainly to disable it)
+	cprintf("pic init\n");
 #if LAB >= 9
 	timer_init();		// 8253 timer, used to calibrate LAPIC timers
+	cprintf("timer init\n");
 #endif
 	ioapic_init();		// prepare to handle external device interrupts
+	cprintf("ioapic init\n");
 	lapic_init();		// setup this CPU's local APIC
+	cprintf("lapic init\n");
 	cpu_bootothers();	// Get other processors started
+	cprintf("other cpu boot\n");
 //	cprintf("CPU %d (%s) has booted\n", cpu_cur()->id,
 //		cpu_onboot() ? "BP" : "AP");
 
 #if LAB >= 4
 	// Initialize the I/O system.
 	file_init();		// Create root directory and console I/O files
+	cprintf("file init\n");
 #if LAB >= 5
 	pci_init();		// Initialize the PCI bus and network card
+	cprintf("pci init\n");
 	net_init();		
+	cprintf("net init\n");
 #endif // LAB >= 5
 
 #if SOL >= 4
 	cons_intenable();	// Let the console start producing interrupts
+	cprintf("console int init\n");
 #if LAB >= 9
 	pmc_init();		// Init perf monitoring counters
+	cprintf("pmc init\n");
 #endif
 #else
 	// Lab 4: uncomment this when you can handle IRQ_SERIAL and IRQ_KBD.
@@ -146,6 +161,7 @@ init(void)
 #endif // LAB >= 4
 	// Initialize the process management code.
 	proc_init();
+	cprintf("proc init\n");
 #endif
 
 #if SOL == 1
@@ -207,6 +223,7 @@ init(void)
 
 	// Create our first actual user-mode process
 	proc *root = proc_root = proc_alloc(NULL, 0);
+	cprintf("proc alloc\n");
 
 	elfhdr *eh = (elfhdr *)ROOTEXE_START;
 	assert(eh->e_magic == ELF_MAGIC);
@@ -252,10 +269,12 @@ init(void)
 				SYS_READ | SYS_WRITE | PTE_P | PTE_U | PTE_W);
 	assert(pte != NULL);
 	root->sv.tf.rsp = VM_STACKHI;
+	cprintf("proc load\n");
 
 #if LAB >= 4
 	// Give the root process an initial file system.
 	file_initroot(root);
+	cprintf("file init\n");
 #endif
 
 	proc_ready(root);	// make the root process ready

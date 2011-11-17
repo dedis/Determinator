@@ -25,6 +25,10 @@
 #include <kern/proc.h>
 #include <kern/pmap.h>
 
+// Statically allocated page directory mapping the kernel's address space.
+// We use this as a template for all pdirs for user-level processes.
+pte_t pmap_bootpmap[NPTENTRIES] gcc_aligned(PAGESIZE);
+
 // Statically allocated page that we always keep set to all zeros.
 uint8_t pmap_zero[PAGESIZE] gcc_aligned(PAGESIZE);
 
@@ -43,6 +47,8 @@ uint8_t pmap_zero[PAGESIZE] gcc_aligned(PAGESIZE);
 // (addresses outside of the range between VM_USERLO and VM_USERHI).
 // The user part of the address space remains all PTE_ZERO until later.
 //
+static void pmap_init_bootpmap(pte_t *table, uintptr_t addr, size_t size, uint16_t perm, int level);
+
 void
 pmap_init(void)
 {
@@ -55,12 +61,10 @@ pmap_init(void)
 		// should be identity-mapped to the same physical addresses,
 		// but only accessible in kernel mode (not in user mode).
 #if SOL >= 3
-		int i;
-		for (i = 0; i < NPRENTRIES; i++)
-			pmap_bootpmap[i] = ((intptr_t)i << PDSHIFT(NPTLVLS))
-				| PTE_P | PTE_W | PTE_G;
-		for (i = PDX(NPTLVLS, VM_USERLO); i < PDX(NPTLVLS, VM_USERHI); i++)
-			pmap_bootpmap[i] = PTE_ZERO;	// clear user area
+		pmap_init_bootpmap(pmap_bootpmap, 0, 0, 0, NPTLVLS); // erase all pages
+		pmap_init_bootpmap(pmap_bootpmap, 0, VM_USERLO, PTE_P | PTE_W, NPTLVLS); // map lower kernel address
+		pmap_init_bootpmap(pmap_bootpmap, VM_USERHI, (0x1ULL << 47) - VM_USERHI, PTE_P | PTE_W, NPTLVLS); // map higher kernel address, not using lower half of 48-bit virtual address
+		pmap_bootpmap[PML4SELFOFFSET] = mem_phys(pmap_bootpmap) | PTE_P | PTE_W;
 #else
 		panic("pmap_init() not implemented");
 #endif
@@ -91,6 +95,39 @@ pmap_init(void)
 
         if (cpu_onboot())
                 pmap_check();
+}
+
+// we only map kernel address, linear address and physical address is identical
+static void
+pmap_init_bootpmap(pte_t *table, uintptr_t addr, size_t size, uint16_t perm, int level)
+{
+	uint16_t i;
+	uint16_t lo = PDX(level, addr);
+	uint16_t hi = PDX(level, ROUNDUP(addr + size, PDSIZE(level)));
+	if (hi == 0) hi = NPTENTRIES;
+	for (i = 0; i < NPTENTRIES; i++) {
+		if ((i >= lo) && (i < hi) && (perm != 0)) {
+			if (level > 1) {
+				// alloc page for next-level page table
+				pageinfo *page = mem_alloc();
+				pte_t *subtable = (pte_t *)mem_pi2ptr(page);
+				table[i] = mem_phys(subtable) | perm;
+				if (i == lo) {
+					pmap_init_bootpmap(subtable, addr, MIN(size, PDSIZE(level) - PDOFF(level, addr)), perm, level - 1);
+				} else {
+					uintptr_t start = PDADDR(level, addr) + i * PDSIZE(level);
+					pmap_init_bootpmap(subtable, start, MIN(addr + size - start, PDSIZE(level)), perm, level - 1);
+				}
+			} else {
+				// just map addresses
+				table[i] = (PGADDR(addr) + (i * PTSIZE)) | perm | PTE_G | PTE_PS;
+			}
+		} else {
+			if ((perm == 0) || (level < NPTLVLS)) {
+				table[i] = PTE_ZERO;
+			}
+		}
+	}
 }
 
 //
@@ -245,9 +282,9 @@ pmap_walk_level(int pmlevel, pte_t *pmtab, intptr_t la, bool writing)
 	}
 
 	if (pmlevel == 1)
-		return &plowtab[PDX(pmlevel-1, la)];
+		return mem_ptr(&plowtab[PDX(pmlevel-1, la)]);
 	else
-		return pmap_walk_level(pmlevel-1, pmte, la, writing);
+		return pmap_walk_level(pmlevel-1, mem_ptr(PTE_ADDR(*pmte)), la, writing);
 }
 
 //
@@ -330,7 +367,7 @@ pmap_remove(pte_t *pml4, intptr_t va, size_t size)
 
 	intptr_t vahi = va + size;
 	while (va < vahi) {
-		va = pmap_remove_level(NPTLVLS, pml4, vahi);
+		va = pmap_remove_level(NPTLVLS, pml4, va, vahi);
 	}
 #else /* not SOL >= 3 */
 	// Fill in this function
@@ -363,26 +400,26 @@ pmap_remove_level(int pmlevel, pte_t *pmtab, intptr_t va, intptr_t vahi)
 		if (plowtab != PTE_ZERO) {// drop table ref
 			if (pmlevel > 1) {
 				size_t size = PDSIZE(pmlevel - 1);
-				intptr_t tmpva = va; 
+				intptr_t tmpva = va;
 				int i;
 				for (i = 0; i < NPTENTRIES; i++ ) {
-					pmap_remove_level(pmlevel-1,
-						pmte, tmpva, vahi);
+					pmap_remove_level(pmlevel-1, mem_ptr(plowtab), tmpva, tmpva + size);
 					tmpva += size;
 				}
 				mem_decref(mem_phys2pi(plowtab),
 					mem_free);
-			} else
+			} else {
 				mem_decref(mem_phys2pi(plowtab),
 					pmap_freeptab);
+			}
 		}
 		*pmte = PTE_ZERO;
-		va = PDADDR(pmlevel, va + PDSIZE(pmlevel));
+		va = PDADDR(pmlevel, va) + PDSIZE(pmlevel);
 		return va;
-	} 
-		
+	}
+
 	if ( pmlevel > 1)
-		return pmap_remove_level(pmlevel-1, pmte, va, vahi);
+		return pmap_remove_level(pmlevel-1, mem_ptr(PTE_ADDR(*pmte)), va, MIN(vahi, PDADDR(pmlevel, va) + PDSIZE(pmlevel)));
 	
 	assert( pmlevel == 1 );
 	pte_t *pte = pmap_walk_level(1, pmtab, va, 1);	// find & unshare PTE
@@ -392,7 +429,9 @@ pmap_remove_level(int pmlevel, pte_t *pmtab, intptr_t va, intptr_t vahi)
 	do {
 		intptr_t pgaddr = PTE_ADDR(*pte);
 		if (pgaddr != PTE_ZERO)
+		{
 			mem_decref(mem_phys2pi(pgaddr), mem_free);
+		}
 		*pte++ = PTE_ZERO;
 		va += PAGESIZE;
 	} while (va < vahi && PDX(0, va) != 0);
@@ -806,24 +845,26 @@ va2pa(pte_t *pmtab, intptr_t va)
 void
 pmap_check(void)
 {
-#if 0
 	extern pageinfo *mem_freelist;
 
-	pageinfo *pi, *pi0, *pi1, *pi2, *pi3;
+	pageinfo *pi, *pi0, *pi1, *pi2, *pi3, *pi4;
 	pageinfo *fl;
 	pte_t *ptep, *ptep1;
 	int i;
 
 	// should be able to allocate three pages
-	pi0 = pi1 = pi2 = 0;
+	pi0 = pi1 = pi2 = pi3 = pi4 = 0;
 	pi0 = mem_alloc();
 	pi1 = mem_alloc();
 	pi2 = mem_alloc();
 	pi3 = mem_alloc();
+	pi4 = mem_alloc();
 
 	assert(pi0);
 	assert(pi1 && pi1 != pi0);
 	assert(pi2 && pi2 != pi1 && pi2 != pi0);
+	assert(pi3 && pi3 != pi2 && pi3 != pi1 && pi3 != pi0);
+	assert(pi4 && pi4 != pi3 && pi4 != pi2 && pi4 != pi1 && pi4 != pi0);
 
 	// temporarily steal the rest of the free pages
 	fl = mem_freelist;
@@ -833,169 +874,168 @@ pmap_check(void)
 	assert(mem_alloc() == NULL);
 
 	// there is no free memory, so we can't allocate a page table 
-	assert(pmap_insert(pmap_bootpmap, pi1, VM_USERLO, 0) == NULL);
+	assert(pmap_insert(pmap_bootpmap, pi2, VM_USERLO, 0) == NULL);
 
-	// free pi0 and try again: pi0 should be used for page table
+	// free pi0, pi1 and try again: pi0 and pi1 should be used for page table
 	mem_free(pi0);
-	assert(pmap_insert(pmap_bootpmap, pi1, VM_USERLO, 0) != NULL);
-	assert(PTE_ADDR(pmap_bootpmap[PDX(3, VM_USERLO)]) == mem_pi2phys(pi0));
-	assert(va2pa(pmap_bootpmap, VM_USERLO) == mem_pi2phys(pi1));
+	mem_free(pi1);
+	assert(pmap_insert(pmap_bootpmap, pi2, VM_USERLO, 0) != NULL);
+	assert(PTE_ADDR(((pte_t *)PTE_ADDR(pmap_bootpmap[PDX(3, VM_USERLO)]))[PDX(2, VM_USERLO)]) == mem_pi2phys(pi1)); // pi2 is used for PDPT
+	assert(PTE_ADDR(((pte_t *)PTE_ADDR(((pte_t *)PTE_ADDR(pmap_bootpmap[PDX(3, VM_USERLO)]))[PDX(2, VM_USERLO)]))[PDX(1, VM_USERLO)]) == mem_pi2phys(pi0)); // pi1 is used for PDT
+	assert(va2pa(pmap_bootpmap, VM_USERLO) == mem_pi2phys(pi2));
+	assert(pi2->refcount == 1);
 	assert(pi1->refcount == 1);
 	assert(pi0->refcount == 1);
 
-	// should be able to map pi2 at VM_USERLO+PAGESIZE
-	// because pi0 is already allocated for page table
-	assert(pmap_insert(pmap_bootpmap, pi2, VM_USERLO+PAGESIZE, 0));
-	assert(va2pa(pmap_bootpmap, VM_USERLO+PAGESIZE) == mem_pi2phys(pi2));
-	assert(pi2->refcount == 1);
+	// should be able to map pi3 at VM_USERLO+PAGESIZE
+	// because pi0 and pi1 is already allocated for page table
+	assert(pmap_insert(pmap_bootpmap, pi3, VM_USERLO+PAGESIZE, 0));
+	assert(va2pa(pmap_bootpmap, VM_USERLO+PAGESIZE) == mem_pi2phys(pi3));
+	assert(pi3->refcount == 1);
 
 	// should be no free memory
 	assert(mem_alloc() == NULL);
 
-	// should be able to map pi2 at VM_USERLO+PAGESIZE
+	// should be able to map pi3 at VM_USERLO+PAGESIZE
 	// because it's already there
-	assert(pmap_insert(pmap_bootpmap, pi2, VM_USERLO+PAGESIZE, 0));
-	assert(va2pa(pmap_bootpmap, VM_USERLO+PAGESIZE) == mem_pi2phys(pi2));
-	assert(pi2->refcount == 1);
+	assert(pmap_insert(pmap_bootpmap, pi3, VM_USERLO+PAGESIZE, 0));
+	assert(va2pa(pmap_bootpmap, VM_USERLO+PAGESIZE) == mem_pi2phys(pi3));
+	assert(pi3->refcount == 1);
 
-	// pi2 should NOT be on the free list
+	// pi3 should NOT be on the free list
 	// could hapien in ref counts are handled slopiily in pmap_insert
 	assert(mem_alloc() == NULL);
 
 	// check that pmap_walk returns a pointer to the pte
-	ptep = mem_ptr(PGADDR(pmap_bootpmap[PDX(VM_USERLO+PAGESIZE)]));
+	ptep = mem_ptr(PTE_ADDR(((pte_t *)PTE_ADDR(((pte_t *)PTE_ADDR(pmap_bootpmap[PDX(3, VM_USERLO+PAGESIZE)]))[PDX(2, VM_USERLO+PAGESIZE)]))[PDX(1, VM_USERLO+PAGESIZE)]));
 	assert(pmap_walk(pmap_bootpmap, VM_USERLO+PAGESIZE, 0)
-		== ptep+PTX(VM_USERLO+PAGESIZE));
+		== ptep+PDX(0, VM_USERLO+PAGESIZE));
 
 	// should be able to change permissions too.
-	assert(pmap_insert(pmap_bootpmap, pi2, VM_USERLO+PAGESIZE, PTE_U));
-	assert(va2pa(pmap_bootpmap, VM_USERLO+PAGESIZE) == mem_pi2phys(pi2));
-	assert(pi2->refcount == 1);
+	assert(pmap_insert(pmap_bootpmap, pi3, VM_USERLO+PAGESIZE, PTE_U));
+	assert(va2pa(pmap_bootpmap, VM_USERLO+PAGESIZE) == mem_pi2phys(pi3));
+	assert(pi3->refcount == 1);
 	assert(*pmap_walk(pmap_bootpmap, VM_USERLO+PAGESIZE, 0) & PTE_U);
-	assert(pmap_bootpmap[PDX(VM_USERLO)] & PTE_U);
+	assert(((pte_t *)PTE_ADDR(((pte_t *)PTE_ADDR(pmap_bootpmap[PDX(3, VM_USERLO+PAGESIZE)]))[PDX(2, VM_USERLO+PAGESIZE)]))[PDX(1, VM_USERLO+PAGESIZE)] & PTE_U);
 	
 	// should not be able to map at VM_USERLO+PTSIZE
 	// because we need a free page for a page table
 	assert(pmap_insert(pmap_bootpmap, pi0, VM_USERLO+PTSIZE, 0) == NULL);
 
-	// insert pi1 at VM_USERLO+PAGESIZE (replacing pi2)
-	assert(pmap_insert(pmap_bootpmap, pi1, VM_USERLO+PAGESIZE, 0));
+	// insert pi2 at VM_USERLO+PAGESIZE (replacing pi3)
+	assert(pmap_insert(pmap_bootpmap, pi2, VM_USERLO+PAGESIZE, 0));
 	assert(!(*pmap_walk(pmap_bootpmap, VM_USERLO+PAGESIZE, 0) & PTE_U));
 
-	// should have pi1 at both +0 and +PAGESIZE, pi2 nowhere, ...
-	assert(va2pa(pmap_bootpmap, VM_USERLO+0) == mem_pi2phys(pi1));
-	assert(va2pa(pmap_bootpmap, VM_USERLO+PAGESIZE) == mem_pi2phys(pi1));
+	// should have pi2 at both +0 and +PAGESIZE, pi3 nowhere, ...
+	assert(va2pa(pmap_bootpmap, VM_USERLO+0) == mem_pi2phys(pi2));
+	assert(va2pa(pmap_bootpmap, VM_USERLO+PAGESIZE) == mem_pi2phys(pi2));
 	// ... and ref counts should reflect this
-	assert(pi1->refcount == 2);
-	assert(pi2->refcount == 0);
+	assert(pi2->refcount == 2);
+	assert(pi3->refcount == 0);
 
-	// pi2 should be returned by mem_alloc
-	assert(mem_alloc() == pi2);
+	// pi3 should be returned by mem_alloc
+	assert(mem_alloc() == pi3);
 
-	// unmapping pi1 at VM_USERLO+0 should keep pi1 at +PAGESIZE
+	// unmapping pi2 at VM_USERLO+0 should keep pi2 at +PAGESIZE
 	pmap_remove(pmap_bootpmap, VM_USERLO+0, PAGESIZE);
 	assert(va2pa(pmap_bootpmap, VM_USERLO+0) == ~0);
-	assert(va2pa(pmap_bootpmap, VM_USERLO+PAGESIZE) == mem_pi2phys(pi1));
-	assert(pi1->refcount == 1);
-	assert(pi2->refcount == 0);
+	assert(va2pa(pmap_bootpmap, VM_USERLO+PAGESIZE) == mem_pi2phys(pi2));
+	assert(pi2->refcount == 1);
+	assert(pi3->refcount == 0);
 	assert(mem_alloc() == NULL);	// still should have no pages free
 
-	// unmapping pi1 at VM_USERLO+PAGESIZE should free it
+	// unmapping pi2 at VM_USERLO+PAGESIZE should free it
 	pmap_remove(pmap_bootpmap, VM_USERLO+PAGESIZE, PAGESIZE);
 	assert(va2pa(pmap_bootpmap, VM_USERLO+0) == ~0);
 	assert(va2pa(pmap_bootpmap, VM_USERLO+PAGESIZE) == ~0);
-	assert(pi1->refcount == 0);
 	assert(pi2->refcount == 0);
+	assert(pi3->refcount == 0);
 
 	// so it should be returned by page_alloc
-	assert(mem_alloc() == pi1);
+	assert(mem_alloc() == pi2);
 
 	// should once again have no free memory
 	assert(mem_alloc() == NULL);
 
 	// should be able to pmap_insert to change a page
 	// and see the new data immediately.
-	memset(mem_pi2ptr(pi1), 1, PAGESIZE);
-	memset(mem_pi2ptr(pi2), 2, PAGESIZE);
-	pmap_insert(pmap_bootpmap, pi1, VM_USERLO, 0);
-	assert(pi1->refcount == 1);
-	assert(*(int*)VM_USERLO == 0x01010101);
+	memset(mem_pi2ptr(pi2), 1, PAGESIZE);
+	memset(mem_pi2ptr(pi3), 2, PAGESIZE);
 	pmap_insert(pmap_bootpmap, pi2, VM_USERLO, 0);
-	assert(*(int*)VM_USERLO == 0x02020202);
 	assert(pi2->refcount == 1);
-	assert(pi1->refcount == 0);
-	assert(mem_alloc() == pi1);
-	pmap_remove(pmap_bootpmap, VM_USERLO, PAGESIZE);
+	assert(*(int*)VM_USERLO == 0x01010101);
+	pmap_insert(pmap_bootpmap, pi3, VM_USERLO, 0);
+	assert(*(int*)VM_USERLO == 0x02020202);
+	assert(pi3->refcount == 1);
 	assert(pi2->refcount == 0);
 	assert(mem_alloc() == pi2);
+	pmap_remove(pmap_bootpmap, VM_USERLO, PAGESIZE);
+	assert(pi3->refcount == 0);
+	assert(mem_alloc() == pi3);
 
-	// now use a pmap_remove on a large region to take pi0 back
+	// now use a pmap_remove on a large region to take pi0 and pi1 back
 	pmap_remove(pmap_bootpmap, VM_USERLO, VM_USERHI-VM_USERLO);
-	assert(pmap_bootpmap[PDX(VM_USERLO)] == PTE_ZERO);
+	assert(PTE_ADDR(((pte_t *)PTE_ADDR(pmap_bootpmap[PDX(3, VM_USERLO)]))[PDX(2, VM_USERLO)]) == PTE_ZERO); // pi1 was used for PDT
 	assert(pi0->refcount == 0);
+	assert(pi1->refcount == 0);
+	assert(mem_alloc() == pi1);
 	assert(mem_alloc() == pi0);
 	assert(mem_freelist == NULL);
 
 	// test pmap_remove with large, non-ptable-aligned regions
 	mem_free(pi1);
+	mem_free(pi0);
 	uintptr_t va = VM_USERLO;
-	assert(pmap_insert(pmap_bootpmap, pi0, va, 0));
-	assert(pmap_insert(pmap_bootpmap, pi0, va+PAGESIZE, 0));
-	assert(pmap_insert(pmap_bootpmap, pi0, va+PTSIZE-PAGESIZE, 0));
-	assert(PGADDR(pmap_bootpmap[PDX(VM_USERLO)]) == mem_pi2phys(pi1));
+	assert(pmap_insert(pmap_bootpmap, pi4, va, 0));
+	assert(pmap_insert(pmap_bootpmap, pi4, va+PAGESIZE, 0));
+	assert(pmap_insert(pmap_bootpmap, pi4, va+PTSIZE-PAGESIZE, 0));
+	assert(PTE_ADDR(((pte_t *)PTE_ADDR(pmap_bootpmap[PDX(3, VM_USERLO)]))[PDX(2, VM_USERLO)]) == mem_pi2phys(pi0));
+	assert(PTE_ADDR(((pte_t *)PTE_ADDR(((pte_t *)PTE_ADDR(pmap_bootpmap[PDX(3, VM_USERLO)]))[PDX(2, VM_USERLO)]))[PDX(1, VM_USERLO)]) == mem_pi2phys(pi1));
 	assert(mem_freelist == NULL);
 	mem_free(pi2);
-	assert(pmap_insert(pmap_bootpmap, pi0, va+PTSIZE, 0));
-	assert(pmap_insert(pmap_bootpmap, pi0, va+PTSIZE+PAGESIZE, 0));
-	assert(pmap_insert(pmap_bootpmap, pi0, va+PTSIZE*2-PAGESIZE, 0));
-	assert(PGADDR(pmap_bootpmap[PDX(VM_USERLO+PTSIZE)])
-		== mem_pi2phys(pi2));
+	assert(pmap_insert(pmap_bootpmap, pi4, va+PTSIZE, 0));
+	assert(pmap_insert(pmap_bootpmap, pi4, va+PTSIZE+PAGESIZE, 0));
+	assert(pmap_insert(pmap_bootpmap, pi4, va+PTSIZE*2-PAGESIZE, 0));
+	assert(PTE_ADDR(((pte_t *)PTE_ADDR(((pte_t *)PTE_ADDR(pmap_bootpmap[PDX(3, VM_USERLO+PTSIZE)]))[PDX(2, VM_USERLO+PTSIZE)]))[PDX(1, VM_USERLO+PTSIZE)]) == mem_pi2phys(pi2));
 	assert(mem_freelist == NULL);
 	mem_free(pi3);
-	assert(pmap_insert(pmap_bootpmap, pi0, va+PTSIZE*2, 0));
-	assert(pmap_insert(pmap_bootpmap, pi0, va+PTSIZE*2+PAGESIZE, 0));
-	assert(pmap_insert(pmap_bootpmap, pi0, va+PTSIZE*3-PAGESIZE*2, 0));
-	assert(pmap_insert(pmap_bootpmap, pi0, va+PTSIZE*3-PAGESIZE, 0));
-	assert(PGADDR(pmap_bootpmap[PDX(VM_USERLO+PTSIZE*2)])
-		== mem_pi2phys(pi3));
+	assert(pmap_insert(pmap_bootpmap, pi4, va+PTSIZE*2, 0));
+	assert(pmap_insert(pmap_bootpmap, pi4, va+PTSIZE*2+PAGESIZE, 0));
+	assert(pmap_insert(pmap_bootpmap, pi4, va+PTSIZE*3-PAGESIZE*2, 0));
+	assert(pmap_insert(pmap_bootpmap, pi4, va+PTSIZE*3-PAGESIZE, 0));
+	assert(PTE_ADDR(((pte_t *)PTE_ADDR(((pte_t *)PTE_ADDR(pmap_bootpmap[PDX(3, VM_USERLO+PTSIZE*2)]))[PDX(2, VM_USERLO+PTSIZE*2)]))[PDX(1, VM_USERLO+PTSIZE*2)]) == mem_pi2phys(pi3));
 	assert(mem_freelist == NULL);
-	assert(pi0->refcount == 10);
+	assert(pi0->refcount == 1);
 	assert(pi1->refcount == 1);
 	assert(pi2->refcount == 1);
 	assert(pi3->refcount == 1);
+	assert(pi4->refcount == 10);
 	pmap_remove(pmap_bootpmap, va+PAGESIZE, PTSIZE*3-PAGESIZE*2);
-	assert(pi0->refcount == 2);
-	assert(pi2->refcount == 0); assert(mem_alloc() == pi2);
+	assert(pi4->refcount == 2);
+	assert(pi2->refcount == 0);
+	assert(mem_alloc() == pi2);
 	assert(mem_freelist == NULL);
 	pmap_remove(pmap_bootpmap, va, PTSIZE*3-PAGESIZE);
-	assert(pi0->refcount == 1);
-	assert(pi1->refcount == 0); assert(mem_alloc() == pi1);
+	assert(pi4->refcount == 1);
+	assert(pi1->refcount == 0);
+	assert(mem_alloc() == pi1);
 	assert(mem_freelist == NULL);
 	pmap_remove(pmap_bootpmap, va+PTSIZE*3-PAGESIZE, PAGESIZE);
-	assert(pi0->refcount == 0);	// pi3 might or might not also be freed
+	assert(pi4->refcount == 0);	// pi3 might or might not also be freed
 	pmap_remove(pmap_bootpmap, va+PAGESIZE, PTSIZE*3);
 	assert(pi3->refcount == 0);
-	mem_alloc(); mem_alloc();	// collect pi0 and pi3
+	mem_alloc(); mem_alloc();	// collect pi4 and pi3
 	assert(mem_freelist == NULL);
-
+#if 0
 	// check pointer arithmetic in pmap_walk
-	mem_free(pi0);
-	va = VM_USERLO + PAGESIZE*NPTENTRIES + PAGESIZE;
+	mem_free(pi4);
+	va = VM_USERLO + PTSIZE + PAGESIZE;
 	ptep = pmap_walk(pmap_bootpmap, va, 1);
-	ptep1 = mem_ptr(PGADDR(pmap_bootpmap[PDX(va)]));
-	assert(ptep == ptep1 + PTX(va));
-	pmap_bootpmap[PDX(va)] = PTE_ZERO;
-	pi0->refcount = 0;
-
-	// check that new page tables get cleared
-	memset(mem_pi2ptr(pi0), 0xFF, PAGESIZE);
-	mem_free(pi0);
-	pmap_walk(pmap_bootpmap, VM_USERHI-PAGESIZE, 1);
-	ptep = mem_pi2ptr(pi0);
-	for(i=0; i<NPTENTRIES; i++)
-		assert(ptep[i] == PTE_ZERO);
-	pmap_bootpmap[PDX(VM_USERHI-PAGESIZE)] = PTE_ZERO;
-	pi0->refcount = 0;
+	ptep1 = mem_ptr(PTE_ADDR(((pte_t *)PTE_ADDR(((pte_t *)PTE_ADDR(pmap_bootpmap[PDX(3, va)]))[PDX(2, va)]))[PDX(1, va)]));
+	cprintf("ptep %llx ptep1 %llx\n", ptep, ptep1);
+	assert(ptep == ptep1 + PDX(1, va));
+#endif
+	pmap_remove(pmap_bootpmap, VM_USERLO, VM_USERHI - VM_USERLO);
 
 	// give free list back
 	mem_freelist = fl;
@@ -1005,6 +1045,7 @@ pmap_check(void)
 	mem_free(pi1);
 	mem_free(pi2);
 	mem_free(pi3);
+	mem_free(pi4);
 
 #if LAB >= 9
 #else
@@ -1015,7 +1056,73 @@ pmap_check(void)
 	// - does trap() call pmap_fault() before recovery?
 	// - does syscall_checkva avoid wraparound issues?
 #endif
-#endif
+}
+
+static uint16_t
+pmap_scan(uintptr_t *table, pte_t left, pte_t right, pte_t *start, pte_t *end, uint16_t mask)
+{
+	while ((left < right) && !(table[left] & PTE_P)) {
+		left++;
+	}
+	if (left < right) {
+		if (start != NULL) {
+			*start = left;
+		}
+		uint16_t perm = table[left] & mask;
+		while ((left < right) && ((table[left] & mask) == perm)) {
+			left++;
+		}
+		if (end != NULL) {
+			*end = left;
+		}
+		return perm;
+	} else {
+		return 0;
+	}
+}
+
+void
+pmap_print(void)
+{
+	uintptr_t *pml4t, *pdpt, *pdt, *pt;
+	// these addresses should be canonical
+	pt = (uintptr_t *)((uintptr_t)PML4SELFOFFSET << PDSHIFT(3));
+	pdt = (uintptr_t *)((uintptr_t)pt | (PDADDR(3, pt) >> NPTBITS));
+	pdpt = (uintptr_t *)((uintptr_t)pdt | (PDADDR(2, pdt) >> NPTBITS));
+	pml4t = (uintptr_t *)((uintptr_t)pdpt | (PDADDR(1, pdpt) >> NPTBITS));
+	pt = (uintptr_t *)((uintptr_t)pt | CANONICALSIGNEXTENSION);
+	pdt = (uintptr_t *)((uintptr_t)pdt | CANONICALSIGNEXTENSION);
+	pdpt = (uintptr_t *)((uintptr_t)pdpt | CANONICALSIGNEXTENSION);
+	pml4t = (uintptr_t *)((uintptr_t)pml4t | CANONICALSIGNEXTENSION);
+
+	uint16_t perm = 0;
+	uint16_t mask = PTE_P | PTE_W | PTE_U | PTE_PS | PTE_G;
+	int half = 0; // 0 for higher half, 1 for lower half
+	for (half = 0; half < 2; half++) {
+		pte_t pml4_start = (half ? (NPTENTRIES >> 1) : 0);
+		pte_t pml4_end = (half ? (NPTENTRIES >> 1) : 0);
+		uintptr_t ext = half * CANONICALSIGNEXTENSION;
+		while ((perm = pmap_scan(pml4t, pml4_end, NPTENTRIES >> (1 - half), &pml4_start, &pml4_end, mask)) != 0) {
+			cprintf("PML4E(%03x) %016llx-%016llx %016llx %04x\n", pml4_end - pml4_start, (pml4_start << PDSHIFT(3)) | ext, (pml4_end << PDSHIFT(3)) | ext, (pml4_end - pml4_start) << PDSHIFT(3), perm & mask);
+			pte_t pdp_start = pml4_start << NPTBITS;
+			pte_t pdp_end = pml4_start << NPTBITS;
+			while ((perm = pmap_scan(pdpt, pdp_end, pml4_end << NPTBITS, &pdp_start, &pdp_end, mask)) != 0) {
+				cprintf("|-- PDPE(%05x) %016llx-%016llx %016llx %04x\n", pdp_end - pdp_start, (pdp_start << PDSHIFT(2)) | ext, (pdp_end << PDSHIFT(2)) | ext, (pdp_end - pdp_start) << PDSHIFT(2), perm & mask);
+				pte_t pd_start = pdp_start << NPTBITS;
+				pte_t pd_end = pdp_start << NPTBITS;
+				while ((perm = pmap_scan(pdt, pd_end, pdp_end << NPTBITS, &pd_start, &pd_end, mask)) != 0) {
+					cprintf("    |-- PDE(%07x) %016llx-%016llx %016llx %04x\n", pd_end - pd_start, (pd_start << PDSHIFT(1)) | ext, (pd_end << PDSHIFT(1)) | ext, (pd_end - pd_start) << PDSHIFT(1), perm & mask);
+					if (!(perm & PTE_PS)) {
+						pte_t pt_start = pd_start << NPTBITS;
+						pte_t pt_end = pd_start << NPTBITS;
+						while ((perm = pmap_scan(pt, pt_end, pd_end << NPTBITS, &pt_start, &pt_end, mask)) != 0) {
+							cprintf("        |-- PTE(%09x) %016llx-%016llx %016llx %04x\n", pt_end - pt_start, (pt_start << PDSHIFT(0)) | ext, (pt_end << PDSHIFT(0)) | ext, (pt_end - pt_start) << PDSHIFT(0), perm & mask);
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 #endif /* LAB >= 3 */

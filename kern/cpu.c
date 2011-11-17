@@ -95,10 +95,7 @@ cpu_info()
 		family += (inf.eax >> 20) & 0xff;
 	if (family == 6 || family >= 0xf)
 		model |= ((inf.eax >> 16) & 0xf) << 4;
-// TODO: RAJAT
-// str is not being printed for some reason
-//	cprintf("CPUID: %s %x/%x/%x\n", str, family, model, stepping);
-	cprintf("CPUID: %x/%x/%x\n", family, model, stepping);
+	cprintf("CPUID: %s %x/%x/%x\n", str, family, model, stepping);
 }
 
 #define MTRRcap			0x00fe

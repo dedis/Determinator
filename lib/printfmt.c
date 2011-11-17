@@ -46,19 +46,32 @@ typedef struct printstate {
 
 // Get an unsigned int of various possible sizes from a varargs list,
 // depending on the lflag parameter.
+#if 0 // WWY: change function to macro to use built-in va_list
 static uintmax_t
 getuint(printstate *st, va_list *ap)
 {
+	printhex("ADDR AGAIN ", ap);
 	if (st->flags & F_LL)
-		return va_arg(*ap, unsigned long long);
+		return 0xDEAD; //va_arg(*ap, unsigned long long);
 	else if (st->flags & F_L)
-		return va_arg(*ap, unsigned long);
+		return 0xBEEF; //va_arg(*ap, unsigned long);
 	else
 		return va_arg(*ap, unsigned int);
 }
+#else
+#define getuint(st, ap)\
+	({ \
+		uintmax_t x; \
+		if (st.flags & F_LL) x = va_arg(ap, unsigned long long); \
+		else if (st.flags & F_L) x = va_arg(ap, unsigned long); \
+		else x = va_arg(ap, unsigned int); \
+		x; \
+	})
+#endif
 
 // Same as getuint but signed - can't use getuint
 // because of sign extension
+#if 0 // WWY: change function to macro to use built-in va_list
 static intmax_t
 getint(printstate *st, va_list *ap)
 {
@@ -69,6 +82,16 @@ getint(printstate *st, va_list *ap)
 	else
 		return va_arg(*ap, int);
 }
+#else
+#define getint(st, ap)\
+	({ \
+		intmax_t x; \
+		if (st.flags & F_LL) x = va_arg(ap, long long); \
+		else if (st.flags & F_L) x = va_arg(ap, long); \
+		else x = va_arg(ap, int); \
+		x; \
+	})
+#endif
 
 // Print padding characters, and an optional sign before a number.
 static void
@@ -310,7 +333,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		// (signed) decimal
 		case 'd':
-			num = getint(&st, &ap);
+			num = getint(st, ap);
 			if ((intmax_t) num < 0) {
 				num = -(intmax_t) num;
 				st.signc = '-';
@@ -320,13 +343,13 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		// unsigned decimal
 		case 'u':
-			putint(&st, getuint(&st, &ap), 10);
+			putint(&st, getuint(st, ap), 10);
 			break;
 
 		// (unsigned) octal
 		case 'o':
 #if SOL >= 1
-			putint(&st, getuint(&st, &ap), 8);
+			putint(&st, getuint(st, ap), 8);
 #else
 			// Replace this with your code.
 			putch('X', putdat);
@@ -337,7 +360,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		// (unsigned) hexadecimal
 		case 'x':
-			putint(&st, getuint(&st, &ap), 16);
+			putint(&st, getuint(st, ap), 16);
 			break;
 
 		// pointer

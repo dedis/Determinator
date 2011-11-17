@@ -33,19 +33,19 @@ debug_panic(const char *file, int line, const char *fmt,...)
 	va_list ap;
 	int i;
 
-	// Avoid infinite recursion if we're panicking from kernel mode.
-	if ((read_cs() & 3) == 0) {
-		if (panicstr)
-			goto dead;
-		panicstr = fmt;
-	}
-
 	// First print the requested message
 	va_start(ap, fmt);
 	cprintf("kernel panic at %s:%d: ", file, line);
 	vcprintf(fmt, ap);
 	cprintf("\n");
 	va_end(ap);
+
+	// Avoid infinite recursion if we're panicking from kernel mode.
+	if ((read_cs() & 3) == 0) {
+		if (panicstr)
+			goto dead;
+		panicstr = fmt;
+	}
 
 	// Then print a backtrace of the kernel call chain
 	uint64_t eips[DEBUG_TRACEFRAMES];

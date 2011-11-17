@@ -34,12 +34,15 @@
 // The following macros aid in manipulating these addresses.
 
 // Page directory and page table constants.
-// entries per page map root (64-bit: pml4)
-#define NPRENTRIES	512		// PML4Es per page map level-4
-// entries per page table/page directory/page directory pointer
+// entries per page table/page directory/page directory pointer/page map level-4
 #define NPTENTRIES	512 
 #define NPTBITS		9		// log2(NPTENTRIES)
-#define NPTLVLS     	3           	// page table depth -1 
+#define NPTLVLS     	3           	// page table depth -1
+// the entry in PML4 pointing to itself, the MSB is 1 (lower half) to avoid walking into user space, need to care about sign extension of canonical address form
+#define PML4SELFOFFSET	0x1BF
+#define CANONICALSIGNEXTENSION	0xFFFF000000000000ULL
+// the unsigned linear address
+#define ULA(la)		((la) & 0x0000FFFFFFFFFFFFULL)
 
 // page size
 #define PAGESIZE	4096		// bytes mapped by a page
@@ -52,20 +55,20 @@
 // 
 // A linear address 'la' has a six-part structure as follows:
 // Index
-// +---6---+-----9-----+-----9-----+-----9-----+-----9-----+----12----+
-// | Sign  |    PML4   |    PDP    | Page Dir  | Page Table|  Offset  |
-// |  Ext. |   Index   |   Index   |   Index   |   Index   |  in Page |
-// |(all 0)| PDX(3,la)/ \PDX(2,la)/ \PDX(1,la)/ \PDX(0,la)/ \PGOFF(la)/
-// +-------+-----------+-----------+-----------+-----------+----------+
-//          \----------------- PPN(la) -------------------/ 
+// +---16---+-----9-----+-----9-----+-----9-----+-----9-----+----12----+
+// |  Sign  |    PML4   |    PDP    | Page Dir  | Page Table|  Offset  |
+// |   Ext. |   Index   |   Index   |   Index   |   Index   |  in Page |
+// |        | PDX(3,la)/ \PDX(2,la)/ \PDX(1,la)/ \PDX(0,la)/ \PGOFF(la)/
+// +--------+-----------+-----------+-----------+-----------+----------+
+//           \----------------- PPN(la) -------------------/ 
 //
 // The PDX, PGOFF, and PPN macros decompose linear addresses as shown.
 //
-// +-------+-----------+-----------+-----------+-----------+----------+
-//         \---------------- PDADDR(0,la) -----------------|PDOFF(0,la)
-//         \------------- PDADDR(1,la) --------|----- PDOFF(1,la) ----/
-//         \----- PDADDR(2,la) ----|---------- PDOFF(2,la) -----------/
-//         PDADDR(3,la)|---------------- PDOFF(3,la) -----------------/
+// +--------+-----------+-----------+-----------+-----------+----------+
+//          \---------------- PDADDR(0,la) -----------------|PDOFF(0,la)
+//          \------------- PDADDR(1,la) --------|----- PDOFF(1,la) ----/
+//          \----- PDADDR(2,la) ----|---------- PDOFF(2,la) -----------/
+//          PDADDR(3,la)|---------------- PDOFF(3,la) -----------------/
 //
 // The PDADDR and PDOFF macros are used to construct a page/PT/PD/PDP region
 // -aligned linear address and an offset within a page/PT/PD/PDP region
@@ -76,12 +79,12 @@
 //   n = 1 => page directory
 //   n = 2 => page directory pointer
 //   n = 3 => page map level 4
-#define PDXMASK         ((1 << NPTBITS) - 1)
+#define PDXMASK		((1 << NPTBITS) - 1)
 // In 32-bit: PTXSHIFT, PDXSHIFT
-#define PDSHIFT(n)      (12 + NPTBITS * (n))
+#define PDSHIFT(n)	(12 + NPTBITS * (n))
 // In 32-bit: PTX(la), PDX(la)
-#define PDX(n, la)      ((((uintptr_t) (la)) >> PDSHIFT(n)) & PDXMASK)
-#define PGOFF(la)	((intptr_t) (la) & 0xFFF)	// offset in page
+#define PDX(n, la)	((((uintptr_t) (la)) >> PDSHIFT(n)) & PDXMASK)
+#define PGOFF(la)	((uintptr_t) (la) & 0xFFF)	// offset in page
 // page number field of address
 #define PPN(la)		(((uintptr_t) (la)) >> PAGESHIFT)
 // bytes info:
@@ -89,18 +92,18 @@
 //   n = 1 => bytes mapped by a PDE, 32-bit: PTSIZE 
 //   n = 2 => bytes mapped by a PDPE
 //   n = 3 => bytes mapped by a PML4E 
-#define PDSIZE(n)	(1<<PDSHIFT(n))
+#define PDSIZE(n)	(0x1ULL<<PDSHIFT(n))
 #define PTSIZE		(1<<PDSHIFT(1))
 
 // linear address components
-#define PGADDR(la)	((intptr_t) (la) & ~0xFFF)	// address of page
+#define PGADDR(la)	((uintptr_t) (la) & ~0xFFFULL)	// address of page
 //   n = 0 => address/offset of page, 32-bit: PGADDR(la), PGOFF(la)
 //   n = 1 => address/offset of page table, 32-bit: PTADDR(la), PTOFF(la) 
 //   n = 2 => address/offset of page-directory table 
 //   n = 3 => address/offset of page-directory-pointer table 
-#define PDADDR(n, la)	((intptr_t) (la) & ~((0x1 << PDSHIFT(n)) - 1))
-#define PDOFF(n, la)	((intptr_t) (la) & ((0x1 << PDSHIFT(n)) -1))
-#define PTOFF(la)	PDOFF(1, la)
+#define PDADDR(n, la)	((uintptr_t) (la) & ~((0x1ULL << PDSHIFT(n)) - 1))
+#define PDOFF(n, la)	((uintptr_t) (la) & ((0x1ULL << PDSHIFT(n)) -1))
+#define PTOFF(la)	PDOFF(1, (la))
 
 // TODO: the following may be deleted after finishing 4 level page mapping
 // page directory index
@@ -240,12 +243,12 @@ typedef struct segdesc {
 // Normal segment
 #define SEGDESC64(app, type, base, lim, dpl, mode) (struct segdesc)		\
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
-    (type), (app), (dpl), 1, (unsigned) (lim) >> 28, 0, (mode), ~(mode), 1,	\
-    (unsigned) ((base) >> 24) & 0xff, (base) >> 32, 0 }
+    (type), (app), (dpl), 1, (unsigned)(lim) >> 28, 0, (mode), ~(mode), 1,	\
+    ((base) >> 24) & 0xff, (unsigned long long)(base) >> 32, 0 }
 #define SEGDESC64_nogran(app, type, base, lim, dpl, mode) (struct segdesc)             \
-{ (lim) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,       \
-    (type), (app), (dpl), 1, (unsigned) ((lim) >> 16) & 0xf, 0, (mode), ~(mode), 0,     \
-    (unsigned) ((base) >> 24) & 0xff, (base) >> 32, 0 }
+{ ((lim)) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,       \
+    (type), (app), (dpl), 1, ((lim) >> 16) & 0xf, 0, (mode), ~(mode), 0,     \
+    ((base) >> 24) & 0xff, ((unsigned long long)(base)) >> 32, 0 }
 
 #define SEGDESC32(app, type, base, lim, dpl, mode) (struct segdesc)		\
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\

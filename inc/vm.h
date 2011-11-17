@@ -8,14 +8,14 @@
 #define PIOS_INC_VM_H
 
 //
-// The PIOS kernel divides the 2^64B linear address space
+// The PIOS kernel divides the 2^64B (effectively 2^48B) linear address space
 // into four parts:
 //
 //
 // Kernel's linear address map: 	              Permissions
 //                                                    kernel/user
 //
-//    2^63-1---------> +==============================+
+//    2^47-1---------> +==============================+
 //                     |                              | RW/--
 //                     |    Unused                    | RW/--
 //                     |                              | RW/--
@@ -26,10 +26,10 @@
 //                     :              .               :
 //                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 //                     |       (2^17-1) GB            | RW/RW
-//                     |User address space (128TB-4GB)| RW/RW
+//                     |User address space (128TB-1GB)| RW/RW
 //                     |        (see inc/vm.h)        | RW/RW
 //                     |                              | RW/RW
-//    VM_USERLO -----> +==============================+ 0x100000000 (4GB)
+//    VM_USERLO -----> +==============================+ 0x40000000 (1GB)
 //                     |                              | RW/--
 //                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 //                     :              .               :
@@ -43,10 +43,10 @@
 //                     |                              | RW/--
 //                     |    Unused                    | RW/--
 //                     |                              | RW/--
-//    -2^63 --- -----> +==============================+ 0xffffffffffffffff
+//    -2^47 --- -----> +==============================+ 0xffffffffffffffff
 //
-#define	VM_USERHI	0x800000000000
-#define	VM_USERLO	0x100000000
+#define	VM_USERHI	0x0000800000000000
+#define	VM_USERLO	0x0000000040000000
 #define ALLVA		((void *)VM_USERLO)
 #define ALLSIZE         (VM_USERHI - VM_USERLO)
 

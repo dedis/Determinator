@@ -117,6 +117,8 @@ $(OBJDIR)/kern/%.o: kern/%.c
 
 $(OBJDIR)/kern/%.o: kern/%.S
 	@echo + as $<
+	@echo $(CC)
+	@echo $(GCCPREFIX)
 	@mkdir -p $(@D)
 	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
 

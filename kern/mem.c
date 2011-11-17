@@ -322,7 +322,8 @@ mem_check()
         // eventually causes trouble.
 	int freepages = 0;
 	for (pp = mem_freelist; pp != 0; pp = pp->free_next) {
-		memset(mem_pi2ptr(pp), 0x97, 128);
+	//	cprintf("%p ", mem_pi2ptr(pp));
+	//	memset(mem_pi2ptr(pp), 0x97, 128);
 		freepages++;
 	}
 	cprintf("mem_check: %d free pages\n", freepages);

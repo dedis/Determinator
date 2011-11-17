@@ -31,6 +31,7 @@ void	vprintfmt(void (*putch)(int, void*), void *putdat,
 void	cputs(const char *str);			// lib/cputs.c or kern/cons.c
 int	cprintf(const char *fmt, ...);		// lib/cprintf.c
 int	vcprintf(const char *fmt, va_list);	// lib/cprintf.c
+int	printhex(const char *fmt, ...);		// lib/cprintf.c
 
 #if LAB >= 4
 #ifndef SEEK_SET

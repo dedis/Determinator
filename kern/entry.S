@@ -23,6 +23,7 @@
 #define MULTIBOOT_HEADER_MAGIC (0x1BADB002)
 #define MULTIBOOT_HEADER_FLAGS (MULTIBOOT_MEMORY_INFO | MULTIBOOT_PAGE_ALIGN)
 #define CHECKSUM (-(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS))
+#define PTCOUNT 0x40
 
 ###################################################################
 # kernel entry point
@@ -69,28 +70,24 @@ start: _start:
 	orl	$KERN_CR4,%eax
 	movl	%eax,%cr4
 
-	// identity map VM till 0x800000 exclusive (kernel end _end = 0x7090d0)
+	// identity map VM till 0x1000000 exclusive (kernel end _end = 0x7090d0)
+	// should be enough for memory bitmap
 	// only 4KB global (non-TLB-flushed) pages are used
 	movl $bootp3tab+(PTE_P|PTE_W),bootp4tab
+	movl $bootp4tab+(PTE_P|PTE_W),bootp4tab+8*PML4SELFOFFSET
 
 	movl $bootp2tab+(PTE_P|PTE_W),bootp3tab
 
-	movl $bootp1tab+(PTE_P|PTE_W),bootp2tab
-	movl $bootp1tab+(8*512)+(PTE_P|PTE_W),bootp2tab+8
-	movl $bootp1tab+(2*8*512)+(PTE_P|PTE_W),bootp2tab+16
-	movl $bootp1tab+(3*8*512)+(PTE_P|PTE_W),bootp2tab+24
-
-	movl $bootp1tab,%edx
+	movl $bootp2tab,%edx
 	xorl %eax,%eax
 1:	movl %eax,%ecx
 	addl $1,%eax
-	shll $12,%ecx
-	addl $(PTE_P|PTE_W|PTE_G),%ecx
+	shll $21,%ecx
+	addl $(PTE_P|PTE_W|PTE_G|PTE_PS),%ecx
 	movl %ecx,(%edx)
 	addl $0x8,%edx
-	cmpl $0x800,%eax
+	cmpl $PTCOUNT,%eax
 	jne 1b
-	
 
 	// load CR3 to point to our boot page table structure
 	movl	$bootp4tab,%eax
@@ -125,7 +122,6 @@ entry64:	// we are now in 64-bit mode.
 	movw	%ax,%fs
 	movw	%ax,%gs
 
-/* RAJAT : why is this needed?
 #if LAB >= 3
         # Leave a few words on the stack for the user trap frame
         movq    $(cpu_boot+4096-SIZEOF_STRUCT_TRAPFRAME),%rsp
@@ -133,7 +129,6 @@ entry64:	// we are now in 64-bit mode.
         # Set the stack pointer
         movq    $(cpu_boot+4096),%rsp
 #endif
-*/
 	movq    $(cpu_boot+KSTACKSIZE),%rsp
 	
 	# Clear the frame pointer register (RBP)
@@ -179,8 +174,6 @@ bootp3tab:
 	.space	4096
 bootp2tab:
 	.space	4096
-// allocating space for four 1-level page tables
-bootp1tab:
-	.space  4*4096
-
+// do not need to allocate space for 1-level page tables
+// could use 2M page
 #endif // LAB >= 1

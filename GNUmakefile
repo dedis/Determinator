@@ -93,6 +93,7 @@ PERL	:= perl
 
 # If we're not using the special "PIOS edition" of GCC,
 # reconfigure the host OS's compiler for our purposes.
+# need to use libraries provided by gcc on x86_64 machines.
 ifneq ($(GCCPREFIX),pios-)
 CFLAGS += -nostdinc -m64
 LDFLAGS += -nostdlib -m elf_x86_64
@@ -111,6 +112,7 @@ GCCALTDIR := $(dir $(shell $(CC) -print-libgcc-file-name))
 CFLAGS += $(DEFS) $(LABDEFS) -fno-builtin -I$(TOP) -I$(TOP)/inc \
 		-I$(GCCDIR)/include -I$(GCCALTDIR)/include \
 		-MD -Wall -Wno-unused -gstabs #-Werror # remove this flag to stop treating warnings as errors.
+CFLAGS += -fno-omit-frame-pointer # on x86_64 machines need to explicitly turn this option off to save %rsp to %rbp or compiler will automatically ignore the saving-frame-pointer process.
 
 ifdef LAB9
 # Optimize by default only in the research (Determinator) system.

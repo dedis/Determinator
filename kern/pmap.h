@@ -27,8 +27,7 @@ typedef uintptr_t pte_t;
 
 // Statically allocated page directory mapping the kernel's address space.
 // We use this as a template for all pdirs for user-level processes.
-pte_t pmap_bootpmap[NPRENTRIES] gcc_aligned(PAGESIZE);
-// extern pte_t pmap_bootpmap[NPRENTRIES];
+extern pte_t pmap_bootpmap[NPTENTRIES];
 
 // Statically allocated page that we always keep set to all zeros.
 extern uint8_t pmap_zero[PAGESIZE];
@@ -61,6 +60,7 @@ int pmap_merge(pte_t *rpml4, pte_t *spdir, intptr_t sva,
 int pmap_setperm(pte_t *pml4, intptr_t va, size_t size, int perm);
 void pmap_pagefault(trapframe *tf);
 void pmap_check(void);
+void pmap_print(void);
 
 
 #endif /* !PIOS_KERN_PMAP_H */
