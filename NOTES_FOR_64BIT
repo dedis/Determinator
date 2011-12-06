@@ -1,0 +1,171 @@
+------------------------------
+Overview of AMD64 Architecture
+------------------------------
+For more details, please read
+1. AMD64 Architecture Programmer's Manual Volume 2: System Programming
+2. System V Application Binary Interface: AMD64 Architecture Processor Supplement
+
+Basicly, in contrast to x86 architecture, AMD64 architecture upgrades nearly all things (registers, memory addresses and tables for traps and interrupts) to 64-bit.
+
+==== 1. Long Mode ====
+Long mode supports 64-bit, and the former x86 mode is now called legacy mode. Long mode has 2 sub-modes: 64-bit mode and compatibility mode. 64-bit mode doesn't support 32-bit applications.
+
+Before entering long mode, system should first enable protected mode, which is similar to 32-bit initializing process.
+
+To entering protected mode, system need to initialize IDT and GDT first. And then CR0.PE is set for enabling protected mode and CR0.PG is set for enabling paging. Before setting CR0.PG, basic page table and CR3 should be set up. Entering long mode doesn't require paging.
+
+To entering long mode, system need to initialize 64-bit IDT, GDT and TSS first. EFER.LME is set for enabling long mode and EFER.LMA is set for activating long mode. EFER.LMA is set by processor when initializing properly:
+1. disable paging by clear CR0.PG
+2. set CR4.PAE to enable PAE for supporting physical addresses greater than 32 bits.
+   set up CR3 to PML4 table.
+   set EFER.LME to enable long mode
+3. set CR0.PG and the processor will automatically set EFER.LMA.
+
+==== 2. Segmentaion ====
+In long mode, segmentation is disabled because paging is a better substitution for permission control. However, segmentaion registers and data structures are kept and extended. Optional data-segment descriptor entries FS and GS, Task-state segment descriptor TSS are added.
+
+All attributes in DS, ES, SS registers are ignored, and only L, D, DPL in CS register are used in long mode. However, we can't read or modify this attibutes directly, so we don't need to take special care of them. So as FS and GS registers even though they have additional 64-bit segment base address. GDT and LDT are used to find descriptor.
+ 15            3  2  1  0               63                              0 15        0
+ +-------------+ +-+ +--+ Descriptor    +-------------------------------+ +---------+   Global
+ |Selector Index |TI |CPL  Register     | Descriptor Table Base Address | |  Limit  | Descriptor
+ +-------------+ +-+ +--+   / LDT       +-------------------------------+ +---------+ Table (GDT)
+ |<  13 bits  >|  |        Register     |<            64 bits          >| |<16 bits>|  Register
+       |          |                                     |                     |
+       |          `------> GDT / LDT                    |                     |
+       |                .-------------.<----------------|---------------------'
+ 15    v       3   0    Z             Z                 |
+ +-------------+---+    |-------------|                 |
+ |   Sel Idx   |000|--->|  Descriptor |                 |
+ +-------------+---+    |-------------|                 |
+                        Z             Z                 |
+                        |-------------|                 |
+                        |Null Selector|                 |
+                        `-------------'<----------------'
+
+The IDT for interrupts are almost the same.
+        IDT
+  .-------------.<-------------------------------.         +---------------------+
+  Z             Z                                |     .---|   Interrpt Vector   |
+  |-------------|                                |     |   +---------------------+
+  |  Descriptor |<------------------------------------(X)--|Descriptor Entry Size|
+  |-------------|                                |         +---------------------+
+  Z             Z                                |
+  |-------------|      63                 0 15   |    0
+  |Null Selector|      +------------------+ +---------+
+  `-------------'<-----| IDT Base Address | |  Limit  |
+                       +------------------+ +---------+
+                       |<     64 bits    >| |<16 bits>|
+
+Code-segment and data-segment descriptors are like 32-bit ones but with many fields ignored. System-segment descriptors (for LDT and TSS) are extended to 64-bit. Although they have different fields, we can unify them to a standard form.
+ 31              23              15               7             0
+ +---------------+---------------+-----+---------+---------------+
+ |              Reserved               |0 0 0 0 0|    Reserved   |
+ +-------------------------------------+---------+---------------+
+ |                      Base Address 63-32                       |
+ +---------------+-+-+-+-+-------+-+---+-+-------+---------------+
+ |Base Addr 31-24|G|D|L|A| Lim Hi|P|DPL|S|  Type |Base Addr 23-16|
+ +---------------+-+-+-+-+-------+-+---+-+-------+---------------+
+ |       Base Address 15-0       |          Limit 15-0           |
+ +---------------+---------------+---------------+---------------+
+ 31              23              15               7             0
+
+Gate (call-gate, interrupt-gate and trap-gate) descriptors are of similar format to segment descriptors. we can also unify them to a standard form.
+ 31              23              15               7             0
+ +---------------+---------------+-----+---------+---------------+
+ |              Reserved               |0 0 0 0 0|    Reserved   |
+ +-------------------------------------+---------+---------------+
+ |                      Target Offset 63-32                      |
+ +-------------------------------+-+---+-+-------+---------+-----+
+ |      Target Offset 31-16      |P|DPL|0|  Type | Reserved| IST |
+ +-------------------------------+-+---+-+-------+---------+-----+
+ |        Target Sellector       |       Target Offset 15-0      |
+ +---------------+---------------+---------------+---------------+
+ 31              23              15               7             0
+
+==== 3. Paging ====
+Long mode requires 4-level page mapping: PML4 (page-mapping level-4), PDP (page directory pointer), PD (page directory) and PT (page table). However not every level is used. If PD or PDP is the last level page table, PDE.PS or PDPE.PS need to be set. CPUID function Fn8000_0001h.EDX bit 26 indcates whether processor supports PDP to be last level page table.
+
+Whatever the page size is, the size of effective address space is 2^48. An address can be divide into 6 parts for seeking entry in each level of page tables and last-level page. And a 64-bit virutal address will finally transformed to a 52-bit physical address.
+ 63              48 47       39 38       30 29       21 20       12 11           0
+ +----------------+ +---------+ +---------+ +---------+ +---------+ +------------+
+ | Sign Extension | |  PML4E  | |   PDPE  | |   PDE   | |   PTE   | | Page Offset| Virtual
+ +----------------+ +---------+ +---------+ +---------+ +---------+ +------------+ Address
+ |<    16 bits   >| |< 9 bits>| |< 9 bits>| |< 9 bits>| |< 9 bits>| |<  12 bits >|
+                        |           |           |           |           |
+                        |  .-----.  |  .-----.  |  .-----.  |  .-----.  |  .--------.
+                        |  Z     Z  |  Z     Z  |  Z     Z  |  Z     Z  |  Z        Z
+                        |  |-----|  |  |     |  |  |-----|  |  |     |  |  |        |
+                        `->|PML4E|-.|  |     |  `->| PDE |-.|  |-----|  |  |--------|
+                           |-----| ||  |-----|     |-----| |`->| PTE |-.|  |Physical|
+  +-------+                |     | |`->| PDPE|-.   |     | |   |-----| |`->| Address|
+  |  CR3  |----.           |     | |   |-----| |   |     | |   |     | |   |--------|
+  +-------+    |           Z     Z |   Z     Z |   Z     Z |   Z     Z |   Z        Z
+ Base Address  `---------->`-----' `-->`-----' `-->`-----' `-->`-----' `-->`--------'
+                            PML4T        PDPT        PDT          PT          Page
+Since processor only supports 52-bit physical address, and page tables of all levels are aligned by 4KB, bit 12 to bit 51 are enough to locate page table in physical memory. Other bits in page table entry are used for permission or function controls. Table entries in different levels has different formats, however there are only few common-used bits (G, U/S, R/W, P).
+  63 62 52 51             12 11  9  8   7   6   5   4   3   2   1   0
+ +-+ +-N-+ +-------N-------+ +-N-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+
+ | | |   | |               | |   | | | |P| | | | | |P| |P| |U| |R| | |
+ |N| |AVL| |      ADDR     | |AVL| |G| |A| |D| |A| |C| |W| |/| |/| |P| PTE (4KB page)
+ |X| |   | |               | |   | | | |T| | | | | |D| |T| |S| |W| | |
+ +-+ +-N-+ +-------N-------+ +-N-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+
+
+  63 62 52 51   21 20 13  12 11  9  8   7   6   5   4   3   2   1   0
+ +-+ +-N-+ +--N--+ +-N-+ +-+ +-N-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+
+ | | |   | |     | |   | |P| |   | | | | | | | | | |P| |P| |U| |R| | |
+ |N| |AVL| | ADDR| | 0 | |A| |AVL| |G| |P| |D| |A| |C| |W| |/| |/| |P| PDE (2MB page), PS must be 1
+ |X| |   | |     | |   | |T| |   | | | |S| | | | | |D| |T| |S| |W| | |
+ +-+ +-N-+ +--N--+ +-N-+ +-+ +-N-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+
+
+  63 62 52 51             12 11  9  8   7   6   5   4   3   2   1   0
+ +-+ +-N-+ +-------N-------+ +-N-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+
+ | | |   | |               | |   | | | | | |I| | | |P| |P| |U| |R| | |
+ |N| |AVL| |      ADDR     | |AVL| |0| |0| |G| |A| |C| |W| |/| |/| |P| PML4E, PDPE, PDE (4KB page)
+ |X| |   | |               | |   | | | | | |N| | | |D| |T| |S| |W| | |
+ +-+ +-N-+ +-------N-------+ +-N-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+ +-+
+
+==== 4. Function Calling Convention ====
+AMD64 architecture uses registers instead of stack to pass first 6 arguments. When all arguments are integer, they will be placed (in left-to-right order) in %rdi, %rsi, %rdx, %r10(%rcx for user applications), %r8 and %r9. If any of first 6 arguments is a large data structure, its address will be placed in stack. It is now hard to use variable arguments.
+
+Constraint of %ebp chain in x86 architecture also breaks. They advocates that eliminating %ebp chain will save two instructions and one register. However this is really bad for debugging.
+
+
+------------------------------
+Adapting to AMD64 architecture
+------------------------------
+
+==== 0. 64-bit ====
+Change various types to 64-bit.
+Change registers to 64-bit.
+
+==== 1. booting process ====
+- boot/boot.S
+- boot/bootother.S
+- kern/entry.S
+- kern/cpu.c
+Add steps for entering long mode.
+Reserve space for static 3-level page table (use 2MB page to save space).
+Change and add segment descriptors.
+
+==== 2. memory ==== (TODO)
+- inc/mmu.h
+- inc/vm.h
+- kern/mem.c
+- kern/pmap.c
+Change page mapping to 4-level.
+Change page related macros to level-aware.
+Change descriptor format.
+Change virtual memory space
+Change process of initializing page mapping.
+
+==== 3. trap ==== (TODO)
+- inc/trap.h
+Change trap frame format.
+
+==== 4. variable argument / %ebp chain ====
+- inc/stdarg.h
+- lib/printfmt.c
+- GNUMAKEFILE
+Use GCC built-in  va_list  instead of  char * . (never mind about how GCC implements it, it just works~)
+Use macro instead of function for getint() and getuint(). GCC use  struct __va_list_tag [1]  to implement  va_list . When passing argument using  va_list * , there would be a compiling error of "incompatible type" ( struct __va_list_tag (*)[1] and struct __va_list_tag **). I hate this, but I have no control of type conversion, GCC did that.
+Add -fno-omit-frame-pointer to CFLAGS to force GCC constructing %ebp chain.
