@@ -223,6 +223,7 @@ init(void)
 
 	// Create our first actual user-mode process
 	proc *root = proc_root = proc_alloc(NULL, 0);
+	cprintf("CR3 %p\n", rcr3());
 	cprintf("proc alloc\n");
 
 	elfhdr *eh = (elfhdr *)ROOTEXE_START;
@@ -270,15 +271,20 @@ init(void)
 	assert(pte != NULL);
 	root->sv.tf.rsp = VM_STACKHI;
 	cprintf("proc load\n");
+	cprintf("CR3 %p\n", rcr3());
 
 #if LAB >= 4
 	// Give the root process an initial file system.
 	file_initroot(root);
 	cprintf("file init\n");
+	cprintf("CR3 %p\n", rcr3());
 #endif
 
 	proc_ready(root);	// make the root process ready
+	cprintf("proc ready\n");
+	cprintf("CR3 %p\n", rcr3());
 	proc_sched();		// run it
+	panic("should not get here");
 #else // SOL == 0
 	// Lab 1: change this so it enters user() in user mode,
 	// running on the user_stack declared above,

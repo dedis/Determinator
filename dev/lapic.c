@@ -59,7 +59,6 @@ lapic_init()
 	uint32_t lb = lapic[TCCR];	// read base count from lapic
 	while (timer_read() < tb+(TIMER_FREQ+HZ/2)/HZ); // wait 1/HZ sec
 	uint32_t le = lapic[TCCR];	// read final count from lapic
-	cprintf("le %x lb %x\n", le, lb);
 	assert(le < lb);
 	uint32_t ltot = lb - le;	// total # lapic ticks per 1/HZ tick
 

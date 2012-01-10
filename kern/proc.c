@@ -233,6 +233,7 @@ proc_sched(void)
 	spinlock_acquire(&p->lock);
 	spinlock_release(&readylock);
 
+	cprintf("CR3 %p\n", rcr3());
 	proc_run(p);
 
 #else	// SOL >= 2
@@ -294,9 +295,11 @@ proc_run(proc *p)
 #if SOL >= 3
 	// Switch to the new process's address space.
 	lcr3(mem_phys(p->pml4));
+	cprintf("CR3 %p\n", rcr3());
+	trap_print(&p->sv.tf);
 
 #endif
-	trap_return(&p->sv.tf);
+	trap_return_debug(&p->sv.tf);
 #else	// SOL >= 2
 	panic("proc_run not implemented");
 #endif	// SOL >= 2

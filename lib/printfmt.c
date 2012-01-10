@@ -50,7 +50,6 @@ typedef struct printstate {
 static uintmax_t
 getuint(printstate *st, va_list *ap)
 {
-	printhex("ADDR AGAIN ", ap);
 	if (st->flags & F_LL)
 		return 0xDEAD; //va_arg(*ap, unsigned long long);
 	else if (st->flags & F_L)

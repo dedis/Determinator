@@ -153,7 +153,7 @@ file_initroot(proc *root)
 
 	// Increase the root process's stack size to 64KB.
 	// XXX should just do this while loading the program.
-	pmap_setperm(root->pdir, VM_STACKHI - 65536, 65536,
+	pmap_setperm(root->pml4, VM_STACKHI - 65536, 65536,
 			SYS_READ | SYS_WRITE);
 #endif
 }

@@ -77,29 +77,3 @@ cprintf(const char *fmt, ...)
 	return cnt;
 }
 
-int printhex(const char *fmt, ...)
-{
-	va_list ap;
-	int cnt = 0;
-	unsigned long x;
-	char buf[10];
-	int i;
-
-	va_start(ap, fmt);
-	x = va_arg(ap, unsigned long);
-	cputs(fmt);
-	for (i = 0; i < 8; i++) {
-		buf[i] = (x & 0xF0000000ULL) >> 28;
-		if (buf[i] < 0xA) {
-			buf[i] += '0';
-		} else {
-			buf[i] += 'A' - 0xA;
-		}
-		x <<= 4;
-	}
-	buf[i] = 0;
-	cputs(buf);
-	cputs("\n");
-	va_end(ap);
-	return cnt;
-}

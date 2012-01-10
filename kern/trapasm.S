@@ -210,4 +210,37 @@ trap_return:
 1:	jmp	1b		// just spin
 #endif // SOL >= 1
 
+.globl	trap_return_debug
+.type	trap_return_debug,@function
+.p2align 4, 0x90		/* 16-byte alignment, nop filled */
+trap_return_debug:
+	movq %rdi,%rsp
+
+	popq %rax
+	movw %ax,%gs
+	popq %rax
+	movw %ax,%fs
+	popq %rax
+	movw %ax,%es		# popw cs/ds/es/ss instructions are invalid in 64-bit mode
+	popq %rax
+	movw %ax,%ds
+	popq %r15
+	popq %r14
+	popq %r13
+	popq %r12
+	popq %r11
+	popq %r10
+	popq %r9
+	popq %r8
+	popq %rbp
+	popq %rdi
+	popq %rsi
+	popq %rdx
+	popq %rcx
+	popq %rbx
+	popq %rax
+	addq $0x10,%rsp		// skip trapno and errcode
+	iretq			// return from trap handler
+1:	jmp	1b		// just spin
+
 #endif // LAB >= 1

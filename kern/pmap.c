@@ -32,6 +32,9 @@ pte_t pmap_bootpmap[NPTENTRIES] gcc_aligned(PAGESIZE);
 // Statically allocated page that we always keep set to all zeros.
 uint8_t pmap_zero[PAGESIZE] gcc_aligned(PAGESIZE);
 
+// The maximal page size cpu supports
+static uint8_t max_page_entry_level = 2;
+
 
 // --------------------------------------------------------------
 // Set up initial memory mappings and turn on MMU.
@@ -53,6 +56,14 @@ void
 pmap_init(void)
 {
 	if (cpu_onboot()) {
+		// detect if cpu supports 1G page
+		cpuinfo inf;
+		cpuid(0x80000001, &inf);
+		if ((inf.edx >> 26) & 0x1) {
+			max_page_entry_level = 2;
+		} else {
+			max_page_entry_level = 1;
+		}
 		// Initialize pmap_bootpmap, the bootstrap page map.
 		// Page map entries corresponding to the user-mode address 
 		// space between VM_USERLO and VM_USERHI
@@ -61,7 +72,7 @@ pmap_init(void)
 		// should be identity-mapped to the same physical addresses,
 		// but only accessible in kernel mode (not in user mode).
 #if SOL >= 3
-		pmap_init_bootpmap(pmap_bootpmap, 0, 0, 0, NPTLVLS); // erase all pages
+		pmap_init_bootpmap(pmap_bootpmap, 0, (0x1ULL << 48), 0xFFFF, NPTLVLS); // erase all pages
 		pmap_init_bootpmap(pmap_bootpmap, 0, VM_USERLO, PTE_P | PTE_W, NPTLVLS); // map lower kernel address
 		pmap_init_bootpmap(pmap_bootpmap, VM_USERHI, (0x1ULL << 47) - VM_USERHI, PTE_P | PTE_W, NPTLVLS); // map higher kernel address, not using lower half of 48-bit virtual address
 		pmap_bootpmap[PML4SELFOFFSET] = mem_phys(pmap_bootpmap) | PTE_P | PTE_W;
@@ -93,40 +104,57 @@ pmap_init(void)
         cr0 &= ~(CR0_EM);
         lcr0(cr0);
 
-        if (cpu_onboot())
+        if (cpu_onboot()) {
                 pmap_check();
+                pmap_check_adv();
+        }
 }
 
 // we only map kernel address, linear address and physical address is identical
 static void
 pmap_init_bootpmap(pte_t *table, uintptr_t addr, size_t size, uint16_t perm, int level)
 {
-	uint16_t i;
-	uint16_t lo = PDX(level, addr);
-	uint16_t hi = PDX(level, ROUNDUP(addr + size, PDSIZE(level)));
-	if (hi == 0) hi = NPTENTRIES;
-	for (i = 0; i < NPTENTRIES; i++) {
-		if ((i >= lo) && (i < hi) && (perm != 0)) {
-			if (level > 1) {
-				// alloc page for next-level page table
-				pageinfo *page = mem_alloc();
-				pte_t *subtable = (pte_t *)mem_pi2ptr(page);
-				table[i] = mem_phys(subtable) | perm;
-				if (i == lo) {
-					pmap_init_bootpmap(subtable, addr, MIN(size, PDSIZE(level) - PDOFF(level, addr)), perm, level - 1);
-				} else {
-					uintptr_t start = PDADDR(level, addr) + i * PDSIZE(level);
-					pmap_init_bootpmap(subtable, start, MIN(addr + size - start, PDSIZE(level)), perm, level - 1);
-				}
+	// addr and size should be aligned with PAGESIZE
+	addr = PGADDR(addr);
+	size = PGADDR(size);
+	uintptr_t hi = addr + size;
+	uint16_t page_perm = perm | PTE_G | PTE_P;
+	uint16_t dir_perm = ((perm != 0xFFFF) ? perm : 0) | PTE_P;
+	if (level > 0) {
+		page_perm |= PTE_PS;
+	}
+	while (addr < hi) {
+		if (PDOFF(level, addr) != 0) {
+			// addr is not aligned with size of directory entry
+			// need to create next level's page table
+			if ((PDADDR(level, addr) + PDSIZE(level)) < hi) {
+				size = PDSIZE(level) - PDOFF(level, addr);
 			} else {
-				// just map addresses
-				table[i] = (PGADDR(addr) + (i * PTSIZE)) | perm | PTE_G | PTE_PS;
+				size = hi - addr;
 			}
+		} else if (addr + PDSIZE(level) > hi) {
+			// hi is not aligned with size of directory entry
+			// need also to create next level's page table
+			size = hi - addr;
+		} else if ((level > max_page_entry_level) && (perm != 0xFFFF)) {
+			// direct mapping is unavailable
+			// should alloc new page for next level's page table
+			size = PDSIZE(level);
 		} else {
-			if ((perm == 0) || (level < NPTLVLS)) {
-				table[i] = PTE_ZERO;
-			}
+			// we are happy to use big page for mapping here if level > 0
+			table[PDX(level, addr)] = ((perm != 0xFFFF) ? (addr | page_perm) : PTE_ZERO);
+			addr += PDSIZE(level);
+			continue;
 		}
+		// now alloc new page for next level's page table
+		pageinfo *pi = mem_alloc();
+		assert(pi != NULL);
+		pte_t *subtable = (pte_t *)mem_pi2ptr(pi);
+		pmap_init_bootpmap(subtable, PDADDR(level, addr), addr - PDADDR(level, addr), 0xFFFF, level - 1);
+		pmap_init_bootpmap(subtable, addr, size, perm, level - 1);
+		pmap_init_bootpmap(subtable, addr + size, PDSIZE(level) - PDOFF(level, addr) - size, 0xFFFF, level - 1);
+		table[PDX(level, addr)] = mem_phys(subtable) | dir_perm;
+		addr += size; // this should align addr
 	}
 }
 
@@ -569,11 +597,10 @@ pmap_pagefault(trapframe *tf)
 	while ( pmlevel >= 1) {
 		pte_t *pmte = &pmtab[PDX(pmlevel, fva)];
 		if (!(*pmte & PTE_P)) {
-			cprintf("pmap_pagefault: %d-level pmte for fva \
-				%x doesn't exist\n", pmlevel, fva);
+			cprintf("pmap_pagefault: %d-level pmte for fva %x doesn't exist\n", pmlevel, fva);
 			return;		// ptab doesn't exist at all - blame user
 		}
-		pmtab = pmte, pmlevel--;
+		pmtab = PTE_ADDR(*pmte), pmlevel--;
 	}
 
 	// Find the page table entry, copying the page table if it's shared.
@@ -785,19 +812,20 @@ pmap_setperm(pte_t *pml4, intptr_t va, size_t size, int perm)
 		pte_t *pmtab = pml4;
 		while ( pmlevel >= 1 ) {
 			pte_t *pte = &pmtab[PDX(pmlevel, va)]; // find entry in pmtab
-			if (PDOFF(pmlevel, va) != 0) {
-				pmtab = pte, pmlevel--;
+			if (*pte & PTE_P) {
+				pmtab = PTE_ADDR(*pte), pmlevel--;
 				continue;
-			}
-			if (*pte == PTE_ZERO && pteor == 0) { 
-				// clearing perms, but no page table
-				// - skip PDSIZE(pmlevel) region
-				va = PDADDR(pmlevel, va + PDSIZE(pmlevel));
-				// start of next pmtab
+			} else {
+				if ((*pte == PTE_ZERO) && (pteor == 0)) {
+					// clearing perms, but no page table
+					// - skip PDSIZE(pmlevel) region
+					va = PDADDR(pmlevel, va + PDSIZE(pmlevel));
+				}
 				break;
 			}
+			panic("should not get here");
 		}
-		if ( pmlevel >= 1)
+		if ((pmlevel >= 1) && (pteor == 0))
 			continue;
 
 		pte_t *pte = pmap_walk(pml4, va, 1);	// find & unshare PTE
@@ -1058,6 +1086,86 @@ pmap_check(void)
 #endif
 }
 
+// test pmap_setperm, pmap_copy, pmap_merge, pmap_setperm
+void
+pmap_check_adv(void)
+{
+	extern pageinfo *mem_freelist;
+
+	pageinfo *pi, *pi0, *pi1, *pi2, *pi3, *pi4;
+	pageinfo *fl;
+	pte_t *ptep, *ptep1;
+	int i;
+
+	// should be able to allocate three pages
+	pi0 = pi1 = pi2 = pi3 = pi4 = 0;
+	pi0 = mem_alloc();
+	pi1 = mem_alloc();
+	pi2 = mem_alloc();
+	pi3 = mem_alloc();
+	pi4 = mem_alloc();
+
+	// temporarily steal the rest of the free pages
+	fl = mem_freelist;
+	mem_freelist = NULL;
+
+	// free pi0, pi1 and try again: pi0 and pi1 should be used for page table
+	mem_free(pi0);
+	mem_free(pi1);
+	assert(pmap_insert(pmap_bootpmap, pi4, VM_USERLO, 0) != NULL);
+
+	// should be able to set no permission
+	assert(pmap_setperm(pmap_bootpmap, VM_USERLO + PAGESIZE, PAGESIZE, 0) != 0);
+
+	// should be able to set read permission
+	assert(pmap_setperm(pmap_bootpmap, VM_USERLO + PAGESIZE, PAGESIZE, SYS_READ) != 0);
+	assert(*(int *)(VM_USERLO + PAGESIZE) == 0);
+	mem_free(pi2);
+	assert(pmap_setperm(pmap_bootpmap, VM_USERLO + 2 * PAGESIZE, PTSIZE, SYS_READ) != 0);
+	assert(*(int *)(VM_USERLO + PTSIZE) == 0);
+
+	// should be able to set write permission
+	assert(pmap_setperm(pmap_bootpmap, VM_USERLO + 2 * PAGESIZE, PTSIZE, SYS_READ|SYS_WRITE) != 0);
+	assert(*(int *)(VM_USERLO + 2 * PAGESIZE) == 0);
+
+	// revert original page tables
+	cprintf("pi0 ref = %d\n", pi0->refcount);
+	cprintf("pi1 ref = %d\n", pi1->refcount);
+	cprintf("pi2 ref = %d\n", pi2->refcount);
+	cprintf("pi3 ref = %d\n", pi3->refcount);
+	cprintf("pi4 ref = %d\n\n", pi4->refcount);
+	pmap_remove(pmap_bootpmap, VM_USERLO + PTSIZE, PTSIZE);
+	assert(mem_alloc() == pi2);
+	assert(mem_alloc() == NULL);
+	cprintf("pi0 ref = %d\n", pi0->refcount);
+	cprintf("pi1 ref = %d\n", pi1->refcount);
+	cprintf("pi2 ref = %d\n", pi2->refcount);
+	cprintf("pi3 ref = %d\n", pi3->refcount);
+	cprintf("pi4 ref = %d\n\n", pi4->refcount);
+	pmap_remove(pmap_bootpmap, VM_USERLO, PTSIZE);
+	cprintf("pi0 ref = %d\n", pi0->refcount);
+	cprintf("pi1 ref = %d\n", pi1->refcount);
+	cprintf("pi2 ref = %d\n", pi2->refcount);
+	cprintf("pi3 ref = %d\n", pi3->refcount);
+	cprintf("pi4 ref = %d\n\n", pi4->refcount);
+	assert(mem_alloc() == pi0);
+	assert(mem_alloc() == pi4);
+	assert(mem_alloc() == NULL);
+	pmap_remove(pmap_bootpmap, VM_USERLO, VM_USERHI - VM_USERLO);
+	assert(mem_alloc() == pi1);
+	assert(mem_alloc() == NULL);
+
+	// give free list back
+	mem_freelist = fl;
+
+	// free the pages we filched
+	mem_free(pi0);
+	mem_free(pi1);
+	mem_free(pi2);
+	mem_free(pi3);
+	mem_free(pi4);
+}
+
 static uint16_t
 pmap_scan(uintptr_t *table, pte_t left, pte_t right, pte_t *start, pte_t *end, uint16_t mask)
 {
@@ -1096,9 +1204,9 @@ pmap_print(void)
 	pml4t = (uintptr_t *)((uintptr_t)pml4t | CANONICALSIGNEXTENSION);
 
 	uint16_t perm = 0;
-	uint16_t mask = PTE_P | PTE_W | PTE_U | PTE_PS | PTE_G;
+	uint16_t mask = PTE_P | PTE_W | PTE_U | PTE_PS | PTE_G | PTE_AVAIL;
 	int half = 0; // 0 for higher half, 1 for lower half
-	for (half = 0; half < 2; half++) {
+	for (half = 0; half < 1; half++) {
 		pte_t pml4_start = (half ? (NPTENTRIES >> 1) : 0);
 		pte_t pml4_end = (half ? (NPTENTRIES >> 1) : 0);
 		uintptr_t ext = half * CANONICALSIGNEXTENSION;

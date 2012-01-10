@@ -202,16 +202,20 @@
  * Macros to build GDT entries in assembly.
  */
 
-#define SEGNULL		\
+#define SEGNULL32	\
+	.word 0,0,0,0
+#define SEGNULL64	\
 	.long 0,0,0,0
-#define SEG32(base,limit,type,dpl,mode)                                      \
-        .word (((limit) >> 12) & 0xffff), ((base) & 0xffff);      \
-        .byte (((base) >> 16) & 0xff), (0x90 | (type) | ((dpl)<<5)),     \
-             (0x80 | ((((~(mode)) << 1) | (mode)) << 5) |         \
-	     (((limit) >> 28) & 0xf)), (((base) >> 24) & 0xff)
-#define SEG64(base,limit,type,dpl,mode) \
-	SEG32(base,limit,type,dpl,mode); \
-	.long	(base >> 32), 0
+#define SEG32(app, type, base, limit, dpl, mode)                     \
+	.word (((limit) >> 12) & 0xffff),                            \
+	      ((base) & 0xffff);                                     \
+	.byte (((base) >> 16) & 0xff),                               \
+	      (0x80 | ((app) << 4) | (type) | ((dpl) << 5)),         \
+	      (0x80 | ((~(mode)) & 0x60) | (((limit) >> 28) & 0xf)), \
+	      (((base) >> 24) & 0xff)
+#define SEG64(app, type, base, limit, dpl, mode)  \
+	SEG32(app, type, base, limit, dpl, mode); \
+	.long (base >> 32), 0
 
 #else	// not __ASSEMBLER__
 
@@ -296,7 +300,7 @@ typedef struct taskstate {
 	uint16_t ts_iomb;	// I/O map base address
 } taskstate;
 
-// Gate descriptors for interrupts and traps (legacy mode only)
+// Gate descriptors for interrupts and traps
 typedef struct gatedesc {
 	unsigned gd_off_15_0 : 16;   // low 16 bits of offset in segment
 	unsigned gd_ss : 16;         // target selector
@@ -311,7 +315,7 @@ typedef struct gatedesc {
 	unsigned gd_resv2 : 32;	     // reserved
 } gatedesc;
 
-// Set up a normal interrupt/trap gate descriptor (legacy mode only).
+// Set up a normal interrupt/trap gate descriptor.
 // - istrap: 1 for a trap (= exception) gate, 0 for an interrupt gate.
 // - sel: Code segment selector for interrupt/trap handler
 // - off: Offset in code segment for interrupt/trap handler

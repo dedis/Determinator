@@ -60,6 +60,7 @@ int pmap_merge(pte_t *rpml4, pte_t *spdir, intptr_t sva,
 int pmap_setperm(pte_t *pml4, intptr_t va, size_t size, int perm);
 void pmap_pagefault(trapframe *tf);
 void pmap_check(void);
+void pmap_check_adv(void);
 void pmap_print(void);
 
 

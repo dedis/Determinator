@@ -147,15 +147,14 @@ spin:	jmp	spin
 // Place it in our text segment to ensure that it stays
 // in the lowest 64KB real-mode segment.
 	.p2align 3
-	.globl gdt
 gdt:
-	SEGNULL					// null segment
-	SEG64(0,0xfffff,STA_X | STA_R,0,0)	// 0x10: 32-bit kernel code segment
-	SEG64(0,0xfffff,STA_W,0,0)		// 0x20: 32-bit kernel data segment
-	SEG64(0,0xfffff,STA_X | STA_R,0,1)	// 0x30: 64-bit kernel code segment
-	SEG64(0,0xfffff,STA_W,0,1)		// 0x40: 64-bit kernel data segment
-	SEG64(0,0xfffff,STA_X | STA_R,3,1)	// 0x50: 64-bit user code segment
-	SEG64(0,0xfffff,STA_W,3,1)		// 0x60: 64-bit user data segment
+	SEGNULL64				// null segment
+	SEG64(1,STA_X|STA_R,0,0xffffffff,0,32)	// 0x10: 32-bit kernel code segment
+	SEG64(1,STA_W,0,0xffffffff,0,32)	// 0x20: 32-bit kernel data segment
+	SEG64(1,STA_X|STA_R,0,0xffffffff,0,64)	// 0x30: 64-bit kernel code segment
+	SEG64(1,STA_W,0,0xffffffff,0,64)	// 0x40: 64-bit kernel data segment
+	SEG64(1,STA_X|STA_R,0,0xffffffff,3,64)	// 0x50: 64-bit user code segment
+	SEG64(1,STA_W,0,0xffffffff,3,64)	// 0x60: 64-bit user data segment
 gdtend:
 
 	.data

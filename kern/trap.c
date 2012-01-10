@@ -240,7 +240,7 @@ trap(trapframe *tf)
 	// The user-level environment may have set the DF flag,
 	// and some versions of GCC rely on DF being clear.
 	asm volatile("cld" ::: "cc");
-	cprintf("trap no is %x\n", tf->trapno);
+//	cprintf("trap no is %x\n", tf->trapno);
 
 #if SOL >= 3
 	// If this is a page fault, first handle lazy copying automatically.
