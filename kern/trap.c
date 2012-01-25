@@ -197,21 +197,21 @@ const char *trap_name(int trapno)
 void
 trap_print_regs(trapframe *tf)
 {
-	cprintf("  r15  0x%016x\n", tf->r15);
-	cprintf("  r14  0x%016x\n", tf->r14);
-	cprintf("  r13  0x%016x\n", tf->r13);
-	cprintf("  r12  0x%016x\n", tf->r12);
-	cprintf("  r11  0x%016x\n", tf->r11);
-	cprintf("  r10  0x%016x\n", tf->r10);
-	cprintf("  r9   0x%016x\n", tf->r9);
-	cprintf("  r8   0x%016x\n", tf->r8);
-	cprintf("  rbp  0x%016x\n", tf->rbp);
-	cprintf("  rdi  0x%016x\n", tf->rdi);
-	cprintf("  rsi  0x%016x\n", tf->rsi);
-	cprintf("  rdx  0x%016x\n", tf->rdx);
-	cprintf("  rcx  0x%016x\n", tf->rcx);
-	cprintf("  rbx  0x%016x\n", tf->rbx);
-	cprintf("  rax  0x%016x\n", tf->rax);
+	cprintf("  r15  0x%016llx\n", tf->r15);
+	cprintf("  r14  0x%016llx\n", tf->r14);
+	cprintf("  r13  0x%016llx\n", tf->r13);
+	cprintf("  r12  0x%016llx\n", tf->r12);
+	cprintf("  r11  0x%016llx\n", tf->r11);
+	cprintf("  r10  0x%016llx\n", tf->r10);
+	cprintf("  r9   0x%016llx\n", tf->r9);
+	cprintf("  r8   0x%016llx\n", tf->r8);
+	cprintf("  rbp  0x%016llx\n", tf->rbp);
+	cprintf("  rdi  0x%016llx\n", tf->rdi);
+	cprintf("  rsi  0x%016llx\n", tf->rsi);
+	cprintf("  rdx  0x%016llx\n", tf->rdx);
+	cprintf("  rcx  0x%016llx\n", tf->rcx);
+	cprintf("  rbx  0x%016llx\n", tf->rbx);
+	cprintf("  rax  0x%016llx\n", tf->rax);
 }
 
 void
@@ -225,12 +225,12 @@ trap_print(trapframe *tf)
 #endif
 	cprintf("  es   0x------------%04x\n", tf->es);
 	cprintf("  ds   0x------------%04x\n", tf->ds);
-	cprintf("  trap 0x%016x %s\n", tf->trapno, trap_name(tf->trapno));
-	cprintf("  err  0x--------%08x\n", tf->err);
-	cprintf("  rip  0x%016x\n", tf->rip);
+	cprintf("  trap 0x%016llx %s\n", tf->trapno, trap_name(tf->trapno));
+	cprintf("  err  0x--------%08lx\n", tf->err);
+	cprintf("  rip  0x%016llx\n", tf->rip);
 	cprintf("  cs   0x------------%04x\n", tf->cs);
-	cprintf("  flag 0x%016x\n", tf->rflags);
-	cprintf("  rsp  0x%016x\n", tf->rsp);
+	cprintf("  flag 0x%016llx\n", tf->rflags);
+	cprintf("  rsp  0x%016llx\n", tf->rsp);
 	cprintf("  ss   0x------------%04x\n", tf->ss);
 }
 
@@ -248,6 +248,12 @@ trap(trapframe *tf)
 	// otherwise, it returns normally to blame the fault on the user.
 	if (tf->trapno == T_PGFLT)
 		pmap_pagefault(tf);
+
+	// WWY
+	if (tf->trapno == T_GPFLT) {
+		trap_print(tf);
+		if (tf->err != 0xfffc) panic("WTF!!!!! err %x rip %p", tf->err, tf->rip);
+	}
 
 #endif
 	// If this trap was anticipated, just use the designated handler.

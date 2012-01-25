@@ -76,13 +76,13 @@ proc_alloc(proc *p, uint32_t cn)
 
 	// Integer register state
 #if LAB >= 9
-	cp->sv.tf.gs = SEG_USER_CS_64 | 3;
+	cp->sv.tf.gs = SEG_USER_DS_64 | 3;
 	cp->sv.tf.fs = 0;
 #endif
-	cp->sv.tf.ds = SEG_USER_CS_64 | 3;
-	cp->sv.tf.es = SEG_USER_CS_64 | 3;
+	cp->sv.tf.ds = SEG_USER_DS_64 | 3;
+	cp->sv.tf.es = SEG_USER_DS_64 | 3;
 	cp->sv.tf.cs = SEG_USER_CS_64 | 3;
-	cp->sv.tf.ss = SEG_USER_CS_64 | 3;
+	cp->sv.tf.ss = SEG_USER_DS_64 | 3;
 #if SOL >= 2
 
 	// Floating-point register state
@@ -233,7 +233,6 @@ proc_sched(void)
 	spinlock_acquire(&p->lock);
 	spinlock_release(&readylock);
 
-	cprintf("CR3 %p\n", rcr3());
 	proc_run(p);
 
 #else	// SOL >= 2
@@ -295,8 +294,11 @@ proc_run(proc *p)
 #if SOL >= 3
 	// Switch to the new process's address space.
 	lcr3(mem_phys(p->pml4));
-	cprintf("CR3 %p\n", rcr3());
-	trap_print(&p->sv.tf);
+	pmap_print();
+	cprintf("ready to switch\n");
+	int64_t *ptmp = (int64_t *)0x40000100;
+	int64_t tmp = *ptmp;
+	cprintf("%llx\n", tmp);
 
 #endif
 	trap_return_debug(&p->sv.tf);

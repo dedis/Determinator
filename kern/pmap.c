@@ -119,7 +119,7 @@ pmap_init_bootpmap(pte_t *table, uintptr_t addr, size_t size, uint16_t perm, int
 	size = PGADDR(size);
 	uintptr_t hi = addr + size;
 	uint16_t page_perm = perm | PTE_G | PTE_P;
-	uint16_t dir_perm = ((perm != 0xFFFF) ? perm : 0) | PTE_P;
+	uint16_t dir_perm = ((perm != 0xFFFF) ? perm : 0) | PTE_P | PTE_U;
 	if (level > 0) {
 		page_perm |= PTE_PS;
 	}
@@ -1129,25 +1129,10 @@ pmap_check_adv(void)
 	assert(*(int *)(VM_USERLO + 2 * PAGESIZE) == 0);
 
 	// revert original page tables
-	cprintf("pi0 ref = %d\n", pi0->refcount);
-	cprintf("pi1 ref = %d\n", pi1->refcount);
-	cprintf("pi2 ref = %d\n", pi2->refcount);
-	cprintf("pi3 ref = %d\n", pi3->refcount);
-	cprintf("pi4 ref = %d\n\n", pi4->refcount);
 	pmap_remove(pmap_bootpmap, VM_USERLO + PTSIZE, PTSIZE);
 	assert(mem_alloc() == pi2);
 	assert(mem_alloc() == NULL);
-	cprintf("pi0 ref = %d\n", pi0->refcount);
-	cprintf("pi1 ref = %d\n", pi1->refcount);
-	cprintf("pi2 ref = %d\n", pi2->refcount);
-	cprintf("pi3 ref = %d\n", pi3->refcount);
-	cprintf("pi4 ref = %d\n\n", pi4->refcount);
 	pmap_remove(pmap_bootpmap, VM_USERLO, PTSIZE);
-	cprintf("pi0 ref = %d\n", pi0->refcount);
-	cprintf("pi1 ref = %d\n", pi1->refcount);
-	cprintf("pi2 ref = %d\n", pi2->refcount);
-	cprintf("pi3 ref = %d\n", pi3->refcount);
-	cprintf("pi4 ref = %d\n\n", pi4->refcount);
 	assert(mem_alloc() == pi0);
 	assert(mem_alloc() == pi4);
 	assert(mem_alloc() == NULL);

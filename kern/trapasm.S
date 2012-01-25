@@ -240,6 +240,7 @@ trap_return_debug:
 	popq %rbx
 	popq %rax
 	addq $0x10,%rsp		// skip trapno and errcode
+//2:	jmp	2b		// just spin
 	iretq			// return from trap handler
 1:	jmp	1b		// just spin
 
