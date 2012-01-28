@@ -198,7 +198,7 @@ do_put(trapframe *tf, uint32_t cmd)
 
 		// Make sure process uses user-mode segments and eflag settings
 #if LAB >= 9
-		cp->sv.tf.gs = SEG_USER_CS_64 | 3;
+		cp->sv.tf.gs = SEG_USER_GS_64 | 3;
 		cp->sv.tf.fs = 0;
 #endif
 		cp->sv.tf.ds = SEG_USER_CS_64 | 3;

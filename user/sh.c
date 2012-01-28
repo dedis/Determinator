@@ -315,6 +315,7 @@ int
 main(int argc, char **argv)
 {
 	int r, interactive, echocmds;
+	cputs("[USER MODE]\n");
 
 	interactive = '?';
 	echocmds = 0;

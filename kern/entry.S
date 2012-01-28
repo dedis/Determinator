@@ -73,17 +73,21 @@ start: _start:
 	// identity map VM till 0x1000000 exclusive (kernel end _end = 0x7090d0)
 	// should be enough for memory bitmap
 	// only 4KB global (non-TLB-flushed) pages are used
-	movl $bootp3tab+(PTE_P|PTE_W),bootp4tab
-	movl $bootp4tab+(PTE_P|PTE_W),bootp4tab+8*PML4SELFOFFSET
+	movl $bootp3tab+(PTE_P|PTE_W|PTE_U),bootp4tab
+	movl $bootp4tab+(PTE_P|PTE_W|PTE_U),bootp4tab+8*PML4SELFOFFSET
 
-	movl $bootp2tab+(PTE_P|PTE_W),bootp3tab
+	movl $bootp2tab+(PTE_P|PTE_W|PTE_U),bootp3tab
 
 	movl $bootp2tab,%edx
 	xorl %eax,%eax
 1:	movl %eax,%ecx
 	addl $1,%eax
 	shll $21,%ecx
+#if LAB >= 3
 	addl $(PTE_P|PTE_W|PTE_G|PTE_PS),%ecx
+#else
+	addl $(PTE_P|PTE_W|PTE_G|PTE_PS|PTE_U),%ecx
+#endif
 	movl %ecx,(%edx)
 	addl $0x8,%edx
 	cmpl $PTCOUNT,%eax

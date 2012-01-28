@@ -167,21 +167,24 @@ init(void)
 #if SOL == 1
 	// Conjure up a trapframe and "return" to it to enter user mode.
 	static trapframe utf = {
+#define RING 3
 #if LAB >= 9
-		gs: SEG_USER_DS_64 | 3,
+		gs: SEG_USER_GS_64 | RING,
 #else
 		gs: 0,
 #endif
-		fs: SEG_USER_DS_64 | 3,
-		ds: SEG_USER_DS_64 | 3,
-		es: SEG_USER_DS_64 | 3,
+		fs: 0,
+		ds: SEG_USER_DS_64 | RING,
+		es: SEG_USER_DS_64 | RING,
 		rip: (uintptr_t) user,
-		cs: SEG_USER_CS_64 | 3,
+		cs: SEG_USER_CS_64 | RING,
 		rflags: FL_IOPL_3,	// let user() output to console
 		rsp: (uintptr_t) &user_stack[PAGESIZE],
-		ss: SEG_KERN_DS_64 | 3,
+		ss: SEG_USER_DS_64 | RING,
+#undef RING
 	};
-	trap_return(&utf);
+	cprintf("jumping....\n");
+	trap_return_debug(&utf);
 #elif SOL == 2
 	if (!cpu_onboot())
 		proc_sched();	// just jump right into the scheduler

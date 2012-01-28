@@ -54,7 +54,6 @@ cpu cpu_boot = {
 		[SEG_KERN_DS_64 >> 4] = SEGDESC64(1, STA_W,
 					0L, 0xffffffff, 0, 1),
 
-#if LAB >= 9
 		// 0x50 - 64-bit user code segment
 		[SEG_USER_CS_64 >> 4] = SEGDESC64(1, STA_X | STA_R,
 					0L, 0xffffffff, 3, 1),
@@ -63,6 +62,10 @@ cpu cpu_boot = {
                 [SEG_USER_DS_64 >> 4] = SEGDESC64(1, STA_W,
                                         0L, 0xffffffff, 3, 1),
 
+#if LAB >= 9
+		// 0x70 - 64-bit user thread local storage data segment
+		[SEG_USER_DS_64 >> 4] = SEGDESC64(1, STA_W,
+					0L, 0xffffffff, 3, 1),
 #endif
 		// 0x70 - tss, initialized in cpu_init()
 		[SEG_TSS >> 4] = SEGDESC_NULL,
@@ -164,21 +167,15 @@ void cpu_init()
 		sizeof(c->gdt) - 1, (uintptr_t) c->gdt };
 	asm volatile("lgdt %0" : : "m" (gdt_pd));
 
-/*	// Does not need to be done in 64-bit PIOS
-	// Gegment selectors loaded in kern/entry.S and boot/bootothers.S
-	// after loading the GDTR
-
 	// Reload all segment registers.
-	asm volatile("movw %%ax,%%gs" :: "a" (SEG_KERN_DS_64));
-	asm volatile("movw %%ax,%%fs" :: "a" (SEG_KERN_DS_64));
+	asm volatile("movw %%ax,%%gs" :: "a" (SEG_USER_DS_64|3));
+	asm volatile("movw %%ax,%%fs" :: "a" (SEG_USER_DS_64|3));
 	asm volatile("movw %%ax,%%es" :: "a" (SEG_KERN_DS_64));
 	asm volatile("movw %%ax,%%ds" :: "a" (SEG_KERN_DS_64));
 	asm volatile("movw %%ax,%%ss" :: "a" (SEG_KERN_DS_64));
-	// not working
-	struct farptr32 fp;
-	asm volatile("movw %1,(%0); movl $1f,2(%0); ljmp (%0)\n 1:\n" : :
-			"r" (&fp), "i" (SEG_KERN_CS_64));		// reload CS
-*/
+	// reloading CS value can only be done with ret in long mode
+	asm volatile("pushq %0\n pushq $newland\n lretq\n newland:" :: "i" (SEG_KERN_CS_64));
+
 	// We don't need an LDT.
 	asm volatile("lldt %%ax" :: "a" (0));
 

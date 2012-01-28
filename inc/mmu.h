@@ -293,10 +293,9 @@ typedef struct segdesc {
 // Task state segment format, as defined by the x86-64 architecture.
 typedef struct taskstate {
 	uint32_t ts_padding1;
-	uint64_t ts_rsp[3];	// Stack pointer for CPL 0, 1, 2
-	uint64_t ts_ist[8];	// Note: tss_ist[0] is ignored
-	uint64_t ts_padding3;
-	uint16_t ts_padding4;
+	uint64_t gcc_packed ts_rsp[3];	// Stack pointer for CPL 0, 1, 2
+	uint64_t gcc_packed ts_ist[8];	// Note: tss_ist[0] is ignored
+	uint16_t ts_padding3[5];
 	uint16_t ts_iomb;	// I/O map base address
 } taskstate;
 
@@ -322,17 +321,17 @@ typedef struct gatedesc {
 // - dpl: Descriptor Privilege Level -
 //	  the privilege level required for software to invoke
 //	  this interrupt/trap gate explicitly using an int instruction.
-#define SETGATE(gate, istrap, sel, off, dpl,ist)			\
+#define SETGATE(gate, istrap, sel, off, dpl,ist)		\
 {								\
-	(gate).gd_off_15_0 = (uintptr_t) (off) & 0xffff;		\
+	(gate).gd_off_15_0 = (uintptr_t) (off) & 0xffff;	\
 	(gate).gd_ss = (sel);					\
-	(gate).gd_ist = (ist);						\
+	(gate).gd_ist = (ist);					\
 	(gate).gd_resv1 = 0;					\
 	(gate).gd_type = (istrap) ? STS_TG64 : STS_IG64;	\
 	(gate).gd_s = 0;					\
 	(gate).gd_dpl = (dpl);					\
 	(gate).gd_p = 1;					\
-	(gate).gd_off_31_16 = ((uintptr_t) (off) >> 16) & 0xffff;		\
+	(gate).gd_off_31_16 = ((uintptr_t) (off) >> 16) & 0xffff;	\
 	(gate).gd_off_63_32 = (uintptr_t) (off) >> 32;		\
 	(gate).gd_resv2 = 0;					\
 }
@@ -340,7 +339,7 @@ typedef struct gatedesc {
 // Set up a call gate descriptor.
 #define SETCALLGATE(gate, ss, off, dpl)           	        \
 {								\
-	(gate).gd_off_15_0 = (uintptr_t) (off) & 0xffff;		\
+	(gate).gd_off_15_0 = (uintptr_t) (off) & 0xffff;	\
 	(gate).gd_ss = (ss);					\
 	(gate).gd_ist = 0;					\
 	(gate).gd_resv1 = 0;					\
@@ -348,7 +347,7 @@ typedef struct gatedesc {
 	(gate).gd_s = 0;					\
 	(gate).gd_dpl = (dpl);					\
 	(gate).gd_p = 1;					\
-	(gate).gd_off_31_16 = ((uintptr_t) (off) >> 16) & 0xffff;		\
+	(gate).gd_off_31_16 = ((uintptr_t) (off) >> 16) & 0xffff;	\
 	(gate).gd_off_63_32 = (uintptr_t) (off) >> 32;		\
 	(gate).gd_resv2 = 0;					\
 }

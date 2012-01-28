@@ -103,6 +103,8 @@ trap_init_idt(void)
 	SETGATE(idt[T_ALIGN],  0, SEG_KERN_CS_64, &Xalign,  0,0);
 	SETGATE(idt[T_MCHK],   0, SEG_KERN_CS_64, &Xmchk,   0,1);
 	SETGATE(idt[T_SIMD],   0, SEG_KERN_CS_64, &Xsimd,   0,0);
+	// WWY
+	SETGATE(idt[T_SYSCALL], 0, SEG_KERN_CS_64, &Xbrkpt, 3,0);
 
 #if SOL >= 2
 	SETGATE(idt[T_IRQ0 + 0], 0, SEG_KERN_CS_64, &Xirq0, 0,0);
@@ -249,12 +251,6 @@ trap(trapframe *tf)
 	if (tf->trapno == T_PGFLT)
 		pmap_pagefault(tf);
 
-	// WWY
-	if (tf->trapno == T_GPFLT) {
-		trap_print(tf);
-		if (tf->err != 0xfffc) panic("WTF!!!!! err %x rip %p", tf->err, tf->rip);
-	}
-
 #endif
 	// If this trap was anticipated, just use the designated handler.
 	cpu *c = cpu_cur();
@@ -267,6 +263,7 @@ trap(trapframe *tf)
 	switch (tf->trapno) {
 	case T_SYSCALL:
 		assert(tf->cs & 3);	// syscalls only come from user space
+		cprintf("SYSCALL\n");
 		syscall(tf);
 		break;
 

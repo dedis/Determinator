@@ -22,11 +22,12 @@
 #define SEG_KERN_CS_32	0x10	// 32-bit kernel code segment
 #define SEG_KERN_DS_32	0x20	// 32-bit kernel data segment
 #define SEG_KERN_CS_64	0x30	// 64-bit kernel code segment
-#define SEG_KERN_DS_64  0x40	// 64-bit kernel data segment
+#define SEG_KERN_DS_64	0x40	// 64-bit kernel data segment
 #define SEG_USER_CS_64	0x50	// 64-bit user code segment
-#define SEG_USER_DS_64  0x60	// 64-bit user data segment
-#define SEG_TSS		0x70	// Task state segment
-#define CPU_GDT_NDESC	8	// number of GDT entries used, including null
+#define SEG_USER_DS_64	0x60	// 64-bit user data segment
+#define SEG_USER_GS_64	0x70	// 64-bit user thread local storage data segment
+#define SEG_TSS		0x80	// Task state segment
+#define CPU_GDT_NDESC	9	// number of GDT entries used, including null
 
 #define KSTACKSIZE 4*PAGESIZE
 
@@ -49,8 +50,8 @@ typedef struct cpu {
 
 	// Each CPU needs its own TSS,
 	// because when the processor switches from lower to higher privilege,
-	// it loads a new stack pointer (ESP) and stack segment (SS)
-	// for the higher privilege level from this task state structure.
+	// it loads a new stack pointer (ESP) for the higher privilege level
+	// from this task state structure.
 	taskstate	tss;
 
 	// When non-NULL, all traps get diverted to this handler.
