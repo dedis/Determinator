@@ -64,7 +64,7 @@ cpu cpu_boot = {
 
 #if LAB >= 9
 		// 0x70 - 64-bit user thread local storage data segment
-		[SEG_USER_DS_64 >> 4] = SEGDESC64(1, STA_W,
+		[SEG_USER_GS_64 >> 4] = SEGDESC64(1, STA_W,
 					0L, 0xffffffff, 3, 1),
 #endif
 		// 0x70 - tss, initialized in cpu_init()

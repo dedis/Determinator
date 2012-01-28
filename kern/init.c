@@ -167,21 +167,19 @@ init(void)
 #if SOL == 1
 	// Conjure up a trapframe and "return" to it to enter user mode.
 	static trapframe utf = {
-#define RING 3
 #if LAB >= 9
-		gs: SEG_USER_GS_64 | RING,
+		gs: SEG_USER_GS_64 | 3,
 #else
 		gs: 0,
 #endif
 		fs: 0,
-		ds: SEG_USER_DS_64 | RING,
-		es: SEG_USER_DS_64 | RING,
+		ds: SEG_USER_DS_64 | 3,
+		es: SEG_USER_DS_64 | 3,
 		rip: (uintptr_t) user,
-		cs: SEG_USER_CS_64 | RING,
+		cs: SEG_USER_CS_64 | 3,
 		rflags: FL_IOPL_3,	// let user() output to console
 		rsp: (uintptr_t) &user_stack[PAGESIZE],
-		ss: SEG_USER_DS_64 | RING,
-#undef RING
+		ss: SEG_USER_DS_64 | 3,
 	};
 	cprintf("jumping....\n");
 	trap_return_debug(&utf);

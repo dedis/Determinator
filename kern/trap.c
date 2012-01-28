@@ -263,7 +263,6 @@ trap(trapframe *tf)
 	switch (tf->trapno) {
 	case T_SYSCALL:
 		assert(tf->cs & 3);	// syscalls only come from user space
-		cprintf("SYSCALL\n");
 		syscall(tf);
 		break;
 

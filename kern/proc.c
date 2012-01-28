@@ -294,9 +294,6 @@ proc_run(proc *p)
 #if SOL >= 3
 	// Switch to the new process's address space.
 	lcr3(mem_phys(p->pml4));
-	pmap_print();
-//	asm volatile("int %0"::"i"(0x30));
-	cprintf("ready to switch\n");
 
 #endif
 	trap_return_debug(&p->sv.tf);
