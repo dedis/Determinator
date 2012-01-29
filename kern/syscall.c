@@ -153,7 +153,7 @@ do_put(trapframe *tf, uint32_t cmd)
 {
 	proc *p = proc_cur();
 	assert(p->state == PROC_RUN && p->runcpu == cpu_cur());
-//cprintf("PUT proc %x eip %x esp %x cmd %x\n", p, tf->eip, tf->esp, cmd);
+cprintf("PUT proc %x rip %p rsp %p cmd %x\n", p, tf->rip, tf->rsp, cmd);
 
 #if SOL >= 5
 	// First migrate if we need to.
@@ -201,10 +201,10 @@ do_put(trapframe *tf, uint32_t cmd)
 		cp->sv.tf.gs = SEG_USER_GS_64 | 3;
 		cp->sv.tf.fs = 0;
 #endif
-		cp->sv.tf.ds = SEG_USER_CS_64 | 3;
-		cp->sv.tf.es = SEG_USER_CS_64 | 3;
+		cp->sv.tf.ds = SEG_USER_DS_64 | 3;
+		cp->sv.tf.es = SEG_USER_DS_64 | 3;
 		cp->sv.tf.cs = SEG_USER_CS_64 | 3;
-		cp->sv.tf.ss = SEG_USER_CS_64 | 3;
+		cp->sv.tf.ss = SEG_USER_DS_64 | 3;
 		cp->sv.tf.rflags &= FL_USER;
 		cp->sv.tf.rflags |= FL_IF;	// enable interrupts
 #if LAB >= 9
@@ -216,22 +216,22 @@ do_put(trapframe *tf, uint32_t cmd)
 	}
 
 #if SOL >= 3
-	uint32_t sva = tf->rsi;
-	uint32_t dva = tf->rdi;
-	uint32_t size = tf->rcx;
+	uintptr_t sva = tf->rsi;
+	uintptr_t dva = tf->rdi;
+	size_t size = tf->rcx;
 	switch (cmd & SYS_MEMOP) {
 	case 0:	// no memory operation
 		break;
 	case SYS_COPY:
 		// validate source region
-		if (PTOFF(sva) || PTOFF(size)
+		if (PGOFF(sva) || PGOFF(size)
 				|| sva < VM_USERLO || sva > VM_USERHI
 				|| size > VM_USERHI-sva)
 			systrap(tf, T_GPFLT, 0);
 		// fall thru...
 	case SYS_ZERO:
 		// validate destination region
-		if (PTOFF(dva) || PTOFF(size)
+		if (PGOFF(dva) || PGOFF(size)
 				|| dva < VM_USERLO || dva > VM_USERHI
 				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
@@ -276,7 +276,7 @@ do_get(trapframe *tf, uint32_t cmd)
 {
 	proc *p = proc_cur();
 	assert(p->state == PROC_RUN && p->runcpu == cpu_cur());
-//cprintf("GET proc %x eip %x esp %x cmd %x\n", p, tf->eip, tf->esp, cmd);
+cprintf("GET proc %x rip %x rsp %x cmd %x\n", p, tf->rip, tf->rsp, cmd);
 
 #if SOL >= 5
 	// First migrate if we need to.
@@ -325,23 +325,23 @@ do_get(trapframe *tf, uint32_t cmd)
 	}
 
 #if SOL >= 3
-	uint32_t sva = tf->rsi;
-	uint32_t dva = tf->rdi;
-	uint32_t size = tf->rcx;
+	uintptr_t sva = tf->rsi;
+	uintptr_t dva = tf->rdi;
+	size_t size = tf->rcx;
 	switch (cmd & SYS_MEMOP) {
 	case 0:	// no memory operation
 		break;
 	case SYS_COPY:
 	case SYS_MERGE:
 		// validate source region
-		if (PTOFF(sva) || PTOFF(size)
+		if (PGOFF(sva) || PGOFF(size)
 				|| sva < VM_USERLO || sva > VM_USERHI
 				|| size > VM_USERHI-sva)
 			systrap(tf, T_GPFLT, 0);
 		// fall thru...
 	case SYS_ZERO:
 		// validate destination region
-		if (PTOFF(dva) || PTOFF(size)
+		if (PGOFF(dva) || PGOFF(size)
 				|| dva < VM_USERLO || dva > VM_USERHI
 				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
@@ -383,7 +383,7 @@ do_get(trapframe *tf, uint32_t cmd)
 static void gcc_noreturn
 do_ret(trapframe *tf)
 {
-//cprintf("RET proc %x eip %x esp %x\n", proc_cur(), tf->eip, tf->esp);
+cprintf("RET proc %x rip %x rsp %x\n", proc_cur(), tf->rip, tf->rsp);
 	proc_ret(tf, 1);	// Complete syscall insn and return to parent
 }
 

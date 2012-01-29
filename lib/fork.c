@@ -130,6 +130,7 @@ waitpid(pid_t pid, int *status, int options)
 		// Wait for the child to finish whatever it's doing,
 		// and extract its CPU and process/file state.
 		struct procstate ps;
+		cprintf("SYS_GET sva %p dva %p size %p\n", FILESVA, VM_SCRATCHLO, PTSIZE);
 		sys_get(SYS_COPY | SYS_REGS, pid, &ps,
 			(void*)FILESVA, (void*)VM_SCRATCHLO, PTSIZE);
 		filestate *cfiles = (filestate*)VM_SCRATCHLO;

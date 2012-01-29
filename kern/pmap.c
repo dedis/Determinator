@@ -496,9 +496,9 @@ int
 pmap_copy(pte_t *spml4, intptr_t sva, pte_t *dpml4, intptr_t dva,
 		size_t size)
 {
-	assert(PDOFF(1, sva) == 0);	// must be 4MB-aligned
-	assert(PDOFF(1, dva) == 0);
-	assert(PDOFF(1, size) == 0);
+	assert(PDOFF(0, sva) == 0);	// must be 4KB-aligned
+	assert(PDOFF(0, dva) == 0);
+	assert(PDOFF(0, size) == 0);
 	assert(sva >= VM_USERLO && sva < VM_USERHI);
 	assert(dva >= VM_USERLO && dva < VM_USERHI);
 	assert(size <= VM_USERHI - sva);
@@ -530,17 +530,22 @@ pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab,
 	if (sva >= svahi)
 		return;
 
-	assert(pmlevel < NPTLVLS && (svahi-sva) < PDSIZE(pmlevel+1));
+	assert(pmlevel <= NPTLVLS && (svahi-sva) < PDSIZE(pmlevel+1));
 	assert(PDOFF(pmlevel, sva) == PDOFF(pmlevel, dva)); 
 
 	pte_t *spmte = &spmtab[PDX(pmlevel, sva)];
 	pte_t *dpmte = &dpmtab[PDX(pmlevel, dva)];
 	size_t size = PDSIZE(pmlevel);
+			cprintf("HERE pmlevel %d dva %p size %p dpmte %p *dpmte %p PTE_ZERO %p\n", pmlevel, dva, size, dpmte, *dpmte, PTE_ZERO);
+
+	// WWY:
+	// if *spmte equals to *dpmte, then we will manipulate the same subtable
+	// maybe we need to alloc new page for *dpmte
+	// we should also handle cases that *spmte or *dpmte equals to PTE_ZERO
 
 	if (PDOFF(pmlevel, sva) != 0) {
 		// copy a upper partial region mapped by *spmte to *dpmte
-		pmap_copy_level(pmlevel-1, spmte, sva, dpmte, dva, 
-				PDADDR(pmlevel, sva)+size);
+		pmap_copy_level(pmlevel-1, mem_ptr(PTE_ADDR(*spmte)), sva, mem_ptr(PTE_ADDR(*dpmte)), dva, PDADDR(pmlevel, sva)+size);
 		spmte++, dpmte++;
 		sva = PDADDR(pmlevel, sva)+size;
 		dva = PDADDR(pmlevel, dva)+size;
@@ -548,14 +553,18 @@ pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab,
 
 	while ((sva + size) <= svahi) {
 		// copy an entire region mapped by specfied level table entry
-		if (*dpmte & PTE_P)	
+		if ((*dpmte & PTE_P) && (PTE_ADDR(*dpmte) != PTE_ADDR(*spmte))) {
 			// remove old specified level pmap table first
 			// TODO: need to remove the region mapped by *dpmte
-			pmap_remove_level(pmlevel, dpmtab, dva, size);
-		assert(*dpmte == PTE_ZERO);
+			// WWY: here we only remove different page directory
+			cprintf("HERE pmlevel %d dva %p size %p dpmte %p *dpmte %p\n", pmlevel, dva, size, dpmte, *dpmte);
+			pmap_remove_level(pmlevel, dpmtab, dva, dva+size);
+			assert(*dpmte == PTE_ZERO);
+		}
 
 		*spmte &= ~PTE_W;	// remove write permission
 
+		// TODO: need to change from sharing page directories to sharing pages
 		*dpmte = *spmte;	// copy specified level page map table mapping
 		if (*spmte != PTE_ZERO)
 			mem_incref(mem_phys2pi(PTE_ADDR(*spmte)));
@@ -566,7 +575,7 @@ pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab,
 	}
 	if (sva < svahi && pmlevel > 0) {
 		// copy a partial region mapped by specified level table entry
-		pmap_copy_level(pmlevel-1, spmte, sva, dpmte, dva, svahi);
+		pmap_copy_level(pmlevel-1, mem_ptr(PTE_ADDR(*spmte)), sva, mem_ptr(PTE_ADDR(*dpmte)), dva, svahi);
 	}
 }
 

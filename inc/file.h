@@ -12,6 +12,7 @@
 #define PIOS_INC_FILE_H 1
 
 #include <types.h>
+#include <vm.h>
 
 /*
  * In PIOS, file I/O is implemented mostly in user space,
@@ -66,7 +67,7 @@
 #define FILE_INODES	OPEN_MAX		// Max number of files or "inodes"
 #define	FILE_MAXSIZE	(1<<22)		// Max size of a single file - 4MB
 
-#define FILESVA	0x80000000		// Virtual address of file state area
+#define FILESVA	VM_FILELO		// Virtual address of file state area
 #define FILEDATA(ino)	((void*)FILESVA + ((ino) << 22)) // File data per inode
 
 struct stat;
