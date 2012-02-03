@@ -53,6 +53,7 @@ pid_t fork(void)
 
 	// Use some assembly magic to propagate registers to child
 	// and generate an appropriate starting eip
+	// WWY: we need to mark all registers here
 	int isparent;
 	asm volatile(
 		"	movq	%%rsi,%0;"
@@ -69,7 +70,8 @@ pid_t fork(void)
 		  "=m" (ps.tf.rip),
 		  "=a" (isparent)
 		:
-		: "rbx", "rcx", "rdx");
+		: "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11",
+		  "r12", "r13", "r14", "r15");
 	if (!isparent) {
 #if LAB >= 9
 		files->thself = pid;
@@ -130,7 +132,6 @@ waitpid(pid_t pid, int *status, int options)
 		// Wait for the child to finish whatever it's doing,
 		// and extract its CPU and process/file state.
 		struct procstate ps;
-		cprintf("SYS_GET sva %p dva %p size %p\n", FILESVA, VM_SCRATCHLO, PTSIZE);
 		sys_get(SYS_COPY | SYS_REGS, pid, &ps,
 			(void*)FILESVA, (void*)VM_SCRATCHLO, PTSIZE);
 		filestate *cfiles = (filestate*)VM_SCRATCHLO;

@@ -165,18 +165,28 @@ pmap_init_bootpmap(pte_t *table, uintptr_t addr, size_t size, uint16_t perm, int
 pte_t *
 pmap_newpmap(void)
 {
+	// alloc page for pml4 and pdpt
+	// so that pmap_bootpmap only points to kernel space
 	pageinfo *pi = mem_alloc();
-	if (pi == NULL)
-		return NULL;
+	assert(pi != NULL);
 	mem_incref(pi);
-	pte_t *pmap = mem_pi2ptr(pi);
+	pte_t *pml4 = mem_pi2ptr(pi);
+
+	pi = mem_alloc();
+	assert(pi != NULL);
+	mem_incref(pi);
+	pte_t *pdp = mem_pi2ptr(pi);
 
 	// Initialize it from the bootstrap page map
 	assert(sizeof(pmap_bootpmap) == PAGESIZE);
-	memmove(pmap, pmap_bootpmap, PAGESIZE);
-	pmap[PML4SELFOFFSET] = mem_phys(pmap) | PTE_P | PTE_W;
+	memmove(pml4, pmap_bootpmap, PAGESIZE);
+	pml4[0] = mem_phys(pdp) | PTE_A | PTE_P | PTE_W | PTE_U;
+	pml4[PML4SELFOFFSET] = mem_phys(pml4) | PTE_P | PTE_W;
 
-	return pmap;
+	pte_t *boot_pdp = mem_ptr(PTE_ADDR(pmap_bootpmap[0]));
+	memmove(pdp, boot_pdp, PAGESIZE);
+
+	return pml4;
 }
 
 // Free a page map, and all page map tables and mappings it may contain.
@@ -431,7 +441,6 @@ pmap_remove(pte_t *pml4, intptr_t va, size_t size)
 	assert(PGOFF(size) == 0);	// must be page-aligned
 	assert(va >= VM_USERLO && va < VM_USERHI);
 	assert(size <= VM_USERHI - va);
-	cprintf("[pmap_remove] pml4 %p va %p size %p\n", pml4, va, size);
 
 #if SOL >= 3
 	pmap_inval(pml4, va, size);	// invalidate region we're removing
@@ -461,8 +470,6 @@ pmap_remove_level(int pmlevel, pte_t *pmtab, intptr_t va, intptr_t vahi)
 
 	while (va < vahi) {
 		if (PTE_ADDR(*pmte) == PTE_ZERO) {
-//for (k = pmlevel; k < 3; k++) cputs("\t");
-//cprintf("[pmap_remove_level %d] skip va %p\n", pmlevel, va);
 			// the entry does not points to a lower-level table
 			// skip the entire lower-level table region
 			pmte++;
@@ -545,11 +552,7 @@ pmap_copy(pte_t *spml4, intptr_t sva, pte_t *dpml4, intptr_t dva,
 	pmap_inval(dpml4, dva, size);
 
 	intptr_t svahi = sva + size;
-	pmap_print(spml4);
-	pmap_print(dpml4);
 	pmap_copy_level(NPTLVLS, spml4, sva, dpml4, dva, svahi);
-	pmap_print(spml4);
-	pmap_print(dpml4);
 	return 1;
 #else /* not SOL >= 3 */
 	panic("pmap_copy() not implemented");
@@ -570,13 +573,12 @@ pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab,
 		return;
 
 	assert(pmlevel > 0);
+	cprintf("[pmap_copy_level %d] sva %p soff %p dva %p doff %p\n", pmlevel, sva, PDOFF(pmlevel, sva), dva, PDOFF(pmlevel, dva));
 	assert(PDOFF(pmlevel, sva) == PDOFF(pmlevel, dva)); 
 
 	pte_t *spmte = &spmtab[PDX(pmlevel, sva)];
 	pte_t *dpmte = &dpmtab[PDX(pmlevel, dva)];
 	size_t size = PDSIZE(pmlevel);
-cprintf("[pmap_copy_level %d] spmtab %p sva %p dpmtab %p dva %p size %p\n", pmlevel, spmtab, sva, dpmte, dva, svahi - sva);
-pmap_print(rcr3());
 
 	
 	while (sva < svahi) {
@@ -604,13 +606,19 @@ pmap_print(rcr3());
 		}
 
 		// copy partial lower-level table
+		// we must guarantee that lower-level table exists
+		if (!(*dpmte & PTE_P)) {
+			assert(PTE_ADDR(*dpmte) == PTE_ZERO);
+			pmap_walk_level(pmlevel, dpmtab, dva, 1);
+		}
+
 		// find correct vahi for lower level
 		uintptr_t lsvahi = PDADDR(pmlevel, sva) + PDSIZE(pmlevel);
 		if (PDADDR(pmlevel, sva) + PDSIZE(pmlevel) > svahi)
 			lsvahi = svahi;
 		pmap_copy_level(pmlevel - 1, mem_ptr(PTE_ADDR(*spmte)), sva, mem_ptr(PTE_ADDR(*dpmte)), dva, lsvahi);
-		dva += svahi - sva;
-		sva = svahi;
+		dva += lsvahi - sva;
+		sva = lsvahi;
 		spmte++, dpmte++;
 	}
 }
@@ -626,13 +634,13 @@ void
 pmap_pagefault(trapframe *tf)
 {
 	// Read processor's CR2 register to find the faulting linear address.
-	intptr_t fva = rcr2();
-	//cprintf("pmap_pagefault fva %x eip %x\n", fva, tf->eip);
+	uintptr_t fva = rcr2();
+//	cprintf("pmap_pagefault fva %p rip %p\n", fva, tf->rip);
 
 #if SOL >= 3
 	// It can't be our problem unless it's a write fault in user space!
 	if (fva < VM_USERLO || fva >= VM_USERHI || !(tf->err & PFE_WR)) {
-		cprintf("pmap_pagefault: fva %x err %x\n", fva, tf->err);
+		cprintf("pmap_pagefault: fva %p err %x\n", fva, tf->err);
 		return;
 	}
 

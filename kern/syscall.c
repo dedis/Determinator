@@ -383,7 +383,7 @@ cprintf("GET proc %x rip %x rsp %x cmd %x\n", p, tf->rip, tf->rsp, cmd);
 static void gcc_noreturn
 do_ret(trapframe *tf)
 {
-cprintf("RET proc %x rip %x rsp %x\n", proc_cur(), tf->rip, tf->rsp);
+//cprintf("RET proc %x rip %x rsp %x\n", proc_cur(), tf->rip, tf->rsp);
 	proc_ret(tf, 1);	// Complete syscall insn and return to parent
 }
 
