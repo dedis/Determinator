@@ -47,8 +47,6 @@ extern uint8_t pmap_zero[PAGESIZE];
 void pmap_init(void);
 pte_t *pmap_newpmap(void);
 void pmap_freepmap(pageinfo *pml4pi);
-void pmap_freepmap_level(pageinfo *pmap, int pmlevel);
-void pmap_freeptab(pageinfo *ptabpi);
 pte_t *pmap_walk(pte_t *pml4, intptr_t uva, bool writing);
 pte_t *pmap_insert(pte_t *pml4, pageinfo *pi, intptr_t uva, int perm);
 void pmap_remove(pte_t *pml4, intptr_t uva, size_t size);
@@ -61,7 +59,7 @@ int pmap_setperm(pte_t *pml4, intptr_t va, size_t size, int perm);
 void pmap_pagefault(trapframe *tf);
 void pmap_check(void);
 void pmap_check_adv(void);
-void pmap_print(void);
+void pmap_print(pte_t *pml4);
 
 
 #endif /* !PIOS_KERN_PMAP_H */

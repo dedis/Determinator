@@ -132,7 +132,7 @@
 // Mask for RWX permissions. Individual settings macros SYS_{PERM,READ,WRITE,RW,
 // EXECUTE,RWX} in inc/syscall.h
 #define PTE_AVAIL	0xE00	// Available for software use
-#define PTE_NX 		1<<63	// No execute
+#define PTE_NX 		(0x1ULL<<63)	// No execute
 
 // Only flags in PTE_USER may be used in system calls.
 #define PTE_USER	(PTE_AVAIL | PTE_P | PTE_W | PTE_U)

@@ -259,7 +259,6 @@ init(void)
 			assert(pte != NULL);
 		}
 	}
-	pmap_print();
 
 	// Start the process at the entry indicated in the ELF header
 	root->sv.tf.rip = eh->e_entry;
