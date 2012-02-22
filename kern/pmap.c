@@ -551,8 +551,10 @@ pmap_copy(pte_t *spml4, intptr_t sva, pte_t *dpml4, intptr_t dva,
 	pmap_inval(spml4, sva, size);
 	pmap_inval(dpml4, dva, size);
 
+	cprintf("[pmap_copy] sva %p dva %p size %p\n", sva, dva, size);
 	intptr_t svahi = sva + size;
 	pmap_copy_level(NPTLVLS, spml4, sva, dpml4, dva, svahi);
+	cprintf("[pmap_copy] sva %p dva %p size %p done\n", sva, dva, size);
 	return 1;
 #else /* not SOL >= 3 */
 	panic("pmap_copy() not implemented");
@@ -569,20 +571,26 @@ static void
 pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab, 
 		intptr_t dva, intptr_t svahi)
 {
+	// TODO: more grained copy with arbitrary address aligned to page size
+	int i;
 	if (sva >= svahi)
 		return;
 
 	assert(pmlevel > 0);
-	cprintf("[pmap_copy_level %d] sva %p soff %p dva %p doff %p\n", pmlevel, sva, PDOFF(pmlevel, sva), dva, PDOFF(pmlevel, dva));
-	assert(PDOFF(pmlevel, sva) == PDOFF(pmlevel, dva)); 
+	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+	cprintf("[pmap_copy_level %d] sva %p soff %p dva %p doff %p remaining %p\n", pmlevel, sva, PDOFF(pmlevel, sva), dva, PDOFF(pmlevel, dva), svahi - sva);
+//	assert(PDOFF(pmlevel, sva) == PDOFF(pmlevel, dva)); 
 
 	pte_t *spmte = &spmtab[PDX(pmlevel, sva)];
 	pte_t *dpmte = &dpmtab[PDX(pmlevel, dva)];
-	size_t size = PDSIZE(pmlevel);
 
 	
 	while (sva < svahi) {
-		if (PDOFF(pmlevel, sva) == 0 && svahi - sva >= PDSIZE(pmlevel)) {
+if (PTE_ADDR(*spmte) != PTE_ZERO) {
+	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+	cprintf("[pmap_copy_level %d] sva %p soff %p \e[33;1m*spmte %p\e[m dva %p doff %p \e[33;1m*dpmte %p\e[m\n", pmlevel, sva, PDOFF(pmlevel, sva), *spmte, dva, PDOFF(pmlevel, sva), *dpmte);
+}
+		if (PDOFF(pmlevel, sva) == 0 && PDOFF(pmlevel, dva) == 0 && svahi - sva >= PDSIZE(pmlevel)) {
 			// we can share an entire lower-level table
 			if (*dpmte & PTE_P) {
 				// remove old page mapping first
@@ -598,6 +606,10 @@ pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab,
 			if (PTE_ADDR(*spmte) != PTE_ZERO) {
 				mem_incref(mem_phys2pi(PTE_ADDR(*spmte)));
 			}
+if (PTE_ADDR(*spmte) != PTE_ZERO) {
+	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+	cprintf("                 %d] sva %p \e[36;1m*spmte %p\e[m dva %p \e[36;1m*dpmte %p\e[m copied %p\n", pmlevel, sva, *spmte, dva, *dpmte, PDSIZE(pmlevel));
+}
 
 			spmte++, dpmte++;
 			sva += PDSIZE(pmlevel);
@@ -605,21 +617,51 @@ pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab,
 			continue;
 		}
 
-		// copy partial lower-level table
-		// we must guarantee that lower-level table exists
-		if (!(*dpmte & PTE_P)) {
-			assert(PTE_ADDR(*dpmte) == PTE_ZERO);
-			pmap_walk_level(pmlevel, dpmtab, dva, 1);
-		}
-
 		// find correct vahi for lower level
-		uintptr_t lsvahi = PDADDR(pmlevel, sva) + PDSIZE(pmlevel);
-		if (PDADDR(pmlevel, sva) + PDSIZE(pmlevel) > svahi)
-			lsvahi = svahi;
-		pmap_copy_level(pmlevel - 1, mem_ptr(PTE_ADDR(*spmte)), sva, mem_ptr(PTE_ADDR(*dpmte)), dva, lsvahi);
-		dva += lsvahi - sva;
-		sva = lsvahi;
-		spmte++, dpmte++;
+		// best align sva and dva, at least make one aligned to PDSIZE(pmlevel)
+		size_t size = PDSIZE(pmlevel);
+		// sva or dva not aligned
+		if (PDOFF(pmlevel, sva) > PDOFF(pmlevel, dva)) {
+			size -= PDOFF(pmlevel, sva);
+		} else {
+			size -= PDOFF(pmlevel, dva);
+		}
+		// svahi or dvahi not aligned
+		if (sva + size > svahi) {
+			size = svahi - sva;
+		}
+if (PTE_ADDR(*spmte) != PTE_ZERO) {
+	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+	cprintf("                 %d] sva %p \e[35;1m*spmte %p\e[m dva %p \e[35;1m*dpmte %p\e[m pre sub-copying %p\n", pmlevel, sva, *spmte, dva, *dpmte, size);
+}
+
+		// copy partial lower-level table
+		if (!(*spmte & PTE_P)) {
+			// source is invalid, skip it
+			assert(PTE_ADDR(*spmte) == PTE_ZERO);
+		} else {
+			// source is valid, copy it
+			// we must guarantee that lower-level table exists
+			if (!(*dpmte & PTE_P)) {
+				assert(PTE_ADDR(*dpmte) == PTE_ZERO);
+				pmap_walk_level(pmlevel, dpmtab, dva, 1);
+			}
+			assert(PTE_ADDR(*dpmte) != PTE_ZERO);
+			pmap_copy_level(pmlevel - 1, mem_ptr(PTE_ADDR(*spmte)), sva, mem_ptr(PTE_ADDR(*dpmte)), dva, sva + size);
+		}
+if (PTE_ADDR(*spmte) != PTE_ZERO) {
+	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+	cprintf("                 %d] sva %p \e[35;1m*spmte %p\e[m dva %p \e[35;1m*dpmte %p\e[m sub-copied %p\n", pmlevel, sva, *spmte, dva, *dpmte, size);
+}
+		dva += size;
+		sva += size;
+		// move to next page entry only if address is aligned
+		if (PDOFF(pmlevel, sva) == 0) {
+			spmte++;
+		}
+		if (PDOFF(pmlevel, dva) == 0) {
+			dpmte++;
+		}
 	}
 }
 
