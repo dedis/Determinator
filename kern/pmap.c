@@ -297,6 +297,7 @@ pmap_walk_level(int pmlevel, pte_t *pmtab, intptr_t la, bool writing)
 	pte_t *pmte = &pmtab[PDX(pmlevel, la)];	// find entry in the specified level tabke
 	pte_t *plowtab;				// will point to lower page map table
 	assert(pmlevel > 0);
+	int i;
 
 	if (*pmte & PTE_P) {			// lower ptab already exist?
 		plowtab = mem_ptr(PTE_ADDR(*pmte));
@@ -322,6 +323,8 @@ pmap_walk_level(int pmlevel, pte_t *pmtab, intptr_t la, bool writing)
 	// If the lower page map table is shared and we're writing, copy it first.
 	// Must propagate the read-only status down to the page mappings.
 	if (writing && !(*pmte & PTE_W)) {
+	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+	cprintf("[pmap_walk_level %d] la %p *pmte %p(%u)\n", pmlevel, la, *pmte, mem_ptr2pi(plowtab)->refcount);
 		if (mem_ptr2pi(plowtab)->refcount == 1) {
 			// Lower page map table isn't shared, so we can use in-place;
 			// but must propagate the read-only status from the pmlevel
@@ -461,14 +464,21 @@ pmap_remove(pte_t *pml4, intptr_t va, size_t size)
 static intptr_t
 pmap_remove_level(int pmlevel, pte_t *pmtab, intptr_t va, intptr_t vahi)
 {
+	int i;
 	pte_t *pmte;
-		
+
 	assert(pmlevel >= 0);
+	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+	cprintf("[pmap_remove_level %d] va %p remaining %p pdsize %p\n", pmlevel, va, vahi - va, PDSIZE(pmlevel));
 
 	// find the entry in the specified level table
 	pmte = &pmtab[PDX(pmlevel, va)];
 
 	while (va < vahi) {
+if (PTE_ADDR(*pmte) != PTE_ZERO) {
+	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+	cprintf("[pmap_remove_level %d] va %p \e[33;1m*pmte %p(%u)\e[m \n", pmlevel, va, *pmte, mem_phys2pi(PTE_ADDR(*pmte))->refcount);
+}
 		if (PTE_ADDR(*pmte) == PTE_ZERO) {
 			// the entry does not points to a lower-level table
 			// skip the entire lower-level table region
@@ -488,6 +498,8 @@ pmap_remove_level(int pmlevel, pte_t *pmtab, intptr_t va, intptr_t vahi)
 				mem_decref(mem_phys2pi(pgaddr), pmap_freefun[pmlevel - 1]);
 			}
 			*pmte = PTE_ZERO;
+	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+	cprintf("[pmap_remove_level %d] va %p \e[31;1m*pmte %p\e[m done\n", pmlevel, va, *pmte);
 			pmte++;
 			va += PDSIZE(pmlevel);
 			continue;
@@ -496,6 +508,9 @@ pmap_remove_level(int pmlevel, pte_t *pmtab, intptr_t va, intptr_t vahi)
 		// remove partial lower-level table
 		// pmlevel should be greater than 0, can't remove partial page
 		assert(pmlevel > 0);
+
+		// unshare page entry
+		pmap_walk_level(pmlevel, pmtab, va, 1);
 
 		// find correct vahi for lower level
 		uintptr_t lvahi = PDADDR(pmlevel, va) + PDSIZE(pmlevel);
@@ -555,6 +570,10 @@ pmap_copy(pte_t *spml4, intptr_t sva, pte_t *dpml4, intptr_t dva,
 	intptr_t svahi = sva + size;
 	pmap_copy_level(NPTLVLS, spml4, sva, dpml4, dva, svahi);
 	cprintf("[pmap_copy] sva %p dva %p size %p done\n", sva, dva, size);
+	//cprintf("-------- source --------\n");
+	//pmap_print(spml4);
+	//cprintf("------ destination ------\n");
+	//pmap_print(dpml4);
 	return 1;
 #else /* not SOL >= 3 */
 	panic("pmap_copy() not implemented");
@@ -904,7 +923,11 @@ pmap_setperm(pte_t *pml4, intptr_t va, size_t size, int perm)
 		pteand = ~0, pteor = (SYS_RW | PTE_U | PTE_P | PTE_A | PTE_D);
 
 	uintptr_t vahi = va + size;
+	cprintf("[pmap_setperm] pml4 %p va %p size %p\n", pml4, va, size);
+	pmap_print(pml4);
 	pmap_setperm_level(NPTLVLS, pml4, va, vahi, pteand, pteor);
+	cprintf("[pmap_setperm] pml4 %p va %p size %p done\n", pml4, va, size);
+	pmap_print(pml4);
 	return 1;
 #else /* not SOL >= 3 */
 	panic("pmap_merge() not implemented");
@@ -914,10 +937,15 @@ pmap_setperm(pte_t *pml4, intptr_t va, size_t size, int perm)
 void
 pmap_setperm_level(int pmlevel, pte_t *pmtab, uintptr_t va, uintptr_t vahi, uint64_t pteand, uint64_t pteor)
 {
+	int i;
 	assert(pmlevel >= 0);
+	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+	cprintf("[pmap_setperm_level %d] va %p remaining %p\n", pmlevel, va, vahi - va);
 
 	while (va < vahi) {
 		pte_t *pmte = &pmtab[PDX(pmlevel, va)];
+	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+	cprintf("[pmap_setperm_level %d] va %p \e[33;1m*pmte %p\e[m \n", pmlevel, va, *pmte);
 
 		if (!(*pmte & PTE_P)) {
 			// no such page exists

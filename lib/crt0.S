@@ -9,6 +9,7 @@
  *
  * Derived from the MIT Exokernel and JOS.
  * Adapted for PIOS by Bryan Ford at Yale University.
+ * Adapted for 64-bit by Weiyi Wu at Yale University.
  */
 
 #include <inc/syscall.h>
@@ -24,7 +25,7 @@ start:
 #if LAB >= 4
 	// See if we were started with arguments on the stack.
 	// If not, our esp will start on a nice big power-of-two boundary.
-	testl $0x0fffffff, %esp
+	test $0xffffffff, %esp
 	jnz args_exist
 
 	// If not, push dummy argc/argv arguments.
@@ -40,11 +41,11 @@ args_exist:
   -check the logic below.
  */ 
 #if LAB >= 9		// run initialization functions
-	movl	$__init_array_start,%esi
-1:	cmpl	$__init_array_end,%esi
+	mov	$__init_array_start,%rsi
+1:	cmp	$__init_array_end,%rsi
 	je	2f
-	movl	(%esi),%eax
-	addl	$4,%esi
+	mov	(%rsi),%rax
+	add	$8,%esi
 	call	*%rax //FIXME
 	jmp	1b
 2:
@@ -53,11 +54,11 @@ args_exist:
 	call	main	// run the program
 	pushq	%rax	// use with main's return value as exit status
 #if LAB >= 9		// run finalization functions
-	movl	$__fini_array_start,%esi
-1:	cmpl	$__fini_array_end,%esi
+	mov	$__fini_array_start,%rsi
+1:	cmp	$__fini_array_end,%rsi
 	je	2f
-	movl	(%esi),%eax
-	addl	$4,%esi
+	mov	(%rsi),%rax
+	add	$8,%rsi
 	call	*%rax //FIXME
 	jmp	1b
 2:
@@ -86,17 +87,17 @@ args_exist:
 // and linked at the beginning of every user program.
 	.globl exec_start
 exec_start:
-	movl	4(%esp),%esp	// Load new executable's initial stack pointer
-	xorl	%ebp,%ebp	// New stack will be at its first stack frame
+	mov	%rdi,%rsp	// Load new executable's initial stack pointer
+	xor	%rbp,%rbp	// New stack will be at its first stack frame
 
-	movl	$SYS_GET|SYS_COPY,%eax	// Copy child 0's memory onto our own.
-	xorl	%edx,%edx		// edx[0-7] = child 0
-	movl	$VM_USERLO,%esi
-	movl	$VM_USERLO,%edi
-	movl	$VM_USERHI-VM_USERLO,%ecx
+	mov	$SYS_GET|SYS_COPY,%rax	// Copy child 0's memory onto our own.
+	xor	%rdx,%rdx		// rdx[0-7] = child 0
+	mov	$VM_USERLO,%rsi
+	mov	$VM_USERLO,%rdi
+	mov	$VM_USERHI-VM_USERLO,%rcx
 	int	$T_SYSCALL
 
-	movl	$SYS_PUT|SYS_ZERO,%eax	// Zero out child 0's state
+	mov	$SYS_PUT|SYS_ZERO,%rax	// Zero out child 0's state
 	int	$T_SYSCALL
 
 	jmp	start
