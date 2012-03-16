@@ -88,7 +88,8 @@ extern char	*argv0;
 #define _ARGSET(x)	(x) = 0
 #define _ARGUSED(x)	if (x) { } else
 
-#define	ARGBEGIN	for((argv?0:(argv=(void*)&argc)),(argv0?0:(argv0=*argv)),\
+#define	ARGBEGIN	if(argc>0){\
+			for((argv?0:(argv=(void*)&argc)),(argv0?0:(argv0=*argv)),\
 			    argv++,argc--;\
 			    argv[0] && argv[0][0]=='-' && argv[0][1];\
 			    argc--, argv++) {\
@@ -101,7 +102,7 @@ extern char	*argv0;
 				_argc = 0;\
 				while(*_args && (_argc = *_args++))\
 				switch(_argc)
-#define	ARGEND		_ARGSET(_argt);_ARGUSED(_argt);_ARGUSED(_argc);_ARGUSED(_args);}_ARGUSED(argv);_ARGUSED(argc);
+#define	ARGEND		_ARGSET(_argt);_ARGUSED(_argt);_ARGUSED(_argc);_ARGUSED(_args);}_ARGUSED(argv);_ARGUSED(argc);}
 #define	ARGF()		(_argt=_args, _args="",\
 				(*_argt? _argt: argv[1]? (argc--, *++argv): 0))
 #define	EARGF(x)	(_argt=_args, _args="",\

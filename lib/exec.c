@@ -173,11 +173,11 @@ exec_copyargs(char *const argv[])
 		strcpy((void*)esp + scratchofs, argv[i]);
 		((intptr_t*)(dargv + scratchofs))[i] = esp;
 	}
-	esp &= ~3;	// get esp word-aligned again
+	esp &= ~(sizeof(intptr_t) - 1);	// get esp pointer-size-aligned again
 
 	// Push the arguments to main()
-	esp -= 4;	*(intptr_t*)(esp + scratchofs) = dargv;
-	esp -= 4;	*(intptr_t*)(esp + scratchofs) = argc;
+	esp -= sizeof(intptr_t);	*(intptr_t*)(esp + scratchofs) = dargv;
+	esp -= sizeof(intptr_t);	*(intptr_t*)(esp + scratchofs) = argc;
 #else // ! SOL >= 4
 	// Lab 4: insert your code here to copy our command-line arguments
 	// onto the new process's stack, taking into account the fact that

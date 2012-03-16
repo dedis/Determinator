@@ -35,30 +35,34 @@ start:
 	pushq $0
 
 args_exist:
+	// 64-bit ABI need to pass argument via registers
+	movq	(%rsp),%rdi
+	movq	0x08(%rsp),%rsi
 #endif
 
 /*FIXME:: Ishan - 01 Jun,2011
   -check the logic below.
  */ 
 #if LAB >= 9		// run initialization functions
-	mov	$__init_array_start,%rsi
-1:	cmp	$__init_array_end,%rsi
+	movq	$__init_array_start,%rdx
+1:	cmpq	$__init_array_end,%rdx
 	je	2f
-	mov	(%rsi),%rax
-	add	$8,%esi
+	movq	(%rdx),%rax
+	addq	$8,%rdx
 	call	*%rax //FIXME
 	jmp	1b
 2:
 #endif
 
 	call	main	// run the program
-	pushq	%rax	// use with main's return value as exit status
+	movq	%rax,%rdi	// use with main's return value as exit status
+
 #if LAB >= 9		// run finalization functions
-	mov	$__fini_array_start,%rsi
-1:	cmp	$__fini_array_end,%rsi
+	movq	$__fini_array_start,%rdx
+1:	cmpq	$__fini_array_end,%rdx
 	je	2f
-	mov	(%rsi),%rax
-	add	$8,%rsi
+	movq	(%rdx),%rax
+	addq	$8,%rdx
 	call	*%rax //FIXME
 	jmp	1b
 2:

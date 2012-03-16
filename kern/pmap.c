@@ -323,8 +323,8 @@ pmap_walk_level(int pmlevel, pte_t *pmtab, intptr_t la, bool writing)
 	// If the lower page map table is shared and we're writing, copy it first.
 	// Must propagate the read-only status down to the page mappings.
 	if (writing && !(*pmte & PTE_W)) {
-	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-	cprintf("[pmap_walk_level %d] la %p *pmte %p(%u)\n", pmlevel, la, *pmte, mem_ptr2pi(plowtab)->refcount);
+//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+//cprintf("[pmap_walk_level %d] la %p *pmte %p(%u)\n", pmlevel, la, *pmte, mem_ptr2pi(plowtab)->refcount);
 		if (mem_ptr2pi(plowtab)->refcount == 1) {
 			// Lower page map table isn't shared, so we can use in-place;
 			// but must propagate the read-only status from the pmlevel
@@ -339,8 +339,6 @@ pmap_walk_level(int pmlevel, pte_t *pmtab, intptr_t la, bool writing)
 				return NULL;
 			mem_incref(pi);
 			pte_t *nplowtab = mem_pi2ptr(pi);
-			//cprintf("pmap_walk_level %d %x %x: copy plowtab %x->%x\n",
-			//	pmlevel, pmtab, va, plowtab, nplowtab);
 
 			// Copy all page table entries,
 			// incrementing each's refcount
@@ -403,7 +401,6 @@ pmap_insert(pte_t *pml4, pageinfo *pi, intptr_t va, int perm)
 	// Now remove the old mapping in this PTE.
 	// WWY: we can simply do this with mem_decref()
 	if (*pte & PTE_P) {
-//		pmap_remove(pml4, va, PAGESIZE);
 		pmap_inval(pml4, va, PAGESIZE);
 		mem_decref(mem_phys2pi(PGADDR(*pte)), mem_free);
 	}
@@ -468,17 +465,17 @@ pmap_remove_level(int pmlevel, pte_t *pmtab, intptr_t va, intptr_t vahi)
 	pte_t *pmte;
 
 	assert(pmlevel >= 0);
-	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-	cprintf("[pmap_remove_level %d] va %p remaining %p pdsize %p\n", pmlevel, va, vahi - va, PDSIZE(pmlevel));
+//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+//cprintf("[pmap_remove_level %d] va %p remaining %p pdsize %p\n", pmlevel, va, vahi - va, PDSIZE(pmlevel));
 
 	// find the entry in the specified level table
 	pmte = &pmtab[PDX(pmlevel, va)];
 
 	while (va < vahi) {
-if (PTE_ADDR(*pmte) != PTE_ZERO) {
-	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-	cprintf("[pmap_remove_level %d] va %p \e[33;1m*pmte %p(%u)\e[m \n", pmlevel, va, *pmte, mem_phys2pi(PTE_ADDR(*pmte))->refcount);
-}
+//if (PTE_ADDR(*pmte) != PTE_ZERO) {
+//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+//cprintf("[pmap_remove_level %d] va %p \e[33;1m*pmte %p(%u)\e[m \n", pmlevel, va, *pmte, mem_phys2pi(PTE_ADDR(*pmte))->refcount);
+//}
 		if (PTE_ADDR(*pmte) == PTE_ZERO) {
 			// the entry does not points to a lower-level table
 			// skip the entire lower-level table region
@@ -498,8 +495,8 @@ if (PTE_ADDR(*pmte) != PTE_ZERO) {
 				mem_decref(mem_phys2pi(pgaddr), pmap_freefun[pmlevel - 1]);
 			}
 			*pmte = PTE_ZERO;
-	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-	cprintf("[pmap_remove_level %d] va %p \e[31;1m*pmte %p\e[m done\n", pmlevel, va, *pmte);
+//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+//cprintf("[pmap_remove_level %d] va %p \e[31;1m*pmte %p\e[m done\n", pmlevel, va, *pmte);
 			pmte++;
 			va += PDSIZE(pmlevel);
 			continue;
@@ -566,14 +563,14 @@ pmap_copy(pte_t *spml4, intptr_t sva, pte_t *dpml4, intptr_t dva,
 	pmap_inval(spml4, sva, size);
 	pmap_inval(dpml4, dva, size);
 
-	cprintf("[pmap_copy] sva %p dva %p size %p\n", sva, dva, size);
+//cprintf("[pmap_copy] sva %p dva %p size %p\n", sva, dva, size);
 	intptr_t svahi = sva + size;
 	pmap_copy_level(NPTLVLS, spml4, sva, dpml4, dva, svahi);
-	cprintf("[pmap_copy] sva %p dva %p size %p done\n", sva, dva, size);
-	//cprintf("-------- source --------\n");
-	//pmap_print(spml4);
-	//cprintf("------ destination ------\n");
-	//pmap_print(dpml4);
+//cprintf("[pmap_copy] sva %p dva %p size %p done\n", sva, dva, size);
+//cprintf("-------- source --------\n");
+//pmap_print(spml4);
+//cprintf("------ destination ------\n");
+//pmap_print(dpml4);
 	return 1;
 #else /* not SOL >= 3 */
 	panic("pmap_copy() not implemented");
@@ -590,25 +587,22 @@ static void
 pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab, 
 		intptr_t dva, intptr_t svahi)
 {
-	// TODO: more grained copy with arbitrary address aligned to page size
-	int i;
+//int i;
 	if (sva >= svahi)
 		return;
 
-	assert(pmlevel > 0);
-	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-	cprintf("[pmap_copy_level %d] sva %p soff %p dva %p doff %p remaining %p\n", pmlevel, sva, PDOFF(pmlevel, sva), dva, PDOFF(pmlevel, dva), svahi - sva);
-//	assert(PDOFF(pmlevel, sva) == PDOFF(pmlevel, dva)); 
+	assert(pmlevel >= 0);
+//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+//cprintf("[pmap_copy_level %d] sva %p soff %p dva %p doff %p remaining %p\n", pmlevel, sva, PDOFF(pmlevel, sva), dva, PDOFF(pmlevel, dva), svahi - sva);
 
 	pte_t *spmte = &spmtab[PDX(pmlevel, sva)];
 	pte_t *dpmte = &dpmtab[PDX(pmlevel, dva)];
 
-	
 	while (sva < svahi) {
-if (PTE_ADDR(*spmte) != PTE_ZERO) {
-	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-	cprintf("[pmap_copy_level %d] sva %p soff %p \e[33;1m*spmte %p\e[m dva %p doff %p \e[33;1m*dpmte %p\e[m\n", pmlevel, sva, PDOFF(pmlevel, sva), *spmte, dva, PDOFF(pmlevel, sva), *dpmte);
-}
+//if (PTE_ADDR(*spmte) != PTE_ZERO) {
+//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+//cprintf("[pmap_copy_level %d] sva %p soff %p \e[33;1m*spmte %p\e[m dva %p doff %p \e[33;1m*dpmte %p\e[m\n", pmlevel, sva, PDOFF(pmlevel, sva), *spmte, dva, PDOFF(pmlevel, sva), *dpmte);
+//}
 		if (PDOFF(pmlevel, sva) == 0 && PDOFF(pmlevel, dva) == 0 && svahi - sva >= PDSIZE(pmlevel)) {
 			// we can share an entire lower-level table
 			if (*dpmte & PTE_P) {
@@ -625,10 +619,10 @@ if (PTE_ADDR(*spmte) != PTE_ZERO) {
 			if (PTE_ADDR(*spmte) != PTE_ZERO) {
 				mem_incref(mem_phys2pi(PTE_ADDR(*spmte)));
 			}
-if (PTE_ADDR(*spmte) != PTE_ZERO) {
-	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-	cprintf("                 %d] sva %p \e[36;1m*spmte %p\e[m dva %p \e[36;1m*dpmte %p\e[m copied %p\n", pmlevel, sva, *spmte, dva, *dpmte, PDSIZE(pmlevel));
-}
+//if (PTE_ADDR(*spmte) != PTE_ZERO) {
+//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+//cprintf("                 %d] sva %p \e[36;1m*spmte %p\e[m dva %p \e[36;1m*dpmte %p\e[m copied %p\n", pmlevel, sva, *spmte, dva, *dpmte, PDSIZE(pmlevel));
+//}
 
 			spmte++, dpmte++;
 			sva += PDSIZE(pmlevel);
@@ -645,19 +639,21 @@ if (PTE_ADDR(*spmte) != PTE_ZERO) {
 		} else {
 			size -= PDOFF(pmlevel, dva);
 		}
-		// svahi or dvahi not aligned
+		// svahi or dvahi beyond PDSIZE
 		if (sva + size > svahi) {
 			size = svahi - sva;
 		}
-if (PTE_ADDR(*spmte) != PTE_ZERO) {
-	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-	cprintf("                 %d] sva %p \e[35;1m*spmte %p\e[m dva %p \e[35;1m*dpmte %p\e[m pre sub-copying %p\n", pmlevel, sva, *spmte, dva, *dpmte, size);
-}
+//if (PTE_ADDR(*spmte) != PTE_ZERO) {
+//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+//cprintf("                 %d] sva %p \e[35;1m*spmte %p\e[m dva %p \e[35;1m*dpmte %p\e[m pre sub-copying %p\n", pmlevel, sva, *spmte, dva, *dpmte, size);
+//}
 
 		// copy partial lower-level table
 		if (!(*spmte & PTE_P)) {
 			// source is invalid, skip it
 			assert(PTE_ADDR(*spmte) == PTE_ZERO);
+			// TODO: remove *dmpte
+			pmap_remove_level(pmlevel, dpmtab, dva, dva + size);
 		} else {
 			// source is valid, copy it
 			// we must guarantee that lower-level table exists
@@ -668,10 +664,10 @@ if (PTE_ADDR(*spmte) != PTE_ZERO) {
 			assert(PTE_ADDR(*dpmte) != PTE_ZERO);
 			pmap_copy_level(pmlevel - 1, mem_ptr(PTE_ADDR(*spmte)), sva, mem_ptr(PTE_ADDR(*dpmte)), dva, sva + size);
 		}
-if (PTE_ADDR(*spmte) != PTE_ZERO) {
-	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-	cprintf("                 %d] sva %p \e[35;1m*spmte %p\e[m dva %p \e[35;1m*dpmte %p\e[m sub-copied %p\n", pmlevel, sva, *spmte, dva, *dpmte, size);
-}
+//if (PTE_ADDR(*spmte) != PTE_ZERO) {
+//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+//cprintf("                 %d] sva %p \e[35;1m*spmte %p\e[m dva %p \e[35;1m*dpmte %p\e[m sub-copied %p\n", pmlevel, sva, *spmte, dva, *dpmte, size);
+//}
 		dva += size;
 		sva += size;
 		// move to next page entry only if address is aligned
@@ -803,13 +799,15 @@ pmap_mergepage(pte_t *rpte, pte_t *spte, pte_t *dpte, intptr_t dva)
 // Merge differences between a reference snapshot represented by rpml4
 // and a source address space spml4 into a destination address space dpml4.
 //
+static void pmap_merge_level();
+
 int
 pmap_merge(pte_t *rpml4, pte_t *spml4, intptr_t sva,
 		pte_t *dpml4, intptr_t dva, size_t size)
 {
-	assert(PDOFF(1, sva) == 0);	// must be 4MB-aligned
-	assert(PDOFF(1, dva) == 0);
-	assert(PDOFF(1, size) == 0);
+	assert(PDOFF(0, sva) == 0);	// must be 4KB-aligned
+	assert(PDOFF(0, dva) == 0);
+	assert(PDOFF(0, size) == 0);
 	assert(sva >= VM_USERLO && sva < VM_USERHI);
 	assert(dva >= VM_USERLO && dva < VM_USERHI);
 	assert(size <= VM_USERHI - sva);
@@ -891,7 +889,44 @@ pmap_merge(pte_t *rpml4, pte_t *spml4, intptr_t sva,
 #endif /* not SOL >= 3 */
 }
 
-void pmap_setperm_level();
+static void
+pmap_merge_level(int pmlevel, pte_t *rpmtab, pte_t *spmtab, intptr_t sva,
+		pte_t *dpmtab, intptr_t dva, intptr_t svahi)
+{
+	// TODO
+	if (sva >= svahi)
+		return;
+
+	assert(pmlevel > 0);
+
+	pte_t *rpmte = &rpmtab[PDX(pmlevel, sva)];
+	pte_t *spmte = &spmtab[PDX(pmlevel, sva)];
+	pte_t *dpmte = &dpmtab[PDX(pmlevel, dva)];
+
+	while (sva < svahi) {
+		// TODO
+		if (*spmte == *rpmte) {
+			// unchanged in source, do nothing
+		} else if (*dpmte == *rpmte) {
+			// unchanged in dest, copy from source
+			pmap_copy_level(pmlevel, spmtab, sva, dpmtab, dva, sva + PDSIZE(pmlevel));
+		} else {
+			if (pmlevel > 0) {
+				// jump into lower level
+			} else {
+				// use mergepage
+				pmap_mergepage(rpmte, spmte, dpmte, dva);
+			}
+		}
+		rpmte++;
+		spmte++;
+		dpmte++;
+		sva += PDSIZE(pmlevel);
+		dva += PDSIZE(pmlevel);
+	}
+}
+
+static void pmap_setperm_level();
 //
 // Set the nominal permission bits on a range of virtual pages to 'perm'.
 // Adding permission to a nonexistent page maps zero-filled memory.
@@ -924,28 +959,28 @@ pmap_setperm(pte_t *pml4, intptr_t va, size_t size, int perm)
 
 	uintptr_t vahi = va + size;
 	cprintf("[pmap_setperm] pml4 %p va %p size %p\n", pml4, va, size);
-	pmap_print(pml4);
+//	pmap_print(pml4);
 	pmap_setperm_level(NPTLVLS, pml4, va, vahi, pteand, pteor);
 	cprintf("[pmap_setperm] pml4 %p va %p size %p done\n", pml4, va, size);
-	pmap_print(pml4);
+//	pmap_print(pml4);
 	return 1;
 #else /* not SOL >= 3 */
 	panic("pmap_merge() not implemented");
 #endif /* not SOL >= 3 */
 }
 
-void
+static void
 pmap_setperm_level(int pmlevel, pte_t *pmtab, uintptr_t va, uintptr_t vahi, uint64_t pteand, uint64_t pteor)
 {
 	int i;
 	assert(pmlevel >= 0);
-	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-	cprintf("[pmap_setperm_level %d] va %p remaining %p\n", pmlevel, va, vahi - va);
+//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+//cprintf("[pmap_setperm_level %d] va %p remaining %p\n", pmlevel, va, vahi - va);
 
 	while (va < vahi) {
 		pte_t *pmte = &pmtab[PDX(pmlevel, va)];
-	for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-	cprintf("[pmap_setperm_level %d] va %p \e[33;1m*pmte %p\e[m \n", pmlevel, va, *pmte);
+//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
+//cprintf("[pmap_setperm_level %d] va %p \e[33;1m*pmte %p\e[m \n", pmlevel, va, *pmte);
 
 		if (!(*pmte & PTE_P)) {
 			// no such page exists
