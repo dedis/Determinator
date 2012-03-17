@@ -299,10 +299,10 @@ pmap_walk_level(int pmlevel, pte_t *pmtab, intptr_t la, bool writing)
 	assert(pmlevel > 0);
 	int i;
 
-	if (*pmte & PTE_P) {			// lower ptab already exist?
+	if (PTE_ADDR(*pmte) != PTE_ZERO) {			// lower ptab already exist?
+		*pmte |= PTE_P;
 		plowtab = mem_ptr(PTE_ADDR(*pmte));
 	} else {				// no - create?
-		assert(*pmte == PTE_ZERO);
 		pageinfo *pi;
 		if (!writing || (pi = mem_alloc()) == NULL)
 			return NULL;
@@ -402,7 +402,7 @@ pmap_insert(pte_t *pml4, pageinfo *pi, intptr_t va, int perm)
 
 	// Now remove the old mapping in this PTE.
 	// WWY: we can simply do this with mem_decref()
-	if (*pte & PTE_P) {
+	if (PTE_ADDR(*pte) != PTE_ZERO) {
 		pmap_inval(pml4, va, PAGESIZE);
 		mem_decref(mem_phys2pi(PGADDR(*pte)), mem_free);
 	}
@@ -607,7 +607,7 @@ pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab,
 //}
 		if (PDOFF(pmlevel, sva) == 0 && PDOFF(pmlevel, dva) == 0 && svahi - sva >= PDSIZE(pmlevel)) {
 			// we can share an entire lower-level table
-			if (*dpmte & PTE_P) {
+			if (PTE_ADDR(*dpmte) != PTE_ZERO) {
 				// remove old page mapping first
 				// if *dpmte equals to *spmte, refcount will be greater than 1, so it is safe to use pmap_remove_level()
 				pmap_remove_level(pmlevel, dpmtab, dva, dva + PDSIZE(pmlevel));
@@ -651,15 +651,13 @@ pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab,
 //}
 
 		// copy partial lower-level table
-		if (!(*spmte & PTE_P)) {
-			// source is invalid, skip it
-			assert(PTE_ADDR(*spmte) == PTE_ZERO);
+		if (PTE_ADDR(*spmte) == PTE_ZERO) {
+			// source is invalid, remove dest as well
 			pmap_remove_level(pmlevel, dpmtab, dva, dva + size);
 		} else {
 			// source is valid, copy it
 			// we must guarantee that lower-level table exists
-			if (!(*dpmte & PTE_P)) {
-				assert(PTE_ADDR(*dpmte) == PTE_ZERO);
+			if (PTE_ADDR(*dpmte) == PTE_ZERO) {
 				pmap_walk_level(pmlevel, dpmtab, dva, 1);
 			}
 			assert(PTE_ADDR(*dpmte) != PTE_ZERO);
@@ -975,10 +973,9 @@ pmap_setperm_level(int pmlevel, pte_t *pmtab, uintptr_t va, uintptr_t vahi, uint
 //for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
 //cprintf("[pmap_setperm_level %d] va %p \e[33;1m*pmte %p\e[m \n", pmlevel, va, *pmte);
 
-		if (!(*pmte & PTE_P)) {
+		if (PTE_ADDR(*pmte) == PTE_ZERO) {
 			// no such page exists
 if (PTE_ADDR(*pmte) != PTE_ZERO) { cprintf("********* level %d va %p *pmte %p\n", pmlevel, va, *pmte); pmap_print(rcr3()); }
-			assert(PTE_ADDR(*pmte) == PTE_ZERO);
 			if (pteor == 0) {
 				// we can just jump over
 				va = PDADDR(pmlevel, va) + PDSIZE(pmlevel);
@@ -1323,7 +1320,7 @@ pmap_check_adv(void)
 static uint16_t
 pmap_scan(pte_t *table, pte_t left, pte_t right, pte_t *start, pte_t *end, uint16_t mask)
 {
-	while ((left < right) && !(table[left] & PTE_P)) {
+	while (left < right && PTE_ADDR(table[left] == PTE_ZERO)) {
 		left++;
 	}
 	if (left < right) {

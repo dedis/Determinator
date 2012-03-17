@@ -38,6 +38,7 @@
 #define NPTENTRIES	512 
 #define NPTBITS		9		// log2(NPTENTRIES)
 #define NPTLVLS     	3           	// page table depth -1
+
 // the entry in PML4 pointing to itself, the MSB is 1 (lower half) to avoid walking into user space, need to care about sign extension of canonical address form
 #define PML4SELFOFFSET	0x1BF
 #define CANONICALSIGNEXTENSION	0xFFFF000000000000ULL

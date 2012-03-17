@@ -219,16 +219,16 @@ protcheck()
 	// VM_USERHI is not canonical in 64-bit
 	cputsfaulttest(0);
 	cputsfaulttest(VM_USERLO-1);
-//	cputsfaulttest(VM_USERHI);
-//	cputsfaulttest(~0);
+	cputsfaulttest(VM_USERHI);
+	cputsfaulttest(~0);
 	putfaulttest(0);
 	putfaulttest(VM_USERLO-1);
-//	putfaulttest(VM_USERHI);
-//	putfaulttest(~0);
+	putfaulttest(VM_USERHI);
+	putfaulttest(~0);
 	getfaulttest(0);
 	getfaulttest(VM_USERLO-1);
-//	getfaulttest(VM_USERHI);
-//	getfaulttest(~0);
+	getfaulttest(VM_USERHI);
+	getfaulttest(~0);
 	cprintf("protect check passed 1\n");
 
 warn("here");
@@ -257,6 +257,7 @@ warn("here");
 warn("here");
 	getfaulttest(VM_USERHI-PTSIZE*2);
 warn("here");
+	cprintf("protect check passed 2\n");
 
 	// Check that our text segment is mapped read-only
 	writefaulttest((int)start);
@@ -525,8 +526,8 @@ main()
 
 //	loadcheck();
 //	forkcheck();
-//	protcheck();
-	memopcheck();
+	protcheck();
+//	memopcheck();
 //	mergecheck();
 
 	cprintf("testvm: all tests completed successfully!\n");
