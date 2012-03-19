@@ -153,7 +153,7 @@ do_put(trapframe *tf, uint32_t cmd)
 {
 	proc *p = proc_cur();
 	assert(p->state == PROC_RUN && p->runcpu == cpu_cur());
-cprintf("PUT proc %x rip %p rsp %p cmd %x\n", p, tf->rip, tf->rsp, cmd);
+	//cprintf("PUT proc %x rip %p rsp %p cmd %x\n", p, tf->rip, tf->rsp, cmd);
 
 #if SOL >= 5
 	// First migrate if we need to.
@@ -276,7 +276,7 @@ do_get(trapframe *tf, uint32_t cmd)
 {
 	proc *p = proc_cur();
 	assert(p->state == PROC_RUN && p->runcpu == cpu_cur());
-cprintf("GET proc %x rip %p rsp %p cmd %x\n", p, tf->rip, tf->rsp, cmd);
+	//cprintf("GET proc %x rip %p rsp %p cmd %x\n", p, tf->rip, tf->rsp, cmd);
 
 #if SOL >= 5
 	// First migrate if we need to.
@@ -369,14 +369,8 @@ cprintf("GET proc %x rip %p rsp %p cmd %x\n", p, tf->rip, tf->rsp, cmd);
 				|| dva < VM_USERLO || dva > VM_USERHI
 				|| size > VM_USERHI-dva)
 			systrap(tf, T_GPFLT, 0);
-cprintf("\e[31;1m");
-pmap_print(p->pml4);
-cprintf("\e[m");
 		if (!pmap_setperm(p->pml4, dva, size, cmd & SYS_RW))
 			panic("pmap_get: no memory to set permissions");
-cprintf("\e[32;1m");
-pmap_print(p->pml4);
-cprintf("\e[m");
 	}
 
 	if (cmd & SYS_SNAP)
@@ -389,7 +383,7 @@ cprintf("\e[m");
 static void gcc_noreturn
 do_ret(trapframe *tf)
 {
-cprintf("RET proc %x rip %p rsp %p\n", proc_cur(), tf->rip, tf->rsp);
+	//cprintf("RET proc %x rip %p rsp %p\n", proc_cur(), tf->rip, tf->rsp);
 	proc_ret(tf, 1);	// Complete syscall insn and return to parent
 }
 

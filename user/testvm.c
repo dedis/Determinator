@@ -20,7 +20,7 @@
 #define STACKSIZE	PAGESIZE
 
 #define ALLVA		((void*) VM_USERLO)
-#define ALLSIZE		(VM_USERHI - VM_USERLO)
+#define ALLSIZE		(VM_STACKHI - VM_USERLO)
 
 extern uint8_t start[], etext[], edata[], end[];
 
@@ -399,7 +399,6 @@ const int sortints[256] = {	// sorted array of the same ints
 void
 pqsort(int *lo, int *hi)
 {
-cprintf("\e[36;1m[pqsort]\e[m %p - %p\n", lo, hi);
 	if (lo >= hi)
 		return;
 
@@ -424,9 +423,7 @@ cprintf("\e[36;1m[pqsort]\e[m %p - %p\n", lo, hi);
 		pqsort(h+1, hi);
 		sys_ret();
 	}
-cprintf("\e[36;1m[pqsort]\e[m join %p - %p\n", lo, l-2);
 	join(SYS_MERGE, 0, T_SYSCALL);
-cprintf("\e[36;1m[pqsort]\e[m join %p - %p\n", h+1, hi);
 	join(SYS_MERGE, 1, T_SYSCALL);
 }
 
@@ -489,26 +486,28 @@ void
 mergecheck()
 {
 	// Simple merge test: two children write two adjacent variables
-	//if (!fork(SYS_START | SYS_SNAP, 0)) { x = 0xdeadbeef; sys_ret(); }
-	//if (!fork(SYS_START | SYS_SNAP, 1)) { y = 0xabadcafe; sys_ret(); }
-	//assert(x == 0); assert(y == 0);
-	//join(SYS_MERGE, 0, T_SYSCALL);
-	//join(SYS_MERGE, 1, T_SYSCALL);
-	//assert(x == 0xdeadbeef); assert(y == 0xabadcafe);
+	if (!fork(SYS_START | SYS_SNAP, 0)) { x = 0xdeadbeef; sys_ret(); }
+	if (!fork(SYS_START | SYS_SNAP, 1)) { y = 0xabadcafe; sys_ret(); }
+	assert(x == 0); assert(y == 0);
+	join(SYS_MERGE, 0, T_SYSCALL);
+	join(SYS_MERGE, 1, T_SYSCALL);
+	assert(x == 0xdeadbeef); assert(y == 0xabadcafe);
+	cprintf("merge check passed 1\n");
 
-	//// A Rube Goldberg approach to swapping two variables
-	//if (!fork(SYS_START | SYS_SNAP, 0)) { x = y; sys_ret(); }
-	//if (!fork(SYS_START | SYS_SNAP, 1)) { y = x; sys_ret(); }
-	//assert(x == 0xdeadbeef); assert(y == 0xabadcafe);
-	//join(SYS_MERGE, 0, T_SYSCALL);
-	//join(SYS_MERGE, 1, T_SYSCALL);
-	//assert(y == 0xdeadbeef); assert(x == 0xabadcafe);
+	// A Rube Goldberg approach to swapping two variables
+	if (!fork(SYS_START | SYS_SNAP, 0)) { x = y; sys_ret(); }
+	if (!fork(SYS_START | SYS_SNAP, 1)) { y = x; sys_ret(); }
+	assert(x == 0xdeadbeef); assert(y == 0xabadcafe);
+	join(SYS_MERGE, 0, T_SYSCALL);
+	join(SYS_MERGE, 1, T_SYSCALL);
+	assert(y == 0xdeadbeef); assert(x == 0xabadcafe);
+	cprintf("merge check passed 2\n");
 
 	// Parallel quicksort with recursive processes!
 	// (though probably not very efficient on arrays this small)
-	//pqsort(&randints[0], &randints[256-1]);
-	pqsort(&randints[0], &randints[16-1]);
+	pqsort(&randints[0], &randints[256-1]);
 	assert(memcmp(randints, sortints, 256*sizeof(int)) == 0);
+	cprintf("merge check passed 3\n");
 
 	// Parallel matrix multiply, one child process per result matrix cell
 	matmult(ma, mb, mr);
@@ -524,11 +523,11 @@ main()
 {
 	cprintf("testvm: in main()\n");
 
-//	loadcheck();
-//	forkcheck();
-	protcheck();
-//	memopcheck();
-//	mergecheck();
+	loadcheck();
+	forkcheck();
+//	protcheck();
+	mergecheck();
+	memopcheck();
 
 	cprintf("testvm: all tests completed successfully!\n");
 	return 0;

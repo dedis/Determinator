@@ -82,32 +82,32 @@ pmap_init(void)
 	}
 
 	// On x86, segmentation maps a VA to a LA (linear addr) and
-        // paging maps the LA to a PA.  i.e., VA => LA => PA.  If paging is
-        // turned off the LA is used as the PA.  There is no way to
-        // turn off segmentation.  At the moment we turn on paging,
-        // the code we're executing must be in an identity-mapped memory area
-        // where LA == PA according to the page mapping structures.
-        // In PIOS this is always the case for the kernel's address space,
-        // so we don't have to play any special tricks as in other kernels.
+	// paging maps the LA to a PA.  i.e., VA => LA => PA.  If paging is
+	// turned off the LA is used as the PA.  There is no way to
+	// turn off segmentation.  At the moment we turn on paging,
+	// the code we're executing must be in an identity-mapped memory area
+	// where LA == PA according to the page mapping structures.
+	// In PIOS this is always the case for the kernel's address space,
+	// so we don't have to play any special tricks as in other kernels.
 
-        uintptr_t cr4 = rcr4();
+	uintptr_t cr4 = rcr4();
 #if SOL >= 2
-        cr4 |= CR4_OSFXSR | CR4_OSXMMEXCPT; // enable 128-bit XMM instructions
+	cr4 |= CR4_OSFXSR | CR4_OSXMMEXCPT; // enable 128-bit XMM instructions
 #endif
-        lcr4(cr4);
+	lcr4(cr4);
 
 	// Install the bootstrap page map level-4 into the PDBR.
-        lcr3(mem_phys(pmap_bootpmap));
+	lcr3(mem_phys(pmap_bootpmap));
 
-        uintptr_t cr0 = rcr0();
-        cr0 |= CR0_AM|CR0_NE|CR0_TS;
-        cr0 &= ~(CR0_EM);
-        lcr0(cr0);
+	uintptr_t cr0 = rcr0();
+	cr0 |= CR0_AM|CR0_NE|CR0_TS;
+	cr0 &= ~(CR0_EM);
+	lcr0(cr0);
 
-        if (cpu_onboot()) {
-    //            pmap_check();
-      //          pmap_check_adv();
-        }
+	if (cpu_onboot()) {
+		pmap_check();
+		pmap_check_adv();
+	}
 }
 
 // we only map kernel address, linear address and physical address is identical
@@ -323,8 +323,6 @@ pmap_walk_level(int pmlevel, pte_t *pmtab, intptr_t la, bool writing)
 	// If the lower page map table is shared and we're writing, copy it first.
 	// Must propagate the read-only status down to the page mappings.
 	if (writing && !(*pmte & PTE_W)) {
-//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-//cprintf("[pmap_walk_level %d] la %p *pmte %p(%u)\n", pmlevel, la, *pmte, mem_ptr2pi(plowtab)->refcount);
 		if (mem_ptr2pi(plowtab)->refcount == 1) {
 			// Lower page map table isn't shared, so we can use in-place;
 			// but must propagate the read-only status from the pmlevel
@@ -356,8 +354,6 @@ pmap_walk_level(int pmlevel, pte_t *pmtab, intptr_t la, bool writing)
 			plowtab = nplowtab;
 		}
 		*pmte = (uintptr_t)plowtab | PTE_A | PTE_P | PTE_W | PTE_U;
-//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-//cprintf("[                %d] la %p *pmte %p(%u)\n", pmlevel, la, *pmte, mem_ptr2pi(plowtab)->refcount);
 	}
 
 	if (pmlevel == 1)
@@ -467,17 +463,11 @@ pmap_remove_level(int pmlevel, pte_t *pmtab, intptr_t va, intptr_t vahi)
 	pte_t *pmte;
 
 	assert(pmlevel >= 0);
-//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-//cprintf("[pmap_remove_level %d] va %p remaining %p pdsize %p\n", pmlevel, va, vahi - va, PDSIZE(pmlevel));
 
 	// find the entry in the specified level table
 	pmte = &pmtab[PDX(pmlevel, va)];
 
 	while (va < vahi) {
-//if (PTE_ADDR(*pmte) != PTE_ZERO) {
-//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-//cprintf("[pmap_remove_level %d] va %p \e[33;1m*pmte %p(%u)\e[m \n", pmlevel, va, *pmte, mem_phys2pi(PTE_ADDR(*pmte))->refcount);
-//}
 		if (PTE_ADDR(*pmte) == PTE_ZERO) {
 			// the entry does not points to a lower-level table
 			// skip the entire lower-level table region
@@ -497,8 +487,6 @@ pmap_remove_level(int pmlevel, pte_t *pmtab, intptr_t va, intptr_t vahi)
 				mem_decref(mem_phys2pi(pgaddr), pmap_freefun[pmlevel - 1]);
 			}
 			*pmte = PTE_ZERO;
-//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-//cprintf("[pmap_remove_level %d] va %p \e[31;1m*pmte %p\e[m done\n", pmlevel, va, *pmte);
 			pmte++;
 			va += PDSIZE(pmlevel);
 			continue;
@@ -565,14 +553,8 @@ pmap_copy(pte_t *spml4, intptr_t sva, pte_t *dpml4, intptr_t dva,
 	pmap_inval(spml4, sva, size);
 	pmap_inval(dpml4, dva, size);
 
-//cprintf("[pmap_copy] sva %p dva %p size %p\n", sva, dva, size);
 	intptr_t svahi = sva + size;
 	pmap_copy_level(NPTLVLS, spml4, sva, dpml4, dva, svahi);
-//cprintf("[pmap_copy] sva %p dva %p size %p done\n", sva, dva, size);
-//cprintf("-------- source --------\n");
-//pmap_print(spml4);
-//cprintf("------ destination ------\n");
-//pmap_print(dpml4);
 	return 1;
 #else /* not SOL >= 3 */
 	panic("pmap_copy() not implemented");
@@ -594,17 +576,11 @@ pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab,
 		return;
 
 	assert(pmlevel >= 0);
-//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-//cprintf("[pmap_copy_level %d] sva %p soff %p dva %p doff %p remaining %p\n", pmlevel, sva, PDOFF(pmlevel, sva), dva, PDOFF(pmlevel, dva), svahi - sva);
 
 	pte_t *spmte = &spmtab[PDX(pmlevel, sva)];
 	pte_t *dpmte = &dpmtab[PDX(pmlevel, dva)];
 
 	while (sva < svahi) {
-//if (PTE_ADDR(*spmte) != PTE_ZERO) {
-//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-//cprintf("[pmap_copy_level %d] sva %p soff %p \e[33;1m*spmte %p\e[m dva %p doff %p \e[33;1m*dpmte %p\e[m\n", pmlevel, sva, PDOFF(pmlevel, sva), *spmte, dva, PDOFF(pmlevel, sva), *dpmte);
-//}
 		if (PDOFF(pmlevel, sva) == 0 && PDOFF(pmlevel, dva) == 0 && svahi - sva >= PDSIZE(pmlevel)) {
 			// we can share an entire lower-level table
 			if (PTE_ADDR(*dpmte) != PTE_ZERO) {
@@ -621,10 +597,6 @@ pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab,
 			if (PTE_ADDR(*spmte) != PTE_ZERO) {
 				mem_incref(mem_phys2pi(PTE_ADDR(*spmte)));
 			}
-//if (PTE_ADDR(*spmte) != PTE_ZERO) {
-//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-//cprintf("                 %d] sva %p \e[36;1m*spmte %p\e[m dva %p \e[36;1m*dpmte %p\e[m copied %p\n", pmlevel, sva, *spmte, dva, *dpmte, PDSIZE(pmlevel));
-//}
 
 			spmte++, dpmte++;
 			sva += PDSIZE(pmlevel);
@@ -645,10 +617,6 @@ pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab,
 		if (sva + size > svahi) {
 			size = svahi - sva;
 		}
-//if (PTE_ADDR(*spmte) != PTE_ZERO) {
-//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-//cprintf("                 %d] sva %p \e[35;1m*spmte %p\e[m dva %p \e[35;1m*dpmte %p\e[m pre sub-copying %p\n", pmlevel, sva, *spmte, dva, *dpmte, size);
-//}
 
 		// copy partial lower-level table
 		if (PTE_ADDR(*spmte) == PTE_ZERO) {
@@ -663,10 +631,6 @@ pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab,
 			assert(PTE_ADDR(*dpmte) != PTE_ZERO);
 			pmap_copy_level(pmlevel - 1, mem_ptr(PTE_ADDR(*spmte)), sva, mem_ptr(PTE_ADDR(*dpmte)), dva, sva + size);
 		}
-//if (PTE_ADDR(*spmte) != PTE_ZERO) {
-//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-//cprintf("                 %d] sva %p \e[35;1m*spmte %p\e[m dva %p \e[35;1m*dpmte %p\e[m sub-copied %p\n", pmlevel, sva, *spmte, dva, *dpmte, size);
-//}
 		dva += size;
 		sva += size;
 		// move to next page entry only if address is aligned
@@ -691,7 +655,6 @@ pmap_pagefault(trapframe *tf)
 {
 	// Read processor's CR2 register to find the faulting linear address.
 	uintptr_t fva = rcr2();
-//	cprintf("pmap_pagefault fva %p rip %p\n", fva, tf->rip);
 
 #if SOL >= 3
 	// It can't be our problem unless it's a write fault in user space!
@@ -706,7 +669,7 @@ pmap_pagefault(trapframe *tf)
 	while ( pmlevel >= 1) {
 		pte_t *pmte = &pmtab[PDX(pmlevel, fva)];
 		if (!(*pmte & PTE_P)) {
-			cprintf("pmap_pagefault: %d-level pmte for fva %x doesn't exist\n", pmlevel, fva);
+			cprintf("pmap_pagefault: %d-level pmte for fva %p doesn't exist *pmte %p\n", pmlevel, fva, *pmte);
 			return;		// ptab doesn't exist at all - blame user
 		}
 		pmtab = mem_ptr(PTE_ADDR(*pmte)), pmlevel--;
@@ -716,7 +679,7 @@ pmap_pagefault(trapframe *tf)
 	pte_t *pte = pmap_walk(p->pml4, fva, 1);
 	if ((*pte & (SYS_READ | SYS_WRITE | PTE_P)) !=
 			(SYS_READ | SYS_WRITE | PTE_P)) {
-		cprintf("pmap_pagefault: page for fva %x doesn't exist\n", fva);
+		cprintf("pmap_pagefault: page for fva %p doesn't exist *pte %p\n", fva, pte);
 		return;		// page doesn't exist at all - blame user
 	}
 	assert(!(*pte & PTE_W));
@@ -730,8 +693,6 @@ pmap_pagefault(trapframe *tf)
 		memmove((void*)npg, (void*)pg, PAGESIZE); // copy the page
 		if (pg != PTE_ZERO)
 			mem_decref(mem_phys2pi(pg), mem_free); // drop old ref
-		//cprintf("pmap_pflt %x %x: copy page %x->%x\n",
-		//	p->pml4, fva, pg, npg);
 		pg = npg;
 	}
 	*pte = pg | SYS_RW | PTE_A | PTE_D | PTE_W | PTE_U | PTE_P;
@@ -811,7 +772,6 @@ pmap_merge(pte_t *rpml4, pte_t *spml4, intptr_t sva,
 	assert(dva >= VM_USERLO && dva < VM_USERHI);
 	assert(size <= VM_USERHI - sva);
 	assert(size <= VM_USERHI - dva);
-	cprintf("[pmap_merge] sva %p dva %p size %p\n", sva, dva, size);
 
 #if SOL >= 3
 	// Invalidate the source and destination regions we may be modifying.
@@ -820,13 +780,6 @@ pmap_merge(pte_t *rpml4, pte_t *spml4, intptr_t sva,
 	pmap_inval(spml4, sva, size);
 	pmap_inval(dpml4, dva, size);
 
-//cprintf("\e[31;1mrpml4\n");
-//pmap_print(rpml4);
-//cprintf("\e[32;1mspml4\n");
-//pmap_print(spml4);
-//cprintf("\e[33;1mdpml4\n");
-//pmap_print(dpml4);
-//cprintf("\e[m");
 	pmap_merge_level(NPTLVLS, rpml4, spml4, sva, dpml4, dva, sva + size);
 	return 1;
 #else /* not SOL >= 3 */
@@ -838,73 +791,38 @@ static void
 pmap_merge_level(int pmlevel, pte_t *rpmtab, pte_t *spmtab, intptr_t sva,
 		pte_t *dpmtab, intptr_t dva, intptr_t svahi)
 {
-int i;
 	if (sva >= svahi)
 		return;
 
 	assert(pmlevel >= 0);
-for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-cprintf("[pmap_merge_level %d] \e[33;1mrpmtab %p\e[m sva %p soff %p \e[33;1mspmtab %p\e[m dva %p doff %p \e[33;1mdpmtab %p\e[m remaining %p\n", pmlevel, rpmtab, sva, PDOFF(pmlevel, sva), spmtab, dva, PDOFF(pmlevel, dva), dpmtab, svahi - sva);
 
 	pte_t *rpmte = &rpmtab[PDX(pmlevel, sva)];
 	pte_t *spmte = &spmtab[PDX(pmlevel, sva)];
 	pte_t *dpmte = &dpmtab[PDX(pmlevel, dva)];
 
 	while (sva < svahi) {
-if (PTE_ADDR(*rpmte) != PTE_ZERO || PTE_ADDR(*spmte) != PTE_ZERO || PTE_ADDR(*dpmte) != PTE_ZERO) {
-for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-cprintf("[                 %d] \e[33;1m*rpmte %p\e[m sva %p soff %p \e[33;1m*spmte %p\e[m dva %p doff %p \e[33;1m*dpmte %p\e[m\n", pmlevel, *rpmte, sva, PDOFF(pmlevel, sva), *spmte, dva, PDOFF(pmlevel, sva), *dpmte);
-}
 		// TODO, now assume perfectly aligned
 		if (*spmte == *rpmte) {
-if (0) {
-for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-cprintf("[                 %d] \e[33;1m*rpmte %p\e[m sva %p soff %p \e[33;1m*spmte %p\e[m dva %p doff %p \e[33;1m*dpmte %p\e[m source unchanged\n", pmlevel, *rpmte, sva, PDOFF(pmlevel, sva), *spmte, dva, PDOFF(pmlevel, sva), *dpmte);
-}
 			// unchanged in source, do nothing
 		} else if (*dpmte == *rpmte) {
-if (1) {
-for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-cprintf("[                 %d] \e[33;1m*rpmte %p\e[m sva %p soff %p \e[33;1m*spmte %p\e[m dva %p doff %p \e[33;1m*dpmte %p\e[m dest unchanged\n", pmlevel, *rpmte, sva, PDOFF(pmlevel, sva), *spmte, dva, PDOFF(pmlevel, sva), *dpmte);
-}
 			// unchanged in dest, copy from source
 			pmap_copy_level(pmlevel, spmtab, sva, dpmtab, dva, sva + PDSIZE(pmlevel));
-if (1) {
-for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-cprintf("[                 %d] \e[33;1m*rpmte %p\e[m sva %p soff %p \e[33;1m*spmte %p\e[m dva %p doff %p \e[33;1m*dpmte %p\e[m copied\n", pmlevel, *rpmte, sva, PDOFF(pmlevel, sva), *spmte, dva, PDOFF(pmlevel, sva), *dpmte);
-}
 		} else {
-if (1) {
-for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-cprintf("[                 %d] \e[33;1m*rpmte %p\e[m sva %p soff %p \e[33;1m*spmte %p\e[m dva %p doff %p \e[33;1m*dpmte %p\e[m start merging\n", pmlevel, *rpmte, sva, PDOFF(pmlevel, sva), *spmte, dva, PDOFF(pmlevel, sva), *dpmte);
-}
 			if (pmlevel > 0) {
 				// jump into lower level
 				// rpmte and spmte can be PTE_ZERO, but dpmte can't
-				// FIXME: maybe there are bugs here
 				pte_t *rlpmtab = mem_ptr(PTE_ADDR(*rpmte));
 				pte_t *slpmtab = mem_ptr(PTE_ADDR(*spmte));
 				pte_t *dlpmtab = mem_ptr(PTE_ADDR(*dpmte));
-if (1) {
-for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-cprintf("[                 %d] \e[33;1mrlpmtab %p\e[m sva %p \e[33;1mslpmtab %p\e[m dva %p \e[33;1mdlpmtab %p\e[m prepare\n", pmlevel, rlpmtab, sva, slpmtab, dva, dlpmtab);
-}
 				if (rlpmtab == NULL) rlpmtab = mem_ptr(PTE_ZERO);
 				if (slpmtab == NULL) slpmtab = mem_ptr(PTE_ZERO);
 				if (PTE_ADDR(dlpmtab) == PTE_ZERO)
 					dlpmtab = pmap_walk_level(pmlevel, dpmtab, dva, 1);
-				assert(dlpmtab != NULL);
 				assert(PTE_ADDR(dlpmtab) != PTE_ZERO);
-if (1) {
-for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-cprintf("[                 %d] \e[33;1mrlpmtab %p\e[m sva %p \e[33;1mslpmtab %p\e[m dva %p \e[33;1mdlpmtab %p\e[m entering lower level\n", pmlevel, rlpmtab, sva, slpmtab, dva, dlpmtab);
-}
-				pmap_merge_level(pmlevel - 1, rlpmtab, slpmtab, sva, dlpmtab, dva, PDADDR(pmlevel, sva) + PDSIZE(pmlevel));
+				uintptr_t lsvahi = PDADDR(pmlevel, sva) + PDSIZE(pmlevel);
+				if (lsvahi > svahi) lsvahi = svahi;
+				pmap_merge_level(pmlevel - 1, rlpmtab, slpmtab, sva, dlpmtab, dva, lsvahi);
 			} else {
-if (1) {
-for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-cprintf("[                 %d] \e[33;1m*rpmte %p\e[m sva %p \e[33;1m*spmte %p\e[m dva %p \e[33;1m*dpmte %p\e[m merge page\n", pmlevel, *rpmte, sva, *spmte, dva, *dpmte);
-}
 				// use mergepage
 				pmap_mergepage(rpmte, spmte, dpmte, dva);
 			}
@@ -949,11 +867,7 @@ pmap_setperm(pte_t *pml4, intptr_t va, size_t size, int perm)
 		pteand = ~0, pteor = (SYS_RW | PTE_U | PTE_P | PTE_A | PTE_D);
 
 	uintptr_t vahi = va + size;
-//	cprintf("[pmap_setperm] pml4 %p va %p size %p\n", pml4, va, size);
-//	pmap_print(pml4);
 	pmap_setperm_level(NPTLVLS, pml4, va, vahi, pteand, pteor);
-//	cprintf("[pmap_setperm] pml4 %p va %p size %p done\n", pml4, va, size);
-//	pmap_print(pml4);
 	return 1;
 #else /* not SOL >= 3 */
 	panic("pmap_merge() not implemented");
@@ -965,17 +879,12 @@ pmap_setperm_level(int pmlevel, pte_t *pmtab, uintptr_t va, uintptr_t vahi, uint
 {
 	int i;
 	assert(pmlevel >= 0);
-//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-//cprintf("[pmap_setperm_level %d] va %p remaining %p\n", pmlevel, va, vahi - va);
 
 	while (va < vahi) {
 		pte_t *pmte = &pmtab[PDX(pmlevel, va)];
-//for (i = pmlevel; i < NPTLVLS; i++) cputs("\t");
-//cprintf("[pmap_setperm_level %d] va %p \e[33;1m*pmte %p\e[m \n", pmlevel, va, *pmte);
 
 		if (PTE_ADDR(*pmte) == PTE_ZERO) {
 			// no such page exists
-if (PTE_ADDR(*pmte) != PTE_ZERO) { cprintf("********* level %d va %p *pmte %p\n", pmlevel, va, *pmte); pmap_print(rcr3()); }
 			if (pteor == 0) {
 				// we can just jump over
 				va = PDADDR(pmlevel, va) + PDSIZE(pmlevel);
@@ -1230,6 +1139,7 @@ pmap_check(void)
 	assert(ptep == ptep1 + PDX(1, va));
 #endif
 	pmap_remove(pmap_bootpmap, VM_USERLO, VM_USERHI - VM_USERLO);
+	assert(mem_alloc() == pi0);
 
 	// give free list back
 	mem_freelist = fl;
@@ -1320,7 +1230,7 @@ pmap_check_adv(void)
 static uint16_t
 pmap_scan(pte_t *table, pte_t left, pte_t right, pte_t *start, pte_t *end, uint16_t mask)
 {
-	while (left < right && PTE_ADDR(table[left] == PTE_ZERO)) {
+	while (left < right && !(table[left] & PTE_P)) {
 		left++;
 	}
 	if (left < right) {
