@@ -47,7 +47,8 @@ bench_fork(uint8_t child, void *(*fun)(void *), void *arg)
 		  "=m" (ps.tf.rip),
 		  "=a" (isparent)
 		:
-		: "rbx", "rcx", "rdx");
+		: "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11",
+		  "r12", "r13", "r14", "r15");
 	if (!isparent) {	// in the child
 		fun(arg);
 		sys_ret();

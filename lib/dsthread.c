@@ -421,7 +421,8 @@ tblock(pthread_t t, int newstate)
 		  "=m" (t->esp),
 		  "=m" (t->eip)
 		: "i" (SCHEDSTACKHI)
-		: "rax", "rbx", "rcx", "rdx", "cc", "memory");
+		: "rax", "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11",
+		  "r12", "r13", "r14", "r15", "cc", "memory");
 
 	assert(tlock == 2);
 }
