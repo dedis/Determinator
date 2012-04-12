@@ -67,8 +67,8 @@ int	fputs(const char *str, FILE *f);
 // lib/sprintf.c
 int	sprintf(char *str, const char *fmt, ...);
 int	vsprintf(char *str, const char *fmt, va_list args);
-int	snprintf(char *str, int size, const char *fmt, ...);
-int	vsnprintf(char *str, int size, const char *fmt, va_list args);
+int	snprintf(char *str, size_t size, const char *fmt, ...);
+int	vsnprintf(char *str, size_t size, const char *fmt, va_list args);
 
 #if LAB >= 9
 // lib/scanfmt.c

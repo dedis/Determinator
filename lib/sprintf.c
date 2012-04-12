@@ -49,7 +49,7 @@ sprintf(char *buf, const char *fmt, ...)
 }
 
 int
-vsnprintf(char *buf, int n, const char *fmt, va_list ap)
+vsnprintf(char *buf, size_t n, const char *fmt, va_list ap)
 {
 	assert(buf != NULL && n > 0);
 	struct sprintbuf b = {buf, buf+n-1, 0};
@@ -64,7 +64,7 @@ vsnprintf(char *buf, int n, const char *fmt, va_list ap)
 }
 
 int
-snprintf(char *buf, int n, const char *fmt, ...)
+snprintf(char *buf, size_t n, const char *fmt, ...)
 {
 	va_list ap;
 	int rc;
