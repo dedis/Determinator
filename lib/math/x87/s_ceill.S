@@ -6,11 +6,7 @@
 #include "asm.h"
 
 ENTRY(ceill)
-	/*FIXME:: Ishan - 01 Jun,2011
-	  -Need to change the logic after pushq %rbp
-	 */
-
-	pushq	%rbp
+	pushl	%ebp
 	movl	%esp,%ebp
 	subl	$8,%esp
 

@@ -25,11 +25,11 @@
  */
 
 #include "asm.h"
+#ifndef fn
+#define fn lrint
+#endif
 
-ENTRY(lrintf)
-	flds	4(%esp)
-	subl	$4,%esp
-	fistpl	(%esp)
-	popl	%eax
+ENTRY(fn)
+	cvtsd2si %xmm0, %rax
 	ret
-END(lrintf)
+END(fn)

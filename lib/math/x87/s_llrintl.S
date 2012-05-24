@@ -26,14 +26,10 @@
 
 #include "asm.h"
 
-/*FIXME:: Ishan - 01 Jun,2011
-  popl -> popq
-  other changes ?
- */ 
 ENTRY(llrintl)
 	fldt	4(%esp)
 	subl	$8,%esp
 	fistpll	(%esp)
-	popq	%rax
-	popq	%rdx
+	popl	%eax
+	popl	%edx
 	ret

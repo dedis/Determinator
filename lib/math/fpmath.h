@@ -29,8 +29,11 @@
 
 #include <types.h>
 
+#if MACHINE == 32
 #include "x87/fpmath.h"
-
+#else
+#include "amd64/fpmath.h"
+#endif
 
 #ifndef IEEE_WORD_ORDER
 #define	IEEE_WORD_ORDER	BYTE_ORDER

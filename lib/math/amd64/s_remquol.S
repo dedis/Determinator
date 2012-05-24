@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2005 David Schultz <das@FreeBSD.ORG>
+ * Copyright (c) 2005-2008 David Schultz <das@FreeBSD.ORG>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,12 +24,38 @@
  * SUCH DAMAGE.
  */
 
-#include "asm.h"
+/*
+ * Based on public-domain remainder routine by J.T. Conklin <jtc@NetBSD.org>.
+ */
 
-ENTRY(lrintf)
-	flds	4(%esp)
-	subl	$4,%esp
-	fistpl	(%esp)
-	popl	%eax
+#include "asm.h"
+	
+ENTRY(remquol)
+	fldt    24(%rsp)
+	fldt    8(%rsp)
+1:	fprem1
+	fstsw	%ax
+	btw	$10,%ax
+	jc	1b
+	fstp	%st(1)
+/* Extract the three low-order bits of the quotient from C0,C3,C1. */
+	shrl	$6,%eax
+	movl	%eax,%ecx
+	andl	$0x108,%eax
+	rorl	$7,%eax
+	orl	%eax,%ecx
+	roll	$4,%eax
+	orl	%ecx,%eax
+	andl	$7,%eax
+/* Negate the quotient bits if x*y<0.  Avoid using an unpredictable branch. */
+	movl	32(%rsp),%ecx
+	xorl	16(%rsp),%ecx
+	movsx	%cx,%ecx
+	sarl	$16,%ecx
+	sarl	$16,%ecx
+	xorl	%ecx,%eax
+	andl	$1,%ecx
+	addl	%ecx,%eax
+/* Store the quotient and return. */
+	movl	%eax,(%rdi)
 	ret
-END(lrintf)

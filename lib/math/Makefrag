@@ -1,31 +1,42 @@
+# The math library was ported from lib/msun in FreeBSD.
+# Adapted for either PIOS32 or PIOS64 by Yu (Clara) Zhang at USTC,
+# depending on the macro 'MACHINE' defined in ../../GNUmakefile.
+#
+ifeq ($(MACHINE), 32)
+ARCH_SUBDIR := x87
+else
+ARCH_SUBDIR := amd64
+endif 
 
 # Generic math library source files
-MATH_SRCFILES :=	$(wildcard lib/math/*.c)
+MATH_SRCFILES :=	$(wildcard lib/math/src/*.c)
 
+# long double format: either PIOS32 or PIOS64 uses source code in ld80
 # Sources for 80-bit-precision long doubles
 MATH_LD80_SRCFILES :=	$(wildcard lib/math/ld80/*.c)
-MATH_SRCFILES :=	$(filter-out $(patsubst lib/math/ld80/%.c,lib/math/%.c,\
+MATH_SRCFILES :=	$(filter-out $(patsubst lib/math/ld80/%.c,\
+					lib/math/src/%.c,\
 					$(MATH_LD80_SRCFILES)),\
 				$(MATH_SRCFILES)) $(MATH_LD80_SRCFILES)
 
-# Sources specific to the x87 FPU
-MATH_X87_SRCFILES :=	$(wildcard lib/math/x87/*.c) \
-			$(wildcard lib/math/x87/*.S)
-MATH_SRCFILES :=	$(filter-out $(patsubst lib/math/x87/%.S,lib/math/%.c,\
-					$(MATH_X87_SRCFILES)),\
-				$(MATH_SRCFILES)) $(MATH_X87_SRCFILES)
+# Sources specific to the architecture
+MATH_ARCH_SRCFILES :=	$(wildcard lib/math/$(ARCH_SUBDIR)/*.c) \
+			$(wildcard lib/math/$(ARCH_SUBDIR)/*.S)
+MATH_SRCFILES :=	$(filter-out $(patsubst lib/math/$(ARCH_SUBDIR)/%.S,\
+					lib/math/src/%.c,\
+					$(MATH_ARCH_SRCFILES)),\
+				$(MATH_SRCFILES)) $(MATH_ARCH_SRCFILES)
 
 # Merge them into libc's complete list of sources
 LIB_SRCFILES +=		$(MATH_SRCFILES)
 
 # The math library needs float.h from libgcc.
 # Also, the BSD math library generates lots of warnings; quiet them.
-MATH_CFLAGS := $(USER_CFLAGS) -I$(GCC_INC) \
+MATH_CFLAGS := $(USER_CFLAGS) -iquote lib/math -I$(GCC_INC) \
 	-Wno-uninitialized -Wno-implicit -Wno-error
 
-
 $(OBJDIR)/lib/math/%.o: lib/math/%.c
-	@echo + cc[USER] $<
+	@echo + cc[USER-lib/math] $<
 	@mkdir -p $(@D)
 	$(V)$(CC) $(MATH_CFLAGS) -c -o $@ $<
 

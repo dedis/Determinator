@@ -26,6 +26,8 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * $FreeBSD: src/lib/msun/amd64/s_rintl.S,v 1.1.2.1.6.1 2010/12/21 17:09:25 kensmith Exp $
  */
 
 /*
@@ -35,23 +37,7 @@
 
 #include "asm.h"
 
-ENTRY(floor)
-	pushl	%ebp
-	movl	%esp,%ebp
-	subl	$8,%esp
-
-	fstcw	-4(%ebp)		/* store fpu control word */
-	movw	-4(%ebp),%dx
-	orw	$0x0400,%dx		/* round towards -oo */
-	andw	$0xf7ff,%dx
-	movw	%dx,-8(%ebp)
-	fldcw	-8(%ebp)		/* load modfied control word */
-
-	fldl	8(%ebp);		/* round */
+ENTRY(rintl)
+	fldt	8(%rsp)
 	frndint
-
-	fldcw	-4(%ebp)		/* restore original control word */
-
-	leave
 	ret
-END(floor)

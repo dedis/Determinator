@@ -10,6 +10,7 @@
 # Primary authors: Bryan Ford, Eddie Kohler, Austin Clemens
 #
 OBJDIR := obj
+MACHINE := 64	# 32
 
 ifdef LAB
 SETTINGLAB := true

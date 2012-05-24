@@ -25,11 +25,10 @@
  */
 
 #include "asm.h"
-
-ENTRY(lrintf)
-	flds	4(%esp)
-	subl	$4,%esp
-	fistpl	(%esp)
-	popl	%eax
+	
+ENTRY(llrintl)
+	fldt	8(%rsp)
+	subq	$8,%rsp
+	fistpll	(%rsp)
+	popq	%rax
 	ret
-END(lrintf)

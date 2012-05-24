@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2005 David Schultz <das@FreeBSD.ORG>
+ * Copyright (c) 2008 David Schultz <das@FreeBSD.ORG>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,11 +25,10 @@
  */
 
 #include "asm.h"
-
-ENTRY(lrintf)
-	flds	4(%esp)
-	subl	$4,%esp
-	fistpl	(%esp)
-	popl	%eax
+	
+ENTRY(lrintl)
+	fldt	8(%rsp)
+	subq	$8,%rsp
+	fistpll	(%rsp)
+	popq	%rax
 	ret
-END(lrintf)

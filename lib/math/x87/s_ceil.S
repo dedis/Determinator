@@ -34,13 +34,9 @@
  */
 
 #include "asm.h"
-/*FIXME:: Ishan - 01 Jun,2011
-  pushl %ebp -> pushq %rbp
-  other changes ?
- */ 
 
 ENTRY(ceil)
-	pushq	%rbp
+	pushl	%ebp
 	movl	%esp,%ebp
 	subl	$8,%esp
 

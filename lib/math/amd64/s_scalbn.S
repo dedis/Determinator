@@ -26,10 +26,14 @@
 
 #include "asm.h"
 
-ENTRY(lrintf)
-	flds	4(%esp)
-	subl	$4,%esp
-	fistpl	(%esp)
-	popl	%eax
+ENTRY(scalbn)
+	movsd	%xmm0,-8(%rsp)
+	movl	%edi,-12(%rsp)
+	fildl	-12(%rsp)
+	fldl	-8(%rsp)
+	fscale
+	fstp	%st(1)
+	fstpl	-8(%rsp)
+	movsd	-8(%rsp),%xmm0
 	ret
-END(lrintf)
+END(scalbn)

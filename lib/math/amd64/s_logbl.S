@@ -14,7 +14,7 @@
  *    must display the following acknowledgement:
  *      This product includes software developed by Winning Strategies, Inc.
  * 4. The name of the author may not be used to endorse or promote products
- *    derived from this software without specific prior written permission.
+ *    derived from this software without specific prior written permission
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -35,23 +35,8 @@
 
 #include "asm.h"
 
-ENTRY(floor)
-	pushl	%ebp
-	movl	%esp,%ebp
-	subl	$8,%esp
-
-	fstcw	-4(%ebp)		/* store fpu control word */
-	movw	-4(%ebp),%dx
-	orw	$0x0400,%dx		/* round towards -oo */
-	andw	$0xf7ff,%dx
-	movw	%dx,-8(%ebp)
-	fldcw	-8(%ebp)		/* load modfied control word */
-
-	fldl	8(%ebp);		/* round */
-	frndint
-
-	fldcw	-4(%ebp)		/* restore original control word */
-
-	leave
+ENTRY(logbl)
+	fldt	8(%rsp)
+	fxtract
+	fstp	%st
 	ret
-END(floor)

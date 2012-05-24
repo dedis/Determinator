@@ -30,6 +30,6 @@ ENTRY(lrint)
 	fldl	4(%esp)
 	subl	$4,%esp
 	fistpl	(%esp)
-	popq	%rax
+	popl	%eax
 	ret
 END(lrint)

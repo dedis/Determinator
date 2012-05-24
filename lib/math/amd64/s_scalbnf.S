@@ -26,10 +26,17 @@
 
 #include "asm.h"
 
-ENTRY(lrintf)
-	flds	4(%esp)
-	subl	$4,%esp
-	fistpl	(%esp)
-	popl	%eax
+ENTRY(scalbnf)
+	movss	%xmm0,-8(%rsp)
+	movl	%edi,-4(%rsp)
+	fildl	-4(%rsp)
+	flds	-8(%rsp)
+	fscale
+	fstp	%st(1)
+	fstps	-8(%rsp)
+	movss	-8(%rsp),%xmm0
 	ret
-END(lrintf)
+END(scalbnf)
+
+.globl CNAME(ldexpf)
+.set	CNAME(ldexpf),CNAME(scalbnf)

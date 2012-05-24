@@ -29,29 +29,18 @@
  */
 
 /*
- * Written by:
+ * Based on the i387 version written by:
  *	J.T. Conklin (jtc@wimsey.com), Winning Strategies, Inc.
  */
 
 #include "asm.h"
 
-ENTRY(floor)
-	pushl	%ebp
-	movl	%esp,%ebp
-	subl	$8,%esp
-
-	fstcw	-4(%ebp)		/* store fpu control word */
-	movw	-4(%ebp),%dx
-	orw	$0x0400,%dx		/* round towards -oo */
-	andw	$0xf7ff,%dx
-	movw	%dx,-8(%ebp)
-	fldcw	-8(%ebp)		/* load modfied control word */
-
-	fldl	8(%ebp);		/* round */
-	frndint
-
-	fldcw	-4(%ebp)		/* restore original control word */
-
-	leave
+ENTRY(remainderl)
+	fldt	24(%rsp)
+	fldt	8(%rsp)
+1:	fprem1
+	fstsw	%ax
+	testw	$0x400,%ax
+	jne	1b
+	fstp	%st(1)
 	ret
-END(floor)

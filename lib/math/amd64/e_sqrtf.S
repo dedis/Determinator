@@ -25,11 +25,8 @@
  */
 
 #include "asm.h"
-
-ENTRY(lrintf)
-	flds	4(%esp)
-	subl	$4,%esp
-	fistpl	(%esp)
-	popl	%eax
+	
+ENTRY(sqrtf)
+	sqrtss	%xmm0, %xmm0
 	ret
-END(lrintf)
+END(sqrtf)
