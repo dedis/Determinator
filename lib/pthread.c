@@ -67,7 +67,8 @@ pthread_create(pthread_t *out_thread, const pthread_attr_t *attr,
 		  "=m" (ps.tf.rip),
 		  "=a" (isparent)
 		:
-		: "rbx", "rcx", "rdx");
+		: "rbx", "rcx", "rdx", "r8", "r9", "r10", "r11",
+		  "r12", "r13", "r14", "r15");
 	if (!isparent) {	// in the child
 		// Clear our child state array, since we have no children yet.
 		memset(&files->child, 0, sizeof(files->child));
