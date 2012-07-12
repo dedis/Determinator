@@ -19,6 +19,7 @@
 #include <inc/assert.h>
 #include <inc/mmu.h>
 #include <inc/x86.h>
+#include <inc/vm.h>
 
 
 // At physical address MEM_IO (640K) there is a 384K hole for I/O.
@@ -26,6 +27,19 @@
 #define MEM_IO		0x0A0000
 #define MEM_EXT		0x100000
 
+// memory type from e820 bios function
+#define MEM_RAM		1
+#define MEM_RESERVED	2
+#define MEM_ACPI	3
+#define MEM_NVS		4
+#define MEM_UNUSABLE	5
+#define MEM_DISABLED	6
+
+typedef struct mem_addr_range {
+	uint64_t base;
+	uint64_t size;
+	uint32_t type;
+} gcc_packed mem_addr_range;
 
 // Given a physical address,
 // return a C pointer the kernel can use to access it.
@@ -33,10 +47,10 @@
 // is mapped into the kernel's virtual address space at address 0,
 // but this is not the case for many other systems such as JOS or Linux,
 // which must do some translation here (usually just adding an offset).
-#define mem_ptr(physaddr)	((void*)(physaddr))
+#define mem_ptr(physaddr)	((void*)((intptr_t)physaddr + VM_KERNLO))
 
 // The converse to the above: given a C pointer, return a physical address.
-#define mem_phys(ptr)		((uintptr_t)(ptr))
+#define mem_phys(ptr)		((intptr_t)(ptr) - VM_KERNLO)
 
 
 // A pageinfo struct holds metadata on how a particular physical page is used.

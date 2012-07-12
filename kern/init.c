@@ -25,7 +25,7 @@
 #include <kern/trap.h>
 #if LAB >= 2
 #include <kern/spinlock.h>
-#include <kern/mp.h>
+//#include <kern/mp.h>
 #include <kern/proc.h>
 #endif
 #if LAB >= 4
@@ -39,6 +39,7 @@
 #include <dev/pic.h>
 #include <dev/lapic.h>
 #include <dev/ioapic.h>
+#include <dev/acpi.h>
 #if SOL >= 3	// XXX rdtsc calibration
 #include <dev/nvram.h>
 #endif
@@ -118,8 +119,10 @@ init(void)
 #endif
 
 	// Find and start other processors in a multiprocessor system
-	mp_init();		// Find info about processors in system
-	cprintf("mp init\n");
+//	mp_init();		// Find info about processors in system
+//	cprintf("mp init\n");
+	acpi_init();		// find acpi info
+	cprintf("acpit init\n");
 	pic_init();		// setup the legacy PIC (mainly to disable it)
 	cprintf("pic init\n");
 #if LAB >= 9

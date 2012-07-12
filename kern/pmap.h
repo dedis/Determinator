@@ -27,7 +27,7 @@ typedef uintptr_t pte_t;
 
 // Statically allocated page directory mapping the kernel's address space.
 // We use this as a template for all pdirs for user-level processes.
-extern pte_t pmap_bootpmap[NPTENTRIES];
+extern pte_t *pmap_bootpmap;
 
 // Statically allocated page that we always keep set to all zeros.
 extern uint8_t pmap_zero[PAGESIZE];

@@ -27,7 +27,8 @@
 
 // Statically allocated page directory mapping the kernel's address space.
 // We use this as a template for all pdirs for user-level processes.
-pte_t pmap_bootpmap[NPTENTRIES] gcc_aligned(PAGESIZE);
+pte_t pmap_bootpmap_space[NPTENTRIES] gcc_aligned(PAGESIZE);
+pte_t *pmap_bootpmap = pmap_bootpmap_space;
 
 // Statically allocated page that we always keep set to all zeros.
 uint8_t pmap_zero[PAGESIZE] gcc_aligned(PAGESIZE);
@@ -50,7 +51,7 @@ static uint8_t max_page_entry_level = 2;
 // (addresses outside of the range between VM_USERLO and VM_USERHI).
 // The user part of the address space remains all PTE_ZERO until later.
 //
-static void pmap_init_bootpmap(pte_t *table, uintptr_t addr, size_t size, uint16_t perm, int level);
+static void pmap_init_bootpmap(pte_t *table, intptr_t vaddr, intptr_t paddr, size_t size, uint16_t perm, int level);
 
 void
 pmap_init(void)
@@ -72,10 +73,11 @@ pmap_init(void)
 		// should be identity-mapped to the same physical addresses,
 		// but only accessible in kernel mode (not in user mode).
 #if SOL >= 3
-		pmap_init_bootpmap(pmap_bootpmap, 0, (0x1ULL << 48), 0xFFFF, NPTLVLS); // erase all pages
-		pmap_init_bootpmap(pmap_bootpmap, 0, VM_USERLO, PTE_P | PTE_W, NPTLVLS); // map lower kernel address
-		pmap_init_bootpmap(pmap_bootpmap, VM_USERHI, (0x1ULL << 47) - VM_USERHI, PTE_P | PTE_W, NPTLVLS); // map higher kernel address, not using lower half of 48-bit virtual address
-		pmap_bootpmap[PML4SELFOFFSET] = mem_phys(pmap_bootpmap) | PTE_P | PTE_W;
+		pmap_init_bootpmap(pmap_bootpmap, 0, 0, (0x1ULL << 48), 0xFFFF, NPTLVLS); // erase all pages
+		pmap_init_bootpmap(pmap_bootpmap, 0, 0, VM_USERLO, PTE_P | PTE_W, NPTLVLS); // map lower kernel address
+		pmap_init_bootpmap(pmap_bootpmap, VM_KERNLO, 0, VM_KERNHI - VM_KERNLO, PTE_P | PTE_W, NPTLVLS); // map whole physical memory to kernel address
+		pmap_bootpmap[PML4SELFOFFSET] = (intptr_t)pmap_bootpmap | PTE_P | PTE_W;
+		pmap_bootpmap = mem_ptr(pmap_bootpmap);
 #else
 		panic("pmap_init() not implemented");
 #endif
@@ -112,49 +114,44 @@ pmap_init(void)
 
 // we only map kernel address, linear address and physical address is identical
 static void
-pmap_init_bootpmap(pte_t *table, uintptr_t addr, size_t size, uint16_t perm, int level)
+pmap_init_bootpmap(pte_t *table, intptr_t vaddr, intptr_t paddr, size_t size, uint16_t perm, int level)
 {
+//	cprintf("[pmap init boot %d] table %p vaddr %p paddr %p size %p perm %x pdsize %p\n", level, table, vaddr, paddr, size, perm, PDSIZE(level));
 	// addr and size should be aligned with PAGESIZE
-	addr = PGADDR(addr);
+	vaddr = PGADDR(vaddr);
+	paddr = PGADDR(paddr);
 	size = PGADDR(size);
-	uintptr_t hi = addr + size;
+	intptr_t vhi = vaddr + size;
 	uint16_t page_perm = perm | PTE_G | PTE_P;
 	uint16_t dir_perm = ((perm != 0xFFFF) ? perm : 0) | PTE_P | PTE_U;
 	if (level > 0) {
 		page_perm |= PTE_PS;
 	}
-	while (addr < hi) {
-		if (PDOFF(level, addr) != 0) {
-			// addr is not aligned with size of directory entry
-			// need to create next level's page table
-			if ((PDADDR(level, addr) + PDSIZE(level)) < hi) {
-				size = PDSIZE(level) - PDOFF(level, addr);
-			} else {
-				size = hi - addr;
+	while (vaddr < vhi) {
+		if (PDOFF(level, vaddr) == 0 && PDOFF(level, paddr) == 0 && vhi - vaddr >= PDSIZE(level)) {
+			// we are happy to map aligned pages
+			if (level <= max_page_entry_level || perm == 0xFFFF) {
+				// map it in a whole
+				table[PDX(level, vaddr)] = ((perm != 0xFFFF) ? (paddr | page_perm) : PTE_ZERO);
+				vaddr += PDSIZE(level);
+				paddr += PDSIZE(level);
+				continue;
 			}
-		} else if (addr + PDSIZE(level) > hi) {
-			// hi is not aligned with size of directory entry
-			// need also to create next level's page table
-			size = hi - addr;
-		} else if ((level > max_page_entry_level) && (perm != 0xFFFF)) {
-			// direct mapping is unavailable
-			// should alloc new page for next level's page table
-			size = PDSIZE(level);
-		} else {
-			// we are happy to use big page for mapping here if level > 0
-			table[PDX(level, addr)] = ((perm != 0xFFFF) ? (addr | page_perm) : PTE_ZERO);
-			addr += PDSIZE(level);
-			continue;
 		}
-		// now alloc new page for next level's page table
+		// calculate correct size
+		size_t size = PDSIZE(level) - PDOFF(level, vaddr);
+		if (size > vhi - vaddr) {
+			size = vhi - vaddr;
+		}
 		pageinfo *pi = mem_alloc();
 		assert(pi != NULL);
-		pte_t *subtable = (pte_t *)mem_pi2ptr(pi);
-		pmap_init_bootpmap(subtable, PDADDR(level, addr), addr - PDADDR(level, addr), 0xFFFF, level - 1);
-		pmap_init_bootpmap(subtable, addr, size, perm, level - 1);
-		pmap_init_bootpmap(subtable, addr + size, PDSIZE(level) - PDOFF(level, addr) - size, 0xFFFF, level - 1);
-		table[PDX(level, addr)] = mem_phys(subtable) | dir_perm;
-		addr += size; // this should align addr
+		pte_t *subtable = (pte_t *)mem_pi2phys(pi);
+		pmap_init_bootpmap(subtable, PDADDR(level, vaddr), 0, vaddr - PDADDR(level, vaddr), 0xFFFF, level - 1);
+		pmap_init_bootpmap(subtable, vaddr, paddr, size, perm, level - 1);
+		pmap_init_bootpmap(subtable, vaddr + size, 0, PDSIZE(level) - PDOFF(level, vaddr) - size, 0xFFFF, level - 1);
+		table[PDX(level, vaddr)] = (pte_t)subtable | dir_perm;
+		vaddr += size;
+		paddr += size;
 	}
 }
 
@@ -178,7 +175,7 @@ pmap_newpmap(void)
 	pte_t *pdp = mem_pi2ptr(pi);
 
 	// Initialize it from the bootstrap page map
-	assert(sizeof(pmap_bootpmap) == PAGESIZE);
+//	assert(sizeof(pmap_bootpmap) == PAGESIZE);
 	memmove(pml4, pmap_bootpmap, PAGESIZE);
 	pml4[0] = mem_phys(pdp) | PTE_A | PTE_P | PTE_W | PTE_U;
 	pml4[PML4SELFOFFSET] = mem_phys(pml4) | PTE_P | PTE_W;
@@ -294,6 +291,7 @@ pmap_walk(pte_t *pml4, intptr_t va, bool writing)
 static pte_t *
 pmap_walk_level(int pmlevel, pte_t *pmtab, intptr_t la, bool writing)
 {
+	//cprintf("[pmap walk level %d] table %p addr %p\n", pmlevel, pmtab, la);
 	pte_t *pmte = &pmtab[PDX(pmlevel, la)];	// find entry in the specified level tabke
 	pte_t *plowtab;				// will point to lower page map table
 	assert(pmlevel > 0);
@@ -353,11 +351,11 @@ pmap_walk_level(int pmlevel, pte_t *pmtab, intptr_t la, bool writing)
 			mem_decref(mem_ptr2pi(plowtab), pmap_freefun[pmlevel-1]);
 			plowtab = nplowtab;
 		}
-		*pmte = (uintptr_t)plowtab | PTE_A | PTE_P | PTE_W | PTE_U;
+		*pmte = mem_phys(plowtab) | PTE_A | PTE_P | PTE_W | PTE_U;
 	}
 
 	if (pmlevel == 1)
-		return mem_ptr(&plowtab[PDX(pmlevel-1, la)]);
+		return &plowtab[PDX(pmlevel-1, la)];
 	else
 		return pmap_walk_level(pmlevel-1, mem_ptr(PTE_ADDR(*pmte)), la, writing);
 }
@@ -386,6 +384,7 @@ pmap_walk_level(int pmlevel, pte_t *pmtab, intptr_t la, bool writing)
 pte_t *
 pmap_insert(pte_t *pml4, pageinfo *pi, intptr_t va, int perm)
 {
+//	cprintf("[pmap ins] pml4 %p pi %p paddr %p addr %p\n", pml4, pi, mem_pi2phys(pi), va);
 #if SOL >= 3
 	pte_t* pte = pmap_walk(pml4, va, 1);
 	if (pte == NULL)
@@ -440,6 +439,7 @@ pmap_remove(pte_t *pml4, intptr_t va, size_t size)
 	assert(va >= VM_USERLO && va < VM_USERHI);
 	assert(size <= VM_USERHI - va);
 
+//	cprintf("[pmap rm] table %p addr %p size %p\n", pml4, va, size);
 #if SOL >= 3
 	pmap_inval(pml4, va, size);	// invalidate region we're removing
 
@@ -459,6 +459,7 @@ pmap_remove(pte_t *pml4, intptr_t va, size_t size)
 static intptr_t
 pmap_remove_level(int pmlevel, pte_t *pmtab, intptr_t va, intptr_t vahi)
 {
+//	cprintf("[pmap rm level %d] table %p addr %p size %p\n", pmlevel, pmtab, va, vahi - va);
 	int i;
 	pte_t *pmte;
 
@@ -717,13 +718,13 @@ void
 pmap_mergepage(pte_t *rpte, pte_t *spte, pte_t *dpte, intptr_t dva)
 {
 #if SOL >= 3
-	uint8_t *rpg = (uint8_t*)PTE_ADDR(*rpte);
-	uint8_t *spg = (uint8_t*)PTE_ADDR(*spte);
-	uint8_t *dpg = (uint8_t*)PTE_ADDR(*dpte);
-	if (dpg == pmap_zero) return;	// Conflict - just leave dest unmapped
+	uint8_t *rpg = mem_ptr(PTE_ADDR(*rpte));
+	uint8_t *spg = mem_ptr(PTE_ADDR(*spte));
+	uint8_t *dpg = mem_ptr(PTE_ADDR(*dpte));
+//	if (mem_phys(dpg) == pmap_zero) return;	// Conflict - just leave dest unmapped
 
 	// Make sure the destination page isn't shared
-	if (dpg == (uint8_t*)PTE_ZERO || mem_ptr2pi(dpg)->refcount > 1) {
+	if (mem_phys(dpg) == PTE_ZERO || mem_ptr2pi(dpg)->refcount > 1) {
 		pageinfo *npi = mem_alloc(); assert(npi);
 		mem_incref(npi);
 		uint8_t *npg = mem_pi2ptr(npi);
@@ -731,7 +732,7 @@ pmap_mergepage(pte_t *rpte, pte_t *spte, pte_t *dpte, intptr_t dva)
 		if (dpg != (uint8_t*)PTE_ZERO)
 			mem_decref(mem_ptr2pi(dpg), mem_free); // drop old ref
 		dpg = npg;
-		*dpte = (intptr_t)npg |
+		*dpte = mem_phys(npg) |
 			SYS_RW | PTE_A | PTE_D | PTE_W | PTE_U | PTE_P;
 	}
 
@@ -1283,7 +1284,7 @@ pmap_print(pte_t *pml4)
 
 	cprintf("PML4 %p\n", pml4);
 	pte_t *cpml4 = rcr3();
-	lcr3((uintptr_t)pml4);
+	lcr3(mem_phys(pml4));
 	uint16_t perm = 0;
 	uint16_t mask = PTE_P | PTE_W | PTE_U | PTE_PS | PTE_G | PTE_AVAIL;
 	int half = 0; // 0 for higher half, 1 for lower half
@@ -1293,21 +1294,21 @@ pmap_print(pte_t *pml4)
 		pte_t pml4_end = (half ? (NPTENTRIES >> 1) : 0);
 		uintptr_t ext = half * CANONICALSIGNEXTENSION;
 		while ((perm = pmap_scan(pml4t, pml4_end, NPTENTRIES >> (1 - half), &pml4_start, &pml4_end, mask)) != 0) {
-			cprintf("|-- PML4E(%03x) %016llx-%016llx %016llx                 %s", pml4_end - pml4_start, (pml4_start << PDSHIFT(3)) | ext, (pml4_end << PDSHIFT(3)) | ext, (pml4_end - pml4_start) << PDSHIFT(3), pmap_perm_string(perm & mask));
+			cprintf("|-- PML4E(%03x) %016llx-%016llx %016llx                 %s", pml4_end - pml4_start, (pml4_start << PDSHIFT(3)) + ext, (pml4_end << PDSHIFT(3)) + ext, (pml4_end - pml4_start) << PDSHIFT(3), pmap_perm_string(perm & mask));
 			for (i = pml4_start; i < pml4_end; i++)
 				cprintf("\t%llx", pml4t[i]);
 			cputs("\n");
 			pte_t pdp_start = pml4_start << NPTBITS;
 			pte_t pdp_end = pml4_start << NPTBITS;
 			while ((perm = pmap_scan(pdpt, pdp_end, pml4_end << NPTBITS, &pdp_start, &pdp_end, mask)) != 0) {
-				cprintf("    |-- PDPE(%05x) %016llx-%016llx %016llx            %s", pdp_end - pdp_start, (pdp_start << PDSHIFT(2)) | ext, (pdp_end << PDSHIFT(2)) | ext, (pdp_end - pdp_start) << PDSHIFT(2), pmap_perm_string(perm & mask));
+				cprintf("    |-- PDPE(%05x) %016llx-%016llx %016llx            %s", pdp_end - pdp_start, (pdp_start << PDSHIFT(2)) + ext, (pdp_end << PDSHIFT(2)) + ext, (pdp_end - pdp_start) << PDSHIFT(2), pmap_perm_string(perm & mask));
 				for (i = pdp_start; i < pdp_end; i++)
 					cprintf("\t%llx", pdpt[i]);
 				cputs("\n");
 				pte_t pd_start = pdp_start << NPTBITS;
 				pte_t pd_end = pdp_start << NPTBITS;
 				while ((perm = pmap_scan(pdt, pd_end, pdp_end << NPTBITS, &pd_start, &pd_end, mask)) != 0) {
-					cprintf("        |-- PDE(%07x) %016llx-%016llx %016llx       %s", pd_end - pd_start, (pd_start << PDSHIFT(1)) | ext, (pd_end << PDSHIFT(1)) | ext, (pd_end - pd_start) << PDSHIFT(1), pmap_perm_string(perm & mask));
+					cprintf("        |-- PDE(%07x) %016llx-%016llx %016llx       %s", pd_end - pd_start, (pd_start << PDSHIFT(1)) + ext, (pd_end << PDSHIFT(1)) + ext, (pd_end - pd_start) << PDSHIFT(1), pmap_perm_string(perm & mask));
 					if (!(perm & PTE_PS)) {
 						for (i = pd_start; i < pd_end; i++)
 							cprintf("\t%llx", pdt[i]);
@@ -1315,7 +1316,7 @@ pmap_print(pte_t *pml4)
 						pte_t pt_start = pd_start << NPTBITS;
 						pte_t pt_end = pd_start << NPTBITS;
 						while ((perm = pmap_scan(pt, pt_end, pd_end << NPTBITS, &pt_start, &pt_end, mask)) != 0) {
-							cprintf("            |-- PTE(%09x) %016llx-%016llx %016llx %s", pt_end - pt_start, (pt_start << PDSHIFT(0)) | ext, (pt_end << PDSHIFT(0)) | ext, (pt_end - pt_start) << PDSHIFT(0), pmap_perm_string(perm & mask));
+							cprintf("            |-- PTE(%09x) %016llx-%016llx %016llx %s", pt_end - pt_start, (pt_start << PDSHIFT(0)) | ext, (pt_end << PDSHIFT(0)) + ext, (pt_end - pt_start) << PDSHIFT(0), pmap_perm_string(perm & mask));
 							if (pt_end - pt_start < 0x40) {
 								for (i = pt_start; i < pt_end; i++) {
 									if (!((i - pt_start) & 0xf))

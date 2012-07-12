@@ -52,10 +52,50 @@ seta20.2:
   movb    $0xdf,%al               # 0xdf -> port 0x60
   outb    %al,$0x60
 
+  # Before switching to protected mode, get memory map info
+  # first, using int 0x15, eax = 0xe820 bios function.
+  # Memory map info will be stored to area starting from
+  # 0x1004 (es:di = 0000:1004), each entry will be 20 byte long.
+  # 0x1000 stores number of entries
+e820:
+  xorl    %ebx, %ebx
+  xorw    %bp, %bp
+  movw    $0x1004, %di
+  movl    $0x534D4150, %edx       # "SMAP"
+  movl    $0xe820, %eax
+  movw    $20, %cx
+  int     $0x15
+  jc      spin                    # first carry means "unsupported function"
+  movl    $0x534D4150, %edx       # "SMAP"
+  cmpl    %eax, %edx
+  jne     spin
+  test    %ebx, %ebx
+  jz      spin                    # ebx = 0 means end of list
+  jmp     e820_next
+e820_read:
+  movl    $0x534D4150, %edx       # "SMAP"
+  movl    $0xe820, %eax
+  movw    $20, %cx
+  int     $0x15
+  jc      e820_finish             # carry now means "end of list reached"
+  cmpw    $20, %cx
+  jg      e820_skip               # entry has at least 20 bytes
+e820_next:
+  inc     %bp
+  addw    $20, %di
+e820_skip:
+  test    %ebx, %ebx
+  jnz     e820_read
+e820_finish:
+  movw    $0x1000, %di
+  movl    %ebp, (%di)
+  jmp     setprot
+
   # Switch from real to protected mode, using a bootstrap GDT
   # and segment translation that makes virtual addresses 
   # identical to their physical addresses, so that the 
   # effective memory map does not change during the switch.
+setprot:
   lgdt    gdtdesc
   movl    %cr0, %eax
   orl     $CR0_PE_ON, %eax

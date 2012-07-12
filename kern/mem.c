@@ -48,6 +48,27 @@ mem_init(void)
 	if (!cpu_onboot())	// only do once, on the boot CPU
 		return;
 
+	// now we have memory map info from 0x1000
+	// 0x1000: number of entries
+	// 0x1004-(every 20 bytes):
+	//     64bit base address
+	//     64bit length
+	//     32bit type
+	uint32_t mem_range_cnt = *(uint32_t *)0x1000;
+	uint32_t k;
+	mem_addr_range *mem_ranges = (mem_addr_range *)0x1004;
+	size_t basemem = 0;
+	size_t extmem = MEM_EXT;
+	for (k = 0; k < mem_range_cnt; k++) {
+		if (basemem == mem_ranges[k].base) {
+			basemem += mem_ranges[k].size;
+		}
+		if (extmem == mem_ranges[k].base) {
+			extmem += mem_ranges[k].size;
+		}
+		cprintf("range %u %llx - %llx (%llx) type %u\n", k, mem_ranges[k].base, mem_ranges[k].base + mem_ranges[k].size, mem_ranges[k].size, mem_ranges[k].type);
+	}
+/*
 	// Determine how much base (<640K) and extended (>1MB) memory
 	// is available in the system (in bytes),
 	// by reading the PC's BIOS-managed nonvolatile RAM (NVRAM).
@@ -59,6 +80,7 @@ mem_init(void)
 
 	warn("Assuming we have 1GB of memory!");
 	extmem = 1024*1024*1024 - MEM_EXT;	// assume 1GB total memory
+*/
 
 	// The maximum physical address is the top of extended memory.
 	mem_max = MEM_EXT + extmem;
@@ -69,7 +91,7 @@ mem_init(void)
 	cprintf("Physical memory: %dK available, ", (int)(mem_max/1024));
 	cprintf("base = %dK, extended = %dK\n",
 		(int)(basemem/1024), (int)(extmem/1024));
-
+	cprintf("%d pages in total\n", mem_npage);
 
 #if SOL >= 1
 	// Now that we know the size of physical memory,
@@ -105,7 +127,7 @@ mem_init(void)
 		// The IO hole and the kernel abut.
 
 		// The memory past the kernel is free.
-		if (i >= mem_phys(freemem) / PAGESIZE)
+		if (i >= (intptr_t)freemem / PAGESIZE)
 			inuse = 0;
 
 		mem_pageinfo[i].refcount = inuse;

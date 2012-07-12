@@ -35,6 +35,7 @@ KERN_SRCFILES :=	kern/entry.S \
 			dev/serial.c \
 			dev/pic.c \
 			dev/nvram.c \
+			dev/acpi.c \
 			dev/lapic.c \
 			dev/ioapic.c \
 			dev/pci.c \

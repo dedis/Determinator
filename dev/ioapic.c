@@ -40,6 +40,10 @@
 #define INT_FIXED	0x00000000	// Deliver to all matching processors
 #define INT_LOWEST	0x00000100	// to processor at lowest priority
 
+// initialized in acpi.c
+int ismp;
+uint8_t ioapicid;
+volatile struct ioapic *ioapic;
 
 // IO APIC MMIO structure: write reg, then read or write data.
 struct ioapic {

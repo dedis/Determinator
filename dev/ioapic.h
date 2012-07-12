@@ -14,6 +14,11 @@
 # error "This is a kernel header; user programs should not #include it"
 #endif
 
+// initialized in acpi.
+extern int ismp;		// True if this is an MP-capable systemc
+extern uint8_t ioapicid;	// APIC ID of system's I/O APIC
+extern volatile struct ioapic *ioapic;	// Address of I/O APIC
+
 void ioapic_init(void);
 
 void ioapic_enable(int irq);

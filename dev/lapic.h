@@ -56,7 +56,7 @@
 
 
 // Pointer to local APIC - mapped at same physical address on every CPU.
-// Initialized in mp.c
+// Initialized in acpi.c
 extern volatile uint32_t *lapic;
 
 

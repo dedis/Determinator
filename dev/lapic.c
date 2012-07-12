@@ -23,7 +23,7 @@
 #include <dev/lapic.h>
 
 
-volatile uint32_t *lapic;  // Initialized in mp.c
+volatile uint32_t *lapic;  // Initialized in acpi.c
 
 
 static void

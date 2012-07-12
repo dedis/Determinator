@@ -16,10 +16,10 @@
 //                                                    kernel/user
 //
 //    2^47-1---------> +==============================+
-//                     |                              | RW/--
-//                     |    Unused                    | RW/--
-//                     |                              | RW/--
-//    VM_USERHI -----> +==============================+ 0x0000800000000000
+//                     |                              | --/--
+//                     |    Unused                    | --/--
+//                     |                              | --/--
+//    VM_USERHI -----> +==============================+ 0x0000800000000000 (128TB)
 //                     |                              | RW/RW
 //                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 //                     :              .               :
@@ -39,14 +39,26 @@
 //                     |    Physical memory           | RW/--
 //                     |    incl. I/O, kernel, ...    | RW/--
 //                     |                              | RW/--
-//    0 -------------> +==============================+ 0x0
+//    VM_KERNHI -----> +==============================+ 0x0
 //                     |                              | RW/--
-//                     |    Unused                    | RW/--
+//                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+//                     :              .               :
+//                     :              .               :
+//                     |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 //                     |                              | RW/--
-//    -2^47 --- -----> +==============================+ 0xffffffffffffffff
+//                     |    Identical mapping         | RW/--
+//                     |    of physical memory        | RW/--
+//                     |                              | RW/--
+//    VM_KERNLO -----> +==============================+ 0xfffffff000000000 (-64GB)
+//                     |                              | --/--
+//                     |    Unused                    | --/--
+//                     |                              | --/--
+//    -2^47 --- -----> +==============================+ 0xffff800000000000 (-128TB)
 //
-#define	VM_USERHI	0x0000800000000000
-#define	VM_USERLO	0x0000000040000000
+#define VM_USERHI	0x0000800000000000
+#define VM_USERLO	0x0000000040000000
+#define VM_KERNHI	0x0000000000000000
+#define VM_KERNLO	0xfffffff000000000
 #define ALLVA		((void *)VM_USERLO)
 #define ALLSIZE         (VM_USERHI - VM_USERLO)
 
@@ -115,6 +127,10 @@
 // Scratch address space region for general use (e.g., by exec)
 #define VM_SCRATCHHI	0x7e0000000000
 #define VM_SCRATCHLO	0x7d0000000000
+
+// labelled message address space
+#define VM_LABELHI	0x7d0000000000
+#define VM_LABELLO	0x7c0000000000
 
 #if LAB >= 9
 #ifdef PIOS_SPMC
