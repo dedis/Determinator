@@ -49,7 +49,7 @@
 //                     |    Identical mapping         | RW/--
 //                     |    of physical memory        | RW/--
 //                     |                              | RW/--
-//    VM_KERNLO -----> +==============================+ 0xfffffff000000000 (-64GB)
+//    VM_KERNLO -----> +==============================+ 0xffffff8000000000 (-512GB)
 //                     |                              | --/--
 //                     |    Unused                    | --/--
 //                     |                              | --/--
@@ -58,7 +58,7 @@
 #define VM_USERHI	0x0000800000000000
 #define VM_USERLO	0x0000000040000000
 #define VM_KERNHI	0x0000000000000000
-#define VM_KERNLO	0xfffffff000000000
+#define VM_KERNLO	0xffffff8000000000
 #define ALLVA		((void *)VM_USERLO)
 #define ALLSIZE         (VM_USERHI - VM_USERLO)
 

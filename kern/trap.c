@@ -104,7 +104,7 @@ trap_init_idt(void)
 	SETGATE(idt[T_MCHK],   0, SEG_KERN_CS_64, &Xmchk,   0,1);
 	SETGATE(idt[T_SIMD],   0, SEG_KERN_CS_64, &Xsimd,   0,0);
 	// WWY
-	SETGATE(idt[T_SYSCALL], 0, SEG_KERN_CS_64, &Xbrkpt, 3,0);
+	SETGATE(idt[T_BRKPT], 0, SEG_KERN_CS_64, &Xbrkpt, 3,0);
 
 #if SOL >= 2
 	SETGATE(idt[T_IRQ0 + 0], 0, SEG_KERN_CS_64, &Xirq0, 0,0);

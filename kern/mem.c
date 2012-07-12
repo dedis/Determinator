@@ -54,9 +54,9 @@ mem_init(void)
 	//     64bit base address
 	//     64bit length
 	//     32bit type
-	uint32_t mem_range_cnt = *(uint32_t *)0x1000;
+	uint32_t mem_range_cnt = *(uint32_t *)mem_ptr(0x1000);
 	uint32_t k;
-	mem_addr_range *mem_ranges = (mem_addr_range *)0x1004;
+	mem_addr_range *mem_ranges = mem_ptr(0x1004);
 	size_t basemem = 0;
 	size_t extmem = MEM_EXT;
 	for (k = 0; k < mem_range_cnt; k++) {
@@ -99,13 +99,13 @@ mem_init(void)
 	// just past our statically-assigned program code/data/bss,
 	// which the linker placed at the start of extended memory.
 	// Make sure the pageinfo entries are naturally aligned.
-	mem_pageinfo = (pageinfo *) ROUNDUP((size_t) end, sizeof(pageinfo));
+	mem_pageinfo = mem_ptr(ROUNDUP((size_t) end, sizeof(pageinfo)));
 
 	// Initialize the entire pageinfo array to zero for good measure.
 	memset(mem_pageinfo, 0, sizeof(pageinfo) * mem_npage);
 
 	// Free extended memory starts just past the pageinfo array.
-	void *freemem = &mem_pageinfo[mem_npage];
+	intptr_t freemem = mem_phys(&mem_pageinfo[mem_npage]);
 
 	// Align freemem to page boundary.
 	freemem = ROUNDUP(freemem, PAGESIZE);

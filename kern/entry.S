@@ -12,6 +12,7 @@
  */
 
 #include <inc/mmu.h>
+#include <inc/vm.h>
 #include <kern/cpu.h>
 #if LAB >= 3
 #include <inc/trap.h>
@@ -74,6 +75,7 @@ start: _start:
 	// should be enough for memory bitmap
 	// only 4KB global (non-TLB-flushed) pages are used
 	movl $bootp3tab+(PTE_P|PTE_W|PTE_U),bootp4tab
+	movl $bootp3tab+(PTE_P|PTE_W|PTE_U),bootp4tab+8*0x1ff
 	movl $bootp4tab+(PTE_P|PTE_W|PTE_U),bootp4tab+8*PML4SELFOFFSET
 
 	movl $bootp2tab+(PTE_P|PTE_W|PTE_U),bootp3tab

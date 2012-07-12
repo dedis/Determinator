@@ -58,9 +58,9 @@ pmap_init(void)
 {
 	if (cpu_onboot()) {
 		// detect if cpu supports 1G page
-		cpuinfo inf;
-		cpuid(0x80000001, &inf);
-		if ((inf.edx >> 26) & 0x1) {
+		cpuinfo info;
+		cpuid(0x80000001, &info);
+		if ((info.edx >> 26) & 0x1) {
 			max_page_entry_level = 2;
 		} else {
 			max_page_entry_level = 1;
@@ -73,9 +73,19 @@ pmap_init(void)
 		// should be identity-mapped to the same physical addresses,
 		// but only accessible in kernel mode (not in user mode).
 #if SOL >= 3
+		uint32_t mem_range_cnt = *(uint32_t *)mem_ptr(0x1000);
+		uint32_t k;
+		mem_addr_range *mem_ranges = mem_ptr(0x1004);
+		size_t maxmem = 0;
+		for (k = 0; k < mem_range_cnt; k++) {
+			size_t end = mem_ranges[k].base + mem_ranges[k].size;
+			if (end > maxmem)
+				maxmem = end;
+		}
+		maxmem = ROUNDUP(maxmem, PDSIZE(max_page_entry_level));
 		pmap_init_bootpmap(pmap_bootpmap, 0, 0, (0x1ULL << 48), 0xFFFF, NPTLVLS); // erase all pages
 		pmap_init_bootpmap(pmap_bootpmap, 0, 0, VM_USERLO, PTE_P | PTE_W, NPTLVLS); // map lower kernel address
-		pmap_init_bootpmap(pmap_bootpmap, VM_KERNLO, 0, VM_KERNHI - VM_KERNLO, PTE_P | PTE_W, NPTLVLS); // map whole physical memory to kernel address
+		pmap_init_bootpmap(pmap_bootpmap, VM_KERNLO, 0, maxmem, PTE_P | PTE_W, NPTLVLS); // map whole physical memory to kernel address
 		pmap_bootpmap[PML4SELFOFFSET] = (intptr_t)pmap_bootpmap | PTE_P | PTE_W;
 		pmap_bootpmap = mem_ptr(pmap_bootpmap);
 #else
@@ -1289,7 +1299,7 @@ pmap_print(pte_t *pml4)
 	uint16_t mask = PTE_P | PTE_W | PTE_U | PTE_PS | PTE_G | PTE_AVAIL;
 	int half = 0; // 0 for higher half, 1 for lower half
 	uintptr_t i;
-	for (half = 0; half < 1; half++) {
+	for (half = 0; half < 2; half++) {
 		pte_t pml4_start = (half ? (NPTENTRIES >> 1) : 0);
 		pte_t pml4_end = (half ? (NPTENTRIES >> 1) : 0);
 		uintptr_t ext = half * CANONICALSIGNEXTENSION;
