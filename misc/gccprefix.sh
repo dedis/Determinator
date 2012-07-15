@@ -10,7 +10,7 @@
 #
 
 if pios-objdump -i 2>&1 | grep '^elf32-i386$' >/dev/null 2>&1; then
-	echo 'pios-'
+	echo '' #pios-'
 elif i386-elf-objdump -i 2>&1 | grep '^elf32-i386$' >/dev/null 2>&1; then
 	echo 'i386-elf-'
 elif x86_64-elf-objdump -i 2>&1 | grep '^elf32-i386$' >/dev/null 2>&1; then
