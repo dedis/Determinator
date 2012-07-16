@@ -533,7 +533,7 @@ pmap_inval(pte_t *pml4, intptr_t va, size_t size)
 	proc *p = proc_cur();
 	if (p == NULL || p->pml4 == pml4) {
 		if (size == PAGESIZE)
-			invlpg(mem_ptr(va));	// invalidate one page
+			invlpg(va);	// invalidate one page
 		else
 			lcr3(mem_phys(pml4));	// invalidate everything
 	}
