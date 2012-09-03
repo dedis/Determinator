@@ -16,6 +16,7 @@
 #include <kern/mem.h>
 #include <kern/cpu.h>
 #include <kern/init.h>
+#include <kern/pmap.h>
 
 #if LAB >= 2
 #include <dev/lapic.h>
@@ -78,6 +79,17 @@ cpu cpu_boot = {
 #if SOL >= 9
 // Artificial limit on the number of CPUs the scheduler may use.
 int cpu_limit = INT_MAX;
+
+/* Static APs list */
+/* 
+ * The initial implementation used to make a call to mem_alloc() and 
+ * then typecast the address returned to cpu *. I think that's not right.
+ * First of all, mem_alloc() will return a pointer to PAGESIZE bytes of memory
+ * where as kstackhi in struct cpu is 4*PAGESIZE. Second, even if I have 
+ * somehow misunderstood the code, gcc_aligned fails to align kstackhi
+ * to KSTACKSIZE in the old implementation.
+ */
+cpu cpus[NR_CPUS];
 
 void
 cpu_info()
@@ -146,8 +158,13 @@ void cpu_init()
 
 #if SOL >= 1
 #if SOL >= 9
-	if (cpu_onboot())
+	if (cpu_onboot()) {
+		/* Initialize AP static list */
+		int i;
+		for (i = 0; i < NR_CPUS; i++)
+			cpus[i].in_use = 0;
 		cpu_info();
+	}
 #endif
 
 	// Setup the TSS for this cpu so that we get the right stack
@@ -193,15 +210,22 @@ cpu_alloc(void)
 	// Pointer to the cpu.next pointer of the last CPU on the list,
 	// for chaining on new CPUs in cpu_alloc().  Note: static.
 	static cpu **cpu_tail = &cpu_boot.next;
+	cpu *c = NULL;
 
-	pageinfo *pi = mem_alloc();
-	assert(pi != 0);	// shouldn't be out of memory just yet!
-
-	cpu *c = (cpu*) mem_pi2ptr(pi);
+	int i;
+	for(i=0; i < NR_CPUS; i++) {
+		if(!cpus[i].in_use) {
+			c = (cpu*) &cpus[i];
+			break;
+		}
+		if(i >= NR_CPUS)
+			warn("Too many CPUS on this machine, sell some..\n");
+	}	
 
 	// Clear the whole page for good measure: cpu struct and kernel stack
-	memset(c, 0, PAGESIZE);
+	memset(c, 0, sizeof(struct cpu));
 
+	c->in_use = 1;
 	// Now we need to initialize the new cpu struct
 	// just to the same degree that cpu_boot was statically initialized.
 	// The rest will be filled in by the CPU itself
@@ -225,7 +249,6 @@ cpu_alloc(void)
 void
 cpu_bootothers(void)
 {
-	extern uintptr_t pmap_bootpmap[];
 	extern uint8_t _binary_obj_boot_bootother_start[],
 			_binary_obj_boot_bootother_size[];
 

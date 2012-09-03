@@ -32,6 +32,19 @@ void	cputs(const char *str);			// lib/cputs.c or kern/cons.c
 int	cprintf(const char *fmt, ...);		// lib/cprintf.c
 int	vcprintf(const char *fmt, va_list);	// lib/cprintf.c
 
+static inline int no_cprintf(const char *fmt, ...)
+{
+	return 0;
+}
+
+#ifdef INIT_DEBUG
+#define init_cprintf(fmt, ...) \
+	cprintf(fmt, ##__VA_ARGS__)
+#else
+#define init_cprintf(fmt, ...) \
+	no_cprintf(fmt, ##__VA_ARGS__)
+#endif
+
 #if LAB >= 4
 #ifndef SEEK_SET
 #define SEEK_SET	0	/* seek relative to beginning of file */

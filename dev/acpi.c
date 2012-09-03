@@ -47,7 +47,9 @@ rsdpsearch(int *rev)
 {
 	uint8_t *e, *p;
 
+#ifdef DEBUG
 	cprintf("find in EBDA\n");
+#endif
 	e = mem_ptr(0x400);
 	uintptr_t addr = e[0xf];
 	addr <<= 8;
@@ -58,7 +60,9 @@ rsdpsearch(int *rev)
 	p = rsdpsearch1(p, e, rev);
 	if (p) return p;
 
+#ifdef DEBUG
 	cprintf("find in mem\n");
+#endif
 	p = mem_ptr(0x0e0000);
 	e = mem_ptr(0x100000);
 	p = rsdpsearch1(p, e, rev);
@@ -68,23 +72,33 @@ rsdpsearch(int *rev)
 static bool
 madt_scan(struct acpi_madt *madt)
 {
+	int pc_count = 0;
 	int32_t length = madt->header.length;
 	if (memcmp(madt, "APIC", 4) != 0 || sum(madt, length) != 0)
 		return false;
 	lapic = mem_ptr(madt->lapicaddr);
-	cprintf("lapic addr %p\n", lapic);
+	cprintf("lapic addr %p\n", mem_phys(lapic));
 	length -= sizeof(struct acpi_sdt_hdr) + 8;
 	uint8_t *p = madt->ent;
 	bool ret = false;
 	while (length > 0) {
+#ifdef DEBUG
 		cprintf("MADT type %u length %u\n", p[0], p[1]);
+#endif
 		switch (p[0]) {
 		case MADT_LAPIC:
-			break;
+			if ( p[4] ) {
+				/* The first entry is always the BSP, else AP */
+				cpu *c = !pc_count ? &cpu_boot : cpu_alloc();
+				c->id = p[3];
+				c->num = ++pc_count;
+				break;
+			}
 		case MADT_IOAPIC:
 			ioapicid = ((struct acpi_madt_ioapic *)p)->ioapicid;
 			ioapic = mem_ptr(((struct acpi_madt_ioapic *)p)->ioapicaddr);
-			cprintf("ioapic %u addr %p\n", ioapicid, ioapic);
+			cprintf("ioapic %u addr %p\n", ioapicid, 
+				mem_phys(ioapic));
 			ret = true;
 		default:
 			break;
@@ -135,20 +149,31 @@ acpi_init(void)
 	void *p = rsdpsearch(&rev);
 	if (!p)
 		return;
+#ifdef DEBUG
 	cprintf("rsdp %p rev %u\n", p, rev);
+#endif
 	ismp = 1;
 	if (rev == 1) {
 		struct acpi_rsdp *rsdp = p;
 		struct acpi_rsdt *rsdt = mem_ptr(rsdp->rsdtaddr);
-		cprintf("rsdp %p rsdt %p size %u\n", rsdp, rsdt, sizeof (struct acpi2_rsdp));
+#ifdef DEBUG
+		cprintf("rsdp %p rsdt %p size %u\n", mem_phys(rsdp), 
+			mem_phys(rsdt), sizeof (struct acpi2_rsdp));
+#endif
 		rsdt_scan(rsdt);
 	} else if (rev == 2) {
 		struct acpi2_rsdp *rsdp = p;
-		cprintf("rsdp %p rev %u\n", rsdp, rsdp->revision);
+#ifdef DEBUG
+		cprintf("rsdp %p rev %u\n", mem_phys(rsdp), rsdp->revision);
+#endif
 
 		struct acpi_rsdt *rsdt = mem_ptr(rsdp->rsdtaddr);
 		struct acpi2_xsdt *xsdt = mem_ptr(rsdp->xsdtaddr);
-		cprintf("rsdp %p rsdt %p xsdt %p len %u size %u\n", rsdp, rsdt, xsdt, rsdp->length, sizeof (struct acpi2_rsdp));
+#ifdef DEBUG
+		cprintf("rsdp %p rsdt %p xsdt %p len %u size %u\n", 
+			mem_phys(rsdp), mem_phys(rsdt), mem_phys(xsdt), 
+			rsdp->length, sizeof (struct acpi2_rsdp));
+#endif
 		if (rsdt_scan(rsdt))
 			return;
 		xsdt_scan(xsdt);

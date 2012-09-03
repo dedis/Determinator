@@ -149,11 +149,11 @@ trap_init(void)
 	// initialize the IDT.  Other CPUs will share the same IDT.
 	if (cpu_onboot())
 		trap_init_idt();
-	cprintf("idt init\n");
+	init_cprintf("idt init\n");
 	
 	// Load the IDT into this processor's IDT register.
 	asm volatile("lidt %0" : : "m" (idt_pd));
-	cprintf("idt reg init\n");
+	init_cprintf("idt reg init\n");
 
 	// Check for the correct IDT and trap handler operation.
 	if (cpu_onboot())

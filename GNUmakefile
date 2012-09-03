@@ -295,7 +295,7 @@ grade-all: grade-sol1 grade-sol2 grade-sol3 grade-sol4 grade-sol5 grade-sol6 alw
 
 #endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
 
-NCPUS = 1
+NCPUS = 16
 ifdef LAB9
 # Local hack: use more CPUs by default when running on our main test server.
 #NCPUS := $(shell if test `uname -n` = "korz"; then echo 12; else echo 2; fi)

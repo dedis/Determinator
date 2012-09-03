@@ -39,9 +39,11 @@
 #include <inc/mmu.h>
 #include <inc/trap.h>
 
+#define NR_CPUS  64
 // Per-CPU kernel state structure.
 // Exactly one page (4096 bytes) in size.
 typedef struct cpu {
+	int in_use;
 	// Since the x86 processor finds the TSS from a descriptor in the GDT,
 	// each processor needs its own TSS segment descriptor in some GDT.
 	// We could have a single, "global" GDT with multiple TSS descriptors,
