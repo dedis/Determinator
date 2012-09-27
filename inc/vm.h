@@ -105,9 +105,8 @@
 //                     | shared between user threads: |    (31TB)
 //                     |   program text, data, heap   |
 //                     |                              |
-//    VM_SHARELO, ---> +------------------------------+ 0x010000000000
-//                     |                              |
-//    VM_USERLO   ---> +==============================+ 0x000040000000(1GB)
+//    VM_SHARELO   ---> +==============================+ 0x000040000000(1GB)
+//    VM_USERLO, ---> 
 
 
 #if LAB >= 9
@@ -134,8 +133,8 @@
 
 #if LAB >= 9
 #ifdef PIOS_SPMC
-// Address spce area for SPMC(single producer multiple-consumer) system
-#define VM_SPMCHI	0x700000000000
+// Address space area for SPMC(single producer multiple-consumer) system
+#define VM_SPMCHI	0x300100000000
 #define VM_SPMCLO	0x300000000000
 #endif
 #endif
@@ -146,8 +145,8 @@
 
 // General-purpose address space shared between "threads"
 // created via SYS_SNAP/SYS_MERGE.
-#define VM_SHAREHI	0x200000000000
-#define VM_SHARELO	0x010000000000
+#define VM_SHAREHI	(VM_USERLO + 0x000100000000)
+#define VM_SHARELO	VM_USERLO
 #define SHAREVA         ((void*) VM_SHARELO)
 #define SHARESIZE       (VM_SHAREHI - VM_SHARELO)
 

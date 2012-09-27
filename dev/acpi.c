@@ -91,7 +91,7 @@ madt_scan(struct acpi_madt *madt)
 				/* The first entry is always the BSP, else AP */
 				cpu *c = !pc_count ? &cpu_boot : cpu_alloc();
 				c->id = p[3];
-				c->num = ++pc_count;
+				c->num = pc_count++;
 				break;
 			}
 		case MADT_IOAPIC:
