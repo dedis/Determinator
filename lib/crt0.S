@@ -49,7 +49,13 @@ args_exist:
 	je	2f
 	movq	(%rdx),%rax
 	addq	$8,%rdx
+	pushq	%rdx
+	pushq	%rdi
+	pushq	%rsi
 	call	*%rax //FIXME
+	popq	%rsi
+	popq	%rdi
+	popq	%rdx
 	jmp	1b
 2:
 #endif
@@ -63,7 +69,13 @@ args_exist:
 	je	2f
 	movq	(%rdx),%rax
 	addq	$8,%rdx
+	pushq	%rdx
+	pushq	%rdi
+	pushq	%rsi
 	call	*%rax //FIXME
+	popq	%rsi
+	popq	%rdi
+	popq	%rdx
 	jmp	1b
 2:
 #endif

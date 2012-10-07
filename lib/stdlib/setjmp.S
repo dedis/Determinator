@@ -1,8 +1,11 @@
+/*
+ * Simple setjmp and longjmp implementations
+ * Bits and pieces from FreeBSD libc setjmp.S
+ */
+#include "asm.h"
 
-	.text
-	.p2align 4
-	.globl	setjmp
-setjmp:
+ENTRY(setjmp)
+#if 0
 	movl	4(%esp),%ecx		// jmp_buf argument
 
 	movl	(%esp),%edx		// save return pointer
@@ -12,26 +15,35 @@ setjmp:
 	movl	%edi,12(%ecx)
 	movl	%ebp,16(%ecx)
 	movl	%esp,20(%ecx)		// save stack pointer
-
-	xorl	%eax,%eax		// return 0
+#endif
+	xorq	%rax,%rax		// return 0
 	ret
+END(setjmp)
 
-	.p2align 4
-	.globl	longjmp
-longjmp:
-	movl	4(%esp),%ecx		// jmp_buf argument
-	movl	8(%esp),%eax		// return value argument
-
-	movl	(%ecx),%edx		// get return address
-	movl	%edx,(%esp)
-	movl	4(%ecx),%ebx		// restore callee-saved registers
-	movl	8(%ecx),%esi
-	movl	12(%ecx),%edi
-	movl	16(%ecx),%ebp
-	movl	20(%ecx),%esp		// restore stack pointer
-
-	testl	%eax,%eax		// always return nonzero
+ENTRY(longjmp)
+	movq	%rdi,%rdx
+	/* Restore the mxcsr, but leave exception flags intact. */
+	stmxcsr	-4(%rsp)
+	movl	68(%rdx),%eax
+	andl	$0xffffffc0,%eax
+	movl	-4(%rsp),%edi
+	andl	$0x3f,%edi
+	xorl	%eax,%edi
+	movl	%edi,-4(%rsp)
+	ldmxcsr -4(%rsp)
+	movq	%rsi,%rax		/* retval */
+	movq	0(%rdx),%rcx
+	movq	8(%rdx),%rbx
+	movq	16(%rdx),%rsp
+	movq	24(%rdx),%rbp
+	movq	32(%rdx),%r12
+	movq	40(%rdx),%r13
+	movq	48(%rdx),%r14
+	movq	56(%rdx),%r15
+	fldcw	64(%rdx)
+	testq	%rax,%rax
 	jnz	1f
-	incl	%eax
-1:	ret
-
+	incq	%rax
+1:	movq	%rcx,0(%rsp)
+	ret
+END(longjmp)
