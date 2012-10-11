@@ -26,10 +26,8 @@
 #include <kern/net.h>
 #endif
 
-#include <dev/nvram.h>
-
-
-size_t mem_max;			// Maximum physical address
+size_t mem_max_addr;		// Maximum physical address
+size_t mem_max;			// Maximum size of physical memory
 size_t mem_npage;		// Total number of physical memory pages
 
 pageinfo *mem_pageinfo;		// Metadata array indexed by page number
@@ -48,6 +46,9 @@ mem_init(void)
 	if (!cpu_onboot())	// only do once, on the boot CPU
 		return;
 
+	// Determine how much base (<640K) and extended (>1MB) memory
+	// is available in the system (in bytes),
+#ifndef MULTIBOOT2
 	// now we have memory map info from 0x1000
 	// 0x1000: number of entries
 	// 0x1004-(every 20 bytes):
@@ -55,32 +56,33 @@ mem_init(void)
 	//     64bit length
 	//     32bit type
 	uint32_t mem_range_cnt = *(uint32_t *)mem_ptr(0x1000);
-	uint32_t k;
 	mem_addr_range *mem_ranges = mem_ptr(0x1004);
+#else
+	uint32_t mem_range_cnt = grub_mmap_nentries > 0 ? grub_mmap_nentries
+				: *(uint32_t *)mem_ptr(0x1000);
+	mem_addr_range *mem_ranges = grub_mmap_nentries > 0 ? grub_mmap_entries
+				: mem_ptr(0x1004);
+#endif
+	uint32_t k;
 	size_t basemem = 0;
 	size_t extmem = MEM_EXT;
-	for (k = 0; k < mem_range_cnt; k++) {
-		if (basemem == mem_ranges[k].base) {
-			basemem += mem_ranges[k].size;
+	mem_max_addr = 0;
+	for (k = 0; k < mem_range_cnt; k++, mem_ranges++ ) {
+		size_t end = mem_ranges->base + mem_ranges->size;
+		if (mem_max_addr < end )
+			mem_max_addr = end;
+		cprintf("range %u %llx - %llx (%llx, %s)\n", k, 
+			mem_ranges->base, end,  
+			mem_ranges->size, 
+			mem_ranges->type == MEM_RESERVED ? "reserved" : "usable");
+		if (mem_ranges->type == MEM_RESERVED)
+			continue;
+		if (mem_ranges->base < MEM_EXT) {
+			basemem += mem_ranges->size;
+		} else {
+			extmem += mem_ranges->size;
 		}
-		if (extmem == mem_ranges[k].base) {
-			extmem += mem_ranges[k].size;
-		}
-		cprintf("range %u %llx - %llx (%llx) type %u\n", k, mem_ranges[k].base, mem_ranges[k].base + mem_ranges[k].size, mem_ranges[k].size, mem_ranges[k].type);
 	}
-/*
-	// Determine how much base (<640K) and extended (>1MB) memory
-	// is available in the system (in bytes),
-	// by reading the PC's BIOS-managed nonvolatile RAM (NVRAM).
-	// The NVRAM tells us how many kilobytes there are.
-	// Since the count is 16 bits, this gives us up to 64MB of RAM;
-	// additional RAM beyond that would have to be detected another way.
-	size_t basemem = ROUNDDOWN(nvram_read16(NVRAM_BASELO)*1024, PAGESIZE);
-	size_t extmem = ROUNDDOWN(nvram_read16(NVRAM_EXTLO)*1024, PAGESIZE);
-
-	warn("Assuming we have 1GB of memory!");
-	extmem = 1024*1024*1024 - MEM_EXT;	// assume 1GB total memory
-*/
 
 	// The maximum physical address is the top of extended memory.
 	mem_max = MEM_EXT + extmem;

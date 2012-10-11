@@ -19,7 +19,11 @@
 
 
 // Called on each processor to initialize the kernel.
+#ifdef MULTIBOOT2
+void init(unsigned long, unsigned long);
+#else
 void init(void);
+#endif
 
 // First function run in user mode (only on one processor)
 void user(void);

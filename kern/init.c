@@ -12,6 +12,9 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 #include <inc/cdefs.h>
+#ifdef MULTIBOOT2
+#include <inc/multiboot2.h>
+#endif
 #if LAB >= 3
 #include <inc/elf.h>
 #include <inc/vm.h>
@@ -25,7 +28,6 @@
 #include <kern/trap.h>
 #if LAB >= 2
 #include <kern/spinlock.h>
-//#include <kern/mp.h>
 #include <kern/proc.h>
 #endif
 #if LAB >= 4
@@ -70,12 +72,67 @@ static char gcc_aligned(16) user_stack[PAGESIZE];
 #endif
 extern char ROOTEXE_START[];
 
+#ifdef MULTIBOOT2
+struct mem_addr_range grub_mmap_entries[ENTMAX];
+int grub_mmap_nentries = 0;
+
+static void 
+parse_multiboot2_info(unsigned long addr)
+{
+	struct multiboot_tag *tag;
+	unsigned size;
+
+	size = *(unsigned *) addr;
+	cprintf ("Announced mbi size 0x%x\n", size);
+
+	for (tag = (struct multiboot_tag *) (addr + 8);
+	     tag->type != MULTIBOOT_TAG_TYPE_END;
+	     tag = (struct multiboot_tag *) ((multiboot_uint8_t *) tag
+					     + ((tag->size + 7) & ~7)))
+	{
+		grub_cprintf ("Tag 0x%x, Size 0x%x\n", tag->type, tag->size);
+		switch (tag->type)
+		{
+		case MULTIBOOT_TAG_TYPE_CMDLINE: 
+		{
+			struct multiboot_tag_string *tagstr = 
+				(struct multiboot_tag_string *)tag;
+			cprintf ("Command line = %s\n", tagstr->string);
+			break;				       
+		}
+		case MULTIBOOT_TAG_TYPE_MMAP:
+		{	struct multiboot_tag_mmap *tagm =
+				(struct multiboot_tag_mmap *)tag;
+			multiboot_memory_map_t *mmap;
+			multiboot_uint8_t *tagend = 
+				(multiboot_uint8_t *)tag + tag->size;
+			struct mem_addr_range *entry = grub_mmap_entries;
+
+			for (mmap = tagm->entries;
+				(multiboot_uint8_t *) mmap < tagend;
+				mmap = (multiboot_memory_map_t *)
+				     ((unsigned long)mmap + tagm->entry_size ))
+			{
+				entry->base = mmap->addr;
+				entry->size = mmap->len;
+				entry->type = mmap->type;
+				entry++; grub_mmap_nentries++;
+			}
+		}	break;
+		}
+	}
+}
+#endif /* MULTIBOOT2 */
 
 // Called first from entry.S on the bootstrap processor,
 // and later from boot/bootother.S on all other processors.
 // As a rule, "init" functions in PIOS are called once on EACH processor.
 void
+#ifdef MULTIBOOT2
+init(unsigned long magic, unsigned long addr)
+#else
 init(void)
+#endif
 {
 	extern char start[], edata[], end[];
 
@@ -89,6 +146,15 @@ init(void)
 	// Initialize the console.
 	// Can't call cprintf until after we do this!
 	cons_init();
+
+#ifdef MULTIBOOT2
+	if (cpu_onboot()) {
+		if (magic == MULTIBOOT2_BOOTLOADER_MAGIC && !(addr & 7)) {
+			cprintf ("GRUB2 detected .. \n");
+			parse_multiboot2_info(addr);
+		}
+	}
+#endif
 
 #if LAB == 1
 	// Lab 1: test cprintf and debug_trace

@@ -12,18 +12,24 @@
  */
 
 #include <inc/mmu.h>
-#include <inc/vm.h>
 #include <kern/cpu.h>
 #if LAB >= 3
 #include <inc/trap.h>
 #endif
 
+/* This kernel is only Multiboot2 compliant */
 
+#ifdef MULTIBOOT2
+#define MULTIBOOT_ARCH_I386   (0<<0)
+#include <inc/multiboot2.h>
+#else
 #define MULTIBOOT_PAGE_ALIGN  (1<<0)
 #define MULTIBOOT_MEMORY_INFO (1<<1)
 #define MULTIBOOT_HEADER_MAGIC (0x1BADB002)
 #define MULTIBOOT_HEADER_FLAGS (MULTIBOOT_MEMORY_INFO | MULTIBOOT_PAGE_ALIGN)
 #define CHECKSUM (-(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS))
+#endif
+
 #define PTCOUNT 0x40
 
 ###################################################################
@@ -32,18 +38,37 @@
 ###################################################################
 
 	.text
-	# The Multiboot header
-	.p2align 2
-multiboot_header:
-	.long MULTIBOOT_HEADER_MAGIC
-	.long MULTIBOOT_HEADER_FLAGS
-	.long CHECKSUM
-
-.code32
+	.code32
 .globl	start,_start
 start: _start:
 	movw	$0x1234,0x472			# warm boot BIOS flag
+	jmp	multiboot_entry
 
+	# The Multiboot header
+	.align 8
+
+multiboot_header:
+#ifdef MULTIBOOT2
+	.long MULTIBOOT2_HEADER_MAGIC
+	.long MULTIBOOT_ARCH_I386			/* machine: i386 */
+	.long multiboot_header_end - multiboot_header	/* header length */
+	.long -(MULTIBOOT2_HEADER_MAGIC + MULTIBOOT_ARCH_I386 + (multiboot_header_end - multiboot_header)) /* checksum */
+
+	.short MULTIBOOT_HEADER_TAG_END
+	.short 0
+	.long 8
+multiboot_header_end:
+#else
+	.long MULTIBOOT_HEADER_MAGIC
+	.long MULTIBOOT_HEADER_FLAGS
+	.long CHECKSUM
+#endif
+multiboot_entry:
+#ifdef MULTIBOOT2
+	movl    %eax,multiboot2_magic
+#endif
+
+kernel_entry:
 	cld
 
 	// activate our own protected-mode GDT
@@ -142,6 +167,12 @@ entry64:	// we are now in 64-bit mode.
         # stack backtraces will be terminated properly.
 	xorq	%rbp,%rbp
 
+#ifdef MULTIBOOT2
+	xorq	%rdi,%rdi
+	xorq	%rsi,%rsi
+	movl	multiboot2_magic,%edi
+	movl	%ebx,%esi
+#endif
 	// now to C code
 	call	init
 
@@ -152,6 +183,10 @@ spin:	jmp	spin
 // Temporary GDT for switching to protected mode, then long mode.
 // Place it in our text segment to ensure that it stays
 // in the lowest 64KB real-mode segment.
+#ifdef MULTIBOOT2
+multiboot2_magic:
+	.long	0x00000000
+#endif
 	.p2align 3
 gdt:
 	SEGNULL64				// null segment

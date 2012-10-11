@@ -73,19 +73,12 @@ pmap_init(void)
 		// should be identity-mapped to the same physical addresses,
 		// but only accessible in kernel mode (not in user mode).
 #if SOL >= 3
-		uint32_t mem_range_cnt = *(uint32_t *)mem_ptr(0x1000);
-		uint32_t k;
-		mem_addr_range *mem_ranges = mem_ptr(0x1004);
-		size_t maxmem = 0;
-		for (k = 0; k < mem_range_cnt; k++) {
-			size_t end = mem_ranges[k].base + mem_ranges[k].size;
-			if (end > maxmem)
-				maxmem = end;
-		}
-		maxmem = ROUNDUP(maxmem, PDSIZE(max_page_entry_level));
+		extern size_t mem_max_addr; // computed in mem_init()
+	cprintf("mem_max_addr %llx\n", mem_max_addr);
+		mem_max_addr = ROUNDUP(mem_max_addr, PDSIZE(max_page_entry_level));
 		pmap_init_bootpmap(pmap_bootpmap, 0, 0, (0x1ULL << 48), 0xFFFF, NPTLVLS); // erase all pages
 		pmap_init_bootpmap(pmap_bootpmap, 0, 0, VM_USERLO, PTE_P | PTE_W, NPTLVLS); // map lower kernel address
-		pmap_init_bootpmap(pmap_bootpmap, VM_KERNLO, 0, maxmem, PTE_P | PTE_W, NPTLVLS); // map whole physical memory to kernel address
+		pmap_init_bootpmap(pmap_bootpmap, VM_KERNLO, 0, mem_max_addr, PTE_P | PTE_W, NPTLVLS); // map whole physical memory to kernel address
 		pmap_bootpmap[PML4SELFOFFSET] = (intptr_t)pmap_bootpmap | PTE_P | PTE_W;
 		pmap_bootpmap = mem_ptr(pmap_bootpmap);
 #else

@@ -21,7 +21,6 @@
 #include <inc/x86.h>
 #include <inc/vm.h>
 
-
 // At physical address MEM_IO (640K) there is a 384K hole for I/O.
 // The hole ends at physical address MEM_EXT, where extended memory begins.
 #define MEM_IO		0x0A0000
@@ -40,6 +39,13 @@ typedef struct mem_addr_range {
 	uint64_t size;
 	uint32_t type;
 } gcc_packed mem_addr_range;
+
+#ifdef MULTIBOOT2
+#define ENTMAX 32
+extern mem_addr_range grub_mmap_entries[ENTMAX];
+extern int grub_mmap_nentries;
+#endif
+
 
 // Given a physical address,
 // return a C pointer the kernel can use to access it.

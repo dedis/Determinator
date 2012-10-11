@@ -69,6 +69,8 @@ QEMU := qemu-system-x86_64
 # QEMU := qemu
 endif
 
+GRUB-MKRESCUE := $(shell which grub-mkrescue) #a very recent grub2
+
 # try to generate unique GDB and network port numbers
 GDBPORT	:= $(shell expr `id -u` % 5000 + 25000)
 NETPORT := $(shell expr `id -u` % 5000 + 30000)
@@ -127,7 +129,7 @@ CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 \
 LDFLAGS += -L$(OBJDIR)/lib -L$(GCCDIR) -L$(GCCDIR)/64
 
 # Compiler flags that differ for kernel versus user-level code.
-KERN_CFLAGS += $(CFLAGS) -DPIOS_KERNEL
+KERN_CFLAGS += $(CFLAGS) -DPIOS_KERNEL -DMULTIBOOT2
 KERN_LDFLAGS += $(LDFLAGS) -nostdlib -Ttext=0x00100000 -L$(GCCDIR) -z max-page-size=0x4000
 KERN_LDLIBS += $(LDLIBS) -lgcc
 
@@ -301,9 +303,12 @@ ifdef LAB9
 #NCPUS := $(shell if test `uname -n` = "korz"; then echo 12; else echo 2; fi)
 endif
 IMAGES = $(OBJDIR)/kern/kernel.img
+ISO := pios.iso
+
+QEMUDOPT := -d int,pcall,in_asm,cpu_reset,cpu
 QEMUOPTS = -smp $(NCPUS) -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio \
-		-k en-us -m 1100M
-#QEMUOPTS +=  -d int,pcall,in_asm,cpu_reset,cpu
+		-k en-us -m 1100M #$(QEMUDOPT)
+QEMUGRUBOPTS := -smp  $(NCPUS) -hda $(ISO) -k en-us -m 1100M --enable-kvm 
 #QEMUNET = -net socket,mcast=230.0.0.1:$(NETPORT) -net nic,model=i82559er
 QEMUNET1 = -net nic,model=i82559er,macaddr=52:54:00:12:34:01 \
 		-net socket,connect=:$(NETPORT) -net dump,file=node1.dump
@@ -331,6 +336,23 @@ endif
 qemu-nox: $(IMAGES)
 	echo "*** Use Ctrl-a x to exit"
 	$(QEMU) -nographic $(QEMUOPTS)
+
+# Grub ISO target
+# Requires xorriso 
+grub-iso: $(IMAGES)
+	@mkdir -p iso/boot/pios
+	@cp obj/kern/kernel iso/boot/pios/kernel
+	$(GRUB-MKRESCUE) --output=pios.iso iso/
+
+qemu-grub: grub-iso
+	$(QEMU) $(QEMUGRUBOPTS)
+        
+qemu-grub-nox: grub-iso
+	$(QEMU) -nographic $(QEMUGRUBOPTS)
+
+qemu-gdb-grub: grub-iso
+	@echo "*** Now run 'gdb'." 1>&2
+	$(QEMU) $(QEMUGRUBOPTS) -S $(QEMUPORT)
 
 ifneq ($(LAB),5)
 # Launch QEMU for debugging. Labs 1-4 need only one instance of QEMU.

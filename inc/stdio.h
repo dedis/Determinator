@@ -37,6 +37,14 @@ static inline int no_cprintf(const char *fmt, ...)
 	return 0;
 }
 
+#ifdef GRUB_DEBUG
+#define grub_cprintf(fmt, ...) \
+	cprintf(fmt, ##__VA_ARGS__)
+#else
+#define grub_cprintf(fmt, ...) \
+	no_cprintf(fmt, ##__VA_ARGS__)
+#endif
+
 #ifdef INIT_DEBUG
 #define init_cprintf(fmt, ...) \
 	cprintf(fmt, ##__VA_ARGS__)
