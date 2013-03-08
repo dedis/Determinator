@@ -1,7 +1,7 @@
 ---
 28-Mar-10
 
-On building a cross-compiler for PIOS...
+On building a cross-compiler for Determinator/PIOS...
 
 configure command line for binutils:
 ../configure --target=pios --prefix=$HOME/det/pios/xc --disable-werror

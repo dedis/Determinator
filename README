@@ -1,20 +1,22 @@
-PIOS Instructor's Source Tree
-Prerelease Notes
+Determinator Source Tree
 
 
 Introduction
 ~~~~~~~~~~~~
-This README contains basic information about configuring, building, and
-running PIOS.  For more information about the design of PIOS and the
-5-lab OS course curriculum designed into the current version, please
-see the PIOS home page:
-
-	http://zoo.cs.yale.edu/classes/cs422/pios
-
-For a more systems research perspective on the design of PIOS and its
-"big brother" research kernel, see the papers on the Determinator page:
+This README contains basic information about configuring, building, and running
+Determinator.  For more information about the design of the Determinator OS,
+please see the Determinator home page:
 
 	http://dedis.cs.yale.edu/2010/det/
+
+The current version of Determinator runs on the x86-64 architecture only,
+and is intended to be a research prototype for ongoing experimentation.
+
+Determinator is derived from PIOS (http://zoo.cs.yale.edu/classes/cs422/pios),
+an instructional operating system for the x86-32 architecture.
+If you are an OS instructor and would like to get the "instructor's edition"
+of the smaller and simpler, original 32-bit version of PIOS
+for use in a course, please contact Bryan Ford (bryan.ford@yale.edu).
 
 
 Prerequisite Tools
@@ -27,57 +29,6 @@ If you're running on another OS whose native object format is not ELF
 (e.g., on a Mac), then you'll need to download GNU binutils and gcc,
 and build and install them as a cross-compiler configured for the
 target 'i386-elf'.  See the section later in this README for details.
-
-
-Configuring PIOS
-~~~~~~~~~~~~~~~~
-This is the "instructor's version" of PIOS, which effectively contains several
-versions of the PIOS kernel in one source tree.  To use it, you first have to
-set it up for a particular lab and solution configuration, which determines
-which parts of the source code are included.  This configuration consists of
-two components: a lab number (LAB=n) and a solution number (SOL=m).  The lab
-number currently ranges from 1 to 5, and the solution number is typically
-either 0 or the same as the lab number.  In the former case (LAB=n SOL=0),
-you'll get a kernel containing only the "skeleton" code intended to be given to
-students at the beginning of lab n.  In the latter case (LAB=n SOL=n), you'll
-get a fully functional kernel appropriate for lab n, including the instructors'
-reference solution code for that lab.
-
-For general experimentation with PIOS, the most convenient configuration to
-play with is probably the instructors' solution kernel for lab 4, since that's
-the most complete non-distributed PIOS configuration:
-
-	make LAB=4 SOL=4 labsetup
-
-The corresponding lab 5 version (LAB=5 SOL=5) is the most complete, as it
-includes the distributed computing facilities.  However, the default testing
-rules in the makefiles automatically start two virtual machines instead of just
-one, which is useful for students working on lab 5 but can be a pain or just
-confusing if you're not actually trying to test a distributed, cluster
-configuration of PIOS.
-
-For any of these configurations, you can export an 'unifdef'd source tree
-containing ONLY the code for the desired configuration.  This is how we build
-the actual source trees we give to the students.  For example, to export a
-handout skeleton source tree for lab 3, type 'make export-lab3', and the
-skeleton source tree will be in the 'lab3' subdirectory.  Similarly, to build a
-source tree containing only the solution code for lab 3, type 'make
-export-sol3', and the result will be in the 'sol3' subdirectory.  For more
-information on building without doing exports, look at the top of GNUMakefile.
-
-
-Hacking PIOS
-~~~~~~~~~~~~
-You're of course welcome to hack PIOS any way you like in order to adapt it to
-the objectives of different OS courses, or to use it for other purposes.  An
-easy way to change the pacing or difficulty of the PIOS curriculum is simply to
-eliminate or move the ifdefs to give students more (or less) code to start from
-in the skeleton code source trees you hand out to them.
-
-In hacking the PIOS source code and/or makefiles yourself, be warned against
-starting lines with dangerous keywords like if/ifdef/ifndef/else/endif/fi
-unless they will be matched correctly by our mklab.pl script.  This should only
-be a problem for strangely written perl code or shell scripts.
 
 
 Cross-Compiler Tools

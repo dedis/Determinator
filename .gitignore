@@ -12,5 +12,4 @@ node?.dump
 xc
 lab?/
 sol?/
-conf/lab.mk
 #endif

@@ -158,51 +158,6 @@ all:
 
 
 
-#if LAB >= 999			##### Begin Instructor/TA-Only Stuff #####
-
-# Use a fake target to make sure both LAB and SOL are defined.
-all inc/types.h: checklab
-checklab:
-ifdef SETTINGLAB
-	@echo "run: make LAB=N SOL=N labsetup, then just run make"
-	@false
-endif
-	@echo "Building LAB=$(LAB) SOL=$(SOL)"
-
-labsetup:
-	rm -rf obj labsetup
-	test -d conf || mkdir conf
-	echo >conf/lab.mk "LAB=$(LAB)"
-	echo >>conf/lab.mk "SOL=$(SOL)"
-	echo >>conf/lab.mk "LAB1=true"
-ifneq ($(LAB), 1)
-	echo >>conf/lab.mk "LAB2=true"
-ifneq ($(LAB), 2)
-	echo >>conf/lab.mk "LAB3=true"
-ifneq ($(LAB), 3)
-	echo >>conf/lab.mk "LAB4=true"
-ifneq ($(LAB), 4)
-	echo >>conf/lab.mk "LAB5=true"
-ifneq ($(LAB), 5)
-	echo >>conf/lab.mk "LAB9=true"
-endif	# LAB != 4
-endif	# LAB != 4
-endif	# LAB != 3
-endif	# LAB != 2
-endif	# LAB != 1
-
-ifndef LAB5
-all: $(OBJDIR)/fs/fs.img
-$(OBJDIR)/fs/fs.img:
-	$(V)mkdir -p $(@D)
-	$(V)touch $@
-endif
-
-distclean: clean-labsetup
-clean-labsetup:
-	rm -f conf/lab.mk
-#endif // LAB >= 999		##### End Instructor/TA-Only Stuff #####
-
 # Include Makefrags for subdirectories
 include boot/Makefrag
 include kern/Makefrag
