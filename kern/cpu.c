@@ -165,7 +165,6 @@ void cpu_init()
 			cpus[i].in_use = 0;
 		cpu_info();
 
-
 		// Copy the lowcode to low memory,
 		// used to boot other CPUs and (optionally)
 		// make callbacks to the 16-bit BIOS.
@@ -260,9 +259,6 @@ cpu_alloc(void)
 void
 cpu_bootothers(void)
 {
-	extern uint8_t _binary_obj_boot_bootother_start[],
-			_binary_obj_boot_bootother_size[];
-
 	if (!cpu_onboot()) {
 		// Just inform the boot cpu we've booted.
 		xchg(&cpu_cur()->booted, 1);
@@ -270,16 +266,15 @@ cpu_bootothers(void)
 	}
 
 	// Write bootstrap code to unused memory at 0x1000 (start of 2nd page).
-	uint8_t *code = (uint8_t*)lowcode_start;
 	cpu *c;
 	for(c = &cpu_boot; c; c = c->next){
 		if(c == cpu_cur())  // We''ve started already.
 			continue;
 
 		// Fill in %rsp, %rip, location of page table and start code on cpu.
-		*(void**)(code-8) = c->kstackhi;
-		*(void**)(code-16) = init;
-		*(void**)(code-24) = pmap_bootpmap;
+		*(void**)(lowcode_start-8) = c->kstackhi;
+		*(void**)(lowcode_start-16) = init;
+		*(void**)(lowcode_start-24) = pmap_bootpmap;
 		lapic_startcpu(c->id, *(uint32_t*)lowcode_bootother_vec);
 
 		// Wait for cpu to get through bootstrap.

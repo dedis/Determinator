@@ -55,12 +55,12 @@ seta20.2:
   # Before switching to protected mode, get memory map info
   # first, using int 0x15, eax = 0xe820 bios function.
   # Memory map info will be stored to area starting from
-  # 0x1004 (es:di = 0000:1004), each entry will be 20 byte long.
-  # 0x1000 stores number of entries
+  # 0x2004 (es:di = 0000:2004), each entry will be 20 byte long.
+  # 0x2000 stores number of entries
 e820:
   xorl    %ebx, %ebx
   xorw    %bp, %bp
-  movw    $0x1004, %di
+  movw    $0x2004, %di
   movl    $0x534D4150, %edx       # "SMAP"
   movl    $0xe820, %eax
   movw    $20, %cx
@@ -87,7 +87,7 @@ e820_skip:
   test    %ebx, %ebx
   jnz     e820_read
 e820_finish:
-  movw    $0x1000, %di
+  movw    $0x2000, %di
   movl    %ebp, (%di)
   jmp     setprot
 

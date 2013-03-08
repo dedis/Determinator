@@ -55,8 +55,8 @@ multiboot_header:
 	.long -(MULTIBOOT2_HEADER_MAGIC + MULTIBOOT_ARCH_I386 + (multiboot_header_end - multiboot_header)) /* checksum */
 
 	.short MULTIBOOT_HEADER_TAG_END
-	.short 0
-	.long 8
+	.short 0	// tag flags
+	.long 8		// tag size
 multiboot_header_end:
 #else
 	.long MULTIBOOT_HEADER_MAGIC
@@ -180,13 +180,14 @@ entry64:	// we are now in 64-bit mode.
 spin:	jmp	spin
 
 
-// Temporary GDT for switching to protected mode, then long mode.
-// Place it in our text segment to ensure that it stays
-// in the lowest 64KB real-mode segment.
 #ifdef MULTIBOOT2
 multiboot2_magic:
 	.long	0x00000000
 #endif
+
+// Temporary GDT for switching to protected mode, then long mode.
+// Place it in our text segment to ensure that it stays
+// in the lowest 64KB real-mode segment.
 	.p2align 3
 gdt:
 	SEGNULL64				// null segment

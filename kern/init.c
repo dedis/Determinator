@@ -83,7 +83,7 @@ parse_multiboot2_info(unsigned long addr)
 	unsigned size;
 
 	size = *(unsigned *) addr;
-	cprintf ("Announced mbi size 0x%x\n", size);
+	cprintf ("MultiBoot2 info addr 0x%x size 0x%x\n", addr, size);
 
 	for (tag = (struct multiboot_tag *) (addr + 8);
 	     tag->type != MULTIBOOT_TAG_TYPE_END;

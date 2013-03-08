@@ -26,8 +26,7 @@
 #include <kern/net.h>
 #endif
 
-size_t mem_max_addr;		// Maximum physical address
-size_t mem_max;			// Maximum size of physical memory
+size_t mem_max;			// Maximum physical memory address
 size_t mem_npage;		// Total number of physical memory pages
 
 pageinfo *mem_pageinfo;		// Metadata array indexed by page number
@@ -49,32 +48,34 @@ mem_init(void)
 	// Determine how much base (<640K) and extended (>1MB) memory
 	// is available in the system (in bytes),
 #ifndef MULTIBOOT2
-	// now we have memory map info from 0x1000
-	// 0x1000: number of entries
-	// 0x1004-(every 20 bytes):
+	// The boot loader in boot/boot.S puts memory map info at 0x2000
+	// 0x2000: number of entries
+	// 0x2004-(every 20 bytes):
 	//     64bit base address
 	//     64bit length
 	//     32bit type
-	uint32_t mem_range_cnt = *(uint32_t *)mem_ptr(0x1000);
-	mem_addr_range *mem_ranges = mem_ptr(0x1004);
+	uint32_t mem_range_cnt = *(uint32_t *)mem_ptr(0x2000);
+	mem_addr_range *mem_ranges = mem_ptr(0x2004);
 #else
 	uint32_t mem_range_cnt = grub_mmap_nentries > 0 ? grub_mmap_nentries
-				: *(uint32_t *)mem_ptr(0x1000);
+				: *(uint32_t *)mem_ptr(0x2000);
 	mem_addr_range *mem_ranges = grub_mmap_nentries > 0 ? grub_mmap_entries
-				: mem_ptr(0x1004);
+				: mem_ptr(0x2004);
 #endif
 	uint32_t k;
 	size_t basemem = 0;
 	size_t extmem = MEM_EXT;
-	mem_max_addr = 0;
+	mem_max = 0;
 	for (k = 0; k < mem_range_cnt; k++, mem_ranges++ ) {
 		size_t end = mem_ranges->base + mem_ranges->size;
-		if (mem_max_addr < end )
-			mem_max_addr = end;
-		cprintf("range %u %llx - %llx (%llx, %s)\n", k, 
+		if (mem_max < end )
+			mem_max = end;
+		cprintf("Physical range %u %llx - %llx (%llx, %s)\n", k, 
 			mem_ranges->base, end,  
 			mem_ranges->size, 
-			mem_ranges->type == MEM_RESERVED ? "reserved" : "usable");
+			mem_ranges->type == MEM_RESERVED
+				? "reserved" : "usable");
+		assert(mem_ranges->size > 0);	// sanity check
 		if (mem_ranges->type == MEM_RESERVED)
 			continue;
 		if (mem_ranges->base < MEM_EXT) {
@@ -84,7 +85,7 @@ mem_init(void)
 		}
 	}
 
-#if BIOSCALL		// XXX not yet ported to 64-bit!
+#ifdef BIOSCALL		// XXX not yet ported to 64-bit!
 	// make an int 0x15, e820 call
 	// to determine physical memory.	
 	// refer to link: http://www.uruk.org/orig-grub/mem64mb.html	
@@ -106,10 +107,6 @@ mem_init(void)
 		mem_max = MAX(mem_max,mem_array[i].base+mem_array[i].size);
 
 	}
-#else	// !BIOSCALL
-
-	// The maximum physical address is the top of extended memory.
-	mem_max = MEM_EXT + extmem;
 #endif	// !BIOSCALL
 
 	// Compute the total number of physical pages (including I/O holes)

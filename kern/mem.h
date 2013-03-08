@@ -120,7 +120,7 @@ typedef struct pageinfo {
 
 
 // The pmem module sets up the following globals during mem_init().
-extern size_t mem_max;		// Maximum physical address
+extern size_t mem_max;		// Maximum physical address of usable memory
 extern size_t mem_npage;	// Total number of physical memory pages
 extern pageinfo *mem_pageinfo;	// Metadata array indexed by page number
 
