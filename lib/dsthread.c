@@ -949,6 +949,11 @@ static int condevent(pthread_cond_t *c, bool broadcast)
 	if (c->qhead == NULL)
 		return 0;	// no one waiting, nothing to do
 
+	// Why doesn't this need to be an mcall?
+	// Because c->nwake, evconds, etc. are quasi-"thread-private"
+	// in that they will always be processed and set back to
+	// their standard "quiescent" values by the mret() at the latest,
+	// so the modified values here will never "leak" to other threads.
 	mlock();
 
 	pthread *t = self();
@@ -958,8 +963,8 @@ static int condevent(pthread_cond_t *c, bool broadcast)
 		evconds = c;
 	}
 	if (broadcast)
-		c->nwake = INT_MAX;
-	else
+		c->nwake = MAXTHREADS;
+	else if (c->nwake < MAXTHREADS)
 		c->nwake++;
 	//cprintf("cond_event thread %d %x bcast %d nwake %d\n",
 	//	t->tno, c, broadcast, c->nwake);

@@ -218,6 +218,12 @@
 	SEG32(app, type, base, limit, dpl, mode); \
 	.long (base >> 32), 0
 
+#define SEG16(type,base,lim)					\
+	.word (((lim) >> 12) & 0xffff), ((base) & 0xffff);	\
+	.byte (((base) >> 16) & 0xff), (0x90 | (type)),		\
+		(0x20 | (((lim) >> 28) & 0xf)), (((base) >> 24) & 0xff)
+		//granularity set to 0
+
 #else	// not __ASSEMBLER__
 
 #include <inc/types.h>

@@ -67,8 +67,8 @@ typedef struct proc {
 #if LAB >= 5
 
 	// Network and process migration state.
-	intptr_t	home;		// RR to proc's home node and addr
-	intptr_t	rrpml4;		// RR to migration source's page map 
+	uintptr_t	home;		// RR to proc's home node and addr
+	uintptr_t	rrpdir;		// RR to migration source's page dir
 	uint8_t		migrdest;	// Destination we're migrating to
 	struct proc	*migrnext;	// Next on list of migrating procs
 

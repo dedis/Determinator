@@ -164,6 +164,17 @@ void cpu_init()
 		for (i = 0; i < NR_CPUS; i++)
 			cpus[i].in_use = 0;
 		cpu_info();
+
+
+		// Copy the lowcode to low memory,
+		// used to boot other CPUs and (optionally)
+		// make callbacks to the 16-bit BIOS.
+		extern uint8_t _binary_obj_boot_bootother_start[],
+				_binary_obj_boot_bootother_size[];
+		memmove((uint8_t*)lowcode_start,
+			_binary_obj_boot_bootother_start,
+			(uint64_t)_binary_obj_boot_bootother_size);
+
 	}
 #endif
 
@@ -258,11 +269,8 @@ cpu_bootothers(void)
 		return;
 	}
 
-	// Write bootstrap code to unused memory at 0x1000 (start of the 2nd page).
-	uint8_t *code = (uint8_t*)0x1000;
-	memmove(code, _binary_obj_boot_bootother_start,
-		(uint64_t)_binary_obj_boot_bootother_size);
-
+	// Write bootstrap code to unused memory at 0x1000 (start of 2nd page).
+	uint8_t *code = (uint8_t*)lowcode_start;
 	cpu *c;
 	for(c = &cpu_boot; c; c = c->next){
 		if(c == cpu_cur())  // We''ve started already.
@@ -272,7 +280,7 @@ cpu_bootothers(void)
 		*(void**)(code-8) = c->kstackhi;
 		*(void**)(code-16) = init;
 		*(void**)(code-24) = pmap_bootpmap;
-		lapic_startcpu(c->id, (uintptr_t)code);
+		lapic_startcpu(c->id, *(uint32_t*)lowmem_bootother_vec);
 
 		// Wait for cpu to get through bootstrap.
 		while(c->booted == 0)

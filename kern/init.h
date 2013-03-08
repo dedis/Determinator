@@ -18,6 +18,12 @@
 #include <inc/cdefs.h>
 
 
+// Defines for where boot/bootother.S gets copied to in low memory
+#define lowcode_start	0x1000
+#define lowcode_bootother_vec	0x1000
+#define lowcode_bioscall_vec	0x1004
+
+
 // Called on each processor to initialize the kernel.
 #ifdef MULTIBOOT2
 void init(unsigned long, unsigned long);
