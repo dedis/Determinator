@@ -252,14 +252,12 @@ typedef struct segdesc {
 // Segment that is loadable but faults when used
 #define SEGDESC_FAULT	(struct segdesc){ 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0 }
 // Normal segment
-#define SEGDESC64(app, type, base, lim, dpl, mode) (struct segdesc)		\
-{ ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
-    (type), (app), (dpl), 1, (unsigned)(lim) >> 28, 0, (mode), ~(mode), 1,	\
-    ((base) >> 24) & 0xff, (unsigned long long)(base) >> 32, 0 }
-#define SEGDESC64_nogran(app, type, base, lim, dpl, mode) (struct segdesc)             \
-{ ((lim)) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,       \
-    (type), (app), (dpl), 1, ((lim) >> 16) & 0xf, 0, (mode), ~(mode), 0,     \
-    ((base) >> 24) & 0xff, ((unsigned long long)(base)) >> 32, 0 }
+#define SEGDESC64(app, type, base, lim, dpl, mode, gran) (struct segdesc)	\
+{	((uint32_t)(lim) >> ((gran) ? 12 : 0)) & 0xffff,			\
+	(base) & 0xffff, ((base) >> 16) & 0xff,					\
+	(type), (app), (dpl), 1, (uint32_t)(lim) >> ((gran) ? 16+12 : 16),	\
+	0, (mode), ~(mode), (gran),						\
+	((base) >> 24) & 0xff, (uint64_t)(base) >> 32, 0 }
 
 #define SEGDESC32(app, type, base, lim, dpl, mode) (struct segdesc)		\
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\

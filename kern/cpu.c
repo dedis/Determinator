@@ -40,33 +40,33 @@ cpu cpu_boot = {
 		
 		// 0x10 - 32-bit kernel code segment
 		[SEG_KERN_CS_32 >> 4] = SEGDESC64(1, STA_X | STA_R, 
-					0L, 0xffffffff, 0, 0),
+					0L, 0xffffffff, 0, 0, 1),
 #if SOL >= 1
 
 		// 0x20 - 32-bit kernel data segment
 		[SEG_KERN_DS_32 >> 4] = SEGDESC64(1, STA_W,
-					0L, 0xffffffff, 0, 0),
+					0L, 0xffffffff, 0, 0, 1),
 
 		// 0x30 - 64-bit kernel code segment
 		[SEG_KERN_CS_64 >> 4] = SEGDESC64(1, STA_X | STA_R,
-					0L, 0xffffffff, 0, 1),
+					0L, 0xffffffff, 0, 1, 1),
 
 		// 0x40 - 64-bit kernel data segment
 		[SEG_KERN_DS_64 >> 4] = SEGDESC64(1, STA_W,
-					0L, 0xffffffff, 0, 1),
+					0L, 0xffffffff, 0, 1, 1),
 
 		// 0x50 - 64-bit user code segment
 		[SEG_USER_CS_64 >> 4] = SEGDESC64(1, STA_X | STA_R,
-					0L, 0xffffffff, 3, 1),
+					0L, 0xffffffff, 3, 1, 1),
 
 		// 0x60 - 64-bit user data segment
                 [SEG_USER_DS_64 >> 4] = SEGDESC64(1, STA_W,
-                                        0L, 0xffffffff, 3, 1),
+                                        0L, 0xffffffff, 3, 1, 1),
 
 #if LAB >= 9
 		// 0x70 - 64-bit user thread local storage data segment
 		[SEG_USER_GS_64 >> 4] = SEGDESC64(1, STA_W,
-					0L, 0xffffffff, 3, 1),
+					0L, 0xffffffff, 3, 1, 1),
 #endif
 		// 0x70 - tss, initialized in cpu_init()
 		[SEG_TSS >> 4] = SEGDESC_NULL,
@@ -186,8 +186,8 @@ void cpu_init()
 
 	// Initialize the non-constant part of the cpu's GDT:
 	// the TSS descriptor is different for each cpu.
-	c->gdt[SEG_TSS >> 4] = SEGDESC64_nogran(0, STS_T64A, (uintptr_t) (&c->tss),
-					sizeof(taskstate)-1, 0, 1);
+	c->gdt[SEG_TSS >> 4] = SEGDESC64(0, STS_T64A, (uintptr_t) (&c->tss),
+					sizeof(taskstate)-1, 0, 1, 0);
 
 #endif	// SOL >= 1
 	// Load the GDT
@@ -280,7 +280,7 @@ cpu_bootothers(void)
 		*(void**)(code-8) = c->kstackhi;
 		*(void**)(code-16) = init;
 		*(void**)(code-24) = pmap_bootpmap;
-		lapic_startcpu(c->id, *(uint32_t*)lowmem_bootother_vec);
+		lapic_startcpu(c->id, *(uint32_t*)lowcode_bootother_vec);
 
 		// Wait for cpu to get through bootstrap.
 		while(c->booted == 0)

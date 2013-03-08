@@ -56,7 +56,7 @@
 #endif	// BIOSCALL
 
 
-#ifndef __ASSEMBLER__ /
+#ifndef __ASSEMBLER__
 
 #include <inc/types.h>
 #include <inc/assert.h>
