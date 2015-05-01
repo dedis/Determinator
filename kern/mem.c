@@ -70,9 +70,9 @@ mem_init(void)
 		size_t end = mem_ranges->base + mem_ranges->size;
 		if (mem_max < end )
 			mem_max = end;
-		cprintf("Physical range %u %llx - %llx (%llx, %s)\n", k, 
-			mem_ranges->base, end,  
-			mem_ranges->size, 
+		cprintf("Physical range %u %llx - %llx (%llx, %s)\n", k,
+			mem_ranges->base, end,
+			mem_ranges->size,
 			mem_ranges->type == MEM_RESERVED
 				? "reserved" : "usable");
 		assert(mem_ranges->size > 0);	// sanity check
@@ -87,10 +87,10 @@ mem_init(void)
 
 #ifdef BIOSCALL		// XXX not yet ported to 64-bit!
 	// make an int 0x15, e820 call
-	// to determine physical memory.	
-	// refer to link: http://www.uruk.org/orig-grub/mem64mb.html	
+	// to determine physical memory.
+	// refer to link: http://www.uruk.org/orig-grub/mem64mb.html
 
-	struct e820_mem_map mem_array[MEM_MAP_MAX];	
+	struct e820_mem_map mem_array[MEM_MAP_MAX];
 	uint16_t mem_map_entries = detect_memory_e820(mem_array);
 	uint16_t temp_ctr;
 	uint64_t total_ram_size = 0;
@@ -100,9 +100,9 @@ mem_init(void)
 	for(i=0;i<mem_map_entries;i++)
 	{
 		//the memory should be usable!
-		assert(mem_array[i].type == E820TYPE_MEMORY 
-				|| mem_array[i].type == E820TYPE_ACPI); 
-		
+		assert(mem_array[i].type == E820TYPE_MEMORY
+				|| mem_array[i].type == E820TYPE_ACPI);
+
 		total_ram_size += mem_array[i].size;
 		mem_max = MAX(mem_max,mem_array[i].base+mem_array[i].size);
 
@@ -172,7 +172,7 @@ mem_init(void)
 	}
 
 	for(i=0;i<mem_map_entries;i++) {
-		
+
 		//The memory layout is as under
 		// -------------------------------------------------
 		// | p0 | p1 | p2 | ... | basemem | kernel | freemem
@@ -180,8 +180,8 @@ mem_init(void)
 		// | B  | B  | F  | F   |           B      | F
 		// -------------------------------------------------
 		// here B indicates "not-free" and F indicates "free"
-		// we need to check if the memory map region lies in 
-		// the "F" region if it does not, 
+		// we need to check if the memory map region lies in
+		// the "F" region if it does not,
 		// we try to clamp it so that it does.
 
 		int region_start = mem_array[i].base;
@@ -190,7 +190,7 @@ mem_init(void)
 		if(region_start < 2*PAGESIZE ) {
 			region_start = 2*PAGESIZE;
 		}
-		else if (region_start < mem_phys(freemem) 
+		else if (region_start < mem_phys(freemem)
 				&& region_end > mem_phys(start)) {
 			region_start = mem_phys(freemem);
 		}
@@ -234,7 +234,7 @@ mem_init(void)
 	//  2) Reserve page 1 for the AP bootstrap code (boot/bootother.S).
 	//  3) Mark the rest of base memory as free.
 	//  4) Then comes the IO hole [MEM_IO, MEM_EXT).
-	//     Mark it as in-use so that it can never be allocated.      
+	//     Mark it as in-use so that it can never be allocated.
 	//  5) Then extended memory [MEM_EXT, ...).
 	//     Some of it is in use, some is free.
 	//     Which pages hold the kernel and the pageinfo array?
@@ -263,15 +263,15 @@ mem_init(void)
 #ifdef BIOSCALL		// XXX not yet ported to 64-bit!
 int detect_memory_e820(struct e820_mem_map mem_array[MEM_MAP_MAX])
 {
-	struct bios_regs regs; 
-	
+	struct bios_regs regs;
+
 	//variables for e820 memory map
 	uint32_t *e820_base_low = (uint32_t*)(BIOS_BUFF_DI);
 	uint32_t *e820_base_high = (uint32_t*)(BIOS_BUFF_DI+4);
 	uint32_t *e820_size_low = (uint32_t*)(BIOS_BUFF_DI+8);
 	uint32_t *e820_size_high = (uint32_t*)(BIOS_BUFF_DI+12);
 	uint32_t *e820_type = (uint32_t*)(BIOS_BUFF_DI + 16);
-	
+
 	int e820_ctr = 0;
 
 	regs.ebx = 0x00000000; //must be set to 0 for initial call
@@ -282,7 +282,7 @@ int detect_memory_e820(struct e820_mem_map mem_array[MEM_MAP_MAX])
 		regs.int_no = 0x15; //interrupt number
 		regs.eax = 0xe820; //BIOS function to call
 		regs.edx = SMAP; //must be set to SMAP value.
-		regs.ecx = 0x00000018; //ask the BIOS to fill 24 bytes 
+		regs.ecx = 0x00000018; //ask the BIOS to fill 24 bytes
 		                //(24 is the buffer size as needed by ACPI 3.x).
 		regs.es = BIOS_BUFF_ES; //segment number of the buffer
 		                        //the BIOS fills
@@ -298,12 +298,12 @@ int detect_memory_e820(struct e820_mem_map mem_array[MEM_MAP_MAX])
 		//check if bios has trashed these registers
   	        //we use these macros to read memory map
 		assert(regs.es == BIOS_BUFF_ES && regs.edi == BIOS_BUFF_DI);
-		
+
 		// check for usable memory
-		if (*e820_type == E820TYPE_MEMORY 
-				|| *e820_type == E820TYPE_ACPI) 
+		if (*e820_type == E820TYPE_MEMORY
+				|| *e820_type == E820TYPE_ACPI)
 		{
-			assert(e820_ctr < MEM_MAP_MAX); 
+			assert(e820_ctr < MEM_MAP_MAX);
 
 			mem_array[e820_ctr].base = ((uint64_t)(*e820_base_high)<<32) + (*e820_base_low);
 			mem_array[e820_ctr].size = ((uint64_t)(*e820_size_high)<<32) + (*e820_size_low);
@@ -311,7 +311,7 @@ int detect_memory_e820(struct e820_mem_map mem_array[MEM_MAP_MAX])
 			e820_ctr++;
 		}
 
-		
+
 	}
 	while(regs.ebx!=0 && regs.cf == 0 && regs.eax == SMAP);
 
@@ -325,7 +325,7 @@ int detect_memory_e820(struct e820_mem_map mem_array[MEM_MAP_MAX])
 // XXX perhaps belongs in kern/cpu.c?
 void bios_call(struct bios_regs *inp)
 {
-	struct bios_regs *lowmem_bios_regs = 
+	struct bios_regs *lowmem_bios_regs =
 		(struct bios_regs *)
 			(lowmem_bootother_vec - sizeof(struct bios_regs));
 
@@ -334,7 +334,7 @@ void bios_call(struct bios_regs *inp)
 
 	//now copy register values to low memory
 	*lowmem_bios_regs = *inp;
-	
+
 	asm volatile("call *0x1004": : :
 			"eax","ebx","ecx","edx","esi","memory");
 
@@ -349,11 +349,11 @@ void bios_call(struct bios_regs *inp)
 // Does NOT set the contents of the physical page to zero -
 // the caller must do that if necessary.
 //
-// RETURNS 
+// RETURNS
 //   - a pointer to the page's pageinfo struct if successful
 //   - NULL if no available physical pages.
 //
-// Hint: pi->refs should not be incremented 
+// Hint: pi->refs should not be incremented
 #if LAB >= 2
 // Hint: be sure to use proper mutual exclusion for multiprocessor operation.
 #endif

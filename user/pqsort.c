@@ -175,7 +175,7 @@ pqsort(void *arg)
 	//printf("cn %d, lo = %x, hi = %x, num = %d\n", cn, lo, hi, hi-lo + 1);
 	if (lo >= hi)
 		return NULL;
-	
+
 	if(/*hi <= lo + MIN_STRIDE ||*/ nth <= 1) { // now, MIN_STRIDE is controlled by nthread...
 		//int tmp = hi[1];
 		//hi[1] = INT_MAX;
@@ -236,7 +236,7 @@ gen_randints(size_t n, int seed) {
 
 void
 testpqsort(int array_size, int nthread)
-{	
+{
 	assert(nthread <= MAXTHREADS);
 	int iter;
 

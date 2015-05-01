@@ -147,7 +147,7 @@ tparallel_internal(void * args_ptr)
 
 void
 tparallel_begin(int * master, int num_children, void * (* start_routine)(void *), void * args,
-		int status_array[]) 
+		int status_array[])
 {
 
 	internal_args_t internal_args;

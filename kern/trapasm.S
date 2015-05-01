@@ -138,7 +138,7 @@ _alltraps:
 	movw %ax,%es
 
 	xorq %rbp,%rbp		# don't let debug_trace() walk into user space
-	
+
 	movq %rsp,%r15		# save %rsp; can be used to restore stack pointer during trap return
 				# can be done only if %r15 is not being used in the trap handling code
 	movq %rsp,%rdi		# WWY: pass rsp to argument via rdi instead of stack

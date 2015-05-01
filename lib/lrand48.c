@@ -45,7 +45,7 @@ drand48_iterate (unsigned short int xsubi[3], struct drand48_data * buffer)
 
 
 int
-nrand48_r (unsigned short int xsubi[3], struct drand48_data * buffer, 
+nrand48_r (unsigned short int xsubi[3], struct drand48_data * buffer,
 	   long int * result)
 {
 	/* Compute next state.  */

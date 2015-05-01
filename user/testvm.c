@@ -88,7 +88,7 @@ gentrap(int trap)
 {
 	/*TODO:: Ishan - 01 Jun,2011
 	  Replace the bound instruction
-	 */ 
+	 */
 	int bounds[2] = { 1, 3 };
 	switch (trap) {
 	case T_DIVIDE:

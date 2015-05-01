@@ -41,7 +41,7 @@ ENTRY(cos)
 	fnstsw	%ax
 	andw	$0x400,%ax
 	jnz	1f
-	ret	
+	ret
 1:	fldpi
 	fadd	%st(0)
 	fxch	%st(1)

@@ -252,7 +252,7 @@ cpackl(long double x, long double y)
 	return (z.f);
 }
 #endif /* _COMPLEX_H */
- 
+
 #ifdef __GNUCLIKE_ASM
 
 /* Asm versions of some functions. */

@@ -3,7 +3,7 @@
  * based on printfmt() and cputs().
  *
  * cprintf is a debugging facility, not a generic output facility.
- * It is very important that it always go to the console, especially when 
+ * It is very important that it always go to the console, especially when
  * debugging file descriptor code!
  *
  * Copyright (c) 1986, 1988, 1991, 1993

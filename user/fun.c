@@ -14,14 +14,14 @@
 
 #define NUM_CHILDREN 4
 
-static int array[10];  
+static int array[10];
 static pthread_barrier_t barrier;
 
 
 void print_array() {
 
 	int i;
-	for (i = 0; i < 10; i++) 
+	for (i = 0; i < 10; i++)
 		printf("%d ", array[i]);
 	printf("\n");
 }
@@ -65,7 +65,7 @@ int main(int argc, char ** argv) {
 	fprintf(stderr, "In parent again.\n");
 	for (i = 0; i < NUM_CHILDREN; i++)
 		pthread_join(threads[i], (void **)&status);
-		
+
 	ret = pthread_barrier_destroy(&barrier);
 	if (ret != 0)
 		fprintf(stderr, "*** pthread_barrier_destroy  %d\n", ret);

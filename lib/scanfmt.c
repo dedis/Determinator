@@ -142,7 +142,7 @@ vscanfmt(int (*lookch)(int action, void *dat), void *dat,
 			continue;
 		    }
 		case 'd':			// decimal integer
-		case 'u': 
+		case 'u':
 			base = 10;
 			goto number;
 		case 'x': case 'X':		// hexadecimal integer

@@ -2,7 +2,7 @@
 /*
  * Boot loader entrypoint and protected mode setup.
  *
- * Copyright (C) 1997 Massachusetts Institute of Technology 
+ * Copyright (C) 1997 Massachusetts Institute of Technology
  * See section "MIT License" in the file LICENSES for licensing terms.
  *
  * Derived from the MIT Exokernel and JOS.
@@ -92,15 +92,15 @@ e820_finish:
   jmp     setprot
 
   # Switch from real to protected mode, using a bootstrap GDT
-  # and segment translation that makes virtual addresses 
-  # identical to their physical addresses, so that the 
+  # and segment translation that makes virtual addresses
+  # identical to their physical addresses, so that the
   # effective memory map does not change during the switch.
 setprot:
   lgdt    gdtdesc
   movl    %cr0, %eax
   orl     $CR0_PE_ON, %eax
   movl    %eax, %cr0
-  
+
   # Jump to next instruction, but in 32-bit code segment.
   # Switches processor into 32-bit mode.
   ljmp    $SEG_KERN_CS_32, $protcseg
@@ -112,7 +112,7 @@ protcseg:
   movw    %ax, %ds                # -> DS: Data Segment
   movw    %ax, %es                # -> ES: Extra Segment
   movw    %ax, %ss                # -> SS: Stack Segment
-  
+
   # Set up the stack pointer and call into C.
   movl    $start, %esp
   call bootmain

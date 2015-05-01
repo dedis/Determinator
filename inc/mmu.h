@@ -35,7 +35,7 @@
 
 // Page directory and page table constants.
 // entries per page table/page directory/page directory pointer/page map level-4
-#define NPTENTRIES	512 
+#define NPTENTRIES	512
 #define NPTBITS		9		// log2(NPTENTRIES)
 #define NPTLVLS     	3           	// page table depth -1
 
@@ -53,7 +53,7 @@
 // In 64-bit PIOS, the type of linear address is intptr_t.
 // Currently the valid range of linear addresses is [0, 2^47-1].
 // The layout of linear address space is shown in inc/vm.h.
-// 
+//
 // A linear address 'la' has a six-part structure as follows:
 // Index
 // +---16---+-----9-----+-----9-----+-----9-----+-----9-----+----12----+
@@ -61,7 +61,7 @@
 // |   Ext. |   Index   |   Index   |   Index   |   Index   |  in Page |
 // |        | PDX(3,la)/ \PDX(2,la)/ \PDX(1,la)/ \PDX(0,la)/ \PGOFF(la)/
 // +--------+-----------+-----------+-----------+-----------+----------+
-//           \----------------- PPN(la) -------------------/ 
+//           \----------------- PPN(la) -------------------/
 //
 // The PDX, PGOFF, and PPN macros decompose linear addresses as shown.
 //
@@ -73,10 +73,10 @@
 //
 // The PDADDR and PDOFF macros are used to construct a page/PT/PD/PDP region
 // -aligned linear address and an offset within a page/PT/PD/PDP region
-// from la. 
+// from la.
 
-// index info:         
-//   n = 0 => page table 
+// index info:
+//   n = 0 => page table
 //   n = 1 => page directory
 //   n = 2 => page directory pointer
 //   n = 3 => page map level 4
@@ -90,18 +90,18 @@
 #define PPN(la)		(((uintptr_t) (la)) >> PAGESHIFT)
 // bytes info:
 //   n = 0 => bytes mapped by a PTE, == PAGESIZE
-//   n = 1 => bytes mapped by a PDE, 32-bit: PTSIZE 
+//   n = 1 => bytes mapped by a PDE, 32-bit: PTSIZE
 //   n = 2 => bytes mapped by a PDPE
-//   n = 3 => bytes mapped by a PML4E 
+//   n = 3 => bytes mapped by a PML4E
 #define PDSIZE(n)	(0x1ULL<<PDSHIFT(n))
 #define PTSIZE		(1<<PDSHIFT(1))
 
 // linear address components
 #define PGADDR(la)	((uintptr_t) (la) & ~0xFFFULL)	// address of page
 //   n = 0 => address/offset of page, 32-bit: PGADDR(la), PGOFF(la)
-//   n = 1 => address/offset of page table, 32-bit: PTADDR(la), PTOFF(la) 
-//   n = 2 => address/offset of page-directory table 
-//   n = 3 => address/offset of page-directory-pointer table 
+//   n = 1 => address/offset of page table, 32-bit: PTADDR(la), PTOFF(la)
+//   n = 2 => address/offset of page-directory table
+//   n = 3 => address/offset of page-directory-pointer table
 #define PDADDR(n, la)	((uintptr_t) (la) & ~((0x1ULL << PDSHIFT(n)) - 1))
 #define PDOFF(n, la)	((uintptr_t) (la) & ((0x1ULL << PDSHIFT(n)) -1))
 #define PTOFF(la)	PDOFF(1, (la))

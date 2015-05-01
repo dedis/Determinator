@@ -211,8 +211,8 @@ pthread_join(pthread_t th, void **out_exitval)
 }
 
 
-int 
-pthread_barrier_init(pthread_barrier_t * barrier, 
+int
+pthread_barrier_init(pthread_barrier_t * barrier,
 			 const pthread_barrierattr_t * attr,
 			 unsigned int count)
 {
@@ -223,7 +223,7 @@ pthread_barrier_init(pthread_barrier_t * barrier,
 	}
 
 	for (b = 0; b < BARRIER_MAX; b++)
-		if (files->barriers[b] == 0) 
+		if (files->barriers[b] == 0)
 			break;
 
 	if (b == BARRIER_MAX) {
@@ -236,7 +236,7 @@ pthread_barrier_init(pthread_barrier_t * barrier,
 	return 0;
 }
 
-int 
+int
 pthread_barrier_destroy(pthread_barrier_t * barrier)
 {
 	if (*barrier < 0 || *barrier >= BARRIER_MAX) {
@@ -269,7 +269,7 @@ pthread_t pthread_self(void)
 {
 	// Conforms to common expectations of the
 	// first thread having ID 0.
-	return (int)files->thstat - 1; 
+	return (int)files->thstat - 1;
 }
 
 

@@ -163,7 +163,7 @@ e100_scb_wait(void)
 	for (i = 0; i < 100000; i++)
 		if (inb(e100.iobase + E100_CSR_SCB_COMMAND) == 0)
 			return;
-	
+
 	cprintf("e100_scb_wait: timeout\n");
 }
 
@@ -184,7 +184,7 @@ static void e100_tx_start(void)
 
 	if (e100.tx_idle) {
 		e100_scb_wait();
-		outl(e100.iobase + E100_CSR_SCB_GENERAL, 
+		outl(e100.iobase + E100_CSR_SCB_GENERAL,
 		     mem_phys(&e100.tx[i].tcb));
 		e100_scb_cmd(E100_SCB_COMMAND_CU_START);
 		e100.tx_idle = 0;
@@ -244,7 +244,7 @@ static void e100_rx_start(void)
 
 	if (e100.rx_idle) {
 		e100_scb_wait();
-		outl(e100.iobase + E100_CSR_SCB_GENERAL, 
+		outl(e100.iobase + E100_CSR_SCB_GENERAL,
 		     mem_phys(&e100.rx[i].rfd));
 		e100_scb_cmd(E100_SCB_COMMAND_RU_START);
 		e100.rx_idle = 0;

@@ -39,7 +39,7 @@
 #define E0ESC		(1<<6)
 
 
-static uint8_t shiftcode[256] = 
+static uint8_t shiftcode[256] =
 {
 	[0x1D] CTL,
 	[0x2A] SHIFT,
@@ -49,7 +49,7 @@ static uint8_t shiftcode[256] =
 	[0xB8] ALT
 };
 
-static uint8_t togglecode[256] = 
+static uint8_t togglecode[256] =
 {
 	[0x3A] CAPSLOCK,
 	[0x45] NUMLOCK,
@@ -77,7 +77,7 @@ static uint8_t normalmap[256] =
 	[0xD2] KEY_INS,		[0xD3] KEY_DEL
 };
 
-static uint8_t shiftmap[256] = 
+static uint8_t shiftmap[256] =
 {
 	NO,   033,  '!',  '@',  '#',  '$',  '%',  '^',	// 0x00
 	'&',  '*',  '(',  ')',  '_',  '+',  '\b', '\t',
@@ -100,13 +100,13 @@ static uint8_t shiftmap[256] =
 
 #define C(x) (x - '@')
 
-static uint8_t ctlmap[256] = 
+static uint8_t ctlmap[256] =
 {
-	NO,      NO,      NO,      NO,      NO,      NO,      NO,      NO, 
-	NO,      NO,      NO,      NO,      NO,      NO,      NO,      NO, 
+	NO,      NO,      NO,      NO,      NO,      NO,      NO,      NO,
+	NO,      NO,      NO,      NO,      NO,      NO,      NO,      NO,
 	C('Q'),  C('W'),  C('E'),  C('R'),  C('T'),  C('Y'),  C('U'),  C('I'),
 	C('O'),  C('P'),  NO,      NO,      '\r',    NO,      C('A'),  C('S'),
-	C('D'),  C('F'),  C('G'),  C('H'),  C('J'),  C('K'),  C('L'),  NO, 
+	C('D'),  C('F'),  C('G'),  C('H'),  C('J'),  C('K'),  C('L'),  NO,
 	NO,      NO,      NO,      C('\\'), C('Z'),  C('X'),  C('C'),  C('V'),
 	C('B'),  C('N'),  C('M'),  NO,      NO,      C('/'),  NO,      NO,
 	[0x97] KEY_HOME,

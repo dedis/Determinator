@@ -76,7 +76,7 @@
                        exits(nil);
                }
 
-          Here is the output from running the command 
+          Here is the output from running the command
           "prog -bffile1 -r -f file2 arg1 arg2":
 
                prog -b -f(file1) badflag('r') -f(file2) 2 args: 'arg1' 'arg2'

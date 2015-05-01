@@ -81,7 +81,7 @@ static unsigned char PADDING[64] = {
 /*
  * MD5 initialization. Begins an MD5 operation, writing a new context.
  */
-void 
+void
 MD5Init(context)
 	MD5_CTX        *context;/* context */
 {
@@ -99,7 +99,7 @@ MD5Init(context)
  * MD5 block update operation. Continues an MD5 message-digest operation,
  * processing another message block, and updating the context.
  */
-void 
+void
 MD5Update(context, input, inputLen)
 	MD5_CTX        *context;/* context */
 	unsigned char  *input;	/* input block */
@@ -140,7 +140,7 @@ MD5Update(context, input, inputLen)
  * MD5 finalization. Ends an MD5 message-digest operation, writing the the
  * message digest and zeroizing the context.
  */
-void 
+void
 MD5Final(digest, context)
 	unsigned char   digest[16];	/* message digest */
 	MD5_CTX        *context;/* context */
@@ -172,7 +172,7 @@ MD5Final(digest, context)
 /*
  * MD5 basic transformation. Transforms state based on block.
  */
-static void 
+static void
 MD5Transform(state, block)
 	uint32_t           state[4];
 	unsigned char   block[64];
@@ -269,7 +269,7 @@ MD5Transform(state, block)
  * Encodes input (uint32_t) into output (unsigned char). Assumes len is a
  * multiple of 4.
  */
-static void 
+static void
 Encode(output, input, len)
 	unsigned char  *output;
 	uint32_t          *input;
@@ -289,7 +289,7 @@ Encode(output, input, len)
  * Decodes input (unsigned char) into output (uint32_t). Assumes len is a
  * multiple of 4.
  */
-static void 
+static void
 Decode(output, input, len)
 	uint32_t          *output;
 	unsigned char  *input;

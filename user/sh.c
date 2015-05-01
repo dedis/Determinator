@@ -49,7 +49,7 @@ runcmd(char* s)
 
 	pipe_child = 0;
 	gettoken(s, 0);
-	
+
 again:
 	argc = 0;
 	while (1) {
@@ -62,7 +62,7 @@ again:
 			}
 			argv[argc++] = t;
 			break;
-			
+
 		case '<':	// Input redirection
 			// Grab the filename from the argument list
 			if (gettoken(0, &t) != 'w') {
@@ -86,12 +86,12 @@ again:
 			// then check whether 'fd' is 0.
 			// If not, dup 'fd' onto file descriptor 0,
 			// then close the original 'fd'.
-			
+
 			// LAB 5: Your code here.
 			panic("< redirection not implemented");
 #endif
 			break;
-			
+
 		case '>':	// Output redirection
 			// Grab the filename from the argument list
 			if (gettoken(0, &t) != 'w') {
@@ -117,12 +117,12 @@ again:
 			// If not, dup 'fd' onto file descriptor 1,
 			// then close the original 'fd'.
 			// Also, truncate fd.
-			
+
 			// LAB 5: Your code here.
 			panic("> redirection not implemented");
 #endif
 			break;
-			
+
 #if LAB >= 99
 		case '|':	// Pipe
 #if LAB >= 1
@@ -154,7 +154,7 @@ again:
 			}
 #else
 			// Set up pipe redirection.
-			
+
 			// Allocate a pipe by calling 'pipe(p)'.
 			// Like the Unix version of pipe() (man 2 pipe),
 			// this function allocates two file descriptors;
@@ -185,11 +185,11 @@ again:
 		case 0:		// String is complete
 			// Run the current command!
 			goto runit;
-			
+
 		default:
 			panic("bad return %d from gettoken", c);
 			break;
-			
+
 		}
 	}
 

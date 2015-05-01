@@ -48,7 +48,7 @@ video_init(void)
 		*cp = was;
 		addr_6845 = CGA_BASE;
 	}
-	
+
 	/* Extract cursor location */
 	outb(addr_6845, 14);
 	pos = inb(addr_6845 + 1) << 8;
@@ -105,7 +105,7 @@ video_putc(int c)
 		video_savebuf_copy(crtsave_pos + crtsave_size, 1);
 		crtsave_backscroll = 0;
 	}
-	
+
 #endif
 #endif
 	// if no attribute given, then use black on white
@@ -181,7 +181,7 @@ video_scroll(int delta)
 	if (crtsave_backscroll == 0)
 		// save current screen
 		video_savebuf_copy(crtsave_pos + crtsave_size, 0);
-	
+
 	crtsave_backscroll = new_backscroll;
 	video_savebuf_copy(crtsave_pos + crtsave_size - crtsave_backscroll, 1);
 }

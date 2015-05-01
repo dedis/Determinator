@@ -64,8 +64,8 @@ ide_init(void)
 	outb(0x1F6, 0xE0 | (1<<4));
 
 	// check for Device 1 to be ready for a while
-	for (x = 0; 
-           x < 1000 && ((r = inb(0x1F7)) & (IDE_BSY|IDE_DF|IDE_ERR)) != 0; 
+	for (x = 0;
+           x < 1000 && ((r = inb(0x1F7)) & (IDE_BSY|IDE_DF|IDE_ERR)) != 0;
            x++)
 		pause();
 	if (x == 1000)

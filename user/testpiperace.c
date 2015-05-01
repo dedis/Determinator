@@ -20,15 +20,15 @@ umain(void)
 		//
 		// Now the ref count for p[0] will toggle between 2 and 3
 		// as the parent dups and closes it (there's a close implicit in dup).
-		// 
+		//
 		// The ref count for p[1] is 1.
-		// Thus the ref count for the underlying pipe structure 
+		// Thus the ref count for the underlying pipe structure
 		// will toggle between 3 and 4.
 		//
 		// If a clock interrupt catches close between unmapping
 		// the pipe structure and unmapping the fd, we'll have
 		// a ref count for p[0] of 3, a ref count for p[1] of 1,
-		// and a ref count for the pipe structure of 3, which is 
+		// and a ref count for the pipe structure of 3, which is
 		// a no-no.
 		//
 		// If a clock interrupt catches dup between mapping the

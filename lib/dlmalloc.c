@@ -25,7 +25,7 @@ mspace_alloc_pages()
 	sys_get(SYS_ZERO | SYS_PERM | SYS_RW, 0, NULL, NULL, mem, HEAP_SZ);
 	return mem;
 }
-	
+
 void *
 thmalloc(size_t bytes)
 {

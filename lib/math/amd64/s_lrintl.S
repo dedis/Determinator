@@ -25,7 +25,7 @@
  */
 
 #include "asm.h"
-	
+
 ENTRY(lrintl)
 	fldt	8(%rsp)
 	subq	$8,%rsp

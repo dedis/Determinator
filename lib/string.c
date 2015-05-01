@@ -123,7 +123,7 @@ memmove(void *dst, const void *src, size_t n)
 {
 	const char *s;
 	char *d;
-	
+
 	s = src;
 	d = dst;
 	if (s < d && s + n > d) {
@@ -169,7 +169,7 @@ memmove(void *dst, const void *src, size_t n)
 {
 	const char *s;
 	char *d;
-	
+
 	s = src;
 	d = dst;
 	if (s < d && s + n > d) {

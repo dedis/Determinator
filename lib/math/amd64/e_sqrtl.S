@@ -25,7 +25,7 @@
  */
 
 #include "asm.h"
-	
+
 ENTRY(sqrtl)
 	fldt	8(%rsp)
 	fsqrt

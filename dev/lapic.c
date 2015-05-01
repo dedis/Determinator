@@ -36,20 +36,20 @@ lapicw(int index, int value)
 void
 lapic_init()
 {
-	if (!lapic) 
+	if (!lapic)
 		return;
 
 	// Enable local APIC; set spurious interrupt vector.
 	lapicw(SVR, ENABLE | (T_IRQ0 + IRQ_SPURIOUS));
 
 	// The timer repeatedly counts down at bus frequency
-	// from lapic[TICR] and then issues an interrupt.  
+	// from lapic[TICR] and then issues an interrupt.
 	lapicw(TDCR, X1);
 	lapicw(TIMER, PERIODIC | T_LTIMER);
 
 #if LAB >= 9
 	// First initialize TICR to the maximum value for calibration.
-	lapicw(TICR, ~(uint32_t)0); 
+	lapicw(TICR, ~(uint32_t)0);
 
 	// Use the 8253 Programmable Interval Timer (PIT),
 	// which has a standard clock frequency,

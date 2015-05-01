@@ -128,7 +128,7 @@ fwrite(const void *buf, size_t eltsize, size_t count, FILE *fd)
 	if (isatty(fd - files->fd) && memchr(buf, '\n', eltsize*count))
 		fflush(fd);
 #endif
-		
+
 	return actual >= 0 ? actual : 0;	// no error indication
 }
 

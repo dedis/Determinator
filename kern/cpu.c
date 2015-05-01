@@ -37,9 +37,9 @@ cpu cpu_boot = {
 	gdt: {
 		// 0x0 - unused (always faults: for trapping NULL far pointers)
 		[0] = SEGDESC_NULL,
-		
+
 		// 0x10 - 32-bit kernel code segment
-		[SEG_KERN_CS_32 >> 4] = SEGDESC64(1, STA_X | STA_R, 
+		[SEG_KERN_CS_32 >> 4] = SEGDESC64(1, STA_X | STA_R,
 					0L, 0xffffffff, 0, 0, 1),
 #if SOL >= 1
 
@@ -81,11 +81,11 @@ cpu cpu_boot = {
 int cpu_limit = INT_MAX;
 
 /* Static APs list */
-/* 
- * The initial implementation used to make a call to mem_alloc() and 
+/*
+ * The initial implementation used to make a call to mem_alloc() and
  * then typecast the address returned to cpu *. I think that's not right.
  * First of all, mem_alloc() will return a pointer to PAGESIZE bytes of memory
- * where as kstackhi in struct cpu is 4*PAGESIZE. Second, even if I have 
+ * where as kstackhi in struct cpu is 4*PAGESIZE. Second, even if I have
  * somehow misunderstood the code, gcc_aligned fails to align kstackhi
  * to KSTACKSIZE in the old implementation.
  */
@@ -230,7 +230,7 @@ cpu_alloc(void)
 		}
 		if(i >= NR_CPUS)
 			warn("Too many CPUS on this machine, sell some..\n");
-	}	
+	}
 
 	// Clear the whole page for good measure: cpu struct and kernel stack
 	memset(c, 0, sizeof(struct cpu));

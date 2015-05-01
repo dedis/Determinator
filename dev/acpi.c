@@ -97,7 +97,7 @@ madt_scan(struct acpi_madt *madt)
 		case MADT_IOAPIC:
 			ioapicid = ((struct acpi_madt_ioapic *)p)->ioapicid;
 			ioapic = mem_ptr(((struct acpi_madt_ioapic *)p)->ioapicaddr);
-			cprintf("ioapic %u addr %p\n", ioapicid, 
+			cprintf("ioapic %u addr %p\n", ioapicid,
 				mem_phys(ioapic));
 			ret = true;
 		default:
@@ -157,7 +157,7 @@ acpi_init(void)
 		struct acpi_rsdp *rsdp = p;
 		struct acpi_rsdt *rsdt = mem_ptr(rsdp->rsdtaddr);
 #ifdef DEBUG
-		cprintf("rsdp %p rsdt %p size %u\n", mem_phys(rsdp), 
+		cprintf("rsdp %p rsdt %p size %u\n", mem_phys(rsdp),
 			mem_phys(rsdt), sizeof (struct acpi2_rsdp));
 #endif
 		rsdt_scan(rsdt);
@@ -170,8 +170,8 @@ acpi_init(void)
 		struct acpi_rsdt *rsdt = mem_ptr(rsdp->rsdtaddr);
 		struct acpi2_xsdt *xsdt = mem_ptr(rsdp->xsdtaddr);
 #ifdef DEBUG
-		cprintf("rsdp %p rsdt %p xsdt %p len %u size %u\n", 
-			mem_phys(rsdp), mem_phys(rsdt), mem_phys(xsdt), 
+		cprintf("rsdp %p rsdt %p xsdt %p len %u size %u\n",
+			mem_phys(rsdp), mem_phys(rsdt), mem_phys(xsdt),
 			rsdp->length, sizeof (struct acpi2_rsdp));
 #endif
 		if (rsdt_scan(rsdt))
