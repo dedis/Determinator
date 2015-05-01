@@ -70,7 +70,7 @@ send_header(struct http_request *req, int code)
 	if (send(req->sock, h->header, len, 0) != len) {
 		die("Failed to send bytes to client");
 	}
-	
+
 	return 0;
 }
 
@@ -89,7 +89,7 @@ send_data(struct http_request *req, int fd)
 		} else if (n == 0) {
 			return 0;
 		}
-		
+
 		if (send(req->sock, buf, n, 0) != n)
 			die("Failed to sent file to client");
 	}
@@ -211,7 +211,7 @@ send_error(struct http_request *req, int code)
 			break;
 		e++;
 	}
-	
+
 	if (e->code == 0)
 		return -1;
 
@@ -246,11 +246,11 @@ send_file(struct http_request *req)
 
 	if ((fd = open(req->url, O_RDONLY)) < 0)
 		return send_error(req, 404);
-	
+
 	if ((r = fstat(fd, &stat)) < 0) {
 		close(fd);
 		return send_error(req, 404);
-	}	
+	}
 
 	if (stat.st_isdir) {
 		close(fd);
@@ -291,7 +291,7 @@ handle_client(int sock)
 	int received = -1;
 	struct http_request *req = &con_d;
 
-	while (1) 
+	while (1)
 	{
 		// Receive message
 		if ((received = recv(sock, buffer, BUFFSIZE, 0)) < 0)
@@ -338,7 +338,7 @@ umain(void)
 
 	// Bind the server socket
 	if (bind(serversock, (struct sockaddr *) &server,
-		 sizeof(server)) < 0) 
+		 sizeof(server)) < 0)
 	{
 		die("Failed to bind the server socket");
 	}
@@ -354,7 +354,7 @@ umain(void)
 		// Wait for client connection
 		if ((clientsock = accept(serversock,
 					 (struct sockaddr *) &client,
-					 &clientlen)) < 0) 
+					 &clientlen)) < 0)
 		{
 			die("Failed to accept client connection");
 		}

@@ -41,7 +41,7 @@ spinlock_acquire(struct spinlock *lk)
 
 	// The xchg is atomic.
 	// It also serializes,
-	// so that reads after acquire are not reordered before it. 
+	// so that reads after acquire are not reordered before it.
 	while(xchg(&lk->locked, 1) != 0)
 		pause();	// let CPU know we're in a spin loop
 
@@ -62,7 +62,7 @@ spinlock_release(struct spinlock *lk)
 	lk->eips[0] = 0;
 	lk->cpu = 0;
 
-	// The xchg serializes, so that reads before release are 
+	// The xchg serializes, so that reads before release are
 	// not reordered after it.  The 1996 PentiumPro manual (Volume 3,
 	// 7.2) says reads can be carried out speculatively and in
 	// any order, which implies we need to serialize here.
@@ -111,7 +111,7 @@ void spinlock_check()
 	// Make sure that all locks have the correct debug info.
 	for(i=0;i<NUMLOCKS;i++) assert(locks[i].file==file);
 
-	for (run=0;run<NUMRUNS;run++) 
+	for (run=0;run<NUMRUNS;run++)
 	{
 		// Lock all locks
 		for(i=0;i<NUMLOCKS;i++)
@@ -124,9 +124,9 @@ void spinlock_check()
 		for(i=0;i<NUMLOCKS;i++)
 			assert(spinlock_holding(&locks[i]) != 0);
 		// Make sure that top i frames are somewhere in godeep.
-		for(i=0;i<NUMLOCKS;i++) 
+		for(i=0;i<NUMLOCKS;i++)
 		{
-			for(j=0; j<=i && j < DEBUG_TRACEFRAMES ; j++) 
+			for(j=0; j<=i && j < DEBUG_TRACEFRAMES ; j++)
 			{
 				assert(locks[i].eips[j] >=
 					(uint64_t)spinlock_godeep);

@@ -1,16 +1,16 @@
 #if LAB >= 9
 /* -------------------------------------------------------------------------
- * This is an ANSI C library for multi-stream random number generation.  
- * The use of this library is recommended as a replacement for the ANSI C 
- * rand() and srand() functions, particularly in simulation applications 
- * where the statistical 'goodness' of the random number generator is 
- * important.  The library supplies 256 streams of random numbers; use 
+ * This is an ANSI C library for multi-stream random number generation.
+ * The use of this library is recommended as a replacement for the ANSI C
+ * rand() and srand() functions, particularly in simulation applications
+ * where the statistical 'goodness' of the random number generator is
+ * important.  The library supplies 256 streams of random numbers; use
  * SelectStream(s) to switch between streams indexed s = 0,1,...,255.
  *
  * The streams must be initialized.  The recommended way to do this is by
- * using the function PlantSeeds(x) with the value of x used to initialize 
+ * using the function PlantSeeds(x) with the value of x used to initialize
  * the default stream and all other streams initialized automatically with
- * values dependent on the value of x.  The following convention is used 
+ * values dependent on the value of x.  The following convention is used
  * to initialize the default stream:
  *    if x > 0 then x is the state
  *    if x < 0 then the state is obtained from the system clock
@@ -21,7 +21,7 @@
  * 0.0 and 1.0.  The period is (m - 1) where m = 2,147,483,647 and the
  * smallest and largest possible values are (1 / m) and 1 - (1 / m)
  * respectively.  For more details see:
- * 
+ *
  *       "Random Number Generators: Good Ones Are Hard To Find"
  *                   Steve Park and Keith Miller
  *              Communications of the ACM, October 1988
@@ -30,7 +30,7 @@
  * Authors         : Steve Park & Dave Geyer
  * Language        : ANSI C
  * Latest Revision : 09-22-98
- * ------------------------------------------------------------------------- 
+ * -------------------------------------------------------------------------
  */
 
 #include <stdio.h>
@@ -43,7 +43,7 @@
 #define STREAMS    256        /* # of streams, DON'T CHANGE THIS VALUE    */
 #define A256       22925      /* jump multiplier, DON'T CHANGE THIS VALUE */
 #define DEFAULT    123456789  /* initial seed, use 0 < DEFAULT < MODULUS  */
-      
+
 static long seed[STREAMS] = {DEFAULT};  /* current state of each stream   */
 static int  stream        = 0;          /* stream index, 0 is the default */
 static int  initialized   = 0;          /* test for stream initialization */
@@ -51,8 +51,8 @@ static int  initialized   = 0;          /* test for stream initialization */
 
    double Random(void)
 /* ----------------------------------------------------------------
- * Random returns a pseudo-random real number uniformly distributed 
- * between 0.0 and 1.0. 
+ * Random returns a pseudo-random real number uniformly distributed
+ * between 0.0 and 1.0.
  * ----------------------------------------------------------------
  */
 {
@@ -61,9 +61,9 @@ static int  initialized   = 0;          /* test for stream initialization */
         long t;
 
   t = MULTIPLIER * (seed[stream] % Q) - R * (seed[stream] / Q);
-  if (t > 0) 
+  if (t > 0)
     seed[stream] = t;
-  else 
+  else
     seed[stream] = t + MODULUS;
   return ((double) seed[stream] / MODULUS);
 }
@@ -71,10 +71,10 @@ static int  initialized   = 0;          /* test for stream initialization */
 
    void PlantSeeds(long x)
 /* ---------------------------------------------------------------------
- * Use this function to set the state of all the random number generator 
- * streams by "planting" a sequence of states (seeds), one per stream, 
- * with all states dictated by the state of the default stream. 
- * The sequence of planted states is separated one from the next by 
+ * Use this function to set the state of all the random number generator
+ * streams by "planting" a sequence of states (seeds), one per stream,
+ * with all states dictated by the state of the default stream.
+ * The sequence of planted states is separated one from the next by
  * 8,367,782 calls to Random().
  * ---------------------------------------------------------------------
  */
@@ -101,7 +101,7 @@ static int  initialized   = 0;          /* test for stream initialization */
 
    void PutSeed(long x)
 /* ---------------------------------------------------------------
- * Use this function to set the state of the current random number 
+ * Use this function to set the state of the current random number
  * generator stream according to the following conventions:
  *    if x > 0 then x is the state (unless too large)
  *    if x < 0 then the state is obtained from the system clock
@@ -113,10 +113,10 @@ static int  initialized   = 0;          /* test for stream initialization */
 
   if (x > 0)
     x = x % MODULUS;                       /* correct if x is too large  */
-  if (x <= 0)                                 
+  if (x <= 0)
     x = ((unsigned long) bench_time()) % MODULUS;
 /*
-  if (x == 0)                                
+  if (x == 0)
     while (!ok) {
       printf("\nEnter a positive integer seed (9 digits or less) >> ");
       scanf("%ld", &x);
@@ -131,8 +131,8 @@ static int  initialized   = 0;          /* test for stream initialization */
 
    void GetSeed(long *x)
 /* ---------------------------------------------------------------
- * Use this function to get the state of the current random number 
- * generator stream.                                                   
+ * Use this function to get the state of the current random number
+ * generator stream.
  * ---------------------------------------------------------------
  */
 {
@@ -156,13 +156,13 @@ static int  initialized   = 0;          /* test for stream initialization */
    void TestRandom(void)
 /* ------------------------------------------------------------------
  * Use this (optional) function to test for a correct implementation.
- * ------------------------------------------------------------------    
+ * ------------------------------------------------------------------
  */
 {
   long   i;
   long   x;
   double u;
-  char   ok = 0;  
+  char   ok = 0;
 
   SelectStream(0);                  /* select the default stream */
   PutSeed(1);                       /* and set the state to 1    */
@@ -171,10 +171,10 @@ static int  initialized   = 0;          /* test for stream initialization */
   GetSeed(&x);                      /* get the new state value   */
   ok = (x == CHECK);                /* and check for correctness */
 
-  SelectStream(1);                  /* select stream 1                 */ 
+  SelectStream(1);                  /* select stream 1                 */
   PlantSeeds(1);                    /* set the state of all streams    */
   GetSeed(&x);                      /* get the state of stream 1       */
-  ok = ok && (x == A256);           /* x should be the jump multiplier */    
+  ok = ok && (x == A256);           /* x should be the jump multiplier */
   if (ok)
     cprintf("\n The implementation of rngs.c is correct.\n\n");
   else

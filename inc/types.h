@@ -38,7 +38,7 @@ typedef long long		int64_t;
 typedef unsigned long long	uint64_t;
 
 // Pointers and addresses are 32/64 bits long.
-// long is 4 bytes when compiled as 32-bit code and 
+// long is 4 bytes when compiled as 32-bit code and
 // long is 8 bytes when compiled as 64-bit code.
 // We use pointer types to represent virtual addresses,
 // and [u]intptr_t to represent the numerical values of virtual addresses.

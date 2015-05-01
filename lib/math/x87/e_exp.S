@@ -68,7 +68,7 @@ ENTRY(exp)
 	frndint				/* int(x * log2(e)) */
 	fst	%st(2)
 	fsubrp				/* fract(x * log2(e)) */
-	f2xm1				/* 2^(fract(x * log2(e))) - 1 */ 
+	f2xm1				/* 2^(fract(x * log2(e))) - 1 */
 	fld1
 	faddp				/* 2^(fract(x * log2(e))) */
 	fscale				/* e^x */

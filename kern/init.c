@@ -76,7 +76,7 @@ extern char ROOTEXE_START[];
 struct mem_addr_range grub_mmap_entries[ENTMAX];
 int grub_mmap_nentries = 0;
 
-static void 
+static void
 parse_multiboot2_info(unsigned long addr)
 {
 	struct multiboot_tag *tag;
@@ -93,18 +93,18 @@ parse_multiboot2_info(unsigned long addr)
 		grub_cprintf ("Tag 0x%x, Size 0x%x\n", tag->type, tag->size);
 		switch (tag->type)
 		{
-		case MULTIBOOT_TAG_TYPE_CMDLINE: 
+		case MULTIBOOT_TAG_TYPE_CMDLINE:
 		{
-			struct multiboot_tag_string *tagstr = 
+			struct multiboot_tag_string *tagstr =
 				(struct multiboot_tag_string *)tag;
 			cprintf ("Command line = %s\n", tagstr->string);
-			break;				       
+			break;
 		}
 		case MULTIBOOT_TAG_TYPE_MMAP:
 		{	struct multiboot_tag_mmap *tagm =
 				(struct multiboot_tag_mmap *)tag;
 			multiboot_memory_map_t *mmap;
-			multiboot_uint8_t *tagend = 
+			multiboot_uint8_t *tagend =
 				(multiboot_uint8_t *)tag + tag->size;
 			struct mem_addr_range *entry = grub_mmap_entries;
 
@@ -207,7 +207,7 @@ init(void)
 #if LAB >= 5
 	pci_init();		// Initialize the PCI bus and network card
 	init_cprintf("pci init\n");
-	net_init();		
+	net_init();
 	init_cprintf("net init\n");
 #endif // LAB >= 5
 
@@ -300,7 +300,7 @@ init(void)
 	for (; ph < eph; ph++) {
 		if (ph->p_type != ELF_PROG_LOAD)
 			continue;
-	
+
 		void *fa = (void *) eh + ROUNDDOWN(ph->p_offset, PAGESIZE);
 		uint32_t va = ROUNDDOWN(ph->p_va, PAGESIZE);
 		uint32_t zva = ph->p_va + ph->p_filesz;

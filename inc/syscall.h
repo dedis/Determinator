@@ -33,7 +33,7 @@
 
 #define SYS_REGS	0x00001000	// Get/put register state
 #define SYS_FPU		0x00002000	// Get/put FPU state (with SYS_REGS)
-#if LAB >= 3                    
+#if LAB >= 3
 #define SYS_MEM		0x00004000	// Get/put memory mappings
 #if LAB >= 99
 #define SYS_PROC	0x00008000	// Get/put child processes
@@ -113,7 +113,7 @@ sys_cputs(const char *s)
 	// The "volatile" tells the assembler not to optimize
 	// this instruction away just because it doesn't
 	// look to the compiler like it computes useful values.
-	// 
+	//
 	// The last clause tells the assembler that this can
 	// potentially change the condition codes and arbitrary
 	// memory locations.

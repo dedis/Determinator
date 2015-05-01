@@ -62,7 +62,7 @@ serial_putc(int c)
 	     !(inb(COM1 + COM_LSR) & COM_LSR_TXRDY) && i < 12800;
 	     i++)
 		delay();
-	
+
 	outb(COM1 + COM_TX, c);
 }
 
@@ -71,7 +71,7 @@ serial_init(void)
 {
 	// Turn off the FIFO
 	outb(COM1+COM_FCR, 0);
-	
+
 	// Set speed; requires DLAB latch
 	outb(COM1+COM_LCR, COM_LCR_DLAB);
 	outb(COM1+COM_DLL, (uint8_t) (115200 / 9600));

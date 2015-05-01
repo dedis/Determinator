@@ -25,13 +25,13 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PIOS_LIB_MATH_ARCH_FENV_H_	
+#ifndef PIOS_LIB_MATH_ARCH_FENV_H_
 #define	PIOS_LIB_MATH_ARCH_FENV_H_
 
 #include <cdefs.h>
 #include <types.h>
 
-/*                   
+/*
  * To preserve binary compatibility with FreeBSD 5.3, we pack the
  * mxcsr into some reserved fields, rather than changing sizeof(fenv_t).
  */

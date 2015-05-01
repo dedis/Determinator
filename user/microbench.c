@@ -26,7 +26,7 @@ void forktest(void)
 {
 	pid_t child = fork();
 	if (child == 0)
-		exit(0);	
+		exit(0);
 	assert(child > 0);
 	waitpid(child, NULL, 0);
 }

@@ -43,7 +43,7 @@ int getopt(int argc, char * argv[], const char * optstring) {
 		// Invalid option?
 		if (match == NULL)
 			status = invalid;
-		
+
 		// Argument?
 		else if (match[1] == ':') {
 			if (opt[2] != '\0')

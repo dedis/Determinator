@@ -34,10 +34,10 @@ typedef int pthread_barrier_t;
 typedef void pthread_barrierattr_t;
 
 // Maximum number of barriers a process/thread may use
-#define BARRIER_MAX	PROC_CHILDREN  
+#define BARRIER_MAX	PROC_CHILDREN
 
-int pthread_barrier_init(pthread_barrier_t * barrier, 
-			 const pthread_barrierattr_t * attr, 
+int pthread_barrier_init(pthread_barrier_t * barrier,
+			 const pthread_barrierattr_t * attr,
 			 unsigned int count);
 
 int pthread_barrier_wait(pthread_barrier_t * barrier);

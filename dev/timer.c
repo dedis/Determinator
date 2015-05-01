@@ -1,7 +1,7 @@
 #if LAB >= 9
 /* See COPYRIGHT for copyright information. */
 
-/* 
+/*
  * The 8253 Programmable Interval Timer (PIT),
  * which generates interrupts on IRQ 0.
  */

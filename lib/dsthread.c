@@ -256,7 +256,7 @@ pthread_sched(void)
 		/*FIXME:: Ishan - 31 May,2011
 		  change t->ebp etc to 64 bit regs.
 		  the jmp instruction has been commented here.
-		 */ 
+		 */
 		asm volatile(
 			"	movl	%0,%%ebp;"	// restore thread's ebp
 			"	movl	%1,%%esp;"	// restore thread's esp

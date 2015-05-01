@@ -68,7 +68,7 @@ debug_dump(const char *file, int line, const void *ptr, int size)
 		char buf[100];
 
 		// ASCII bytes
-		int i; 
+		int i;
 		const uint8_t *c = ptr;
 		for (i = 0; i < 16; i++)
 			buf[i] = isprint(c[i]) ? c[i] : '.';

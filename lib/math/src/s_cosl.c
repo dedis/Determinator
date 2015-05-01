@@ -79,7 +79,7 @@ cosl(long double x)
 		xd[i] = (double)((int32_t)z.e);
 		z.e = (z.e - xd[i]) * two24;
 	}
-	
+
 	/* yd contains the pieces of xd rem pi/2 such that |yd| < pi/4. */
 	e0 = __kernel_rem_pio2(xd, yd, e0, NX, PREC);
 
@@ -107,6 +107,6 @@ cosl(long double x)
 	    hi = __kernel_sinl(hi, lo, 1);
 	    break;
 	}
-	
+
 	return (hi);
 }

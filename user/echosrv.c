@@ -15,7 +15,7 @@ die(char *m)
 	exit();
 }
 
-void 
+void
 handle_client(int sock)
 {
 	char buffer[BUFFSIZE];
@@ -37,7 +37,7 @@ handle_client(int sock)
 	closesocket(sock);
 }
 
-int 
+int
 umain(void)
 {
 	int serversock, clientsock;
@@ -45,24 +45,24 @@ umain(void)
 	char buffer[BUFFSIZE];
 	unsigned int echolen;
 	int received = 0;
-	
+
 	// Create the TCP socket
 	if ((serversock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
 		die("Failed to create socket");
-	
+
 	cprintf("opened socket\n");
-	
+
 	// Construct the server sockaddr_in structure
 	memset(&echoserver, 0, sizeof(echoserver));       // Clear struct
 	echoserver.sin_family = AF_INET;                  // Internet/IP
 	echoserver.sin_addr.s_addr = htonl(INADDR_ANY);   // IP address
 	echoserver.sin_port = htons(PORT);		  // server port
-	
+
 	cprintf("trying to bind\n");
-	
+
 	// Bind the server socket
 	if (bind(serversock, (struct sockaddr *) &echoserver,
-		 sizeof(echoserver)) < 0) 
+		 sizeof(echoserver)) < 0)
 	{
 		die("Failed to bind the server socket");
 	}
@@ -70,25 +70,25 @@ umain(void)
 	// Listen on the server socket
 	if (listen(serversock, MAXPENDING) < 0)
 		die("Failed to listen on server socket");
-	
+
 	cprintf("bound\n");
-	
+
 	// Run until cancelled
 	while (1) {
 		unsigned int clientlen = sizeof(echoclient);
 		// Wait for client connection
 		if ((clientsock =
 		     accept(serversock, (struct sockaddr *) &echoclient,
-			    &clientlen)) < 0) 
+			    &clientlen)) < 0)
 		{
 			die("Failed to accept client connection");
 		}
 		cprintf("Client connected: %s\n", inet_ntoa(echoclient.sin_addr));
 		handle_client(clientsock);
 	}
-	
+
 	closesocket(serversock);
-	
+
 	return 0;
 }
 #endif

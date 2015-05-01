@@ -4,7 +4,7 @@
 #include <math.h>
 
 int main()
-{	
+{
 	printf("%f %f %f\n", 1.0, M_PI, -M_E);
 	printf("%.0f %#.0f %.0f\n", 1.0, -M_PI, M_E);
 	printf("%.3f %#.3f %.3f\n", 1.0, M_PI, M_E);

@@ -42,7 +42,7 @@
 //SMAP value as needed by e820 bios call
 #define SMAP 0x534D4150
 
-//memory locations needed during bios call to save stuff 
+//memory locations needed during bios call to save stuff
 #define REAL_STACK_HI 0xBB8 //3000
 
 #define BIOSCALL_MEM_START 0xBE8 //this is where we start saving the gdt,idt,esp etc. during a bios call
@@ -221,8 +221,8 @@ struct bios_regs {
 	uint32_t   edx;
 	uint32_t   esi;
 	uint32_t   edi;
-	uint16_t   ds; 
-	uint16_t   es; 
+	uint16_t   ds;
+	uint16_t   es;
 	uint8_t    int_no;
 	uint8_t    cf; //read-only memory to see carry flag.
 

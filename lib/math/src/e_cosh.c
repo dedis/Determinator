@@ -6,25 +6,25 @@
  *
  * Developed at SunSoft, a Sun Microsystems, Inc. business.
  * Permission to use, copy, modify, and distribute this
- * software is freely granted, provided that this notice 
+ * software is freely granted, provided that this notice
  * is preserved.
  * ====================================================
  */
 
 
 /* __ieee754_cosh(x)
- * Method : 
+ * Method :
  * mathematically cosh(x) if defined to be (exp(x)+exp(-x))/2
- *	1. Replace x by |x| (cosh(x) = cosh(-x)). 
- *	2. 
- *		                                        [ exp(x) - 1 ]^2 
+ *	1. Replace x by |x| (cosh(x) = cosh(-x)).
+ *	2.
+ *		                                        [ exp(x) - 1 ]^2
  *	    0        <= x <= ln2/2  :  cosh(x) := 1 + -------------------
  *			       			           2*exp(x)
  *
  *		                                  exp(x) +  1/exp(x)
  *	    ln2/2    <= x <= 22     :  cosh(x) := -------------------
  *			       			          2
- *	    22       <= x <= lnovft :  cosh(x) := exp(x)/2 
+ *	    22       <= x <= lnovft :  cosh(x) := exp(x)/2
  *	    lnovft   <= x <= ln2ovft:  cosh(x) := exp(x/2)/2 * exp(x/2)
  *	    ln2ovft  <  x	    :  cosh(x) := huge*huge (overflow)
  *
@@ -50,7 +50,7 @@ __ieee754_cosh(double x)
 	ix &= 0x7fffffff;
 
     /* x is INF or NaN */
-	if(ix>=0x7ff00000) return x*x;	
+	if(ix>=0x7ff00000) return x*x;
 
     /* |x| in [0,0.5*ln2], return 1+expm1(|x|)^2/(2*exp(|x|)) */
 	if(ix<0x3fd62e43) {

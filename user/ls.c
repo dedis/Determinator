@@ -69,7 +69,7 @@ lsfile(const char *path, const char *realpath)
 	bool isdir = S_ISDIR(st.st_mode);
 
 	if(flag['l'])
-		printf("%c %11d ", 
+		printf("%c %11d ",
 			(st.st_mode & S_IFCONF) ? 'C' : isdir ? 'd' : '-',
 			st.st_size);
 	printf("%s", path);

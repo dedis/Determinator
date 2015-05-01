@@ -42,7 +42,7 @@ args_exist:
 
 /*FIXME:: Ishan - 01 Jun,2011
   -check the logic below.
- */ 
+ */
 #if LAB >= 9		// run initialization functions
 	movq	$__init_array_start,%rdx
 1:	cmpq	$__init_array_end,%rdx

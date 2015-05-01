@@ -46,7 +46,7 @@ static uint8_t max_page_entry_level = 2;
 // Set up a four-level page table:
 // pmap_bootpml4 is its linear (virtual) address of the root
 // Then turn on paging.
-// 
+//
 // This function only creates mappings in the kernel part of the address space
 // (addresses outside of the range between VM_USERLO and VM_USERHI).
 // The user part of the address space remains all PTE_ZERO until later.
@@ -66,7 +66,7 @@ pmap_init(void)
 			max_page_entry_level = 1;
 		}
 		// Initialize pmap_bootpmap, the bootstrap page map.
-		// Page map entries corresponding to the user-mode address 
+		// Page map entries corresponding to the user-mode address
 		// space between VM_USERLO and VM_USERHI
 		// should all be initialized to PTE_ZERO (see kern/pmap.h).
 		// All virtual addresses below and above this user area
@@ -254,22 +254,22 @@ static void (*pmap_freefun[3])(pageinfo *pi) = {pmap_freept, pmap_freepd, pmap_f
 //    - If writing == 0, pmap_walk returns NULL.
 //    - Otherwise, pmap_walk tries to allocate a new lower page map
 //	table with mem_alloc.  If this fails, pmap_walk returns NULL.
-//    - The new lower page map table is cleared and its refcount 
+//    - The new lower page map table is cleared and its refcount
 //      set to 1.
 //    - If the relevant lower level page map table has already existed
-//      in the table pointed-to by pmtab, but it is read shared and 
+//      in the table pointed-to by pmtab, but it is read shared and
 //      writing != 0, then copy the lower page map table to obtain an
 //      exclusive copy of it and write-enable the entry in pmtab.
 //    - If the lower table is a page table, pmap_walk returns a pointer
 //      to the requested entry within the lower page table.
-//    - Otherwise, let the lower table be pmtab, and do the above job 
+//    - Otherwise, let the lower table be pmtab, and do the above job
 //      repeatedly.
 //
 // Hint: you can turn a pageinfo pointer into the physical address of the
 // page it refers to with mem_pi2phys() from kern/mem.h.
 //
 // Hint 2: the x86 MMU checks permission bits in all of the page map
-// level-4, the page-directory-pointer, the page directory and 
+// level-4, the page-directory-pointer, the page directory and
 // the page table, so it's safe to leave some page permissions
 // more permissive than strictly necessary.
 static pte_t *pmap_walk_level();
@@ -315,7 +315,7 @@ pmap_walk_level(int pmlevel, pte_t *pmtab, intptr_t la, bool writing)
 			plowtab[i] = PTE_ZERO;
 
 		// The permissions here are overly generous, but they can
-		// be further restricted by the permissions in the page table 
+		// be further restricted by the permissions in the page table
 		// entries, if necessary.
 		*pmte = mem_pi2phys(pi) | PTE_A | PTE_P | PTE_W | PTE_U;
 	}
@@ -373,11 +373,11 @@ pmap_walk_level(int pmlevel, pte_t *pmtab, intptr_t la, bool writing)
 //   - pi->refcount should be incremented if the insertion succeeds.
 //   - The TLB must be invalidated if a page was formerly present at 'va'.
 //
-// Corner-case hint: Make sure to consider what happens when the same 
+// Corner-case hint: Make sure to consider what happens when the same
 // pi is re-inserted at the same virtual address in the same pml4.
 // What if this is the only reference to that page?
 //
-// RETURNS: 
+// RETURNS:
 //   a pointer to the inserted PTE on success (same as pmap_walk)
 //   NULL, if page table couldn't be allocated
 //
@@ -571,7 +571,7 @@ pmap_copy(pte_t *spml4, intptr_t sva, pte_t *dpml4, intptr_t dva,
 // pmlevel == 0, spmtab & dpmtab => source/destination page table
 //
 static void
-pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab, 
+pmap_copy_level(int pmlevel, pte_t *spmtab, intptr_t sva, pte_t *dpmtab,
 		intptr_t dva, intptr_t svahi)
 {
 //int i;
@@ -758,7 +758,7 @@ pmap_mergepage(pte_t *rpte, pte_t *spte, pte_t *dpte, intptr_t dva)
 #endif /* not SOL >= 3 */
 }
 
-// 
+//
 // Merge differences between a reference snapshot represented by rpml4
 // and a source address space spml4 into a destination address space dpml4.
 //
@@ -979,7 +979,7 @@ pmap_check(void)
 	// should be no free memory
 	assert(mem_alloc() == NULL);
 
-	// there is no free memory, so we can't allocate a page table 
+	// there is no free memory, so we can't allocate a page table
 	assert(pmap_insert(pmap_bootpmap, pi2, VM_USERLO, 0) == NULL);
 
 	// free pi0, pi1 and try again: pi0 and pi1 should be used for page table
@@ -1023,7 +1023,7 @@ pmap_check(void)
 	assert(pi3->refcount == 1);
 	assert(*pmap_walk(pmap_bootpmap, VM_USERLO+PAGESIZE, 0) & PTE_U);
 	assert(((pte_t *)PTE_ADDR(((pte_t *)PTE_ADDR(pmap_bootpmap[PDX(3, VM_USERLO+PAGESIZE)]))[PDX(2, VM_USERLO+PAGESIZE)]))[PDX(1, VM_USERLO+PAGESIZE)] & PTE_U);
-	
+
 	// should not be able to map at VM_USERLO+PTSIZE
 	// because we need a free page for a page table
 	assert(pmap_insert(pmap_bootpmap, pi0, VM_USERLO+PTSIZE, 0) == NULL);

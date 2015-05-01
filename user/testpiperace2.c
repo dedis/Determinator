@@ -34,11 +34,11 @@ umain(void)
 
 	// We hold both p[0] and p[1] open, so pipeisclosed should
 	// never return false.
-	// 
+	//
 	// Now the ref count for p[0] will toggle between 2 and 3
 	// as the child dups and closes it.
 	// The ref count for p[1] is 1.
-	// Thus the ref count for the underlying pipe structure 
+	// Thus the ref count for the underlying pipe structure
 	// will toggle between 3 and 4.
 	//
 	// If pipeisclosed checks pageref(p[0]) and gets 3, and

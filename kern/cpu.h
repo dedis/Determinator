@@ -16,7 +16,7 @@
 
 
 // Segment selectors in the kernel's GDT
-// Except for SEG_TSS, one 8-byte code/data segment 
+// Except for SEG_TSS, one 8-byte code/data segment
 // is followed by one 8-byte garbage segment
 #define SEG_NULL	0x00	// null descriptor (required by x86 processor)
 #define SEG_KERN_CS_32	0x10	// 32-bit kernel code segment

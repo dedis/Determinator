@@ -32,7 +32,7 @@ umain(void)
 	wait(r);
 	if ((n2 = readn(fd, buf2, sizeof buf2)) != n)
 		panic("read in parent got %d, then got %d", n, n2);
-	cprintf("read in parent succeeded\n");		
+	cprintf("read in parent succeeded\n");
 	close(fd);
 
 	if ((fd = open("newmotd", O_RDWR)) < 0)

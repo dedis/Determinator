@@ -187,11 +187,11 @@ outsq(int port, const void *addr, int cnt)
 			 "cc");
 }
 
-static gcc_inline void 
+static gcc_inline void
 invlpg(void *addr)
-{ 
+{
 	__asm __volatile("invlpg (%0)" : : "r" (addr) : "memory");
-}  
+}
 
 static gcc_inline void
 lidt(void *p)
@@ -363,7 +363,7 @@ pause(void)
 static gcc_inline void
 cpuid(uint32_t idx, cpuinfo *info)
 {
-	asm volatile("cpuid" 
+	asm volatile("cpuid"
 		: "=a" (info->eax), "=b" (info->ebx),
 		  "=c" (info->ecx), "=d" (info->edx)
 		: "a" (idx));

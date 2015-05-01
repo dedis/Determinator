@@ -137,7 +137,7 @@ trap_init_idt(void)
 
 #endif	// SOL >= 2
 #else	// not SOL >= 1
-	
+
 	panic("trap_init() not implemented.");
 #endif	// SOL >= 1
 }
@@ -150,7 +150,7 @@ trap_init(void)
 	if (cpu_onboot())
 		trap_init_idt();
 	init_cprintf("idt init\n");
-	
+
 	// Load the IDT into this processor's IDT register.
 	asm volatile("lidt %0" : : "m" (idt_pd));
 	init_cprintf("idt reg init\n");

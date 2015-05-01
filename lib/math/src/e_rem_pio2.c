@@ -6,7 +6,7 @@
  *
  * Developed at SunSoft, a Sun Microsystems, Inc. business.
  * Permission to use, copy, modify, and distribute this
- * software is freely granted, provided that this notice 
+ * software is freely granted, provided that this notice
  * is preserved.
  * ====================================================
  *
@@ -15,8 +15,8 @@
 
 
 /* __ieee754_rem_pio2(x,y)
- * 
- * return the remainder of x rem pi/2 in y[0]+y[1] 
+ *
+ * return the remainder of x rem pi/2 in y[0]+y[1]
  * use __kernel_rem_pio2()
  */
 
@@ -140,22 +140,22 @@ medium:
 	    {
 	        uint32_t high;
 	        j  = ix>>20;
-	        y[0] = r-w; 
+	        y[0] = r-w;
 		GET_HIGH_WORD(high,y[0]);
 	        i = j-((high>>20)&0x7ff);
 	        if(i>16) {  /* 2nd iteration needed, good to 118 */
 		    t  = r;
-		    w  = fn*pio2_2;	
+		    w  = fn*pio2_2;
 		    r  = t-w;
-		    w  = fn*pio2_2t-((t-r)-w);	
+		    w  = fn*pio2_2t-((t-r)-w);
 		    y[0] = r-w;
 		    GET_HIGH_WORD(high,y[0]);
 		    i = j-((high>>20)&0x7ff);
 		    if(i>49)  {	/* 3rd iteration need, 151 bits acc */
 		    	t  = r;	/* will cover all possible cases */
-		    	w  = fn*pio2_3;	
+		    	w  = fn*pio2_3;
 		    	r  = t-w;
-		    	w  = fn*pio2_3t-((t-r)-w);	
+		    	w  = fn*pio2_3t-((t-r)-w);
 		    	y[0] = r-w;
 		    }
 		}
@@ -163,7 +163,7 @@ medium:
 	    y[1] = (r-y[0])-w;
 	    return n;
 	}
-    /* 
+    /*
      * all other (large) arguments
      */
 	if(ix>=0x7ff00000) {		/* x is inf or NaN */

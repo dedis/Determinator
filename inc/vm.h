@@ -91,8 +91,8 @@
 #if LAB >= 9
 //    VM_SPMCHI        +------------------------------+ 0x700000000000
 //                     |                              |
-//                     |      SPMC Regions            |    
-//                     |                              | 
+//                     |      SPMC Regions            |
+//                     |                              |
 //    VM_SPMCLO,       +------------------------------+ 0x300000000000
 #endif
 //    VM_FILEHI        |                              |
@@ -106,7 +106,7 @@
 //                     |   program text, data, heap   |
 //                     |                              |
 //    VM_SHARELO   ---> +==============================+ 0x000040000000(1GB)
-//    VM_USERLO, ---> 
+//    VM_USERLO, --->
 
 
 #if LAB >= 9

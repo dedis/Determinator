@@ -2,7 +2,7 @@
 /*
  * Boot code for Application Processors (APs) in a multiprocessor system.
  *
- * Copyright (C) 1997 Massachusetts Institute of Technology 
+ * Copyright (C) 1997 Massachusetts Institute of Technology
  * See section "MIT License" in the file LICENSES for licensing terms.
  *
  * Derived from the MIT Exokernel and JOS.
@@ -67,8 +67,8 @@ bootother:
 	movw    %ax,%ss             # -> Stack Segment
 
 	# Switch from real to protected mode, using a bootstrap GDT
-	# and segment translation that makes virtual addresses 
-	# identical to physical addresses, so that the 
+	# and segment translation that makes virtual addresses
+	# identical to physical addresses, so that the
 	# effective memory map does not change during the switch.
 	lgdt    kerngdtptr
 	movl    %cr0, %eax
@@ -202,7 +202,7 @@ bioscall:
 	//start the transition into real mode
 	cli
 
-	// disable paging 
+	// disable paging
 //TODO:: Save the paging bit in a location and restore it. Dont disable and enable (since bios may be called w or w/o paging)
 	movl    %cr0,%eax
 	//andl    $~CR0_PG,%eax
@@ -230,7 +230,7 @@ bioscall:
 	lidt realidtptr
 
 	//patch the int instruction
-	movw $(start-BIOSREGS_SIZE+BIOSREGS_INT_NO),%bp 
+	movw $(start-BIOSREGS_SIZE+BIOSREGS_INT_NO),%bp
 	movb (%bp),%al
 	movb %al,int_call+1
 
@@ -255,7 +255,7 @@ bioscall:
 
 	//set up the real mode sp
 	movw REAL_STACK_HI,%sp
-	
+
 	//load the registers needed by the BIOS
 	movw $(start-BIOSREGS_SIZE+BIOSREGS_EAX),%bp
 	movl (%bp),%eax
@@ -306,7 +306,7 @@ int_call:
 	//prepare to go back in 32 bit
 //	cli
 
-	//load the protected mode gdt	
+	//load the protected mode gdt
 	//lgdt gdtdesc
 	lidt BIOSCALL_MEM_START+IDT_MEM_LOC
 	lgdt BIOSCALL_MEM_START+GDT_MEM_LOC

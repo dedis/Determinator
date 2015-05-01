@@ -59,7 +59,7 @@ umain(void)
 		if (c1 == '\n')
 			nloff = off+1;
 	}
-	cprintf("shell ran correctly\n");			
+	cprintf("shell ran correctly\n");
 
 	breakpoint();
 }

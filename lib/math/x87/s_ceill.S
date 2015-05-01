@@ -2,7 +2,7 @@
  * Based on code written by J.T. Conklin <jtc@NetBSD.org>.
  * Public domain.
  */
-	
+
 #include "asm.h"
 
 ENTRY(ceill)
